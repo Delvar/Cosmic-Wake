@@ -315,7 +315,7 @@ export class Ship extends GameObject {
         const t = Math.min(this.animationTime / this.animationDuration, 1);
 
         if (t < 0.5) {
-            // Phase 1: Shrink and move to gate center
+            // Phase 1: Shrink and move to gate center (unchanged)
             this.shipScale = 1 - (t * 1.5); // 1 to 0.25
             this.position = this.jumpStartPosition.lerp(this.jumpGate.position, t * 2);
             const radialOut = this.jumpGate.position.normalize();
@@ -327,12 +327,15 @@ export class Ship extends GameObject {
             this.targetAngle = this.angle;
             this.stretchFactor = 1;
         } else {
-            // Phase 2: Stretch and accelerate outward
+            // Phase 2: Stretch and accelerate outward with quadratic easing
             this.shipScale = 0.25;
-            this.stretchFactor = 1 + (t - 0.5) * 39; // 1 to 20
+            const easedT = (t - 0.5) * 2; // Normalize to 0-1 for this phase
+            const progress = easedT * easedT; // Quadratic ease-in: slow start, fast end
+            this.stretchFactor = 1 + progress * 9; // 1 to 10
             const radialOut = this.jumpGate.position.normalize();
-            this.position = this.jumpGate.position.add(radialOut.multiply(5000 * (t - 0.5) * 2));
-            this.velocity = radialOut.multiply(2000);
+            const maxDistance = 5000; // Max distance outward
+            this.position = this.jumpGate.position.add(radialOut.multiply(maxDistance * progress));
+            this.velocity = radialOut.multiply(2000 * easedT); // Velocity ramps up
         }
 
         if (t >= 1) {
@@ -343,7 +346,7 @@ export class Ship extends GameObject {
             this.jumpEndPosition = this.jumpGate.lane.targetGate.position.clone(); // Set the end position
             this.position = this.jumpEndPosition.subtract(radialIn.multiply(5000)); // Start outside the target gate
             this.setState('JumpingIn');
-            this.velocity = radialIn.multiply(2000);
+            this.velocity = radialIn.multiply(2000); // Initial velocity for JumpingIn
             this.trail.points = []; // Clear trail for new system
             this.jumpStartAngle = null;
             oldSystem.ships = oldSystem.ships.filter(ship => ship !== this);
@@ -352,7 +355,7 @@ export class Ship extends GameObject {
     }
 
     /**
-     * Updates the ship in the 'JumpingIn' state, animating arrival in a new system.
+     * Updates the ship in the 'JumpingIn' state, animating arrival in a new system with a speed ramp.
      * @param {number} deltaTime - Time elapsed since last update in seconds.
      */
     updateJumpingIn(deltaTime) {
@@ -365,21 +368,24 @@ export class Ship extends GameObject {
         }
 
         if (t < 0.5) {
-            // Phase 1: Stretched arrival from outside
+            // Phase 1: Stretched arrival from outside with quadratic easing (fast start, slowing down)
             this.shipScale = 0.25;
-            this.stretchFactor = 20 - t * 19; // 20 to 1
+            const easedT = t * 2; // Normalize to 0-1 for this phase
+            const progress = 1 - (1 - easedT) * (1 - easedT); // Quadratic ease-out: fast start, slow end
+            this.stretchFactor = 10 - progress * 9; // 10 to 1
             const radialIn = this.jumpEndPosition.normalize().multiply(-1);
-            const outsidePos = this.jumpEndPosition.subtract(radialIn.multiply(5000));
-            this.position = outsidePos.lerp(this.jumpEndPosition, t * 2);
+            const maxDistance = 5000;
+            const outsidePos = this.jumpEndPosition.subtract(radialIn.multiply(maxDistance));
+            this.position = outsidePos.lerp(this.jumpEndPosition, progress);
             const desiredAngle = Math.atan2(radialIn.y, radialIn.x);
             const startAngle = this.jumpStartAngle || this.angle;
             if (!this.jumpStartAngle) this.jumpStartAngle = this.angle;
             const angleDiff = (desiredAngle - startAngle + Math.PI) % (2 * Math.PI) - Math.PI;
-            this.angle = startAngle + angleDiff * (t * 2);
+            this.angle = startAngle + angleDiff * easedT;
             this.targetAngle = this.angle;
-            this.velocity = radialIn.multiply(2000);
+            this.velocity = radialIn.multiply(2000 * (1 - easedT)); // Velocity ramps down
         } else {
-            // Phase 2: Normalize and stop
+            // Phase 2: Normalize and stop (unchanged)
             this.shipScale = 0.25 + (t - 0.5) * 1.5; // 0.25 to 1
             this.stretchFactor = 1;
             this.position = this.jumpEndPosition;

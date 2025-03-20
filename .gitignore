@@ -1,0 +1,6 @@
+Old Versions/
+node_modules/
+settings.json
+eslint.config.mjs
+package-lock.json
+package.json

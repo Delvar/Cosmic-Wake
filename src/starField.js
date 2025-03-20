@@ -1,5 +1,5 @@
 // starField.js
-import { remapRange01 } from './utils.js';
+import { remapRange01, remapClamp } from './utils.js';
 
 /**
  * Generates a hash value from grid coordinates and layer index for consistent RNG seeding.
@@ -51,7 +51,6 @@ export class StarField {
         this.gridSize = gridSize;         // Cell size in world-space units (pixels)
         this.layers = 5;                  // Total number of parallax layers
         // Parallax factors for each layer, from farthest (0.1) to closest (0.9)
-        //this.parallaxFactors = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.9];
         this.parallaxFactors = [0.1, 0.3, 0.5, 0.7, 0.9];
         this.debug = false;               // Toggle to draw debug grid lines
     }
@@ -63,10 +62,16 @@ export class StarField {
      */
     draw(ctx, camera) {
         ctx.save();
-
+        const zoomThreshold = 1 - remapClamp(camera.zoom, 0.5, 1, 0.5, 1);
         // Iterate over each layer (0 = farthest, 7 = closest)
         for (let layer = 0; layer < this.layers; layer++) {
             const parallaxFactor = this.parallaxFactors[layer]; // Parallax factor for this layer
+
+            // Optimization: Skip distant layers (0.1, 0.3) when zoomed out
+            if (zoomThreshold > parallaxFactor) {
+                continue;
+            }
+
             const parallaxZoom = parallaxFactor * camera.zoom;  // Combined zoom and parallax effect
             const size = 1 + parallaxFactor * 2;                // Star size scales with proximity
             // layerRatio: 0 (farthest) to 1 (closest)

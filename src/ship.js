@@ -315,7 +315,7 @@ export class Ship extends GameObject {
         const t = Math.min(this.animationTime / this.animationDuration, 1);
 
         if (t < 0.5) {
-            // Phase 1: Shrink and move to gate center (unchanged)
+            // Phase 1: Shrink and move to gate center
             this.shipScale = 1 - (t * 1.5); // 1 to 0.25
             this.position = this.jumpStartPosition.lerp(this.jumpGate.position, t * 2);
             const radialOut = this.jumpGate.position.normalize();

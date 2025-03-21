@@ -3,6 +3,8 @@
 import { Vector2D } from './vector2d.js';
 import { JumpGate } from './celestialBody.js';
 import { remapClamp } from './utils.js';
+import { FlyToTargetAutoPilot, LandOnPlanetAutoPilot } from './autopilot.js';
+import { Ship } from './ship.js';
 
 /**
  * Base class for pilots that control ships. Subclasses must implement core methods.
@@ -45,6 +47,7 @@ export class PlayerPilot extends Pilot {
      */
     constructor(ship) {
         super(ship);
+        this.autopilot = null;
     }
 
     // Add helper method for targeting
@@ -58,49 +61,65 @@ export class PlayerPilot extends Pilot {
     }
 
     /**
-     * Updates the ship's rotation and thrust based on player keyboard inputs.
-     * @param {number} deltaTime - Time elapsed since the last update in seconds.
-     * @param {GameManager} gameManager - The game manager object (unused in this implementation).
+     * Updates the player's ship based on input and autopilot state.
+     * @param {number} deltaTime - Time elapsed since last update in seconds.
+     * @param {GameManager} gameManager - The game manager instance for input and state.
      */
     update(deltaTime, gameManager) {
-        let targetAngle = this.ship.angle;
-        // Rotate ship left or right based on arrow key input
-        if (gameManager.keys.ArrowLeft) {
-            targetAngle -= this.ship.rotationSpeed * deltaTime;
-        } else if (gameManager.keys.ArrowRight) {
-            targetAngle += this.ship.rotationSpeed * deltaTime;
+        const keys = gameManager.keys;
+        const lastKeys = gameManager.lastKeys;
+
+        // Interrupt autopilot if movement keys are pressed
+        if (keys['ArrowLeft'] || keys['ArrowRight'] || keys['ArrowUp'] || keys['ArrowDown']) {
+            if (this.autopilot?.active) {
+                this.autopilot.stop();
+                this.autopilot = null;
+            }
         }
-        this.ship.setTargetAngle(targetAngle);
 
-        // Apply thrust or brakes based on up/down arrow keys
-        this.ship.applyThrust(gameManager.keys.ArrowUp);
-        this.ship.applyBrakes(gameManager.keys.ArrowDown);
+        // Manual controls
+        if (keys['ArrowLeft']) {
+            this.ship.setTargetAngle(this.ship.targetAngle - this.ship.rotationSpeed * deltaTime);
+        }
+        if (keys['ArrowRight']) {
+            this.ship.setTargetAngle(this.ship.targetAngle + this.ship.rotationSpeed * deltaTime);
+        }
+        this.ship.applyThrust(keys['ArrowUp']);
+        this.ship.applyBrakes(keys['ArrowDown']);
 
-        // Landing and takeoff with 'L'
-        if (gameManager.keys['l']) {
-            if (this.ship.state === 'Flying') {
-                const planet = this.ship.starSystem.celestialBodies.find(body =>
-                    !(body instanceof JumpGate) && this.ship.canLand(body)
-                );
-                if (planet) {
-                    this.ship.initiateLanding(planet);
+        // Landing automation with 'L'
+        if (keys['l'] && !lastKeys['l']) {
+            if (this.ship.state === 'Flying' && this.ship.target) {
+                if (!(this.ship.target instanceof JumpGate)) {
+                    if (this.ship.canLand(this.ship.target)) {
+                        this.ship.initiateLanding(this.ship.target);
+                    } else {
+                        this.autopilot = new LandOnPlanetAutoPilot(this.ship, this.ship.target);
+                        this.autopilot.start();
+                    }
                 }
             } else if (this.ship.state === 'Landed') {
                 if (this.ship.target) {
                     const directionToTarget = this.ship.target.position.subtract(this.ship.position);
                     this.ship.setTargetAngle(Math.atan2(directionToTarget.y, directionToTarget.x));
-                } // Else, keep last angle
+                }
                 this.ship.initiateTakeoff();
             }
         }
 
-        // Hyperjump with 'J'
-        if (gameManager.keys['j'] && !gameManager.lastKeys['j']) { // Single press
-            this.ship.initiateHyperjump();
+        // Update autopilot if active
+        if (this.autopilot?.active) {
+            this.autopilot.update(deltaTime);
+            if (this.autopilot.isComplete()) {
+                if (this.autopilot.error) {
+                    console.warn(`Autopilot failed: ${this.autopilot.error}`);
+                }
+                this.autopilot = null;
+            }
         }
 
-        // Target selection with 'T' and 'Shift + T' on key press only
-        if (gameManager.keys['t'] && !gameManager.lastKeys['t']) { // 't' pressed this frame
+        // Target selection with 'T' and 'Shift + T' on key press only (restored original logic)
+        if (keys['t'] && !lastKeys['t']) { // 't' pressed this frame
             const targets = this.listTargetableObjects(gameManager);
             if (targets.length > 0) {
                 const currentIndex = targets.indexOf(this.ship.target);
@@ -108,13 +127,18 @@ export class PlayerPilot extends Pilot {
                 this.ship.setTarget(targets[nextIndex]);
             }
         }
-        if (gameManager.keys['T'] && !gameManager.lastKeys['T']) { // 'Shift + T' pressed this frame
+        if (keys['T'] && !lastKeys['T']) { // 'Shift + T' pressed this frame
             const targets = this.listTargetableObjects(gameManager);
             if (targets.length > 0) {
                 const currentIndex = targets.indexOf(this.ship.target);
                 const prevIndex = (currentIndex - 1 + targets.length) % targets.length;
                 this.ship.setTarget(targets[prevIndex]);
             }
+        }
+
+        // Hyperjump (unchanged)
+        if (keys['j'] && !lastKeys['j']) {
+            this.ship.initiateHyperjump();
         }
     }
 }
@@ -185,7 +209,6 @@ export class AIPilot extends Pilot {
      * @param {GameManager} gameManager - The game manager providing game state.
      */
     update(deltaTime, gameManager) {
-        const LANDING_SPEED = 5;
         const CLOSE_APPROACH_SPEED = 30;
         let state = 'Unknown';
 
@@ -231,7 +254,7 @@ export class AIPilot extends Pilot {
         const velocityPerpendicular = this.ship.velocity.subtract(velocityParallel);
         const lateralSpeed = velocityPerpendicular.magnitude();
 
-        const decelerationDistance = (currentSpeed * currentSpeed - LANDING_SPEED * LANDING_SPEED) / (2 * this.ship.thrust);
+        const decelerationDistance = (currentSpeed * currentSpeed - Ship.LANDING_SPEED * Ship.LANDING_SPEED) / (2 * this.ship.thrust);
         this.decelerationDistance = decelerationDistance;
 
         if (this.targetPlanet instanceof JumpGate && distanceToPlanetCenter <= this.targetPlanet.radius) {
@@ -276,13 +299,13 @@ export class AIPilot extends Pilot {
         // Calculate fixed stopping parameters based on maxVelocity
         const timeToTurn = Math.PI / this.ship.rotationSpeed;
 
-        const maxDecelerationDistance = (this.ship.maxVelocity * this.ship.maxVelocity - LANDING_SPEED * LANDING_SPEED) / (2 * this.ship.thrust);
+        const maxDecelerationDistance = (this.ship.maxVelocity * this.ship.maxVelocity - Ship.LANDING_SPEED * Ship.LANDING_SPEED) / (2 * this.ship.thrust);
         const maxDistanceWhileTurning = this.ship.maxVelocity * timeToTurn;
         const farApproachDistance = maxDecelerationDistance + maxDistanceWhileTurning;
         this.farApproachDistance = farApproachDistance;
 
         // Define close approach distance with timeToTurn
-        const closeApproachDistance = LANDING_SPEED * 5 + this.targetPlanet.radius + (LANDING_SPEED * timeToTurn);
+        const closeApproachDistance = Ship.LANDING_SPEED * 5 + this.targetPlanet.radius + (Ship.LANDING_SPEED * timeToTurn);
         this.closeApproachDistance = closeApproachDistance;
 
         // Control logic
@@ -400,7 +423,7 @@ export class AIPilot extends Pilot {
         } else {
             state = 'Close: ';
             // Speed ramp
-            const finalSpeed = remapClamp(distanceToPlanetCenter, 0, closeApproachDistance, LANDING_SPEED, CLOSE_APPROACH_SPEED);
+            const finalSpeed = remapClamp(distanceToPlanetCenter, 0, closeApproachDistance, Ship.LANDING_SPEED, CLOSE_APPROACH_SPEED);
 
             // Close Approach: Slow to LANDING_SPEED, ensure velocity toward planet
             let desiredSpeed = finalSpeed;

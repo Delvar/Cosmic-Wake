@@ -46,6 +46,15 @@ export class HeadsUpDisplay {
         const center = camera.getScreenCenter();
         ctx.save();
 
+        // Draw autopilot status at top middle if the camera's target ship has an active autopilot
+        const autopilotStatus = this.gameManager.cameraTarget?.pilot?.autopilot?.getStatus();
+        if (autopilotStatus) {
+            ctx.fillStyle = "white";
+            ctx.font = "16px Arial";
+            ctx.textAlign = "center";
+            ctx.fillText(autopilotStatus, this.size.width / 2, 20); // Top middle of screen
+        }
+
         // Draw planet ring (light blue)
         ctx.beginPath();
         ctx.arc(center.x, center.y, this.ringRadius, 0, Math.PI * 2);

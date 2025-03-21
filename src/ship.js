@@ -13,6 +13,9 @@ import { AIPilot } from './pilot.js';
  * @extends GameObject
  */
 export class Ship extends GameObject {
+    /** @type {number} Maximum speed for safe landing (world units per second) */
+    static LANDING_SPEED = 10;
+
     /**
         * Creates a new Ship instance.
         * @param {number} x - Initial x-coordinate in world space.
@@ -156,11 +159,10 @@ export class Ship extends GameObject {
      * @returns {boolean} True if landing is possible, false otherwise.
      */
     canLand(planet) {
-        const LANDING_SPEED = 5; // Max speed for safe landing
         if (!planet || !planet.position || this.state !== 'Flying') return false;
         const distanceToPlanetCenter = this.position.subtract(planet.position).magnitude();
         const currentSpeed = this.velocity.magnitude();
-        return distanceToPlanetCenter <= planet.radius && currentSpeed <= LANDING_SPEED;
+        return distanceToPlanetCenter <= planet.radius && currentSpeed <= Ship.LANDING_SPEED;
     }
 
     /**

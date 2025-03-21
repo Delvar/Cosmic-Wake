@@ -77,9 +77,9 @@ export class Vector2D {
     }
 
     /**
-    * Calculates the magnitude (length) of the vector.
-    * @returns {number} The magnitude of the vector, computed as the square root of the sum of squared components.
-    */
+     * Calculates the magnitude (length) of the vector.
+     * @returns {number} The magnitude of the vector, computed as the square root of the sum of squared components.
+     */
     magnitude() {
         return Math.sqrt(this.x * this.x + this.y * this.y);
     }
@@ -121,10 +121,108 @@ export class Vector2D {
         return new Vector2D(this.x, this.y);
     }
 
+    /**
+     * Linearly interpolates between this vector and a target vector, returning a new vector.
+     * @param {Vector2D} target - The target vector to interpolate towards.
+     * @param {number} factor - The interpolation factor (0 to 1).
+     * @returns {Vector2D} A new Vector2D instance representing the interpolated position.
+     */
     lerp(target, factor) {
         return new Vector2D(
             this.x + (target.x - this.x) * factor,
             this.y + (target.y - this.y) * factor
         );
+    }
+
+    // New in-place methods
+
+    /**
+     * Sets the components of this vector, either from another vector or scalar values.
+     * @param {number|Vector2D} xOrVector - The x component or another Vector2D to copy from.
+     * @param {number} [y] - The y component (required if xOrVector is a number).
+     * @returns {Vector2D} This vector, for chaining.
+     */
+    set(xOrVector, y) {
+        if (xOrVector instanceof Vector2D) {
+            this.x = xOrVector.x;
+            this.y = xOrVector.y;
+        } else {
+            this.x = xOrVector;
+            this.y = y;
+        }
+        return this;
+    }
+
+    /**
+     * Adds another vector to this vector in-place.
+     * @param {Vector2D} other - The vector to add.
+     * @returns {Vector2D} This vector, for chaining.
+     */
+    addInPlace(other) {
+        this.x += other.x;
+        this.y += other.y;
+        return this;
+    }
+
+    /**
+     * Subtracts another vector from this vector in-place.
+     * @param {Vector2D} other - The vector to subtract.
+     * @returns {Vector2D} This vector, for chaining.
+     */
+    subtractInPlace(other) {
+        this.x -= other.x;
+        this.y -= other.y;
+        return this;
+    }
+
+    /**
+     * Multiplies this vector by a scalar in-place.
+     * @param {number} scalar - The scalar value to multiply by.
+     * @returns {Vector2D} This vector, for chaining.
+     */
+    multiplyInPlace(scalar) {
+        this.x *= scalar;
+        this.y *= scalar;
+        return this;
+    }
+
+    /**
+     * Divides this vector by a scalar in-place.
+     * @param {number} scalar - The scalar value to divide by.
+     * @returns {Vector2D} This vector, for chaining.
+     */
+    divideInPlace(scalar) {
+        this.x /= scalar;
+        this.y /= scalar;
+        return this;
+    }
+
+    /**
+     * Normalizes this vector in-place (makes it a unit vector).
+     * If the vector is zero, sets it to (0, 0).
+     * @returns {Vector2D} This vector, for chaining.
+     */
+    normalizeInPlace() {
+        const mag = Math.sqrt(this.x * this.x + this.y * this.y);
+        if (mag > 0) {
+            this.x /= mag;
+            this.y /= mag;
+        } else {
+            this.x = 0;
+            this.y = 0;
+        }
+        return this;
+    }
+
+    /**
+     * Linearly interpolates between this vector and a target vector in-place.
+     * @param {Vector2D} target - The target vector to interpolate towards.
+     * @param {number} factor - The interpolation factor (0 to 1).
+     * @returns {Vector2D} This vector, for chaining.
+     */
+    lerpInPlace(target, factor) {
+        this.x += (target.x - this.x) * factor;
+        this.y += (target.y - this.y) * factor;
+        return this;
     }
 }

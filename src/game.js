@@ -202,6 +202,13 @@ class Game {
         if (starSystem.asteroidBelt) starSystem.asteroidBelt.draw(this.targetCtx, this.targetCamera);
         starSystem.celestialBodies.forEach(body => body.draw(this.targetCtx, this.targetCamera));
         starSystem.ships.forEach(ship => ship.draw(this.targetCtx, this.targetCamera));
+
+        // Add target name at the top center of the target canvas
+        const targetName = target.name || "Unnamed Object";
+        this.targetCtx.fillStyle = "white";
+        this.targetCtx.font = "16px Arial"; // Fixed size, adjustable if needed
+        this.targetCtx.textAlign = "center";
+        this.targetCtx.fillText(targetName, this.targetCanvas.width / 2, 20); // Top middle
     }
 }
 

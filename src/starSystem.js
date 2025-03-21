@@ -100,8 +100,6 @@ export class Hyperlane {
      * @returns {number} The squared distance.
      */
     calculateDistSquared() {
-        const dx = this.target.position.x - this.source.position.x;
-        const dy = this.target.position.y - this.source.position.y;
-        return dx * dx + dy * dy;
+        return this.source.position.distanceSquaredTo(this.target.position);
     }
 }

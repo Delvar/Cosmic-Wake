@@ -10,7 +10,7 @@ export class Vector2D {
      * @param {number} x - The x component of the vector.
      * @param {number} y - The y component of the vector.
      */
-    constructor(x, y) {
+    constructor(x = 0, y = 0) {
         this.x = x;
         this.y = y;
     }
@@ -122,19 +122,17 @@ export class Vector2D {
     }
 
     /**
-     * Linearly interpolates between this vector and a target vector, returning a new vector.
+     * Linearly interpolates between two vectors, returning a new vector.
+     * @param {Vector2D} source - The starting vector.
      * @param {Vector2D} target - The target vector to interpolate towards.
-     * @param {number} factor - The interpolation factor (0 to 1).
+     * @param {number} factor - The interpolation factor (0 = source, 1 = target).
      * @returns {Vector2D} A new Vector2D instance representing the interpolated position.
      */
-    lerp(target, factor) {
-        return new Vector2D(
-            this.x + (target.x - this.x) * factor,
-            this.y + (target.y - this.y) * factor
-        );
+    lerp(source, target, factor) {
+        const x = source.x + (target.x - source.x) * factor;
+        const y = source.y + (target.y - source.y) * factor;
+        return new Vector2D(x, y);
     }
-
-    // New in-place methods
 
     /**
      * Sets the components of this vector, either from another vector or scalar values.
@@ -215,14 +213,26 @@ export class Vector2D {
     }
 
     /**
-     * Linearly interpolates between this vector and a target vector in-place.
+     * Linearly interpolates between two vectors in-place, modifying this vector.
+     * @param {Vector2D} source - The starting vector.
      * @param {Vector2D} target - The target vector to interpolate towards.
-     * @param {number} factor - The interpolation factor (0 to 1).
+     * @param {number} factor - The interpolation factor (0 = source, 1 = target).
      * @returns {Vector2D} This vector, for chaining.
      */
-    lerpInPlace(target, factor) {
-        this.x += (target.x - this.x) * factor;
-        this.y += (target.y - this.y) * factor;
+    lerpInPlace(source, target, factor) {
+        this.x = source.x + (target.x - source.x) * factor;
+        this.y = source.y + (target.y - source.y) * factor;
         return this;
+    }
+
+    /**
+     * Calculates the squared distance to another vector.
+     * @param {Vector2D} other - The other vector.
+     * @returns {number} The squared distance.
+     */
+    distanceSquaredTo(other) {
+        const dx = this.x - other.x;
+        const dy = this.y - other.y;
+        return dx * dx + dy * dy;
     }
 }

@@ -1,7 +1,6 @@
 // gameObject.js
 
 import { Vector2D } from './vector2d.js';
-//import { StarSystem } from './starSystem.js';
 
 /**
  * Represents a base game object with position and despawn functionality.
@@ -9,11 +8,12 @@ import { Vector2D } from './vector2d.js';
 export class GameObject {
     /**
      * Creates a new GameObject instance.
-     * @param {Vector2D} position - The position of the object.
+     * @param {Vector2D} position - The position of the object in world coordinates.
      * @param {StarSystem} starSystem - The star system the object belongs to.
      */
     constructor(position, starSystem) {
-        this.position = new Vector2D(position.x, position.y);
+        this.position = new Vector2D(0, 0);
+        this.position.set(position);
         this.starSystem = starSystem;
         this.despawned = false;
         this.debug = false;

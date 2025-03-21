@@ -7,7 +7,7 @@ import { Colour } from './colour.js';
 
 /**
  * Creates and initializes the galaxy with star systems, celestial bodies, and hyperlanes.
- * @returns {Array} An array of initialized StarSystem instances.
+ * @returns {Array<StarSystem>} An array of initialized StarSystem instances.
  */
 export function createGalaxy() {
     const randomAngle = () => Math.random() * Math.PI * 2;
@@ -20,11 +20,11 @@ export function createGalaxy() {
         new CelestialBody(2800, 24, new Colour(1, 0.27, 0), null, randomAngle(), celestialTypes['planet'], celestialTypes['planet'].subtypes['Terrestrial'], 'Mars', null),
         new CelestialBody(4000, 60, new Colour(0.85, 0.65, 0.13), null, randomAngle(), celestialTypes['planet'], celestialTypes['planet'].subtypes['Gas Giant'], 'Jupiter', null),
         new CelestialBody(5600, 50, new Colour(0.96, 0.64, 0.38), null, randomAngle(), celestialTypes['planet'], celestialTypes['planet'].subtypes['Gas Giant'], 'Saturn', null,
-            new PlanetaryRing(1.5, 2.5, new Colour(0.96, 0.71, 0.51, 0.75))), // Saturn with rings
+            new PlanetaryRing(1.5, 2.5, new Colour(0.96, 0.71, 0.51, 0.75))),
         new CelestialBody(7200, 40, new Colour(0.53, 0.81, 0.92), null, randomAngle(), celestialTypes['planet'], celestialTypes['planet'].subtypes['Ice Giant'], 'Uranus', null,
-            new PlanetaryRing(1.8, 2.0, new Colour(0.6, 0.9, 1.0, 0.25))), // Uranus with rings
+            new PlanetaryRing(1.8, 2.0, new Colour(0.6, 0.9, 1.0, 0.25))),
         new CelestialBody(8000, 40, new Colour(0, 0, 0.55), null, randomAngle(), celestialTypes['planet'], celestialTypes['planet'].subtypes['Ice Giant'], 'Neptune', null,
-            new PlanetaryRing(2.3, 2.5, new Colour(0.7, 0.7, 0.8, 0.1))) // Neptune with rings
+            new PlanetaryRing(2.3, 2.5, new Colour(0.7, 0.7, 0.8, 0.1)))
     ]);
     const earth = sol.celestialBodies[3];
     sol.celestialBodies.push(

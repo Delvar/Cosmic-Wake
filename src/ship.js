@@ -68,13 +68,13 @@ export class Ship extends GameObject {
     static LANDING_SPEED = 10;
 
     /**
-        * Creates a new Ship instance.
-        * @param {number} x - Initial x-coordinate in world space.
-        * @param {number} y - Initial y-coordinate in world space.
-        * @param {StarSystem} starSystem - The star system this ship belongs to.
-        * @param {Colour} [color=new Colour(1, 1, 1)] - Ship color (default: white).
-        * @param {Colour} [trailColor=new Colour(1, 1, 1, 0.5)] - Trail color (default: semi-transparent white).
-        */
+     * Creates a new Ship instance.
+     * @param {number} x - Initial x-coordinate in world space.
+     * @param {number} y - Initial y-coordinate in world space.
+     * @param {StarSystem} starSystem - The star system this ship belongs to.
+     * @param {Colour} [color=new Colour(1, 1, 1)] - Ship color (default: white).
+     * @param {Colour} [trailColor=new Colour(1, 1, 1, 0.5)] - Trail color (default: semi-transparent white).
+     */
     constructor(x, y, starSystem, color = new Colour(1, 1, 1), trailColor = new Colour(1, 1, 1, 0.5)) {
         super(new Vector2D(x, y), starSystem);
 
@@ -227,8 +227,9 @@ export class Ship extends GameObject {
         if (this.canLand(planet)) {
             this.setState('Landing');
             this.landedPlanet = planet; // Set the planet we're landing on
-            this.landingStartPosition = this.position.clone();
-            this.velocity = new Vector2D(0, 0); // Stop movement
+            this.landingStartPosition = new Vector2D(0, 0);
+            this.landingStartPosition.set(this.position);
+            this.velocity.set(0, 0); // Stop movement
             this.isThrusting = false;
             this.isBraking = false;
             return true;
@@ -264,7 +265,8 @@ export class Ship extends GameObject {
 
         this.setState('JumpingOut');
         this.jumpGate = gate;
-        this.jumpStartPosition = this.position.clone();
+        this.jumpStartPosition = new Vector2D(0, 0);
+        this.jumpStartPosition.set(this.position);
         this.lastJumpTime = currentTime;
         this.isThrusting = false;
         this.isBraking = false;
@@ -277,6 +279,9 @@ export class Ship extends GameObject {
      * @param {number} deltaTime - Time elapsed since last update in seconds.
      */
     update(deltaTime) {
+        if (isNaN(this.position.x) && this.debug) {
+            console.log('Position became NaN');
+        }
         const handler = this.stateHandlers[this.state];
         if (handler) {
             handler(deltaTime); // Update position, velocity, and state first
@@ -298,7 +303,7 @@ export class Ship extends GameObject {
 
         if (this.isThrusting) {
             const thrustVector = new Vector2D(Math.cos(this.angle), Math.sin(this.angle)).multiply(this.thrust * deltaTime);
-            this.velocity = this.velocity.add(thrustVector);
+            this.velocity.addInPlace(thrustVector);
         } else if (this.isBraking) {
             // Rotate to oppose velocity and slow down
             const velAngle = Math.atan2(-this.velocity.y, -this.velocity.x);
@@ -311,25 +316,55 @@ export class Ship extends GameObject {
         const speedSquared = this.velocity.squareMagnitude();
         if (speedSquared > this.maxVelocity * this.maxVelocity) {
             const scale = this.maxVelocity / Math.sqrt(speedSquared);
-            this.velocity = this.velocity.multiply(scale);
+            this.velocity.multiplyInPlace(scale);
         }
 
-        this.position = this.position.add(this.velocity.multiply(deltaTime));
+        this.position.addInPlace(this.velocity.multiply(deltaTime));
     }
 
     /**
-     * Updates the ship in the 'Landing' state, animating it to the planet's center.
-     * @param {number} deltaTime - Time elapsed since last update in seconds.
-     */
+    * Updates the ship in the 'Landing' state, animating it to the planet's center.
+    * @param {number} deltaTime - Time elapsed since last update in seconds.
+    */
     updateLanding(deltaTime) {
         this.animationTime += deltaTime;
         const t = Math.min(this.animationTime / this.animationDuration, 1);
         this.shipScale = 1 - t; // Shrink to 0
-        this.position = this.landingStartPosition.lerp(this.landedPlanet.position, t);
+
+        // Log positions for debugging
+        if (this.debug) {
+            console.log(`updateLanding (t=${t}):`, {
+                shipPos: { x: this.position.x, y: this.position.y },
+                landingStartPos: this.landingStartPosition ? { x: this.landingStartPosition.x, y: this.landingStartPosition.y } : null,
+                landedPlanetPos: this.landedPlanet?.position ? { x: this.landedPlanet.position.x, y: this.landedPlanet.position.y } : null
+            });
+        }
+
+        // Safeguard against NaN values
+        if (!this.landingStartPosition || !this.landedPlanet || !this.landedPlanet.position ||
+            isNaN(this.landingStartPosition.x) || isNaN(this.landingStartPosition.y) ||
+            isNaN(this.landedPlanet.position.x) || isNaN(this.landedPlanet.position.y) ||
+            isNaN(this.position.x) || isNaN(this.position.y)) {
+            console.error('Invalid landing parameters detected in updateLanding:', {
+                landingStartPosition: this.landingStartPosition,
+                landedPlanetPosition: this.landedPlanet?.position,
+                shipPosition: this.position
+            });
+            // Reset to a safe state
+            this.position.set(this.landedPlanet?.position || new Vector2D(0, 0));
+            this.setState('Landed');
+            this.shipScale = 0;
+            if (this.landedPlanet) this.landedPlanet.addLandedShip(this);
+            return;
+        }
+
+        // Use updated lerpInPlace to interpolate between landingStartPosition and landedPlanet.position
+        this.position.lerpInPlace(this.landingStartPosition, this.landedPlanet.position, t);
 
         if (t >= 1) {
             this.setState('Landed');
             this.shipScale = 0; // Fully invisible
+            this.position.set(this.landedPlanet.position); // Ensure exact position
             this.landedPlanet.addLandedShip(this); // Register with planet
         }
     }
@@ -340,6 +375,9 @@ export class Ship extends GameObject {
      */
     updateLanded(deltaTime) {
         // No movement or animation; ship is stationary on the planet
+        if (this.landedPlanet && this.landedPlanet.position) {
+            this.position.set(this.landedPlanet.position);
+        }
     }
 
     /**
@@ -351,12 +389,12 @@ export class Ship extends GameObject {
         const t = Math.min(this.animationTime / this.animationDuration, 1);
         this.shipScale = t; // Grow from 0 to 1
         const takeoffOffset = new Vector2D(Math.cos(this.angle), Math.sin(this.angle)).multiply(this.landedPlanet.radius * 1.5);
-        this.position = this.landedPlanet.position.add(takeoffOffset.multiply(t));
+        this.position.set(this.landedPlanet.position).addInPlace(takeoffOffset.multiply(t));
 
         if (t >= 1) {
             this.setState('Flying');
             this.shipScale = 1;
-            this.velocity = takeoffOffset.divide(this.animationDuration); // Initial velocity
+            this.velocity.set(takeoffOffset).divideInPlace(this.animationDuration); // Initial velocity
             this.landedPlanet = null; // Clear landing planet reference
         }
     }
@@ -372,8 +410,8 @@ export class Ship extends GameObject {
         if (t < 0.5) {
             // Phase 1: Shrink and move to gate center
             this.shipScale = 1 - (t * 1.5); // 1 to 0.25
-            this.position = this.jumpStartPosition.lerp(this.jumpGate.position, t * 2);
-            const radialOut = this.jumpGate.position.normalize();
+            this.position.lerpInPlace(this.jumpStartPosition, this.jumpGate.position, t * 2);
+            const radialOut = this.jumpGate.position.clone().normalizeInPlace();
             const desiredAngle = Math.atan2(radialOut.y, radialOut.x);
             const startAngle = this.jumpStartAngle || this.angle;
             if (!this.jumpStartAngle) this.jumpStartAngle = this.angle; // Capture initial angle
@@ -387,21 +425,22 @@ export class Ship extends GameObject {
             const easedT = (t - 0.5) * 2; // Normalize to 0-1 for this phase
             const progress = easedT * easedT; // Quadratic ease-in: slow start, fast end
             this.stretchFactor = 1 + progress * 9; // 1 to 10
-            const radialOut = this.jumpGate.position.normalize();
+            const radialOut = this.jumpGate.position.clone().normalizeInPlace();
             const maxDistance = 5000; // Max distance outward
-            this.position = this.jumpGate.position.add(radialOut.multiply(maxDistance * progress));
-            this.velocity = radialOut.multiply(2000 * easedT); // Velocity ramps up
+            this.position.set(this.jumpGate.position).addInPlace(radialOut.multiply(maxDistance * progress));
+            this.velocity.set(radialOut).multiplyInPlace(2000 * easedT); // Velocity ramps up
         }
 
         if (t >= 1) {
             // Transition to new system and JumpingIn state
             const oldSystem = this.starSystem;
             this.starSystem = this.jumpGate.lane.target;
-            const radialIn = this.jumpGate.lane.targetGate.position.normalize().multiply(-1);
-            this.jumpEndPosition = this.jumpGate.lane.targetGate.position.clone(); // Set the end position
-            this.position = this.jumpEndPosition.subtract(radialIn.multiply(5000)); // Start outside the target gate
+            const radialIn = this.jumpGate.lane.targetGate.position.clone().normalizeInPlace().multiplyInPlace(-1);
+            this.jumpEndPosition = new Vector2D(0, 0);
+            this.jumpEndPosition.set(this.jumpGate.lane.targetGate.position); // Set the end position
+            this.position.set(this.jumpEndPosition).subtractInPlace(radialIn.multiply(5000)); // Start outside the target gate
             this.setState('JumpingIn');
-            this.velocity = radialIn.multiply(2000); // Initial velocity for JumpingIn
+            this.velocity.set(radialIn).multiplyInPlace(2000); // Initial velocity for JumpingIn
             this.trail.points = []; // Clear trail for new system
             this.jumpStartAngle = null;
             oldSystem.ships = oldSystem.ships.filter(ship => ship !== this);
@@ -419,7 +458,8 @@ export class Ship extends GameObject {
 
         if (!this.jumpEndPosition) {
             console.error('jumpEndPosition is null in JumpingIn state; resetting to current position');
-            this.jumpEndPosition = this.position.clone(); // Fallback to current position
+            this.jumpEndPosition = new Vector2D(0, 0);
+            this.jumpEndPosition.set(this.position); // Fallback to current position
         }
 
         if (t < 0.5) {
@@ -428,23 +468,23 @@ export class Ship extends GameObject {
             const easedT = t * 2; // Normalize to 0-1 for this phase
             const progress = 1 - (1 - easedT) * (1 - easedT); // Quadratic ease-out: fast start, slow end
             this.stretchFactor = 10 - progress * 9; // 10 to 1
-            const radialIn = this.jumpEndPosition.normalize().multiply(-1);
+            const radialIn = this.jumpEndPosition.clone().normalizeInPlace().multiplyInPlace(-1);
             const maxDistance = 5000;
             const outsidePos = this.jumpEndPosition.subtract(radialIn.multiply(maxDistance));
-            this.position = outsidePos.lerp(this.jumpEndPosition, progress);
+            this.position.lerpInPlace(outsidePos, this.jumpEndPosition, progress);
             const desiredAngle = Math.atan2(radialIn.y, radialIn.x);
             const startAngle = this.jumpStartAngle || this.angle;
             if (!this.jumpStartAngle) this.jumpStartAngle = this.angle;
             const angleDiff = (desiredAngle - startAngle + Math.PI) % (2 * Math.PI) - Math.PI;
             this.angle = startAngle + angleDiff * easedT;
             this.targetAngle = this.angle;
-            this.velocity = radialIn.multiply(2000 * (1 - easedT)); // Velocity ramps down
+            this.velocity.set(radialIn).multiplyInPlace(2000 * (1 - easedT)); // Velocity ramps down
         } else {
             // Phase 2: Normalize and stop (unchanged)
             this.shipScale = 0.25 + (t - 0.5) * 1.5; // 0.25 to 1
             this.stretchFactor = 1;
-            this.position = this.jumpEndPosition;
-            this.velocity = new Vector2D(0, 0);
+            this.position.set(this.jumpEndPosition);
+            this.velocity.set(0, 0);
         }
 
         if (t >= 1) {
@@ -546,7 +586,7 @@ export class Ship extends GameObject {
                 const closeApproachDistance = this.pilot.closeApproachDistance;
                 const currentSpeed = this.velocity.magnitude(); // Calculate currentSpeed here
                 const stoppingPoint = this.position.add(
-                    currentSpeed > 0 ? this.velocity.normalize().multiply(decelerationDistance) : new Vector2D(0, 0)
+                    currentSpeed > 0 ? this.velocity.clone().normalizeInPlace().multiply(decelerationDistance) : new Vector2D(0, 0)
                 );
                 const stoppingScreen = camera.worldToScreen(stoppingPoint);
                 const originScreen = camera.worldToScreen(this.position);
@@ -584,7 +624,6 @@ export class Ship extends GameObject {
                             ctx.fill();
                         }
                     }
-
                 }
             }
             // 5. Velocity error

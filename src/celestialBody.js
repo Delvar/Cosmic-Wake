@@ -3,7 +3,6 @@
 import { Vector2D } from './vector2d.js';
 import { Colour } from './colour.js';
 import { GameObject } from './gameObject.js';
-//import { StarSystem } from './starSystem.js';
 
 /**
  * Defines the types and colors for celestial bodies in the game.
@@ -40,23 +39,26 @@ export const celestialTypes = {
 /**
  * Represents a celestial body such as a star, planet, or satellite.
  * Extends the base GameObject class.
+ * @extends GameObject
  */
 export class CelestialBody extends GameObject {
     /**
      * Creates a new CelestialBody instance.
-     * @param {number} distance - The distance from the parent body or origin.
-     * @param {number} radius - The radius of the celestial body.
+     * @param {number} distance - The distance from the parent body or origin in world units.
+     * @param {number} radius - The radius of the celestial body in world units.
      * @param {Colour} color - The color of the celestial body.
      * @param {CelestialBody} [parent=null] - The parent celestial body (e.g., a planet for a moon).
-     * @param {number} [angle=0] - The initial angle relative to the parent.
-     * @param {Object} [type=celestialTypes['planet']] - The type of celestial body.
+     * @param {number} [angle=0] - The initial angle relative to the parent in radians.
+     * @param {Object} [type=celestialTypes['planet']] - The type of celestial body from celestialTypes.
      * @param {Object} [subtype=null] - The subtype of the celestial body (e.g., for planets).
      * @param {string} [name=''] - The name of the celestial body.
      * @param {StarSystem} [starSystem=null] - The star system the body belongs to.
      * @param {PlanetaryRing} [ring=null] - An optional ring around the body.
      */
     constructor(distance, radius, color, parent = null, angle = 0, type = celestialTypes['planet'], subtype = null, name = '', starSystem = null, ring = null) {
-        super(parent ? new Vector2D(parent.position.x + Math.cos(angle) * distance, parent.position.y + Math.sin(angle) * distance) : new Vector2D(Math.cos(angle) * distance, Math.sin(angle) * distance), starSystem);
+        super(new Vector2D(0, 0), starSystem);
+        this.position.set(parent ? parent.position.x + Math.cos(angle) * distance : Math.cos(angle) * distance,
+            parent ? parent.position.y + Math.sin(angle) * distance : Math.sin(angle) * distance);
         this.distance = distance;
         this.radius = radius;
         this.color = color;
@@ -118,10 +120,18 @@ export class CelestialBody extends GameObject {
         ctx.restore();
     }
 
+    /**
+     * Adds a landed ship to the celestial body's list.
+     * @param {Ship} ship - The ship to add.
+     */
     addLandedShip(ship) {
         this.landedShips.push(ship);
     }
 
+    /**
+     * Removes a landed ship from the celestial body's list.
+     * @param {Ship} ship - The ship to remove.
+     */
     removeLandedShip(ship) {
         const index = this.landedShips.indexOf(ship);
         if (index !== -1) {
@@ -153,8 +163,8 @@ export class PlanetaryRing {
      * Draws the back half of the ring (behind the planet).
      * @param {CanvasRenderingContext2D} ctx - The canvas rendering context.
      * @param {Camera} camera - The camera object handling coordinate transformations.
-     * @param {number} planetX - The x-coordinate of the planet on the screen.
-     * @param {number} planetY - The y-coordinate of the planet on the screen.
+     * @param {number} planetX - The x-coordinate of the planet on the screen in pixels.
+     * @param {number} planetY - The y-coordinate of the planet on the screen in pixels.
      * @param {number} planetRadius - The radius of the planet in world units.
      */
     drawBack(ctx, camera, planetX, planetY, planetRadius) {
@@ -178,8 +188,8 @@ export class PlanetaryRing {
      * Draws the front half of the ring (in front of the planet).
      * @param {CanvasRenderingContext2D} ctx - The canvas rendering context.
      * @param {Camera} camera - The camera object handling coordinate transformations.
-     * @param {number} planetX - The x-coordinate of the planet on the screen.
-     * @param {number} planetY - The y-coordinate of the planet on the screen.
+     * @param {number} planetX - The x-coordinate of the planet on the screen in pixels.
+     * @param {number} planetY - The y-coordinate of the planet on the screen in pixels.
      * @param {number} planetRadius - The radius of the planet in world units.
      */
     drawFront(ctx, camera, planetX, planetY, planetRadius) {
@@ -203,17 +213,20 @@ export class PlanetaryRing {
 /**
  * Represents a jump gate, a special celestial body that connects two star systems.
  * Extends the CelestialBody class.
+ * @extends CelestialBody
  */
 export class JumpGate extends CelestialBody {
     /**
      * Creates a new JumpGate instance.
      * @param {Hyperlane} lane - The hyperlane connection between two star systems.
-     * @param {Vector2D} sysPosition - The position of the star system where the gate is located.
+     * @param {Vector2D} sysPosition - The position of the star system where the gate is located in world coordinates.
      */
     constructor(lane, sysPosition) {
-        const dir = new Vector2D(lane.target.position.x - sysPosition.x, lane.target.position.y - sysPosition.y);
+        const dir = new Vector2D(0, 0);
+        dir.set(lane.target.position.x - sysPosition.x, lane.target.position.y - sysPosition.y);
         const mag = Math.sqrt(dir.x * dir.x + dir.y * dir.y);
-        const norm = new Vector2D(dir.x / mag, dir.y / mag);
+        const norm = new Vector2D(0, 0);
+        norm.set(dir).divideInPlace(mag);
         const radius = 50;
         const dist = 1000;
         const angle = Math.atan2(norm.y, norm.x);
@@ -241,7 +254,7 @@ export class JumpGate extends CelestialBody {
 
     /**
      * Checks if the ship is within the jump gate's radius.
-     * @param {Vector2D} shipPosition - The position of the ship.
+     * @param {Vector2D} shipPosition - The position of the ship in world coordinates.
      * @returns {boolean} True if the ship overlaps with the jump gate, false otherwise.
      */
     overlapsShip(shipPosition) {

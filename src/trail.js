@@ -38,17 +38,27 @@ export class Trail {
      * @param {string} [color='rgba(255, 255, 255, 0.5)'] - The color of the trail (CSS color string).
      */
     constructor(parent, maxLength = 250, startWidth = 2, color = 'rgba(255, 255, 255, 0.5)') {
-        this.parent = parent; // The object the trail is attached to
-        this.points = []; // Array of TrailPoint instances
-        this.startWidth = startWidth; // Initial width of the trail
-        this.currentLength = 0; // Current total length of the trail
-        this.softMaxLength = maxLength; // Soft maximum length before erosion increases
-        this.hardMaxLength = maxLength * 1.2; // Hard maximum length before immediate trimming
-        this.erosionSpeed = parent.maxVelocity * 0.5; // Rate at which the trail erodes
-        this.minPointDist = 5; // Minimum distance between points to add a new one
-        this.maxPointDist = 200; // Maximum distance between points before forcing a new one
-        this.lateralThreshold = 2; // Threshold for lateral movement to trigger a new point
-        this.color = color; // Color of the trail
+        this.parent = parent;
+        this.points = [];
+        this.startWidth = startWidth;
+        this.currentLength = 0;
+        this.softMaxLength = maxLength;
+        this.hardMaxLength = maxLength * 1.2;
+        this.erosionSpeed = parent.maxVelocity * 0.5;
+        this.minPointDist = 5;
+        this.maxPointDist = 200;
+        this.lateralThreshold = 2;
+        this.color = color;
+
+        // Reusable temporary vectors to reduce garbage collection
+        this.tempVec1 = new Vector2D();
+        this.tempVec2 = new Vector2D();
+        this.tempVec3 = new Vector2D();
+
+        // Precompute squared thresholds for efficiency
+        this.minPointDistSquared = this.minPointDist * this.minPointDist;
+        this.maxPointDistSquared = this.maxPointDist * this.maxPointDist;
+        this.lateralThresholdSquared = this.lateralThreshold * this.lateralThreshold;
     }
 
     /**
@@ -56,12 +66,12 @@ export class Trail {
      * @param {number} deltaTime - Time elapsed since the last update (in seconds).
      */
     update(deltaTime) {
-        // Ensure currentLength is valid
+        // Validate currentLength
         if (isNaN(this.currentLength)) {
             this.currentLength = 0;
         }
 
-        // Erode the trail length over time
+        // Erode trail length
         if (this.currentLength > this.hardMaxLength) {
             this.currentLength = this.hardMaxLength - this.erosionSpeed * deltaTime;
         } else if (this.currentLength > this.softMaxLength) {
@@ -72,13 +82,13 @@ export class Trail {
         }
         this.currentLength = Math.max(0, this.currentLength);
 
-        // Create a new point at the parent's current position
-        const currentPoint = new TrailPoint(this.parent.position);
+        // New point at parent's position
+        const currentPoint = new TrailPoint(this.parent.position.clone());
 
-        // Initialize trail with at least 2 points
+        // Initialize with at least 2 points
         if (this.points.length < 2) {
-            currentPoint.backwards = new Vector2D(-Math.cos(this.parent.angle), -Math.sin(this.parent.angle));
-            currentPoint.right = new Vector2D(Math.sin(this.parent.angle), -Math.cos(this.parent.angle));
+            currentPoint.backwards.set(-Math.cos(this.parent.angle), -Math.sin(this.parent.angle));
+            currentPoint.right.set(Math.sin(this.parent.angle), -Math.cos(this.parent.angle));
             currentPoint.distance = 1;
             this.addPoint(currentPoint);
             return;
@@ -86,54 +96,59 @@ export class Trail {
 
         const firstPoint = this.points[0];
         const secondPoint = this.points[1];
-        const relativePosition = currentPoint.position.subtract(secondPoint.position);
-        const distance = relativePosition.magnitude();
+
+        // Use tempVec1 for relative position
+        this.tempVec1.set(currentPoint.position).subtractInPlace(secondPoint.position);
+        const distanceSquared = this.tempVec1.distanceSquaredTo(secondPoint.position); // Already computed via subtraction
+        const distance = Math.sqrt(distanceSquared);
 
         let shouldAddPoint = false;
 
         // Conditions to add a new point
         if (firstPoint.distance > distance + 0.1) {
-            shouldAddPoint = true; // First point is too far ahead
+            shouldAddPoint = true;
         }
-        if (distance > this.maxPointDist) {
-            shouldAddPoint = true; // Distance exceeds maximum threshold
+        if (distanceSquared > this.maxPointDistSquared) {
+            shouldAddPoint = true;
         }
-        if (distance > this.minPointDist && !shouldAddPoint) {
+        if (distanceSquared > this.minPointDistSquared && !shouldAddPoint) {
             if (secondPoint.backwards) {
-                const forward = relativePosition.divide(distance);
-                const dot = secondPoint.backwards.multiply(-1).dot(forward);
+                // Compute forward vector in-place
+                this.tempVec2.set(this.tempVec1).divideInPlace(distance);
+                const dot = secondPoint.backwards.multiply(-1).dot(this.tempVec2);
                 let minDot = distance <= this.lateralThreshold ? 0 : Math.sqrt(1 - (this.lateralThreshold / distance) ** 2);
                 if (dot < minDot) {
-                    shouldAddPoint = true; // Significant lateral movement detected
+                    shouldAddPoint = true;
                 }
             }
         }
 
         if (shouldAddPoint) {
-            const relativeFirstPosition = currentPoint.position.subtract(firstPoint.position);
-            currentPoint.distance = relativeFirstPosition.magnitude() || 0;
+            // Compute distance to first point
+            this.tempVec1.set(currentPoint.position).subtractInPlace(firstPoint.position);
+            currentPoint.distance = this.tempVec1.magnitude() || 0;
             this.currentLength += currentPoint.distance;
             if (currentPoint.distance > 0.1) {
-                currentPoint.backwards = relativeFirstPosition.multiply(-1).divide(currentPoint.distance);
+                currentPoint.backwards.set(this.tempVec1).multiplyInPlace(-1).divideInPlace(currentPoint.distance);
             } else {
-                currentPoint.backwards = new Vector2D(
+                currentPoint.backwards.set(
                     firstPoint.backwards?.x ?? -Math.cos(this.parent.angle),
                     firstPoint.backwards?.y ?? -Math.sin(this.parent.angle)
                 );
             }
-            currentPoint.right = new Vector2D(-currentPoint.backwards.y, currentPoint.backwards.x);
+            currentPoint.right.set(-currentPoint.backwards.y, currentPoint.backwards.x);
             this.addPoint(currentPoint);
         } else {
-            // Update the first point instead of adding a new one
-            firstPoint.position = currentPoint.position;
+            // Update first point in-place
+            firstPoint.position.set(currentPoint.position);
             this.currentLength += Math.abs(distance - (firstPoint.distance || 0));
             firstPoint.distance = distance;
             if (distance > 0.1) {
-                firstPoint.backwards = relativePosition.multiply(-1).divide(distance);
+                firstPoint.backwards.set(this.tempVec1).multiplyInPlace(-1).divideInPlace(distance);
             } else {
-                firstPoint.backwards = new Vector2D(-Math.cos(this.parent.angle), -Math.sin(this.parent.angle));
+                firstPoint.backwards.set(-Math.cos(this.parent.angle), -Math.sin(this.parent.angle));
             }
-            firstPoint.right = new Vector2D(-firstPoint.backwards.y, firstPoint.backwards.x);
+            firstPoint.right.set(-firstPoint.backwards.y, firstPoint.backwards.x);
         }
         this.trim();
     }
@@ -181,13 +196,18 @@ export class Trail {
             const progress = Math.min(1, totalDistance / this.currentLength);
             const currentWidth = camera.worldToSize(this.startWidth) * (1 - progress);
 
-            rightPoints.push(point.right.multiply(currentWidth).add(screenPos));
-            leftPoints.unshift(point.right.multiply(-currentWidth).add(screenPos));
+            // Use temp vectors for right and left points
+            this.tempVec1.set(point.right).multiplyInPlace(currentWidth).addInPlace(screenPos);
+            rightPoints.push(this.tempVec1.clone());
+
+            this.tempVec2.set(point.right).multiplyInPlace(-currentWidth).addInPlace(screenPos);
+            leftPoints.unshift(this.tempVec2.clone());
 
             if (totalDistance + (point.distance || 0) > this.currentLength) {
                 const remainingDistance = this.currentLength - totalDistance;
                 if (remainingDistance < (point.distance || 0)) {
-                    const endPoint = camera.worldToScreen(point.position.add(point.backwards.multiply(remainingDistance)));
+                    this.tempVec3.set(point.backwards).multiplyInPlace(remainingDistance).addInPlace(point.position);
+                    const endPoint = camera.worldToScreen(this.tempVec3);
                     totalDistance += remainingDistance;
                     rightPoints.push(endPoint);
                 }

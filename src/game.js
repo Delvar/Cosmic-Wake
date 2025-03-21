@@ -1,17 +1,15 @@
 // game.js
 
-// Import necessary modules for game functionality
-import { Vector2D } from './vector2d.js'; // Provides 2D vector operations
-import { Colour } from './colour.js'; // Handles color representations
-import { Camera, TargetCamera } from './camera.js'; // Manages camera views
-import { Ship } from './ship.js'; // Represents player and AI ships
-import { CelestialBody, JumpGate } from './celestialBody.js'; // Defines celestial objects
-import { StarField } from './starField.js'; // Generates starfield background
-import { Asteroid } from './asteroidBelt.js'; // Handles asteroid belts and individual asteroids
-import { HeadsUpDisplay } from './headsUpDisplay.js'; // Displays HUD elements
-import { PlayerPilot, AIPilot } from './pilot.js'; // Controls ship behavior for players and AI
+import { Vector2D } from './vector2d.js';
+import { Colour } from './colour.js';
+import { Camera, TargetCamera } from './camera.js';
+import { Ship } from './ship.js';
+import { CelestialBody, JumpGate } from './celestialBody.js';
+import { StarField } from './starField.js';
+import { Asteroid } from './asteroidBelt.js';
+import { HeadsUpDisplay } from './headsUpDisplay.js';
+import { PlayerPilot, AIPilot } from './pilot.js';
 import { createGalaxy } from './galaxy.js';
-//import { GameObject } from './gameObject.js'
 
 /**
  * Manages the targeting system for selecting game objects like planets, ships, and asteroids.
@@ -59,7 +57,8 @@ class Game {
         this.manager = manager;
         this.canvas = canvas;
         this.ctx = this.canvas.getContext('2d');
-        this.canvasSize = new Vector2D(window.innerWidth, window.innerHeight);
+        this.canvasSize = new Vector2D(0, 0);
+        this.canvasSize.set(window.innerWidth, window.innerHeight);
         this.canvas.width = this.canvasSize.width;
         this.canvas.height = this.canvasSize.height;
 
@@ -83,8 +82,7 @@ class Game {
      * Resizes the canvas and updates related components when the window size changes.
      */
     resizeCanvas() {
-        this.canvasSize.width = window.innerWidth;
-        this.canvasSize.height = window.innerHeight;
+        this.canvasSize.set(window.innerWidth, window.innerHeight);
         this.canvas.width = this.canvasSize.width;
         this.canvas.height = this.canvasSize.height;
         this.camera.resize(this.canvasSize.width, this.canvasSize.height);
@@ -110,38 +108,37 @@ class Game {
      * @param {number} deltaTime - Time elapsed since the last update in milliseconds.
      */
     update(deltaTime) {
-        if (!this.manager.isFocused) return; // Skip update if game window is not focused
+        if (!this.manager.isFocused) return;
         const MAX_DELTA = 100;
-        if (deltaTime > MAX_DELTA) deltaTime = MAX_DELTA; // Cap deltaTime to prevent large jumps
-        deltaTime = deltaTime / 1000; // Convert milliseconds to seconds
+        if (deltaTime > MAX_DELTA) deltaTime = MAX_DELTA;
+        deltaTime = deltaTime / 1000;
 
         this.manager.update(deltaTime);
         this.camera.update(this.manager.cameraTarget.position);
 
-        // Validate the camera target's target if it's a ship
         if (this.manager.cameraTarget instanceof Ship && this.manager.cameraTarget.target) {
             const target = this.manager.cameraTarget.target;
             if (target.isDespawned() || this.manager.cameraTarget.starSystem !== target.starSystem) {
                 this.manager.cameraTarget.clearTarget();
                 console.log("force clear target");
             } else if (this.manager.targetingSystem.isValidTarget(target) && this.targetCanvas.style.display === 'none') {
-                this.targetCanvas.style.display = 'block'; // Show target window if hidden and target is valid
+                this.targetCanvas.style.display = 'block';
                 console.log("force display of target window");
             }
         }
 
         if (this.manager.zoomTextTimer > 0) {
-            this.manager.zoomTextTimer -= deltaTime; // Decrease zoom text display timer
+            this.manager.zoomTextTimer -= deltaTime;
         }
         this.frameCount++;
         const currentTime = performance.now();
         if (currentTime - this.lastFpsUpdate >= 1000) {
-            this.fps = Math.round(this.frameCount * 1000 / (currentTime - this.lastFpsUpdate)); // Calculate FPS
+            this.fps = Math.round(this.frameCount * 1000 / (currentTime - this.lastFpsUpdate));
             this.frameCount = 0;
             this.lastFpsUpdate = currentTime;
         }
         if (this.manager.cameraTarget instanceof Ship && this.manager.cameraTarget.target) {
-            this.targetCamera.updateTarget(this.manager.cameraTarget.target); // Update target camera position
+            this.targetCamera.updateTarget(this.manager.cameraTarget.target);
         }
     }
 
@@ -151,7 +148,7 @@ class Game {
      */
     render(deltaTime) {
         this.ctx.fillStyle = 'black';
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height); // Clear canvas with black background
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         this.starField.draw(this.ctx, this.camera, this.manager.playerShip.velocity);
         const starSystem = this.manager.cameraTarget.starSystem;
         if (starSystem.asteroidBelt) starSystem.asteroidBelt.draw(this.ctx, this.camera);
@@ -160,7 +157,6 @@ class Game {
         this.hud.draw(this.ctx, this.camera);
         this.renderTargetView();
 
-        // Draw FPS and frame time bar
         this.ctx.save();
         this.ctx.fillStyle = 'white';
         this.ctx.font = '16px Arial';
@@ -169,11 +165,10 @@ class Game {
 
         const maxFrameTime = 50;
         const barWidth = Math.min(deltaTime / maxFrameTime, 1) * 150;
-        this.ctx.fillStyle = deltaTime > 33.33 ? 'red' : deltaTime > 16.67 ? 'yellow' : 'green'; // Color based on frame time
+        this.ctx.fillStyle = deltaTime > 33.33 ? 'red' : deltaTime > 16.67 ? 'yellow' : 'green';
         this.ctx.fillRect(10, 25, barWidth, 10);
         this.ctx.restore();
 
-        // Draw zoom percentage if timer is active
         if (this.manager.zoomTextTimer > 0) {
             this.ctx.save();
             this.ctx.fillStyle = 'white';
@@ -191,24 +186,23 @@ class Game {
     renderTargetView() {
         let target = this.manager.cameraTarget instanceof Ship ? this.manager.cameraTarget.target : null;
         this.targetCtx.fillStyle = 'black';
-        this.targetCtx.fillRect(0, 0, this.targetCanvas.width, this.targetCanvas.height); // Clear target canvas
+        this.targetCtx.fillRect(0, 0, this.targetCanvas.width, this.targetCanvas.height);
         if (!target || !this.manager.targetingSystem.isValidTarget(target)) {
-            this.targetCanvas.style.display = 'none'; // Hide target canvas if no valid target
+            this.targetCanvas.style.display = 'none';
             return;
         }
-        this.targetCanvas.style.display = 'block'; // Show target canvas
+        this.targetCanvas.style.display = 'block';
         this.starField.draw(this.targetCtx, this.targetCamera, new Vector2D(0, 0));
         const starSystem = this.manager.cameraTarget.starSystem;
         if (starSystem.asteroidBelt) starSystem.asteroidBelt.draw(this.targetCtx, this.targetCamera);
         starSystem.celestialBodies.forEach(body => body.draw(this.targetCtx, this.targetCamera));
         starSystem.ships.forEach(ship => ship.draw(this.targetCtx, this.targetCamera));
 
-        // Add target name at the top center of the target canvas
         const targetName = target.name || "Unnamed Object";
         this.targetCtx.fillStyle = "white";
-        this.targetCtx.font = "16px Arial"; // Fixed size, adjustable if needed
+        this.targetCtx.font = "16px Arial";
         this.targetCtx.textAlign = "center";
-        this.targetCtx.fillText(targetName, this.targetCanvas.width / 2, 20); // Top middle
+        this.targetCtx.fillText(targetName, this.targetCanvas.width / 2, 20);
     }
 }
 
@@ -225,16 +219,18 @@ class GameManager {
         this.targetCanvas = document.getElementById('targetCanvas');
         this.keys = {};
         this.lastKeys = {};
-        this.isFocused = true; // Tracks if the game window is focused
-        this.galaxy = createGalaxy(); // Initializes the galaxy with star systems
+        this.isFocused = true;
+        this.galaxy = createGalaxy();
         const earth = this.galaxy[0].celestialBodies[5];
         this.playerShip = new Ship(earth.position.x + 50, earth.position.y, this.galaxy[0]);
         this.playerPilot = new PlayerPilot(this.playerShip);
         this.playerShip.pilot = this.playerPilot;
         this.galaxy[0].ships.push(this.playerShip);
-        this.camera = new Camera(this.playerShip.position, new Vector2D(window.innerWidth, window.innerHeight));
+        this.camera = new Camera(this.playerShip.position, new Vector2D(0, 0));
+        this.camera.screenSize.set(window.innerWidth, window.innerHeight);
         this.cameraTarget = this.playerShip;
-        this.targetCamera = new TargetCamera(new Vector2D(0, 0), new Vector2D(this.targetCanvas.offsetWidth, this.targetCanvas.offsetHeight));
+        this.targetCamera = new TargetCamera(new Vector2D(0, 0), new Vector2D(0, 0));
+        this.targetCamera.screenSize.set(this.targetCanvas.offsetWidth, this.targetCanvas.offsetHeight);
         this.starField = new StarField(20, 1000);
         this.hud = new HeadsUpDisplay(this, window.innerWidth, window.innerHeight);
         this.zoomTextTimer = 0;
@@ -251,8 +247,8 @@ class GameManager {
     }
 
     /**
-     * Updates the game state, including ships and asteroid belts, and handles AI spawning and hyperjump attempts.
-     * @param {number} deltaTime - Time elapsed since the last update in normalized units (60 FPS base).
+     * Updates the game state, including ships and asteroid belts, and handles AI spawning.
+     * @param {number} deltaTime - Time elapsed since the last update in seconds.
      */
     update(deltaTime) {
         const currentTime = performance.now();
@@ -261,6 +257,10 @@ class GameManager {
         this.spawnAIShipsIfNeeded(currentTime);
     }
 
+    /**
+     * Updates all ships in the galaxy.
+     * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     */
     updateShips(deltaTime) {
         this.galaxy.forEach(starSystem => {
             starSystem.ships.forEach(ship => {
@@ -268,43 +268,44 @@ class GameManager {
                 ship.update(deltaTime);
             });
         });
-
-        // Update lastKeys at the end of the frame
         Object.assign(this.lastKeys, this.keys);
     }
 
+    /**
+     * Updates all asteroid belts in the galaxy.
+     * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     */
     updateAsteroidBelts(deltaTime) {
         this.galaxy.forEach(starSystem => {
             if (starSystem.asteroidBelt) starSystem.asteroidBelt.update(deltaTime);
         });
     }
 
-    // Class: GameManager
-    // Method: spawnAIShipsIfNeeded
+    /**
+     * Spawns or despawns AI ships based on system limits and timing.
+     * @param {number} currentTime - Current time in milliseconds.
+     */
     spawnAIShipsIfNeeded(currentTime) {
         if (currentTime - this.lastSpawnTime < this.spawnInterval) return;
 
         this.galaxy.forEach(system => {
             const aiShipCount = system.ships.filter(ship => ship.pilot instanceof AIPilot).length;
 
-            // Spawn ships if below maxAIShips
             if (aiShipCount < system.maxAIShips) {
                 const spawnPlanet = system.celestialBodies.find(body =>
-                    !(body instanceof JumpGate) && body.landedShips // Ensure it can hold landed ships
+                    !(body instanceof JumpGate) && body.landedShips
                 ) || system.celestialBodies[Math.floor(Math.random() * system.celestialBodies.length)];
                 if (!(spawnPlanet instanceof JumpGate)) {
                     const aiShip = new Ship(spawnPlanet.position.x, spawnPlanet.position.y, system);
                     aiShip.pilot = new AIPilot(aiShip, spawnPlanet);
-                    aiShip.setState('Landed'); // Start in Landed state
-                    aiShip.shipScale = 0; // Invisible until takeoff
-                    aiShip.velocity = new Vector2D(0, 0); // No initial velocity
-                    aiShip.landedPlanet = spawnPlanet; // Set as landed planet
-                    spawnPlanet.addLandedShip(aiShip); // Add to planet's landed list
+                    aiShip.setState('Landed');
+                    aiShip.shipScale = 0;
+                    aiShip.velocity.set(0, 0);
+                    aiShip.landedPlanet = spawnPlanet;
+                    spawnPlanet.addLandedShip(aiShip);
                     system.ships.push(aiShip);
                 }
-            }
-            // Despawn excess landed ships if above maxAIShips
-            else if (aiShipCount > system.maxAIShips) {
+            } else if (aiShipCount > system.maxAIShips) {
                 const excessCount = aiShipCount - system.maxAIShips;
                 let despawned = 0;
 
@@ -408,8 +409,7 @@ class GameManager {
         const resizeObserver = new ResizeObserver(() => {
             this.targetCanvas.width = this.targetCanvas.offsetWidth;
             this.targetCanvas.height = this.targetCanvas.offsetHeight;
-            this.targetCamera.screenSize.width = this.targetCanvas.width;
-            this.targetCamera.screenSize.height = this.targetCanvas.height;
+            this.targetCamera.screenSize.set(this.targetCanvas.width, this.targetCanvas.height);
         });
         resizeObserver.observe(this.targetCanvas);
 
@@ -432,7 +432,7 @@ class GameManager {
                 this.cameraTarget = this.playerShip;
             }
             if (e.key === 'd' || e.key === 'D') {
-                this.debug = !(this.debug);
+                this.debug = !this.debug;
                 if (this.cameraTarget) {
                     this.cameraTarget.debug = this.debug;
                 }
@@ -450,8 +450,6 @@ class GameManager {
             this.zoomTextTimer = 120;
         });
     }
-
-
 }
 
 // Initialize the game manager and expose it to the window object

@@ -36,7 +36,7 @@ export class AutoPilot {
 
     /**
      * Updates the autopilot's behavior each frame.
-     * @param {number} deltaTime - Time elapsed since last update in seconds.
+     * @param {number} deltaTime - Time elapsed since the last update in seconds.
      */
     update(deltaTime) {
         if (!this.active) return;
@@ -72,15 +72,16 @@ export class AutoPilot {
 /**
  * Autopilot that flies the ship to a target within the same system with precise velocity control.
  * Reimplements AIPilot's distance-based flying logic with configurable speeds.
+ * @extends AutoPilot
  */
 export class FlyToTargetAutoPilot extends AutoPilot {
     /**
      * Creates a new FlyToTargetAutoPilot instance.
      * @param {Ship} ship - The ship to control.
      * @param {GameObject} target - The target to fly toward.
-     * @param {number} [arrivalDistance=100] - Distance from target center to achieve arrivalSpeed.
-     * @param {number} [arrivalSpeed=Ship.LANDING_SPEED] - Target speed at arrivalDistance (e.g., landing speed).
-     * @param {number} [closeApproachSpeed=30] - Speed at closeApproachDistance for smoother approach.
+     * @param {number} [arrivalDistance=100] - Distance from target center to achieve arrivalSpeed in world units.
+     * @param {number} [arrivalSpeed=Ship.LANDING_SPEED] - Target speed at arrivalDistance in world units per second.
+     * @param {number} [closeApproachSpeed=30] - Speed at closeApproachDistance for smoother approach in world units per second.
      */
     constructor(ship, target, arrivalDistance = 100, arrivalSpeed = Ship.LANDING_SPEED, closeApproachSpeed = 30) {
         super(ship, target);
@@ -92,6 +93,9 @@ export class FlyToTargetAutoPilot extends AutoPilot {
         this.closeApproachDistance = 0;
     }
 
+    /**
+     * Starts the autopilot, ensuring the target is in the same star system.
+     */
     start() {
         super.start();
         if (!this.target || this.target.starSystem !== this.ship.starSystem) {
@@ -100,6 +104,10 @@ export class FlyToTargetAutoPilot extends AutoPilot {
         }
     }
 
+    /**
+     * Updates the ship's trajectory to fly toward the target with velocity control.
+     * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     */
     update(deltaTime) {
         if (!this.active || !this.target) return;
 
@@ -111,12 +119,12 @@ export class FlyToTargetAutoPilot extends AutoPilot {
         // Calculate direction and distance to target
         const directionToPlanet = this.target.position.subtract(this.ship.position);
         const distanceToPlanetCenter = directionToPlanet.magnitude();
-        const directionToPlanetNormalized = directionToPlanet.normalize();
+        directionToPlanet.normalizeInPlace(); // Reuse directionToPlanet as normalized vector
         const currentSpeed = this.ship.velocity.magnitude();
 
         // Velocity components
-        const velocityTowardPlanet = this.ship.velocity.dot(directionToPlanetNormalized);
-        const velocityPerpendicular = this.ship.velocity.subtract(directionToPlanetNormalized.multiply(velocityTowardPlanet));
+        const velocityTowardPlanet = this.ship.velocity.dot(directionToPlanet);
+        const velocityPerpendicular = this.ship.velocity.subtract(directionToPlanet.multiply(velocityTowardPlanet));
         const lateralSpeed = velocityPerpendicular.magnitude();
         const decelerationDistance = currentSpeed > this.arrivalSpeed
             ? (currentSpeed * currentSpeed - this.arrivalSpeed * this.arrivalSpeed) / (2 * this.ship.thrust)
@@ -144,17 +152,18 @@ export class FlyToTargetAutoPilot extends AutoPilot {
         if (distanceToPlanetCenter > this.farApproachDistance) {
             state = 'Far Away: ';
             const desiredSpeed = this.ship.maxVelocity;
-            const targetVelocity = directionToPlanetNormalized.multiply(desiredSpeed);
+            const targetVelocity = directionToPlanet.multiply(desiredSpeed); // Still one allocation here
             let desiredVelocity = targetVelocity;
             if (lateralSpeed > 5) {
                 state += 'lateralSpeed > 5 ';
                 const lateralCorrectionFactor = Math.min(1, lateralSpeed / 10);
                 const lateralCorrection = velocityPerpendicular.normalize().multiply(-lateralSpeed * lateralCorrectionFactor);
-                desiredVelocity = targetVelocity.add(lateralCorrection).normalize().multiply(desiredSpeed);
+                desiredVelocity = targetVelocity.add(lateralCorrection); // Another allocation
+                desiredVelocity.normalizeInPlace().multiplyInPlace(desiredSpeed);
             }
 
             const velocityError = desiredVelocity.subtract(this.ship.velocity);
-            this.velocityError = velocityError.clone();
+            this.velocityError = velocityError.clone(); // Keep for debugging, could be optimized out
             const velocityErrorMagnitude = velocityError.magnitude();
 
             if (velocityErrorMagnitude > 5) {
@@ -177,7 +186,7 @@ export class FlyToTargetAutoPilot extends AutoPilot {
             const angleToReverseVelocity = normalizeAngleDiff(Math.atan2(-this.ship.velocity.y, -this.ship.velocity.x) - this.ship.angle);
             const isFacingAway = Math.abs(angleToReverseVelocity) < Math.PI / 6;
             if (velocityTowardPlanet > 0 && isFacingAway && decelerationDistance < (distanceToPlanetCenter - this.arrivalDistance)) {
-                desiredVelocity = this.ship.velocity;
+                desiredVelocity = this.ship.velocity; // No allocation, just reference
                 desiredAngle = Math.atan2(-this.ship.velocity.y, -this.ship.velocity.x);
                 state += 'Coasting On Track';
             } else if (stoppingDistance > distanceToClose && currentSpeed > this.closeApproachSpeed * 1.2) {
@@ -187,18 +196,20 @@ export class FlyToTargetAutoPilot extends AutoPilot {
                     state += 'lateralSpeed > 5 ';
                     const lateralCorrectionFactor = Math.min(1, lateralSpeed / 5);
                     const lateralCorrection = velocityPerpendicular.normalize().multiply(-lateralSpeed * lateralCorrectionFactor);
-                    desiredVelocity = targetVelocity.add(lateralCorrection).normalize().multiply(currentSpeed);
+                    desiredVelocity = targetVelocity.add(lateralCorrection);
+                    desiredVelocity.normalizeInPlace().multiplyInPlace(currentSpeed);
                 }
                 state += 'Overshoot ';
             } else {
                 const desiredSpeed = Math.max(this.closeApproachSpeed, this.closeApproachSpeed + (distanceToClose / maxDecelerationDistance) * (this.ship.maxVelocity - this.closeApproachSpeed));
-                const targetVelocity = directionToPlanetNormalized.multiply(desiredSpeed);
+                const targetVelocity = directionToPlanet.multiply(desiredSpeed);
                 desiredVelocity = targetVelocity;
                 if (lateralSpeed > 5) {
                     state += 'lateralSpeed > 5 ';
                     const lateralCorrectionFactor = Math.min(1, lateralSpeed / 5);
                     const lateralCorrection = velocityPerpendicular.normalize().multiply(-lateralSpeed * lateralCorrectionFactor);
-                    desiredVelocity = targetVelocity.add(lateralCorrection).normalize().multiply(desiredSpeed);
+                    desiredVelocity = targetVelocity.add(lateralCorrection);
+                    desiredVelocity.normalizeInPlace().multiplyInPlace(desiredSpeed);
                 }
                 state += 'Scale Speed ';
             }
@@ -227,13 +238,14 @@ export class FlyToTargetAutoPilot extends AutoPilot {
             } else if (currentSpeed > finalSpeed * 1.2) {
                 desiredSpeed = -currentSpeed;
             }
-            const targetVelocity = directionToPlanetNormalized.multiply(desiredSpeed);
+            const targetVelocity = directionToPlanet.multiply(desiredSpeed);
             let desiredVelocity = targetVelocity;
             if (lateralSpeed > 1) {
                 state += 'lateralSpeed > 1 ';
                 const lateralCorrectionFactor = Math.min(1, lateralSpeed / 5);
                 const lateralCorrection = velocityPerpendicular.normalize().multiply(-lateralSpeed * lateralCorrectionFactor);
-                desiredVelocity = targetVelocity.add(lateralCorrection).normalize().multiply(desiredSpeed);
+                desiredVelocity = targetVelocity.add(lateralCorrection);
+                desiredVelocity.normalizeInPlace().multiplyInPlace(desiredSpeed);
             }
 
             const velocityError = desiredVelocity.subtract(this.ship.velocity);
@@ -257,6 +269,10 @@ export class FlyToTargetAutoPilot extends AutoPilot {
         this.ship.applyThrust(shouldThrust);
     }
 
+    /**
+     * Returns the current status of the autopilot for HUD display.
+     * @returns {string} A descriptive status string indicating the flight target.
+     */
     getStatus() {
         return `Autopilot: Flying to ${this.target.name || 'target'}`;
     }
@@ -265,13 +281,22 @@ export class FlyToTargetAutoPilot extends AutoPilot {
 /**
  * Autopilot that flies to a planet and lands on it.
  * Chains FlyToTargetAutoPilot and handles landing initiation.
+ * @extends AutoPilot
  */
 export class LandOnPlanetAutoPilot extends AutoPilot {
+    /**
+     * Creates a new LandOnPlanetAutoPilot instance.
+     * @param {Ship} ship - The ship to control.
+     * @param {GameObject} planet - The planet to land on.
+     */
     constructor(ship, planet) {
         super(ship, planet);
         this.subPilot = null;
     }
 
+    /**
+     * Starts the autopilot, ensuring the target is a planet in the same system.
+     */
     start() {
         super.start();
         if (!(this.target && !(this.target instanceof JumpGate))) {
@@ -284,11 +309,14 @@ export class LandOnPlanetAutoPilot extends AutoPilot {
             this.active = false;
             return;
         }
-        // Pass landing-specific speeds and arrival distance
         this.subPilot = new FlyToTargetAutoPilot(this.ship, this.target, this.target.radius, Ship.LANDING_SPEED, 30);
         this.subPilot.start();
     }
 
+    /**
+     * Updates the autopilot, managing the fly-to phase and landing initiation.
+     * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     */
     update(deltaTime) {
         if (!this.active) return;
 
@@ -310,7 +338,7 @@ export class LandOnPlanetAutoPilot extends AutoPilot {
                     this.completed = true;
                     this.stop();
                 } else {
-                    const velocityError = this.ship.velocity.multiply(-1);
+                    const velocityError = this.ship.velocity.multiply(-1); // Still one allocation
                     this.velocityError = velocityError.clone();
                     const desiredAngle = Math.atan2(velocityError.y, velocityError.x);
                     const angleToDesired = ((desiredAngle - this.ship.angle + Math.PI) % (2 * Math.PI)) - Math.PI;
@@ -324,11 +352,18 @@ export class LandOnPlanetAutoPilot extends AutoPilot {
         }
     }
 
+    /**
+     * Stops the autopilot, including any sub-autopilot.
+     */
     stop() {
         if (this.subPilot) this.subPilot.stop();
         super.stop();
     }
 
+    /**
+     * Returns the current status of the autopilot for HUD display.
+     * @returns {string} A descriptive status string indicating landing or sub-autopilot state.
+     */
     getStatus() {
         if (this.subPilot && this.subPilot.active) {
             return this.subPilot.getStatus();

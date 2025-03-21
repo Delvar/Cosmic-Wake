@@ -1,5 +1,6 @@
 // starField.js
 import { remapRange01, remapClamp } from './utils.js';
+import { Vector2D } from './vector2d.js';
 
 /**
  * Generates a hash value from grid coordinates and layer index for consistent RNG seeding.
@@ -38,6 +39,7 @@ class SimpleRNG {
 /**
  * Represents a procedurally generated starfield with parallax effects across multiple layers.
  * Stars are rendered directly in screen space, with properties varying by layer distance.
+ * Uses Vector2D for position calculations to optimize performance.
  * @class
  */
 export class StarField {
@@ -53,17 +55,27 @@ export class StarField {
         // Parallax factors for each layer, from farthest (0.1) to closest (0.9)
         this.parallaxFactors = [0.1, 0.3, 0.5, 0.7, 0.9];
         this.debug = false;               // Toggle to draw debug grid lines
+
+        // Reusable Vector2D instances to reduce garbage collection
+        this.cellWorldPos = new Vector2D();
+        this.screenCellPos = new Vector2D();
+        this.starScreenPos = new Vector2D();
+        this.screenSize = new Vector2D(); // For camera.screenSize
     }
 
     /**
      * Renders the starfield to the canvas, applying parallax and zoom effects.
      * @param {CanvasRenderingContext2D} ctx - The canvas rendering context.
-     * @param {Camera} camera - The camera object defining the view.
+     * @param {Camera} camera - The camera object defining the view, with position (Vector2D) and screenSize (object with width/height).
      */
     draw(ctx, camera) {
         ctx.save();
         const zoomThreshold = 1 - remapClamp(camera.zoom, 0.5, 1, 0.5, 1);
-        // Iterate over each layer (0 = farthest, 7 = closest)
+
+        // Set screenSize once per frame
+        this.screenSize.set(camera.screenSize.width, camera.screenSize.height);
+
+        // Iterate over each layer (0 = farthest, 4 = closest)
         for (let layer = 0; layer < this.layers; layer++) {
             const parallaxFactor = this.parallaxFactors[layer]; // Parallax factor for this layer
 
@@ -102,24 +114,25 @@ export class StarField {
             // Iterate over visible grid cells
             for (let i = gridLeft; i < gridRight; i++) {
                 for (let j = gridTop; j < gridBottom; j++) {
-                    // Convert cell world-space position to screen space
-                    const cellWorldLeft = i * this.gridSize;
-                    const cellWorldTop = j * this.gridSize;
-                    const screenCellLeft = ((cellWorldLeft - camera.position.x) * parallaxZoom) + camera.screenSize.width / 2;
-                    const screenCellTop = ((cellWorldTop - camera.position.y) * parallaxZoom) + camera.screenSize.height / 2;
+                    // Convert cell world-space position to screen space using Vector2D
+                    this.cellWorldPos.set(i * this.gridSize, j * this.gridSize);
+                    this.screenCellPos.set(this.cellWorldPos)
+                        .subtractInPlace(camera.position)
+                        .multiplyInPlace(parallaxZoom)
+                        .addInPlace(this.screenSize.multiply(0.5));
 
                     // Optional debug visualization: draw grid lines
                     if (this.debug) {
                         ctx.strokeStyle = "green"; // Horizontal line
                         ctx.beginPath();
-                        ctx.moveTo(screenCellLeft, screenCellTop);
-                        ctx.lineTo(screenCellLeft + cellScreenWidth, screenCellTop);
+                        ctx.moveTo(this.screenCellPos.x, this.screenCellPos.y);
+                        ctx.lineTo(this.screenCellPos.x + cellScreenWidth, this.screenCellPos.y);
                         ctx.stroke();
 
                         ctx.strokeStyle = "red"; // Vertical line
                         ctx.beginPath();
-                        ctx.moveTo(screenCellLeft, screenCellTop);
-                        ctx.lineTo(screenCellLeft, screenCellTop + cellScreenHeight);
+                        ctx.moveTo(this.screenCellPos.x, this.screenCellPos.y);
+                        ctx.lineTo(this.screenCellPos.x, this.screenCellPos.y + cellScreenHeight);
                         ctx.stroke();
                     }
 
@@ -147,15 +160,15 @@ export class StarField {
                         // Define star color using HSL
                         const color = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 
-                        // Calculate star position in screen space
-                        const starScreenX = screenCellLeft + relX * cellScreenWidth;
-                        const starScreenY = screenCellTop + relY * cellScreenHeight;
+                        // Calculate star position in screen space using Vector2D
+                        this.starScreenPos.set(this.screenCellPos)
+                            .addInPlace(new Vector2D(relX * cellScreenWidth, relY * cellScreenHeight));
 
                         // Draw only if the star is within screen bounds
-                        if (starScreenX >= 0 && starScreenX < camera.screenSize.width &&
-                            starScreenY >= 0 && starScreenY < camera.screenSize.height) {
+                        if (this.starScreenPos.x >= 0 && this.starScreenPos.x < this.screenSize.x &&
+                            this.starScreenPos.y >= 0 && this.starScreenPos.y < this.screenSize.y) {
                             ctx.fillStyle = color;
-                            ctx.fillRect(starScreenX, starScreenY, size, size);
+                            ctx.fillRect(this.starScreenPos.x, this.starScreenPos.y, size, size);
                         }
                     }
                 }

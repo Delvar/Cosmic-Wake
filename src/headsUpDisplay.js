@@ -13,12 +13,13 @@ export class HeadsUpDisplay {
     /**
      * Creates a new HeadsUpDisplay instance.
      * @param {GameManager} gameManager - The game manager providing access to game state.
-     * @param {number} width - Initial width of the HUD.
-     * @param {number} height - Initial height of the HUD.
+     * @param {number} width - Initial width of the HUD in pixels.
+     * @param {number} height - Initial height of the HUD in pixels.
      */
     constructor(gameManager, width, height) {
         this.gameManager = gameManager;
-        this.size = new Vector2D(width, height);
+        this.size = new Vector2D(0, 0);
+        this.size.set(width, height);
         this.ringRadius = Math.min(width, height) / 3;        // Ring for planets (light blue)
         this.shipRingRadius = Math.min(width, height) / 5.5;  // Ring for ships/asteroids (grey)
         this.gateRingRadius = Math.min(width, height) / 2.5;  // Ring for jump gates (green)
@@ -26,12 +27,11 @@ export class HeadsUpDisplay {
 
     /**
      * Resizes the HUD rings based on new screen dimensions.
-     * @param {number} width - New screen width.
-     * @param {number} height - New screen height.
+     * @param {number} width - New screen width in pixels.
+     * @param {number} height - New screen height in pixels.
      */
     resize(width, height) {
-        this.size.width = width;
-        this.size.height = height;
+        this.size.set(width, height);
         this.ringRadius = Math.min(width, height) / 3;
         this.shipRingRadius = Math.min(width, height) / 5.5;
         this.gateRingRadius = Math.min(width, height) / 2.5;

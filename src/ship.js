@@ -8,6 +8,57 @@ import { JumpGate } from './celestialBody.js';
 import { AIPilot } from './pilot.js';
 
 /**
+ * Generates a random ship name by combining prefixes, roots, and optional suffixes or numbers.
+ * @returns {string} A randomly generated ship name (e.g., "Starlance", "Voidreaver-X", "Nova Scout 42").
+ */
+function generateShipName() {
+    // Word pools for name generation
+    const prefixes = [
+        // Serious sci-fi
+        "Star", "Void", "Nova", "Astro", "Hyper", "Galacto", "Nebula",
+        "Cosmo", "Solar", "Lunar", "Stellar", "Eclipse", "Quantum", "Ion",
+        "Pulse", "Graviton", "Meteor", "Celestial",
+        // Funny
+        "Mega", "Disco", "Funky", "Wobbly", "Gizmo", "Bloop", "Snaccident"
+    ];
+    const roots = [
+        // Serious sci-fi
+        "lance", "reaver", "scout", "wing", "drifter", "navigator", "breaker",
+        "strike", "voyager", "frigate", "cruiser", "probe", "dread", "spire",
+        "runner", "falcon", "comet", "raider",
+        // Funny
+        "tickler", "wobbler", "floof", "noodle", "blasterpants", "zoomzoom", "chugger"
+    ];
+    const suffixes = [
+        // Serious sci-fi
+        "-X", "-on", "-ia", "-or", "-tron", "-ix", "-us", "-ex", "-is", "-oid",
+        "-ara", "-tek", "-nova", "-pulse",
+        // Funny
+        "-inator", "-zoid", "-omatic", "-erino", "-splosion", "-licious", "-pants"
+    ];
+    // Pick random prefix and root
+    const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+    const root = roots[Math.floor(Math.random() * roots.length)];
+    let name = `${prefix}${root}`;
+
+    // Add suffix (20% chance)
+    const addSuffix = Math.random() < 0.2;
+    if (addSuffix) {
+        const suffix = suffixes[Math.floor(Math.random() * suffixes.length)];
+        name += suffix;
+    }
+
+    // Add number (20% chance, but only 5% if suffix is present to avoid overuse)
+    const addNumber = Math.random() < (addSuffix ? 0.05 : 0.2);
+    if (addNumber) {
+        const number = Math.floor(Math.random() * 99) + 1; // 1–99
+        name += ` ${number}`;
+    }
+
+    return name;
+}
+
+/**
  * Represents a ship in the game with a state machine for movement and interactions.
  * Extends GameObject to inherit position and star system properties.
  * @extends GameObject
@@ -26,6 +77,8 @@ export class Ship extends GameObject {
         */
     constructor(x, y, starSystem, color = new Colour(1, 1, 1), trailColor = new Colour(1, 1, 1, 0.5)) {
         super(new Vector2D(x, y), starSystem);
+
+        this.name = generateShipName(); // Assign random name on creation
 
         // Physics properties
         /** @type {number} Rotation speed in radians per second */

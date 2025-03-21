@@ -1,4 +1,5 @@
 // starField.js
+
 import { remapRange01, remapClamp } from './utils.js';
 import { Vector2D } from './vector2d.js';
 
@@ -6,7 +7,7 @@ import { Vector2D } from './vector2d.js';
  * Generates a hash value from grid coordinates and layer index for consistent RNG seeding.
  * @param {number} i - The x-index of the grid cell.
  * @param {number} j - The y-index of the grid cell.
- * @param {number} layer - The layer index (0 to 7).
+ * @param {number} layer - The layer index (0 to 4).
  * @returns {number} A unique hash value.
  */
 function hash(i, j, layer) {
@@ -39,7 +40,7 @@ class SimpleRNG {
 /**
  * Represents a procedurally generated starfield with parallax effects across multiple layers.
  * Stars are rendered directly in screen space, with properties varying by layer distance.
- * Uses Vector2D for position calculations to optimize performance.
+ * Uses caching for star positions and colors to optimize performance.
  * @class
  */
 export class StarField {
@@ -49,18 +50,83 @@ export class StarField {
      * @param {number} [gridSize=100] - Size of each grid cell in world-space units (pixels).
      */
     constructor(starsPerCell = 10, gridSize = 100) {
-        this.starsPerCell = starsPerCell; // Base number of stars per grid cell
-        this.gridSize = gridSize;         // Cell size in world-space units (pixels)
-        this.layers = 5;                  // Total number of parallax layers
-        // Parallax factors for each layer, from farthest (0.1) to closest (0.9)
+        /** @type {number} Base number of stars per grid cell */
+        this.starsPerCell = starsPerCell;
+        /** @type {number} Cell size in world-space units (pixels) */
+        this.gridSize = gridSize;
+        /** @type {number} Total number of parallax layers */
+        this.layers = 5;
+        /** @type {number[]} Parallax factors for each layer, from farthest (0.1) to closest (0.9) */
         this.parallaxFactors = [0.1, 0.3, 0.5, 0.7, 0.9];
-        this.debug = false;               // Toggle to draw debug grid lines
+        /** @type {boolean} Toggle to draw debug grid lines */
+        this.debug = false;
 
         // Reusable Vector2D instances to reduce garbage collection
+        /** @type {Vector2D} World position of the current cell */
         this.cellWorldPos = new Vector2D();
+        /** @type {Vector2D} Screen position of the current cell */
         this.screenCellPos = new Vector2D();
+        /** @type {Vector2D} Screen position of the current star */
         this.starScreenPos = new Vector2D();
-        this.screenSize = new Vector2D(); // For camera.screenSize
+        /** @type {Vector2D} Screen dimensions (width, height) */
+        this.screenSize = new Vector2D();
+
+        // Cache for star positions and colors
+        /** @type {Map<string, {stars: Array<{relX: number, relY: number, color: string}>, lastAccessed: number}>} */
+        this.starCache = new Map();
+        /** @type {number} Time in milliseconds before cache entries expire */
+        this.cacheExpiration = 5000; // 5 seconds
+        /** @type {number} Timestamp of the last cache cleanup */
+        this.lastCacheClean = Date.now();
+    }
+
+    /**
+     * Generates stars for a specific grid cell and layer, including positions and colors.
+     * @param {number} i - The x-index of the grid cell.
+     * @param {number} j - The y-index of the grid cell.
+     * @param {number} layer - The layer index.
+     * @param {number} starCount - Number of stars to generate.
+     * @param {number} distanceRatio - Ratio used for star color properties (1 = farthest, 0 = closest).
+     * @returns {Array<{relX: number, relY: number, color: string}>} Array of star objects with relative positions and colors.
+     */
+    generateStarsForCell(i, j, layer, starCount, distanceRatio) {
+        const seed = hash(i, j, layer);
+        const rng = new SimpleRNG(seed);
+        const stars = [];
+
+        for (let k = 0; k < starCount; k++) {
+            const relX = rng.next(); // Relative X position (0 to 1)
+            const relY = rng.next(); // Relative Y position (0 to 1)
+            const hue = Math.floor(rng.next() * 360); // Random hue (0-360)
+
+            // Saturation: Higher for distant stars (more colorful), lower for close stars (more white)
+            const minSaturation = remapRange01(distanceRatio, 0, 30); // 0 (near) to 30 (far)
+            const maxSaturation = remapRange01(distanceRatio, 10, 50); // 10 (near) to 50 (far)
+            const saturation = Math.floor(remapRange01(rng.next(), minSaturation, maxSaturation));
+
+            // Lightness: Brighter for close stars, dimmer for distant stars
+            const minLightness = remapRange01(distanceRatio, 80, 20); // 80 (near) to 20 (far)
+            const maxLightness = remapRange01(distanceRatio, 100, 60); // 100 (near) to 60 (far)
+            const lightness = Math.floor(remapRange01(rng.next(), minLightness, maxLightness));
+
+            // Precompute the HSL color string
+            const color = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+
+            stars.push({ relX, relY, color });
+        }
+        return stars;
+    }
+
+    /**
+     * Cleans up the star cache by removing entries that haven't been accessed recently.
+     */
+    cleanCache() {
+        const now = Date.now();
+        for (const [key, entry] of this.starCache) {
+            if (now - entry.lastAccessed > this.cacheExpiration) {
+                this.starCache.delete(key);
+            }
+        }
     }
 
     /**
@@ -114,7 +180,20 @@ export class StarField {
             // Iterate over visible grid cells
             for (let i = gridLeft; i < gridRight; i++) {
                 for (let j = gridTop; j < gridBottom; j++) {
-                    // Convert cell world-space position to screen space using Vector2D
+                    const cacheKey = `${i}-${j}-${layer}`;
+                    let cacheEntry = this.starCache.get(cacheKey);
+
+                    if (!cacheEntry) {
+                        // Generate and cache stars for this cell
+                        const stars = this.generateStarsForCell(i, j, layer, starCount, distanceRatio);
+                        cacheEntry = { stars, lastAccessed: Date.now() };
+                        this.starCache.set(cacheKey, cacheEntry);
+                    } else {
+                        // Update last accessed time
+                        cacheEntry.lastAccessed = Date.now();
+                    }
+
+                    // Convert cell world-space position to screen space
                     this.cellWorldPos.set(i * this.gridSize, j * this.gridSize);
                     this.screenCellPos.set(this.cellWorldPos)
                         .subtractInPlace(camera.position)
@@ -136,44 +215,35 @@ export class StarField {
                         ctx.stroke();
                     }
 
-                    // Seed RNG with cell and layer info for consistent star placement
-                    const seed = hash(i, j, layer);
-                    const rng = new SimpleRNG(seed);
-
-                    // Generate and draw stars for this cell
-                    for (let k = 0; k < starCount; k++) {
-                        // Generate star properties upfront for consistency
-                        const relX = rng.next(); // Relative X position (0 to 1)
-                        const relY = rng.next(); // Relative Y position (0 to 1)
-                        const hue = Math.floor(rng.next() * 360); // Random hue (0-360)
-
-                        // Saturation: Higher for distant stars (more colorful), lower for close stars (more white)
-                        const minSaturation = remapRange01(distanceRatio, 0, 30); // 0 (near) to 30 (far)
-                        const maxSaturation = remapRange01(distanceRatio, 10, 50); // 10 (near) to 50 (far)
-                        const saturation = Math.floor(remapRange01(rng.next(), minSaturation, maxSaturation));
-
-                        // Lightness: Brighter for close stars, dimmer for distant stars
-                        const minLightness = remapRange01(distanceRatio, 80, 20); // 80 (near) to 20 (far)
-                        const maxLightness = remapRange01(distanceRatio, 100, 60); // 100 (near) to 60 (far)
-                        const lightness = Math.floor(remapRange01(rng.next(), minLightness, maxLightness));
-
-                        // Define star color using HSL
-                        const color = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
-
-                        // Calculate star position in screen space using Vector2D
-                        this.starScreenPos.set(this.screenCellPos)
-                            .addInPlace(new Vector2D(relX * cellScreenWidth, relY * cellScreenHeight));
+                    // Render stars using cached positions and colors
+                    for (const star of cacheEntry.stars) {
+                        this.starScreenPos.set(this.screenCellPos);
+                        this.starScreenPos.x += star.relX * cellScreenWidth;
+                        this.starScreenPos.y += star.relY * cellScreenHeight;
 
                         // Draw only if the star is within screen bounds
                         if (this.starScreenPos.x >= 0 && this.starScreenPos.x < this.screenSize.x &&
                             this.starScreenPos.y >= 0 && this.starScreenPos.y < this.screenSize.y) {
-                            ctx.fillStyle = color;
-                            ctx.fillRect(this.starScreenPos.x, this.starScreenPos.y, size, size);
+                            ctx.fillStyle = star.color;
+                            ctx.beginPath();
+                            if (size > 2) {
+                                ctx.arc(this.starScreenPos.x, this.starScreenPos.y, size / 2, 0, Math.PI * 2);
+                            } else {
+                                ctx.fillRect(this.starScreenPos.x, this.starScreenPos.y, size, size);
+                            }
+                            ctx.fill();
                         }
                     }
                 }
             }
         }
+
+        // Clean up the cache periodically (every 10 seconds)
+        if (Date.now() - this.lastCacheClean > 10000) {
+            this.cleanCache();
+            this.lastCacheClean = Date.now();
+        }
+
         ctx.restore();
     }
 }

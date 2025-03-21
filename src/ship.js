@@ -36,9 +36,10 @@ function generateShipName() {
         // Funny
         "-inator", "-zoid", "-omatic", "-erino", "-splosion", "-licious", "-pants"
     ];
+    const upperFirst = (word) => { return word.charAt(0).toUpperCase() + word.slice(1); };
     // Pick random prefix and root
     const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
-    const root = roots[Math.floor(Math.random() * roots.length)];
+    const root = (Math.random() > 0.5) ? roots[Math.floor(Math.random() * roots.length)] : ' ' + upperFirst(roots[Math.floor(Math.random() * roots.length)]);
     let name = `${prefix}${root}`;
 
     // Add suffix (20% chance)
@@ -54,7 +55,6 @@ function generateShipName() {
         const number = Math.floor(Math.random() * 99) + 1; // 1–99
         name += ` ${number}`;
     }
-
     return name;
 }
 

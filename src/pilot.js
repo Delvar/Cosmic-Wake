@@ -35,6 +35,14 @@ export class Pilot {
     tryHyperjump(gameManager) {
         throw new Error("tryHyperjump() must be implemented by subclass");
     }
+
+    /**
+     * get the current pilot status
+     * @returns {string} A text description of the current status.
+     */
+    getState() {
+        throw new Error("getState() must be implemented by subclass");
+    }
 }
 
 /**
@@ -145,6 +153,19 @@ export class PlayerPilot extends Pilot {
             this.ship.initiateHyperjump();
         }
     }
+
+    /**
+     * get the current pilot status
+     * @returns {string} A text description of the current status.
+     */
+    getState() {
+        if (this.autopilot?.active) {
+            this.autopilot.getStatus();
+        } else {
+            return 'Flying free!';
+        }
+    }
+
 }
 
 /**
@@ -181,10 +202,6 @@ export class AIPilot extends Pilot {
         this.maxThrustAngleFar = maxThrustAngleFar;
         this.maxThrustAngleClose = maxThrustAngleClose;
         this.currentState = 'Idle';
-        this.velocityError = new Vector2D(0, 0);
-        this.closeApproachDistance = 0;
-        this.farApproachDistance = 0;
-        this.decelerationDistance = 0;
         this.landWaitTime = 0;
     }
 
@@ -261,7 +278,7 @@ export class AIPilot extends Pilot {
         const lateralSpeed = velocityPerpendicular.magnitude();
 
         const decelerationDistance = (currentSpeed * currentSpeed - Ship.LANDING_SPEED * Ship.LANDING_SPEED) / (2 * this.ship.thrust);
-        this.decelerationDistance = decelerationDistance;
+        this.ship.decelerationDistance = decelerationDistance;
 
         if (this.targetPlanet instanceof JumpGate && distanceToPlanetCenter <= this.targetPlanet.radius) {
             state = 'Jumping:';
@@ -289,7 +306,7 @@ export class AIPilot extends Pilot {
             } else {
                 state += 'Slowing down';
                 const velocityError = this.ship.velocity.multiply(-1);
-                this.velocityError.set(velocityError);
+                this.ship.velocityError.set(velocityError);
                 const desiredAngle = Math.atan2(velocityError.y, velocityError.x);
                 const angleToDesired = normalizeAngleDiff(desiredAngle - this.ship.angle);
                 const shouldThrust = Math.abs(angleToDesired) < Math.PI / 12;
@@ -303,13 +320,15 @@ export class AIPilot extends Pilot {
         const timeToTurn = Math.PI / this.ship.rotationSpeed;
         const maxDecelerationDistance = (this.ship.maxVelocity * this.ship.maxVelocity - Ship.LANDING_SPEED * Ship.LANDING_SPEED) / (2 * this.ship.thrust);
         const maxDistanceWhileTurning = this.ship.maxVelocity * timeToTurn;
-        this.farApproachDistance = maxDecelerationDistance + maxDistanceWhileTurning;
-        this.closeApproachDistance = Ship.LANDING_SPEED * 5 + this.targetPlanet.radius + (Ship.LANDING_SPEED * timeToTurn);
+        const farApproachDistance = maxDecelerationDistance + maxDistanceWhileTurning;
+        this.ship.farApproachDistance = farApproachDistance;
+        const closeApproachDistance = Ship.LANDING_SPEED * 5 + this.targetPlanet.radius + (Ship.LANDING_SPEED * timeToTurn);
+        this.ship.closeApproachDistance = closeApproachDistance;
 
         let desiredAngle = this.ship.angle;
         let shouldThrust = false;
 
-        if (distanceToPlanetCenter > this.farApproachDistance) {
+        if (distanceToPlanetCenter > farApproachDistance) {
             state = 'Far Away: ';
             const desiredSpeed = this.ship.maxVelocity;
             const targetVelocity = directionToPlanet.multiply(desiredSpeed);
@@ -323,7 +342,7 @@ export class AIPilot extends Pilot {
             }
 
             const velocityError = desiredVelocity.subtract(this.ship.velocity);
-            this.velocityError.set(velocityError);
+            this.ship.velocityError.set(velocityError);
             const velocityErrorMagnitude = velocityError.magnitude();
 
             if (velocityErrorMagnitude > 5) {
@@ -337,9 +356,9 @@ export class AIPilot extends Pilot {
                 desiredAngle = Math.atan2(this.ship.velocity.y, this.ship.velocity.x);
                 state += 'Coasting';
             }
-        } else if (distanceToPlanetCenter > this.closeApproachDistance) {
+        } else if (distanceToPlanetCenter > closeApproachDistance) {
             state = 'Approach: ';
-            const distanceToClose = distanceToPlanetCenter - this.closeApproachDistance;
+            const distanceToClose = distanceToPlanetCenter - closeApproachDistance;
             const stoppingDistance = decelerationDistance + ((currentSpeed - CLOSE_APPROACH_SPEED) * timeToTurn);
             let desiredVelocity;
 
@@ -376,7 +395,7 @@ export class AIPilot extends Pilot {
             }
 
             const velocityError = desiredVelocity.subtract(this.ship.velocity);
-            this.velocityError.set(velocityError);
+            this.ship.velocityError.set(velocityError);
             const velocityErrorMagnitude = velocityError.magnitude();
 
             if (velocityErrorMagnitude > 5) {
@@ -392,7 +411,7 @@ export class AIPilot extends Pilot {
             }
         } else {
             state = 'Close: ';
-            const finalSpeed = remapClamp(distanceToPlanetCenter, 0, this.closeApproachDistance, Ship.LANDING_SPEED, CLOSE_APPROACH_SPEED);
+            const finalSpeed = remapClamp(distanceToPlanetCenter, 0, closeApproachDistance, Ship.LANDING_SPEED, CLOSE_APPROACH_SPEED);
             let desiredSpeed = finalSpeed;
             if (currentSpeed < finalSpeed * 0.5) {
                 desiredSpeed = finalSpeed * 1.2;
@@ -410,7 +429,7 @@ export class AIPilot extends Pilot {
             }
 
             const velocityError = desiredVelocity.subtract(this.ship.velocity);
-            this.velocityError.set(velocityError);
+            this.ship.velocityError.set(velocityError);
             const velocityErrorMagnitude = velocityError.magnitude();
 
             if (velocityErrorMagnitude > 1) {
@@ -437,5 +456,13 @@ export class AIPilot extends Pilot {
      */
     tryHyperjump(gameManager) {
         return false;
+    }
+
+    /**
+     * get the current pilot status
+     * @returns {string} A text description of the current status.
+     */
+    getState() {
+        return this.currentState;
     }
 }

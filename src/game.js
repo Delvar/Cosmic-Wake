@@ -252,33 +252,32 @@ class GameManager {
      */
     update(deltaTime) {
         const currentTime = performance.now();
-        this.updateShips(deltaTime);
-        this.updateAsteroidBelts(deltaTime);
+        this.updateGalaxy(deltaTime);
         this.spawnAIShipsIfNeeded(currentTime);
     }
 
     /**
-     * Updates all ships in the galaxy.
+     * Updates all ships and asteroids in the galaxy.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
      */
-    updateShips(deltaTime) {
-        this.galaxy.forEach(starSystem => {
-            starSystem.ships.forEach(ship => {
-                if (ship.pilot) ship.pilot.update(deltaTime, this);
+    updateGalaxy(deltaTime) {
+        for (let galaxyIndex = 0, galaxyLength = this.galaxy.length; galaxyIndex < galaxyLength; ++galaxyIndex) {
+            const starSystem = this.galaxy[galaxyIndex];
+            for (let shipIndex = 0, shipLength = starSystem.ships.length; shipIndex < shipLength; ++shipIndex) {
+                const ship = starSystem.ships[shipIndex];
+                if (!ship) {
+                    continue;
+                }
+                if (ship.pilot) {
+                    ship.pilot.update(deltaTime, this);
+                }
                 ship.update(deltaTime);
-            });
-        });
+            }
+            if (starSystem.asteroidBelt) {
+                starSystem.asteroidBelt.update(deltaTime);
+            }
+        }
         Object.assign(this.lastKeys, this.keys);
-    }
-
-    /**
-     * Updates all asteroid belts in the galaxy.
-     * @param {number} deltaTime - Time elapsed since the last update in seconds.
-     */
-    updateAsteroidBelts(deltaTime) {
-        this.galaxy.forEach(starSystem => {
-            if (starSystem.asteroidBelt) starSystem.asteroidBelt.update(deltaTime);
-        });
     }
 
     /**

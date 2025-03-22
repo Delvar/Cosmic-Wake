@@ -152,6 +152,13 @@ export class Ship extends GameObject {
         this.jumpEndPosition = null;
         /** @type {number|null} Initial angle for hyperjump animation */
         this.jumpStartAngle = null;
+
+        //Debug
+        this.velocityError = new Vector2D(0, 0);
+        this.decelerationDistance = 0;
+        this.farApproachDistance = 0;
+        this.closeApproachDistance = 0;
+
     }
 
     /**
@@ -331,14 +338,14 @@ export class Ship extends GameObject {
         const t = Math.min(this.animationTime / this.animationDuration, 1);
         this.shipScale = 1 - t; // Shrink to 0
 
-        // Log positions for debugging
-        if (this.debug) {
-            console.log(`updateLanding (t=${t}):`, {
-                shipPos: { x: this.position.x, y: this.position.y },
-                landingStartPos: this.landingStartPosition ? { x: this.landingStartPosition.x, y: this.landingStartPosition.y } : null,
-                landedPlanetPos: this.landedPlanet?.position ? { x: this.landedPlanet.position.x, y: this.landedPlanet.position.y } : null
-            });
-        }
+        // // Log positions for debugging
+        // if (this.debug) {
+        //     console.log(`updateLanding (t=${t}):`, {
+        //         shipPos: { x: this.position.x, y: this.position.y },
+        //         landingStartPos: this.landingStartPosition ? { x: this.landingStartPosition.x, y: this.landingStartPosition.y } : null,
+        //         landedPlanetPos: this.landedPlanet?.position ? { x: this.landedPlanet.position.x, y: this.landedPlanet.position.y } : null
+        //     });
+        // }
 
         // Safeguard against NaN values
         if (!this.landingStartPosition || !this.landedPlanet || !this.landedPlanet.position ||
@@ -569,8 +576,8 @@ export class Ship extends GameObject {
             ctx.restore();
 
             // 3. AIPilot State (static text below the ship in screen coordinates)
-            if (this.pilot && this.pilot instanceof AIPilot) {
-                const state = this.pilot.currentState;
+            if (this.pilot /*&& this.pilot instanceof AIPilot*/) {
+                const state = this.pilot.getState();
                 ctx.fillStyle = 'white';
                 ctx.font = `${10 * scale}px Arial`;
                 const textMetrics = ctx.measureText(state);
@@ -580,55 +587,55 @@ export class Ship extends GameObject {
             }
 
             // 4. Stopping Distance (vector along velocity ending in a green circle)
-            if (this.pilot && this.pilot instanceof AIPilot) {
-                const decelerationDistance = this.pilot.decelerationDistance;
-                const farApproachDistance = this.pilot.farApproachDistance;
-                const closeApproachDistance = this.pilot.closeApproachDistance;
-                const currentSpeed = this.velocity.magnitude(); // Calculate currentSpeed here
-                const stoppingPoint = this.position.add(
-                    currentSpeed > 0 ? this.velocity.clone().normalizeInPlace().multiply(decelerationDistance) : new Vector2D(0, 0)
-                );
-                const stoppingScreen = camera.worldToScreen(stoppingPoint);
-                const originScreen = camera.worldToScreen(this.position);
+            //if (this.pilot /*&& this.pilot instanceof AIPilot*/) {
+            const decelerationDistance = this.decelerationDistance;
+            const farApproachDistance = this.farApproachDistance;
+            const closeApproachDistance = this.closeApproachDistance;
+            const currentSpeed = this.velocity.magnitude(); // Calculate currentSpeed here
+            const stoppingPoint = this.position.add(
+                currentSpeed > 0 ? this.velocity.clone().normalizeInPlace().multiply(decelerationDistance) : new Vector2D(0, 0)
+            );
+            const stoppingScreen = camera.worldToScreen(stoppingPoint);
+            const originScreen = camera.worldToScreen(this.position);
 
-                // Draw line along velocity
-                ctx.strokeStyle = 'gray';
-                ctx.beginPath();
-                ctx.moveTo(originScreen.x, originScreen.y);
-                ctx.lineTo(stoppingScreen.x, stoppingScreen.y);
-                ctx.stroke();
+            // Draw line along velocity
+            ctx.strokeStyle = 'gray';
+            ctx.beginPath();
+            ctx.moveTo(originScreen.x, originScreen.y);
+            ctx.lineTo(stoppingScreen.x, stoppingScreen.y);
+            ctx.stroke();
 
-                // Draw green circle at stopping point
-                ctx.fillStyle = 'green';
-                ctx.beginPath();
-                ctx.arc(stoppingScreen.x, stoppingScreen.y, 5 * scale, 0, 2 * Math.PI);
-                ctx.fill();
+            // Draw green circle at stopping point
+            ctx.fillStyle = 'green';
+            ctx.beginPath();
+            ctx.arc(stoppingScreen.x, stoppingScreen.y, 5 * scale, 0, 2 * Math.PI);
+            ctx.fill();
 
-                if (this.target) {
-                    const targetScreen = camera.worldToScreen(this.target.position);
-                    if (farApproachDistance > 0) {
-                        // Draw giant green circle around the target
+            if (this.target) {
+                const targetScreen = camera.worldToScreen(this.target.position);
+                if (farApproachDistance > 0) {
+                    // Draw giant green circle around the target
+                    ctx.beginPath();
+                    ctx.fillStyle = 'rgba(0,255,0,0.1)';
+                    ctx.arc(targetScreen.x, targetScreen.y, farApproachDistance * scale, 0, 2 * Math.PI, false);
+                    if (closeApproachDistance > 0) {
+                        // cut out the inner circle to fill in later
+                        ctx.arc(targetScreen.x, targetScreen.y, closeApproachDistance * scale, 0, 2 * Math.PI, true);
+                    }
+                    ctx.fill();
+                    if (closeApproachDistance > 0) {
+                        // Draw giant orange circle around the target
                         ctx.beginPath();
-                        ctx.fillStyle = 'rgba(0,255,0,0.1)';
-                        ctx.arc(targetScreen.x, targetScreen.y, farApproachDistance * scale, 0, 2 * Math.PI, false);
-                        if (closeApproachDistance > 0) {
-                            // cut out the inner circle to fill in later
-                            ctx.arc(targetScreen.x, targetScreen.y, closeApproachDistance * scale, 0, 2 * Math.PI, true);
-                        }
+                        ctx.fillStyle = 'rgba(255,255,0,0.2)';
+                        ctx.arc(targetScreen.x, targetScreen.y, closeApproachDistance * scale, 0, 2 * Math.PI);
                         ctx.fill();
-                        if (closeApproachDistance > 0) {
-                            // Draw giant orange circle around the target
-                            ctx.beginPath();
-                            ctx.fillStyle = 'rgba(255,255,0,0.2)';
-                            ctx.arc(targetScreen.x, targetScreen.y, closeApproachDistance * scale, 0, 2 * Math.PI);
-                            ctx.fill();
-                        }
                     }
                 }
             }
+            //}
             // 5. Velocity error
-            if (this.pilot && this.pilot instanceof AIPilot) {
-                const stoppingPoint = this.position.add(this.pilot.velocityError);
+            if (this.pilot /*&& this.pilot instanceof AIPilot*/) {
+                const stoppingPoint = this.position.add(this.velocityError);
                 const stoppingScreen = camera.worldToScreen(stoppingPoint);
                 const originScreen = camera.worldToScreen(this.position);
 

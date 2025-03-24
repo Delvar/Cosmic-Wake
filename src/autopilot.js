@@ -279,9 +279,11 @@ export class FlyToTargetAutoPilot extends AutoPilot {
     }
 }
 
+// autopilot.js (only LandOnPlanetAutoPilot is updated)
+
 /**
  * Autopilot that flies to a planet and lands on it.
- * Chains FlyToTargetAutoPilot and handles landing initiation.
+ * Chains FlyToTargetAutoPilot and handles landing initiation and completion.
  * @extends AutoPilot
  */
 export class LandOnPlanetAutoPilot extends AutoPilot {
@@ -315,13 +317,15 @@ export class LandOnPlanetAutoPilot extends AutoPilot {
     }
 
     /**
-     * Updates the autopilot, managing the fly-to phase and landing initiation.
+     * Updates the autopilot, managing the fly-to phase, landing initiation, and waiting for landing completion.
+     * Restarts the sub-pilot if the ship overshoots and can't land yet.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
      */
     update(deltaTime) {
         if (!this.active) return;
 
         if (this.subPilot && this.subPilot.active) {
+            // Fly to the planet using sub-autopilot
             this.subPilot.update(deltaTime);
             if (this.subPilot.isComplete()) {
                 if (this.subPilot.error) {
@@ -329,16 +333,16 @@ export class LandOnPlanetAutoPilot extends AutoPilot {
                     this.stop();
                     return;
                 }
-                this.subPilot = null;
+                this.subPilot = null; // Sub-pilot done; proceed to landing
             }
-        } else {
+        } else if (this.ship.state === 'Flying') {
+            // Sub-pilot is done or never started; check if we can land
             const distanceToPlanetCenter = this.ship.position.subtract(this.target.position).magnitude();
             if (distanceToPlanetCenter <= this.target.radius) {
                 if (this.ship.canLand(this.target)) {
-                    this.ship.initiateLanding(this.target);
-                    this.completed = true;
-                    this.stop();
+                    this.ship.initiateLanding(this.target); // Start landing animation
                 } else {
+                    // Slow down if not ready to land (e.g., speed too high)
                     this.ship.velocityError.set(this.ship.velocity.x * -1, this.ship.velocity.y * -1);
                     const desiredAngle = Math.atan2(this.ship.velocityError.y, this.ship.velocityError.x);
                     const angleToDesired = ((desiredAngle - this.ship.angle + Math.PI) % (2 * Math.PI)) - Math.PI;
@@ -346,9 +350,24 @@ export class LandOnPlanetAutoPilot extends AutoPilot {
                     this.ship.applyThrust(Math.abs(angleToDesired) < Math.PI / 12);
                 }
             } else {
-                this.error = "Not close enough to land";
-                this.stop();
+                // Overshot the target; restart the sub-pilot to fly back
+                if (this.ship.debug) {
+                    console.log(`Overshot ${this.target.name || 'target'}; restarting fly-to phase`);
+                }
+                this.subPilot = new FlyToTargetAutoPilot(this.ship, this.target, this.target.radius, Ship.LANDING_SPEED, 30);
+                this.subPilot.start();
             }
+        } else if (this.ship.state === 'Landing') {
+            // Wait for landing animation to complete
+            // Do nothing; ship is handling its own animation
+        } else if (this.ship.state === 'Landed') {
+            // Landing complete; mark autopilot as done
+            this.completed = true;
+            this.stop();
+        } else {
+            // Unexpected ship state (e.g., TakingOff, JumpingOut)
+            this.error = `Unexpected ship state during landing: ${this.ship.state}`;
+            this.stop();
         }
     }
 
@@ -367,7 +386,121 @@ export class LandOnPlanetAutoPilot extends AutoPilot {
     getStatus() {
         if (this.subPilot && this.subPilot.active) {
             return this.subPilot.getStatus();
+        } else if (this.ship.state === 'Landing') {
+            return `Autopilot: Landing on ${this.target.name || 'planet'} (Animating)`;
         }
         return `Autopilot: Landing on ${this.target.name || 'planet'}`;
+    }
+}
+
+/**
+ * Autopilot that flies to a jump gate and traverses it, waiting for the full jump animation to complete.
+ * Chains FlyToTargetAutoPilot and handles hyperjump initiation and completion.
+ * @extends AutoPilot
+ */
+export class TraverseJumpGateAutoPilot extends AutoPilot {
+    /**
+     * Creates a new TraverseJumpGateAutoPilot instance.
+     * @param {Ship} ship - The ship to control.
+     * @param {JumpGate} gate - The jump gate to traverse.
+     */
+    constructor(ship, gate) {
+        super(ship, gate);
+        this.subPilot = null;
+    }
+
+    /**
+     * Starts the autopilot, ensuring the target is a jump gate in the same system.
+     */
+    start() {
+        super.start();
+        if (!(this.target instanceof JumpGate)) {
+            this.error = "Target is not a jump gate";
+            this.active = false;
+            return;
+        }
+        if (this.target.starSystem !== this.ship.starSystem) {
+            this.error = "Jump gate not in same system";
+            this.active = false;
+            return;
+        }
+        // Fly to the gate's position with a small arrival distance
+        this.subPilot = new FlyToTargetAutoPilot(this.ship, this.target, 50, 10, 30);
+        this.subPilot.start();
+    }
+
+    /**
+     * Updates the autopilot, managing the fly-to phase, hyperjump initiation, and waiting for jump completion.
+     * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     */
+    update(deltaTime) {
+        if (!this.active) return;
+
+        if (this.subPilot && this.subPilot.active) {
+            // Fly to the jump gate using sub-autopilot
+            this.subPilot.update(deltaTime);
+            if (this.subPilot.isComplete()) {
+                if (this.subPilot.error) {
+                    this.error = this.subPilot.error;
+                    this.stop();
+                    return;
+                }
+                this.subPilot = null; // Sub-pilot done; proceed to jumping
+            }
+        } else if (this.ship.state === 'Flying' && this.ship.starSystem === this.target.lane.target) {
+            // Jump complete; ship is flying in the target system
+            this.completed = true;
+            this.stop();
+        } else if (this.ship.state === 'Flying') {
+            // Ship is flying in the original system; try to initiate hyperjump
+            const distanceToGate = this.ship.position.subtract(this.target.position).magnitude();
+            if (distanceToGate <= 50 && this.target.overlapsShip(this.ship.position)) {
+                if (this.ship.initiateHyperjump()) {
+                    // Hyperjump started successfully
+                } else {
+                    // Hyperdrive not ready or gate not found; slow down and wait
+                    this.ship.velocityError.set(this.ship.velocity.x * -1, this.ship.velocity.y * -1);
+                    const desiredAngle = Math.atan2(this.ship.velocityError.y, this.ship.velocityError.x);
+                    const angleToDesired = ((desiredAngle - this.ship.angle + Math.PI) % (2 * Math.PI)) - Math.PI;
+                    this.ship.setTargetAngle(this.ship.angle + angleToDesired);
+                    this.ship.applyThrust(Math.abs(angleToDesired) < Math.PI / 12);
+                }
+            } else {
+                // Not close enough or not overlapping; restart sub-pilot to approach again
+                console.log(`Not aligned with ${this.target.name || 'jump gate'}; restarting fly-to phase`);
+                this.subPilot = new FlyToTargetAutoPilot(this.ship, this.target, 50, 10, 30);
+                this.subPilot.start();
+            }
+        } else if (this.ship.state === 'JumpingOut' || this.ship.state === 'JumpingIn') {
+            // Wait for jump animation to complete
+            // Do nothing; ship is handling its own animation
+        } else {
+            // Unexpected ship state (e.g., Landed, TakingOff)
+            this.error = `Unexpected ship state during jump: ${this.ship.state}`;
+            this.stop();
+        }
+    }
+
+    /**
+     * Stops the autopilot, including any sub-autopilot.
+     */
+    stop() {
+        if (this.subPilot) this.subPilot.stop();
+        super.stop();
+    }
+
+    /**
+     * Returns the current status of the autopilot for HUD display.
+     * @returns {string} A descriptive status string indicating jump progress.
+     */
+    getStatus() {
+        if (this.subPilot && this.subPilot.active) {
+            return this.subPilot.getStatus();
+        } else if (this.ship.state === 'JumpingOut') {
+            return `Autopilot: Jumping out to ${this.target.lane.target.name || 'system'} (Animating)`;
+        } else if (this.ship.state === 'JumpingIn') {
+            return `Autopilot: Jumping in to ${this.target.lane.target.name || 'system'} (Animating)`;
+        }
+        return `Autopilot: Traversing ${this.target.name || 'jump gate'}`;
     }
 }

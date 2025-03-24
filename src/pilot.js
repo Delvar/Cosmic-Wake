@@ -3,7 +3,7 @@
 import { Vector2D } from './vector2d.js';
 import { JumpGate } from './celestialBody.js';
 import { remapClamp } from './utils.js';
-import { FlyToTargetAutoPilot, LandOnPlanetAutoPilot } from './autopilot.js';
+import { TraverseJumpGateAutoPilot, FlyToTargetAutoPilot, LandOnPlanetAutoPilot } from './autopilot.js';
 import { Ship } from './ship.js';
 
 /**
@@ -119,6 +119,21 @@ export class PlayerPilot extends Pilot {
             }
         }
 
+        // Jump gate traversal with 'J'
+        if (keys['j'] && !lastKeys['j']) {
+            if (this.ship.state === 'Flying' && this.ship.target) {
+                if (this.ship.target instanceof JumpGate) {
+                    const distanceToGate = this.ship.position.subtract(this.ship.target.position).magnitude();
+                    if (distanceToGate <= 50 && this.ship.target.overlapsShip(this.ship.position)) {
+                        this.ship.initiateHyperjump();
+                    } else {
+                        this.autopilot = new TraverseJumpGateAutoPilot(this.ship, this.ship.target);
+                        this.autopilot.start();
+                    }
+                }
+            }
+        }
+
         // Update autopilot if active
         if (this.autopilot?.active) {
             this.autopilot.update(deltaTime);
@@ -148,10 +163,7 @@ export class PlayerPilot extends Pilot {
             }
         }
 
-        // Hyperjump
-        if (keys['j'] && !lastKeys['j']) {
-            this.ship.initiateHyperjump();
-        }
+        // Note: Removed redundant manual 'j' hyperjump check since it's now handled above
     }
 
     /**
@@ -160,309 +172,221 @@ export class PlayerPilot extends Pilot {
      */
     getState() {
         if (this.autopilot?.active) {
-            this.autopilot.getStatus();
-        } else {
-            return 'Flying free!';
+            return this.autopilot.getStatus(); // Fixed typo from previous 'getStatus'
         }
+        return 'Flying free!';
     }
-
 }
 
 /**
- * An AI-controlled pilot that navigates to planets or jump gates autonomously.
+ * An AI-controlled pilot that navigates to planets or jump gates autonomously using autopilot.
  * @extends Pilot
  */
 export class AIPilot extends Pilot {
     /**
-     * Creates a new AIPilot instance with customizable behavior parameters.
+     * Creates a new AIPilot instance.
      * @param {Ship} ship - The ship this pilot controls.
      * @param {CelestialBody} spawnPlanet - The celestial body where the ship spawned.
-     * @param {number} [turnTimeFactor=1] - Factor to adjust turn time sensitivity.
-     * @param {number} [decelerationFactor=1] - Factor to adjust deceleration strength.
-     * @param {number} [coastingDistanceMultiplier=4] - Multiplier for coasting distance.
-     * @param {number} [maxThrustAngleFar=Math.PI / 6] - Max thrust angle when far (radians).
-     * @param {number} [maxThrustAngleClose=Math.PI / 18] - Max thrust angle when close (radians).
      */
-    constructor(
-        ship,
-        spawnPlanet,
-        turnTimeFactor = 1,
-        decelerationFactor = 1,
-        coastingDistanceMultiplier = 4,
-        maxThrustAngleFar = Math.PI / 6,
-        maxThrustAngleClose = Math.PI / 18
-    ) {
+    constructor(ship, spawnPlanet) {
         super(ship);
-        this.spawnPlanet = spawnPlanet;
-        this.targetPlanet = this.pickDestination(ship.starSystem, spawnPlanet);
-        this.lastThrustState = false;
-        this.turnTimeFactor = turnTimeFactor;
-        this.decelerationFactor = decelerationFactor;
-        this.coastingDistanceMultiplier = coastingDistanceMultiplier;
-        this.maxThrustAngleFar = maxThrustAngleFar;
-        this.maxThrustAngleClose = maxThrustAngleClose;
-        this.currentState = 'Idle';
-        this.landWaitTime = 0;
+        this.spawnPlanet = spawnPlanet; // Initial planet to exclude from first destination
+        this.target = this.pickDestination(ship.starSystem, spawnPlanet); // Initial target (planet or gate)
+        this.state = 'Idle'; // Current state: 'Idle', 'FlyingToPlanet', 'Landed', 'TakingOff', 'TraversingJumpGate'
+        this.waitTime = 0; // Time to wait on planet in seconds
+        this.autopilot = null; // Instance of LandOnPlanetAutoPilot or TraverseJumpGateAutoPilot when active
+
+        // State machine handlers
+        this.stateHandlers = {
+            'Idle': this.updateIdle.bind(this),
+            'FlyingToPlanet': this.updateFlyingToPlanet.bind(this),
+            'Landed': this.updateLanded.bind(this),
+            'TakingOff': this.updateTakingOff.bind(this),
+            'TraversingJumpGate': this.updateTraversingJumpGate.bind(this)
+        };
     }
 
     /**
-     * Picks a random destination in the star system.
+     * Picks a random destination (planet or jump gate) in the star system, excluding a specified body.
      * @param {StarSystem} starSystem - The current star system.
-     * @param {CelestialBody} excludeBody - The body to exclude (spawn planet).
-     * @returns {CelestialBody} The selected destination.
+     * @param {CelestialBody} excludeBody - The body to exclude (e.g., spawn or current planet).
+     * @returns {CelestialBody|JumpGate} The selected destination (planet or jump gate).
      */
     pickDestination(starSystem, excludeBody) {
         const destinations = starSystem.celestialBodies.filter(body =>
             body !== excludeBody && body.type.type !== 'star'
-        );
+        ); // Include both planets and jump gates, exclude stars
+        if (destinations.length === 0) {
+            console.warn('No valid destinations found; defaulting to spawn planet');
+            return excludeBody; // Fallback to avoid breaking the loop
+        }
         return destinations[Math.floor(Math.random() * destinations.length)];
     }
 
     /**
-     * Sets the AIPilot's current state and logs it if debug is enabled.
-     * @param {string} currentState - The new state.
-     */
-    setCurrentState(currentState) {
-        if (this.currentState !== currentState && this.ship.debug) {
-            console.log(currentState);
-        }
-        this.currentState = currentState;
-    }
-
-    /**
-     * Updates the AI ship's movement and state.
+     * Updates the AI pilot’s behavior, delegating to the appropriate state handler.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
      * @param {GameManager} gameManager - The game manager providing game state.
      */
     update(deltaTime, gameManager) {
-        const CLOSE_APPROACH_SPEED = 30;
-        let state = 'Unknown';
-
-        if (this.targetPlanet.starSystem === this.ship.starSystem) {
-            this.ship.setTarget(this.targetPlanet);
+        // Set the ship’s target for visualization/debugging
+        if (this.ship.starSystem === this.target.starSystem) {
+            this.ship.setTarget(this.target);
         }
 
-        const normalizeAngleDiff = (angleDiff) => {
-            return ((angleDiff + Math.PI) % (2 * Math.PI)) - Math.PI;
-        };
-
-        if (this.ship.state === 'Landed') {
-            state = 'Landed: Waiting';
-            this.landWaitTime -= deltaTime;
-            if (this.landWaitTime <= 0) {
-                this.spawnPlanet = this.ship.landedPlanet;
-                this.targetPlanet = this.pickDestination(this.ship.starSystem, this.spawnPlanet);
-                this.ship.setTarget(this.targetPlanet);
-                const directionToTarget = this.targetPlanet.position.subtract(this.ship.position);
-                this.ship.setTargetAngle(Math.atan2(directionToTarget.y, directionToTarget.x));
-                this.ship.initiateTakeoff();
-                this.landWaitTime = 0;
-            }
-            this.setCurrentState(state);
-            return;
-        }
-
-        if (this.ship.state !== 'Flying') {
-            state = `${this.ship.state}: Waiting`;
-            this.setCurrentState(state);
-            return;
-        }
-
-        const directionToPlanet = this.targetPlanet.position.subtract(this.ship.position);
-        const distanceToPlanetCenter = directionToPlanet.magnitude();
-        directionToPlanet.normalizeInPlace();
-        const currentSpeed = this.ship.velocity.magnitude();
-        const velocityTowardPlanet = this.ship.velocity.dot(directionToPlanet);
-        const velocityParallel = directionToPlanet.multiply(velocityTowardPlanet);
-        const velocityPerpendicular = this.ship.velocity.subtract(velocityParallel);
-        const lateralSpeed = velocityPerpendicular.magnitude();
-
-        const decelerationDistance = (currentSpeed * currentSpeed - Ship.LANDING_SPEED * Ship.LANDING_SPEED) / (2 * this.ship.thrust);
-        this.ship.decelerationDistance = decelerationDistance;
-
-        if (this.targetPlanet instanceof JumpGate && distanceToPlanetCenter <= this.targetPlanet.radius) {
-            state = 'Jumping:';
-            if (this.targetPlanet.overlapsShip(this.ship.position)) {
-                if (this.ship.initiateHyperjump()) {
-                    state += ' Initiating';
-                    this.targetPlanet = this.pickDestination(this.targetPlanet.lane.target, this.targetPlanet.lane.targetGate);
-                    this.ship.setTarget(this.targetPlanet);
-                } else {
-                    state += ' Waiting';
-                }
-            } else {
-                state += ' Approaching';
-            }
-            this.setCurrentState(state);
-            return;
-        }
-
-        if (distanceToPlanetCenter <= this.targetPlanet.radius) {
-            state = 'Landing:';
-            if (this.ship.canLand(this.targetPlanet)) {
-                this.ship.initiateLanding(this.targetPlanet);
-                this.landWaitTime = Math.random() * 5 + 2;
-                state += ' Initiating';
-            } else {
-                state += 'Slowing down';
-                const velocityError = this.ship.velocity.multiply(-1);
-                this.ship.velocityError.set(velocityError);
-                const desiredAngle = Math.atan2(velocityError.y, velocityError.x);
-                const angleToDesired = normalizeAngleDiff(desiredAngle - this.ship.angle);
-                const shouldThrust = Math.abs(angleToDesired) < Math.PI / 12;
-                this.ship.setTargetAngle(this.ship.angle + angleToDesired);
-                this.ship.applyThrust(shouldThrust);
-            }
-            this.setCurrentState(state);
-            return;
-        }
-
-        const timeToTurn = Math.PI / this.ship.rotationSpeed;
-        const maxDecelerationDistance = (this.ship.maxVelocity * this.ship.maxVelocity - Ship.LANDING_SPEED * Ship.LANDING_SPEED) / (2 * this.ship.thrust);
-        const maxDistanceWhileTurning = this.ship.maxVelocity * timeToTurn;
-        const farApproachDistance = maxDecelerationDistance + maxDistanceWhileTurning;
-        this.ship.farApproachDistance = farApproachDistance;
-        const closeApproachDistance = Ship.LANDING_SPEED * 5 + this.targetPlanet.radius + (Ship.LANDING_SPEED * timeToTurn);
-        this.ship.closeApproachDistance = closeApproachDistance;
-
-        let desiredAngle = this.ship.angle;
-        let shouldThrust = false;
-
-        if (distanceToPlanetCenter > farApproachDistance) {
-            state = 'Far Away: ';
-            const desiredSpeed = this.ship.maxVelocity;
-            const targetVelocity = directionToPlanet.multiply(desiredSpeed);
-            let desiredVelocity = targetVelocity;
-            if (lateralSpeed > 5) {
-                state += 'lateralSpeed > 5 ';
-                const lateralCorrectionFactor = Math.min(1, lateralSpeed / 10);
-                const lateralCorrection = velocityPerpendicular.normalize().multiply(-lateralSpeed * lateralCorrectionFactor);
-                desiredVelocity = targetVelocity.add(lateralCorrection);
-                desiredVelocity.normalizeInPlace().multiplyInPlace(desiredSpeed);
-            }
-
-            const velocityError = desiredVelocity.subtract(this.ship.velocity);
-            this.ship.velocityError.set(velocityError);
-            const velocityErrorMagnitude = velocityError.magnitude();
-
-            if (velocityErrorMagnitude > 5) {
-                state += 'velocityErrorMagnitude > 5 ';
-                desiredAngle = Math.atan2(velocityError.y, velocityError.x);
-                const angleToDesired = normalizeAngleDiff(desiredAngle - this.ship.angle);
-                desiredAngle = this.ship.angle + angleToDesired;
-                shouldThrust = Math.abs(angleToDesired) < Math.PI / 4;
-                state += shouldThrust ? 'Thrusting' : 'Turning';
-            } else {
-                desiredAngle = Math.atan2(this.ship.velocity.y, this.ship.velocity.x);
-                state += 'Coasting';
-            }
-        } else if (distanceToPlanetCenter > closeApproachDistance) {
-            state = 'Approach: ';
-            const distanceToClose = distanceToPlanetCenter - closeApproachDistance;
-            const stoppingDistance = decelerationDistance + ((currentSpeed - CLOSE_APPROACH_SPEED) * timeToTurn);
-            let desiredVelocity;
-
-            const angleToReverseVelocity = normalizeAngleDiff(Math.atan2(-this.ship.velocity.y, -this.ship.velocity.x) - this.ship.angle);
-            const isFacingAway = Math.abs(angleToReverseVelocity) < Math.PI / 6;
-            if (velocityTowardPlanet > 0 && isFacingAway && decelerationDistance < (distanceToPlanetCenter - this.targetPlanet.radius)) {
-                desiredVelocity = this.ship.velocity;
-                desiredAngle = Math.atan2(-this.ship.velocity.y, -this.ship.velocity.x);
-                shouldThrust = false;
-                state += 'Coasting On Track';
-            } else if (stoppingDistance > distanceToClose && currentSpeed > CLOSE_APPROACH_SPEED * 1.2) {
-                const targetVelocity = this.ship.velocity.normalize().multiply(-currentSpeed);
-                desiredVelocity = targetVelocity;
-                if (lateralSpeed > 5) {
-                    state += 'lateralSpeed > 5 ';
-                    const lateralCorrectionFactor = Math.min(1, lateralSpeed / 5);
-                    const lateralCorrection = velocityPerpendicular.normalize().multiply(-lateralSpeed * lateralCorrectionFactor);
-                    desiredVelocity = targetVelocity.add(lateralCorrection);
-                    desiredVelocity.normalizeInPlace().multiplyInPlace(currentSpeed);
-                }
-                state += 'Overshoot ';
-            } else {
-                const desiredSpeed = Math.max(CLOSE_APPROACH_SPEED, CLOSE_APPROACH_SPEED + (distanceToClose / maxDecelerationDistance) * (this.ship.maxVelocity - CLOSE_APPROACH_SPEED));
-                const targetVelocity = directionToPlanet.multiply(desiredSpeed);
-                desiredVelocity = targetVelocity;
-                if (lateralSpeed > 5) {
-                    state += 'lateralSpeed > 5 ';
-                    const lateralCorrectionFactor = Math.min(1, lateralSpeed / 5);
-                    const lateralCorrection = velocityPerpendicular.normalize().multiply(-lateralSpeed * lateralCorrectionFactor);
-                    desiredVelocity = targetVelocity.add(lateralCorrection);
-                    desiredVelocity.normalizeInPlace().multiplyInPlace(desiredSpeed);
-                }
-                state += 'Scale Speed ';
-            }
-
-            const velocityError = desiredVelocity.subtract(this.ship.velocity);
-            this.ship.velocityError.set(velocityError);
-            const velocityErrorMagnitude = velocityError.magnitude();
-
-            if (velocityErrorMagnitude > 5) {
-                state += 'velocityErrorMagnitude > 5 ';
-                desiredAngle = Math.atan2(velocityError.y, velocityError.x);
-                const angleToDesired = normalizeAngleDiff(desiredAngle - this.ship.angle);
-                desiredAngle = this.ship.angle + angleToDesired;
-                shouldThrust = Math.abs(angleToDesired) < Math.PI / 12 || velocityTowardPlanet < -5;
-                state += shouldThrust ? 'Thrusting' : 'Turning';
-            } else if (!shouldThrust) {
-                desiredAngle = Math.atan2(-this.ship.velocity.y, -this.ship.velocity.x);
-                state += 'Coasting';
-            }
+        const handler = this.stateHandlers[this.state];
+        if (handler) {
+            handler(deltaTime, gameManager); // Call the state-specific update method
         } else {
-            state = 'Close: ';
-            const finalSpeed = remapClamp(distanceToPlanetCenter, 0, closeApproachDistance, Ship.LANDING_SPEED, CLOSE_APPROACH_SPEED);
-            let desiredSpeed = finalSpeed;
-            if (currentSpeed < finalSpeed * 0.5) {
-                desiredSpeed = finalSpeed * 1.2;
-            } else if (currentSpeed > finalSpeed * 1.2) {
-                desiredSpeed = -currentSpeed;
-            }
-            const targetVelocity = directionToPlanet.multiply(desiredSpeed);
-            let desiredVelocity = targetVelocity;
-            if (lateralSpeed > 1) {
-                state += 'lateralSpeed > 1 ';
-                const lateralCorrectionFactor = Math.min(1, lateralSpeed / 5);
-                const lateralCorrection = velocityPerpendicular.normalize().multiply(-lateralSpeed * lateralCorrectionFactor);
-                desiredVelocity = targetVelocity.add(lateralCorrection);
-                desiredVelocity.normalizeInPlace().multiplyInPlace(desiredSpeed);
-            }
-
-            const velocityError = desiredVelocity.subtract(this.ship.velocity);
-            this.ship.velocityError.set(velocityError);
-            const velocityErrorMagnitude = velocityError.magnitude();
-
-            if (velocityErrorMagnitude > 1) {
-                state += 'velocityErrorMagnitude > 1 ';
-                desiredAngle = Math.atan2(velocityError.y, velocityError.x);
-                const angleToDesired = normalizeAngleDiff(desiredAngle - this.ship.angle);
-                desiredAngle = this.ship.angle + angleToDesired;
-                shouldThrust = Math.abs(angleToDesired) < Math.PI / 12;
-                state += shouldThrust ? 'Thrusting' : 'Turning';
-            } else {
-                desiredAngle = Math.atan2(-this.ship.velocity.y, -this.ship.velocity.x);
-                state += 'Coasting';
-            }
+            console.warn(`No handler for state: ${this.state}`);
+            this.state = 'Idle'; // Reset to a safe state if invalid
         }
-
-        this.ship.setTargetAngle(desiredAngle);
-        this.ship.applyThrust(shouldThrust);
-        this.setCurrentState(state);
     }
 
     /**
-     * AI pilots do not perform hyperjumps.
+     * Updates the AI in the 'Idle' state, initiating travel to a new target.
+     * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @param {GameManager} gameManager - The game manager providing game state.
+     */
+    updateIdle(deltaTime, gameManager) {
+        // Decide whether to fly to a planet or traverse a jump gate based on target type
+        if (this.target instanceof JumpGate) {
+            this.autopilot = new TraverseJumpGateAutoPilot(this.ship, this.target);
+            this.autopilot.start();
+            this.state = 'TraversingJumpGate';
+        } else {
+            this.autopilot = new LandOnPlanetAutoPilot(this.ship, this.target);
+            this.autopilot.start();
+            this.state = 'FlyingToPlanet';
+        }
+    }
+
+    /**
+     * Updates the AI in the 'FlyingToPlanet' state, managing autopilot navigation to a planet.
+     * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @param {GameManager} gameManager - The game manager providing game state.
+     */
+    updateFlyingToPlanet(deltaTime, gameManager) {
+        if (!this.autopilot) {
+            console.warn('Autopilot is not set during FlyingToPlanet state');
+            this.state = 'Idle';
+            return;
+        }
+
+        this.autopilot.update(deltaTime);
+
+        if (this.autopilot.isComplete()) {
+            if (this.autopilot.error) {
+                console.warn(`Autopilot failed: ${this.autopilot.error}`);
+                this.target = this.pickDestination(this.ship.starSystem, this.spawnPlanet);
+                this.autopilot = null;
+                this.state = 'Idle';
+            } else {
+                if (this.ship.state === 'Landed') {
+                    this.state = 'Landed';
+                    this.waitTime = Math.random() * 5 + 2; // Wait 2-7 seconds
+                    this.autopilot = null;
+                } else {
+                    console.warn('Autopilot completed but ship is not landed; resetting');
+                    this.autopilot = null;
+                    this.state = 'Idle';
+                }
+            }
+        } else if (!this.autopilot.active) {
+            console.warn('Autopilot is inactive but not complete during FlyingToPlanet state');
+            this.autopilot = null;
+            this.state = 'Idle';
+        }
+    }
+
+    /**
+     * Updates the AI in the 'Landed' state, waiting before takeoff.
+     * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @param {GameManager} gameManager - The game manager providing game state.
+     */
+    updateLanded(deltaTime, gameManager) {
+        // Wait on the planet until waitTime expires
+        this.waitTime -= deltaTime;
+        if (this.waitTime <= 0) {
+            // Pick a new destination before takeoff
+            this.spawnPlanet = this.target; // Update spawn to current planet
+            this.target = this.pickDestination(this.ship.starSystem, this.spawnPlanet);
+            // Align ship towards the new target and initiate takeoff
+            const directionToTarget = this.target.position.subtract(this.ship.position);
+            this.ship.setTargetAngle(Math.atan2(directionToTarget.y, directionToTarget.x));
+            this.ship.initiateTakeoff();
+            this.state = 'TakingOff';
+        }
+    }
+
+    /**
+     * Updates the AI in the 'TakingOff' state, transitioning back to Idle after takeoff.
+     * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @param {GameManager} gameManager - The game manager providing game state.
+     */
+    updateTakingOff(deltaTime, gameManager) {
+        // Wait for takeoff animation to complete
+        if (this.ship.state === 'Flying') {
+            this.state = 'Idle';
+        }
+    }
+
+    /**
+     * Updates the AI in the 'TraversingJumpGate' state, managing autopilot navigation through a jump gate.
+     * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @param {GameManager} gameManager - The game manager providing game state.
+     */
+    updateTraversingJumpGate(deltaTime, gameManager) {
+        if (!this.autopilot) {
+            console.warn('Autopilot is not set during TraversingJumpGate state');
+            this.state = 'Idle';
+            return;
+        }
+
+        this.autopilot.update(deltaTime);
+
+        if (this.autopilot.isComplete()) {
+            if (this.autopilot.error) {
+                console.warn(`Autopilot failed: ${this.autopilot.error}`);
+                this.target = this.pickDestination(this.ship.starSystem, null); // No exclusion after jump failure
+                this.autopilot = null;
+                this.state = 'Idle';
+            } else {
+                if (this.ship.state === 'Flying' && this.ship.starSystem === this.target.lane.target) {
+                    // Jump complete; pick a new destination in the new system
+                    this.target = this.pickDestination(this.ship.starSystem, this.target.lane.targetGate); // Exclude the gate we just jumped into!
+                    this.autopilot = null;
+                    this.state = 'Idle';
+                } else {
+                    console.warn('Autopilot completed but jump not finished; resetting');
+                    this.autopilot = null;
+                    this.state = 'Idle';
+                }
+            }
+        } else if (!this.autopilot.active) {
+            console.warn('Autopilot is inactive but not complete during TraversingJumpGate state');
+            this.autopilot = null;
+            this.state = 'Idle';
+        }
+    }
+
+    /**
+     * AI pilots do not perform manual hyperjumps; handled via autopilot.
+     * @param {GameManager} gameManager - The game manager providing game state.
      * @returns {boolean} Always false.
      */
     tryHyperjump(gameManager) {
-        return false;
+        return false; // Hyperjumps managed by autopilot
     }
 
     /**
-     * get the current pilot status
-     * @returns {string} A text description of the current status.
+     * Gets the current status of the AI pilot.
+     * @returns {string} A text description of the current state.
      */
     getState() {
-        return this.currentState;
+        if ((this.state === 'FlyingToPlanet' || this.state === 'TraversingJumpGate') && this.autopilot?.active) {
+            return this.autopilot.getStatus(); // Delegate to autopilot for detailed status
+        }
+        return `AI: ${this.state} (Target: ${this.target?.name || 'None'})`;
     }
 }

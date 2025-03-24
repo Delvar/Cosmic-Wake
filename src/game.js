@@ -149,7 +149,7 @@ class Game {
     render(deltaTime) {
         this.ctx.fillStyle = 'black';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-        this.starField.draw(this.ctx, this.camera, this.manager.playerShip.velocity);
+        this.starField.draw(this.ctx, this.camera);
         const starSystem = this.manager.cameraTarget.starSystem;
         if (starSystem.asteroidBelt) starSystem.asteroidBelt.draw(this.ctx, this.camera);
         starSystem.celestialBodies.forEach(body => body.draw(this.ctx, this.camera));
@@ -192,7 +192,7 @@ class Game {
             return;
         }
         this.targetCanvas.style.display = 'block';
-        this.starField.draw(this.targetCtx, this.targetCamera, new Vector2D(0, 0));
+        this.starField.draw(this.targetCtx, this.targetCamera);
         const starSystem = this.manager.cameraTarget.starSystem;
         if (starSystem.asteroidBelt) starSystem.asteroidBelt.draw(this.targetCtx, this.targetCamera);
         starSystem.celestialBodies.forEach(body => body.draw(this.targetCtx, this.targetCamera));
@@ -231,7 +231,7 @@ class GameManager {
         this.cameraTarget = this.playerShip;
         this.targetCamera = new TargetCamera(new Vector2D(0, 0), new Vector2D(0, 0));
         this.targetCamera.screenSize.set(this.targetCanvas.offsetWidth, this.targetCanvas.offsetHeight);
-        this.starField = new StarField(20, 1000);
+        this.starField = new StarField(20, 1000, 10);
         this.hud = new HeadsUpDisplay(this, window.innerWidth, window.innerHeight);
         this.zoomTextTimer = 0;
         this.lastSpawnTime = performance.now();

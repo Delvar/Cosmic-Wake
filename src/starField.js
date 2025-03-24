@@ -31,16 +31,31 @@ class SimpleRNG {
 
 /**
  * Represents a procedurally generated starfield with parallax effects across multiple layers.
- * Uses a fixed color palette per layer for efficient batch rendering.
+ * Uses a fixed colour palette per layer for efficient batch rendering.
  */
 export class StarField {
-    constructor(starsPerCell = 10, gridSize = 100, colorsPerLayer = 10) {
+    constructor(starsPerCell = 20, gridSize = 1000, coloursPerLayer = 10) {
         this.starsPerCell = starsPerCell;
         this.gridSize = gridSize;
         this.layers = 5;
         this.parallaxFactors = [0.1, 0.3, 0.5, 0.7, 0.9];
-        this.colorsPerLayer = colorsPerLayer;
+        this.coloursPerLayer = coloursPerLayer;
+
+        // Store a cache of cells
         this.starCache = new Map();
+        // Cap at 500 cells (~30 KB with 20 stars/cell)
+        this.maxCacheSize = 500;
+
+        // Scratch array for starsByColour
+        this.starsByColourScratch = new Array(coloursPerLayer);
+        for (let i = 0; i < coloursPerLayer; i++) {
+            this.starsByColourScratch[i] = []; // Pre-allocate inner arrays
+        }
+
+        // Dynamic Float32Array for star positions [x1, y1, x2, y2, ...]
+        this.initialVisibleStars = 2500; // Starting size
+        this.positionPool = new Float32Array(this.initialVisibleStars * 2); // 2 floats per star
+        this.positionIndex = 0;
 
         // Reusable Vector2D instances
         this.cellWorldPos = new Vector2D();
@@ -50,27 +65,27 @@ export class StarField {
         this.halfScreenSize = new Vector2D();
         this.starRelPosition = new Vector2D();
 
-        // Pre-generate color palettes for each layer
-        this.colorPalettes = this.generateColorPalettes();
+        // Pre-generate colour palettes for each layer
+        this.colourPalettes = this.generateColourPalettes();
     }
 
     /**
-     * Generates color palettes for each layer based on depth.
-     * @returns {Array<Array<string>>} Array of color palettes, one per layer.
+     * Generates colour palettes for each layer based on depth.
+     * @returns {Array<Array<string>>} Array of colour palettes, one per layer.
      */
-    generateColorPalettes() {
+    generateColourPalettes() {
         const palettes = [];
         for (let layer = 0; layer < this.layers; layer++) {
-            const layerRatio = layer / (this.layers - 1); // 0 (far) to 1 (near)
-            const distanceRatio = 1 - layerRatio; // 1 (far) to 0 (near)
+            const layerRatio = layer / (this.layers - 1);
+            const distanceRatio = 1 - layerRatio;
             const palette = [];
-            for (let c = 0; c < this.colorsPerLayer; c++) {
-                const hue = Math.floor(Math.random() * 360); // Random hue (0-360)
-                const minSaturation = remapRange01(distanceRatio, 0, 30); // Far: 0%, Near: 30%
-                const maxSaturation = remapRange01(distanceRatio, 10, 50); // Far: 10%, Near: 50%
+            for (let c = 0; c < this.coloursPerLayer; c++) {
+                const hue = Math.floor(Math.random() * 360);
+                const minSaturation = remapRange01(distanceRatio, 0, 30);
+                const maxSaturation = remapRange01(distanceRatio, 10, 50);
                 const saturation = Math.floor(minSaturation + Math.random() * (maxSaturation - minSaturation));
-                const minLightness = remapRange01(distanceRatio, 80, 20); // Far: 80%, Near: 20%
-                const maxLightness = remapRange01(distanceRatio, 100, 60); // Far: 100%, Near: 60%
+                const minLightness = remapRange01(distanceRatio, 80, 20);
+                const maxLightness = remapRange01(distanceRatio, 100, 60);
                 const lightness = Math.floor(minLightness + Math.random() * (maxLightness - minLightness));
                 palette.push(`hsl(${hue}, ${saturation}%, ${lightness}%)`);
             }
@@ -80,39 +95,79 @@ export class StarField {
     }
 
     /**
-     * Generates stars for a specific grid cell and layer, assigning colors from the layer's palette.
+     * Generates stars for a specific grid cell and layer using a single Uint8Array.
+     * @param {number} i - The x-index of the grid cell.
+     * @param {number} j - The y-index of the grid cell.
+     * @param {number} layer - The layer index (0 to 4).
+     * @param {number} starCount - Number of stars in the cell.
+     * @param {Array<string>} palette - The layer's colour palette.
+     * @returns {Uint8Array} Star data: [relX, relY, colourIdx, ...]
      */
     generateStarsForCell(i, j, layer, starCount, palette) {
         const seed = hash(i, j, layer);
         const rng = new SimpleRNG(seed);
-        const stars = [];
+        const starData = new Uint8Array(starCount * 3);
+
         for (let k = 0; k < starCount; k++) {
-            const relX = rng.next(); // Relative x (0-1 within cell)
-            const relY = rng.next(); // Relative y (0-1 within cell)
-            const colorIndex = Math.floor(rng.next() * palette.length);
-            const color = palette[colorIndex];
-            stars.push({ relX, relY, color });
+            const baseIdx = k * 3;
+            starData[baseIdx] = Math.floor(rng.next() * 256);
+            starData[baseIdx + 1] = Math.floor(rng.next() * 256);
+            starData[baseIdx + 2] = Math.floor(rng.next() * palette.length);
         }
-        return stars;
+
+        return starData;
     }
 
     /**
-     * Renders the starfield to the canvas, batching stars by color.
-     * @param {CanvasRenderingContext2D} ctx - The canvas rendering context.
-     * @param {Camera} camera - The camera object with position (Vector2D) and screenSize (width/height).
+     * Expands the positionPool if it’s too small to hold all visible stars.
+     * @param {number} requiredStars - Number of stars needed.
      */
+    expandPositionPool(requiredStars) {
+        const currentCapacity = this.positionPool.length / 2; // Current max stars
+        if (requiredStars <= currentCapacity) return;
+
+        const newCapacity = Math.max(requiredStars, currentCapacity + 100); // expand to requiredStars or current + 100
+        const newPool = new Float32Array(newCapacity * 2);
+        newPool.set(this.positionPool); // Copy existing data
+        this.positionPool = newPool;
+        //console.log(`Expanded positionPool to ${newCapacity} stars`);
+    }
+
+    /**
+     * Prunes the starCache to keep it under maxCacheSize by removing the oldest entries.
+     */
+    pruneCache() {
+        const keys = this.starCache.keys();
+        while (this.starCache.size > this.maxCacheSize) {
+            const oldestKey = keys.next().value;
+            this.starCache.delete(oldestKey);
+        }
+    }
+
+    /**
+        * Renders the starfield to the canvas, batching stars by colour.
+        * @param {CanvasRenderingContext2D} ctx - The canvas rendering context.
+        * @param {Camera} camera - The camera object with position (Vector2D) and screenSize (width/height).
+        */
     draw(ctx, camera) {
         ctx.save();
+        const TWO_PI = Math.PI * 2;
         const zoomThreshold = 1 - remapClamp(camera.zoom, 0.5, 1, 0.5, 1);
         this.screenSize.set(camera.screenSize.width, camera.screenSize.height);
         this.halfScreenSize.set(this.screenSize).multiplyInPlace(0.5);
 
+        this.positionIndex = 0;
+
         for (let layer = 0; layer < this.layers; layer++) {
             const parallaxFactor = this.parallaxFactors[layer];
-            if (zoomThreshold > parallaxFactor) continue; // Skip layers too far for current zoom
+            if (zoomThreshold > parallaxFactor) continue;
+
+            const starsByColour = this.starsByColourScratch;
+            for (let i = 0; i < this.coloursPerLayer; i++) {
+                starsByColour[i].length = 0;
+            }
 
             const parallaxZoom = parallaxFactor * camera.zoom;
-            const size = 1 + parallaxFactor * 2; // Star size based on layer depth
             const layerRatio = layer / (this.layers - 1);
             const distanceRatio = 1 - layerRatio;
             const starCount = Math.round(1 + (this.starsPerCell * distanceRatio * distanceRatio));
@@ -133,53 +188,79 @@ export class StarField {
             const cellScreenWidth = this.gridSize * parallaxZoom;
             const cellScreenHeight = this.gridSize * parallaxZoom;
 
-            // Group stars by color
-            const starsByColor = new Map();
-            const palette = this.colorPalettes[layer];
+            const palette = this.colourPalettes[layer];
 
             for (let i = gridLeft; i < gridRight; i++) {
                 for (let j = gridTop; j < gridBottom; j++) {
                     const cacheKey = `${i}-${j}-${layer}`;
-                    let stars = this.starCache.get(cacheKey);
-                    if (!stars) {
-                        stars = this.generateStarsForCell(i, j, layer, starCount, palette);
-                        this.starCache.set(cacheKey, stars);
+                    let starData = this.starCache.get(cacheKey);
+                    if (!starData) {
+                        starData = this.generateStarsForCell(i, j, layer, starCount, palette);
+                        this.starCache.set(cacheKey, starData);
                     }
 
-                    // Compute screen position of cell
                     this.cellWorldPos.set(i * this.gridSize, j * this.gridSize);
                     this.screenCellPos.set(this.cellWorldPos)
                         .subtractInPlace(camera.position)
                         .multiplyInPlace(parallaxZoom)
                         .addInPlace(this.halfScreenSize);
 
-                    for (const star of stars) {
-                        this.starRelPosition.set(star.relX * cellScreenWidth, star.relY * cellScreenHeight);
+                    for (let k = 0; k < starCount; k++) {
+                        const baseIdx = k * 3;
+                        const relX = starData[baseIdx] / 255;
+                        const relY = starData[baseIdx + 1] / 255;
+                        const colourIdx = starData[baseIdx + 2];
+
+                        this.starRelPosition.set(relX * cellScreenWidth, relY * cellScreenHeight);
                         this.starScreenPos.set(this.screenCellPos).addInPlace(this.starRelPosition);
+
                         if (this.starScreenPos.x >= 0 && this.starScreenPos.x < this.screenSize.x &&
                             this.starScreenPos.y >= 0 && this.starScreenPos.y < this.screenSize.y) {
-                            const color = star.color;
-                            if (!starsByColor.has(color)) starsByColor.set(color, []);
-                            starsByColor.get(color).push(this.starScreenPos.clone());
+                            if (this.positionIndex >= this.positionPool.length / 2) {
+                                this.expandPositionPool(this.positionIndex + 1);
+                            }
+                            const posIdx = this.positionIndex * 2;
+                            this.positionPool[posIdx] = this.starScreenPos.x;
+                            this.positionPool[posIdx + 1] = this.starScreenPos.y;
+                            starsByColour[colourIdx].push(posIdx);
+                            this.positionIndex++;
                         }
                     }
                 }
             }
 
-            // Render each color group in one pass
-            for (const [color, positions] of starsByColor) {
-                ctx.fillStyle = color;
-                for (const pos of positions) {
-                    if (size > 2) {
+            const size = 1 + parallaxFactor * 2;
+            const halfSize = size / 2;
+            if (size > 2) {
+                for (let colourIdx = 0; colourIdx < palette.length; colourIdx++) {
+                    const positions = starsByColour[colourIdx];
+                    if (positions.length) {
+                        ctx.fillStyle = palette[colourIdx];
                         ctx.beginPath();
-                        ctx.arc(pos.x, pos.y, size / 2, 0, Math.PI * 2);
+                        for (const posIdx of positions) {
+                            const x = this.positionPool[posIdx];
+                            const y = this.positionPool[posIdx + 1];
+                            ctx.arc(x, y, halfSize, 0, TWO_PI);
+                            ctx.moveTo(x, y);
+                        }
                         ctx.fill();
-                    } else {
-                        ctx.fillRect(pos.x - size / 2, pos.y - size / 2, size, size);
+                    }
+                }
+            } else {
+                for (let colourIdx = 0; colourIdx < palette.length; colourIdx++) {
+                    const positions = starsByColour[colourIdx];
+                    if (positions.length) {
+                        ctx.fillStyle = palette[colourIdx];
+                        for (const posIdx of positions) {
+                            const x = this.positionPool[posIdx];
+                            const y = this.positionPool[posIdx + 1];
+                            ctx.fillRect(x - halfSize, y - halfSize, size, size);
+                        }
                     }
                 }
             }
         }
+        this.pruneCache();
         ctx.restore();
     }
 }

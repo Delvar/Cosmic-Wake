@@ -1,7 +1,7 @@
 // autopilot.js
 
 import { JumpGate } from './celestialBody.js';
-import { remapClamp } from './utils.js';
+import { remapClamp, normalizeAngle } from './utils.js';
 import { Ship } from './ship.js';
 import { Vector2D } from './vector2d.js';
 
@@ -72,7 +72,6 @@ export class AutoPilot {
 
 /**
  * Autopilot that flies the ship to a target within the same system with precise velocity control.
- * Reimplements AIPilot's distance-based flying logic with configurable speeds.
  * @extends AutoPilot
  */
 export class FlyToTargetAutoPilot extends AutoPilot {
@@ -89,9 +88,18 @@ export class FlyToTargetAutoPilot extends AutoPilot {
         this.arrivalDistance = arrivalDistance;
         this.arrivalSpeed = arrivalSpeed;
         this.closeApproachSpeed = closeApproachSpeed;
-        this.velocityError = null;
+        this.velocityError = new Vector2D(); // Persistent vector for debugging compatibility with Ship
         this.farApproachDistance = 0;
         this.closeApproachDistance = 0;
+
+        // Scratch vectors to eliminate all allocations in update
+        this._scratchDirectionToTarget = new Vector2D(); // Direction from ship to target
+        this._scratchTargetVelocity = new Vector2D(); // Desired velocity toward target
+        this._scratchVelocityError = new Vector2D(); // Difference between desired and current velocity
+        this._scratchLateralCorrection = new Vector2D(); // Correction for perpendicular velocity
+        this._scratchVelocityPerpendicular = new Vector2D(); // Perpendicular component of current velocity
+        this._scratchDesiredVelocity = new Vector2D(); // Final desired velocity after corrections
+        this._scratchTemp = new Vector2D(); // Temporary vector for intermediate calculations
     }
 
     /**
@@ -112,21 +120,20 @@ export class FlyToTargetAutoPilot extends AutoPilot {
     update(deltaTime) {
         if (!this.active || !this.target) return;
 
-        // Reused from AIPilot: Normalize angle difference
-        const normalizeAngleDiff = (angleDiff) => {
-            return ((angleDiff + Math.PI) % (2 * Math.PI)) - Math.PI;
-        };
-
         // Calculate direction and distance to target
-        const directionToPlanet = this.target.position.subtract(this.ship.position);
-        const distanceToPlanetCenter = directionToPlanet.magnitude();
-        directionToPlanet.normalizeInPlace(); // Reuse directionToPlanet as normalized vector
+        this._scratchDirectionToTarget.set(this.target.position)
+            .subtractInPlace(this.ship.position);
+        const distanceToPlanetCenter = this._scratchDirectionToTarget.magnitude();
+        this._scratchDirectionToTarget.normalizeInPlace();
         const currentSpeed = this.ship.velocity.magnitude();
 
         // Velocity components
-        const velocityTowardPlanet = this.ship.velocity.dot(directionToPlanet);
-        const velocityPerpendicular = this.ship.velocity.subtract(directionToPlanet.multiply(velocityTowardPlanet));
-        const lateralSpeed = velocityPerpendicular.magnitude();
+        const velocityTowardPlanet = this.ship.velocity.dot(this._scratchDirectionToTarget);
+        this._scratchTemp.set(this._scratchDirectionToTarget)
+            .multiplyInPlace(velocityTowardPlanet);
+        this._scratchVelocityPerpendicular.set(this.ship.velocity)
+            .subtractInPlace(this._scratchTemp);
+        const lateralSpeed = this._scratchVelocityPerpendicular.magnitude();
         const decelerationDistance = currentSpeed > this.arrivalSpeed
             ? (currentSpeed * currentSpeed - this.arrivalSpeed * this.arrivalSpeed) / (2 * this.ship.thrust)
             : 0;
@@ -148,90 +155,89 @@ export class FlyToTargetAutoPilot extends AutoPilot {
         // Control logic
         let desiredAngle = this.ship.angle;
         let shouldThrust = false;
-        //let state = ''; // Optional for status
 
         if (distanceToPlanetCenter > this.farApproachDistance) {
-            //state = 'Far Away: ';
             const desiredSpeed = this.ship.maxVelocity;
-            const targetVelocity = directionToPlanet.multiply(desiredSpeed); // Still one allocation here
-            let desiredVelocity = targetVelocity;
+            this._scratchTargetVelocity.set(this._scratchDirectionToTarget)
+                .multiplyInPlace(desiredSpeed);
+            this._scratchDesiredVelocity.set(this._scratchTargetVelocity);
+
             if (lateralSpeed > 5) {
-                //state += 'lateralSpeed > 5 ';
                 const lateralCorrectionFactor = Math.min(1, lateralSpeed / 10);
-                const lateralCorrection = velocityPerpendicular.normalize().multiply(-lateralSpeed * lateralCorrectionFactor);
-                desiredVelocity = targetVelocity.add(lateralCorrection); // Another allocation
-                desiredVelocity.normalizeInPlace().multiplyInPlace(desiredSpeed);
+                this._scratchLateralCorrection.set(this._scratchVelocityPerpendicular)
+                    .normalizeInPlace()
+                    .multiplyInPlace(-lateralSpeed * lateralCorrectionFactor);
+                this._scratchDesiredVelocity.addInPlace(this._scratchLateralCorrection)
+                    .normalizeInPlace()
+                    .multiplyInPlace(desiredSpeed);
             }
 
-            const velocityError = desiredVelocity.subtract(this.ship.velocity);
-            this.velocityError = velocityError.clone(); // Keep for debugging, could be optimized out
-            const velocityErrorMagnitude = velocityError.magnitude();
+            this._scratchVelocityError.set(this._scratchDesiredVelocity)
+                .subtractInPlace(this.ship.velocity);
+            this.velocityError.set(this._scratchVelocityError); // Copy values, not reference
+            const velocityErrorMagnitude = this._scratchVelocityError.magnitude();
 
             if (velocityErrorMagnitude > 5) {
-                //state += 'velocityErrorMagnitude > 5 ';
-                desiredAngle = Math.atan2(velocityError.y, velocityError.x);
-                const angleToDesired = normalizeAngleDiff(desiredAngle - this.ship.angle);
+                desiredAngle = Math.atan2(this._scratchVelocityError.y, this._scratchVelocityError.x);
+                const angleToDesired = normalizeAngle(desiredAngle - this.ship.angle);
                 desiredAngle = this.ship.angle + angleToDesired;
                 shouldThrust = Math.abs(angleToDesired) < Math.PI / 4;
-                //state += shouldThrust ? 'Thrusting' : 'Turning';
             } else {
                 desiredAngle = Math.atan2(this.ship.velocity.y, this.ship.velocity.x);
-                //state += 'Coasting';
             }
         } else if (distanceToPlanetCenter > this.closeApproachDistance) {
-            //state = 'Approach: ';
             const distanceToClose = distanceToPlanetCenter - this.closeApproachDistance;
             const stoppingDistance = decelerationDistance + ((currentSpeed - this.closeApproachSpeed) * timeToTurn);
-            let desiredVelocity;
 
-            const angleToReverseVelocity = normalizeAngleDiff(Math.atan2(-this.ship.velocity.y, -this.ship.velocity.x) - this.ship.angle);
+            const angleToReverseVelocity = normalizeAngle(Math.atan2(-this.ship.velocity.y, -this.ship.velocity.x) - this.ship.angle);
             const isFacingAway = Math.abs(angleToReverseVelocity) < Math.PI / 6;
             if (velocityTowardPlanet > 0 && isFacingAway && decelerationDistance < (distanceToPlanetCenter - this.arrivalDistance)) {
-                desiredVelocity = this.ship.velocity; // No allocation, just reference
+                this._scratchDesiredVelocity.set(this.ship.velocity);
                 desiredAngle = Math.atan2(-this.ship.velocity.y, -this.ship.velocity.x);
-                //state += 'Coasting On Track';
             } else if (stoppingDistance > distanceToClose && currentSpeed > this.closeApproachSpeed * 1.2) {
-                const targetVelocity = this.ship.velocity.normalize().multiply(-currentSpeed);
-                desiredVelocity = targetVelocity;
+                this._scratchTargetVelocity.set(this.ship.velocity)
+                    .normalizeInPlace()
+                    .multiplyInPlace(-currentSpeed);
+                this._scratchDesiredVelocity.set(this._scratchTargetVelocity);
                 if (lateralSpeed > 5) {
-                    //state += 'lateralSpeed > 5 ';
                     const lateralCorrectionFactor = Math.min(1, lateralSpeed / 5);
-                    const lateralCorrection = velocityPerpendicular.normalize().multiply(-lateralSpeed * lateralCorrectionFactor);
-                    desiredVelocity = targetVelocity.add(lateralCorrection);
-                    desiredVelocity.normalizeInPlace().multiplyInPlace(currentSpeed);
+                    this._scratchLateralCorrection.set(this._scratchVelocityPerpendicular)
+                        .normalizeInPlace()
+                        .multiplyInPlace(-lateralSpeed * lateralCorrectionFactor);
+                    this._scratchDesiredVelocity.addInPlace(this._scratchLateralCorrection)
+                        .normalizeInPlace()
+                        .multiplyInPlace(currentSpeed);
                 }
-                //state += 'Overshoot ';
             } else {
                 const desiredSpeed = Math.max(this.closeApproachSpeed, this.closeApproachSpeed + (distanceToClose / maxDecelerationDistance) * (this.ship.maxVelocity - this.closeApproachSpeed));
-                const targetVelocity = directionToPlanet.multiply(desiredSpeed);
-                desiredVelocity = targetVelocity;
+                this._scratchTargetVelocity.set(this._scratchDirectionToTarget)
+                    .multiplyInPlace(desiredSpeed);
+                this._scratchDesiredVelocity.set(this._scratchTargetVelocity);
                 if (lateralSpeed > 5) {
-                    //state += 'lateralSpeed > 5 ';
                     const lateralCorrectionFactor = Math.min(1, lateralSpeed / 5);
-                    const lateralCorrection = velocityPerpendicular.normalize().multiply(-lateralSpeed * lateralCorrectionFactor);
-                    desiredVelocity = targetVelocity.add(lateralCorrection);
-                    desiredVelocity.normalizeInPlace().multiplyInPlace(desiredSpeed);
+                    this._scratchLateralCorrection.set(this._scratchVelocityPerpendicular)
+                        .normalizeInPlace()
+                        .multiplyInPlace(-lateralSpeed * lateralCorrectionFactor);
+                    this._scratchDesiredVelocity.addInPlace(this._scratchLateralCorrection)
+                        .normalizeInPlace()
+                        .multiplyInPlace(desiredSpeed);
                 }
-                //state += 'Scale Speed ';
             }
 
-            const velocityError = desiredVelocity.subtract(this.ship.velocity);
-            this.velocityError = velocityError.clone();
-            const velocityErrorMagnitude = velocityError.magnitude();
+            this._scratchVelocityError.set(this._scratchDesiredVelocity)
+                .subtractInPlace(this.ship.velocity);
+            this.velocityError.set(this._scratchVelocityError);
+            const velocityErrorMagnitude = this._scratchVelocityError.magnitude();
 
             if (velocityErrorMagnitude > 5) {
-                //state += 'velocityErrorMagnitude > 5 ';
-                desiredAngle = Math.atan2(velocityError.y, velocityError.x);
-                const angleToDesired = normalizeAngleDiff(desiredAngle - this.ship.angle);
+                desiredAngle = Math.atan2(this._scratchVelocityError.y, this._scratchVelocityError.x);
+                const angleToDesired = normalizeAngle(desiredAngle - this.ship.angle);
                 desiredAngle = this.ship.angle + angleToDesired;
                 shouldThrust = Math.abs(angleToDesired) < Math.PI / 12 || velocityTowardPlanet < -5;
-                //state += shouldThrust ? 'Thrusting' : 'Turning';
             } else if (!shouldThrust) {
                 desiredAngle = Math.atan2(-this.ship.velocity.y, -this.ship.velocity.x);
-                //state += 'Coasting';
             }
         } else {
-            //state = 'Close: ';
             const finalSpeed = remapClamp(distanceToPlanetCenter, 0, this.closeApproachDistance, this.arrivalSpeed, this.closeApproachSpeed);
             let desiredSpeed = finalSpeed;
             if (currentSpeed < finalSpeed * 0.5) {
@@ -239,30 +245,31 @@ export class FlyToTargetAutoPilot extends AutoPilot {
             } else if (currentSpeed > finalSpeed * 1.2) {
                 desiredSpeed = -currentSpeed;
             }
-            const targetVelocity = directionToPlanet.multiply(desiredSpeed);
-            let desiredVelocity = targetVelocity;
+            this._scratchTargetVelocity.set(this._scratchDirectionToTarget)
+                .multiplyInPlace(desiredSpeed);
+            this._scratchDesiredVelocity.set(this._scratchTargetVelocity);
             if (lateralSpeed > 1) {
-                //state += 'lateralSpeed > 1 ';
                 const lateralCorrectionFactor = Math.min(1, lateralSpeed / 5);
-                const lateralCorrection = velocityPerpendicular.normalize().multiply(-lateralSpeed * lateralCorrectionFactor);
-                desiredVelocity = targetVelocity.add(lateralCorrection);
-                desiredVelocity.normalizeInPlace().multiplyInPlace(desiredSpeed);
+                this._scratchLateralCorrection.set(this._scratchVelocityPerpendicular)
+                    .normalizeInPlace()
+                    .multiplyInPlace(-lateralSpeed * lateralCorrectionFactor);
+                this._scratchDesiredVelocity.addInPlace(this._scratchLateralCorrection)
+                    .normalizeInPlace()
+                    .multiplyInPlace(desiredSpeed);
             }
 
-            const velocityError = desiredVelocity.subtract(this.ship.velocity);
-            this.velocityError = velocityError.clone();
-            const velocityErrorMagnitude = velocityError.magnitude();
+            this._scratchVelocityError.set(this._scratchDesiredVelocity)
+                .subtractInPlace(this.ship.velocity);
+            this.velocityError.set(this._scratchVelocityError);
+            const velocityErrorMagnitude = this._scratchVelocityError.magnitude();
 
             if (velocityErrorMagnitude > 1) {
-                //state += 'velocityErrorMagnitude > 1 ';
-                desiredAngle = Math.atan2(velocityError.y, velocityError.x);
-                const angleToDesired = normalizeAngleDiff(desiredAngle - this.ship.angle);
+                desiredAngle = Math.atan2(this._scratchVelocityError.y, this._scratchVelocityError.x);
+                const angleToDesired = normalizeAngle(desiredAngle - this.ship.angle);
                 desiredAngle = this.ship.angle + angleToDesired;
                 shouldThrust = Math.abs(angleToDesired) < Math.PI / 12;
-                //state += shouldThrust ? 'Thrusting' : 'Turning';
             } else {
                 desiredAngle = Math.atan2(-this.ship.velocity.y, -this.ship.velocity.x);
-                //state += 'Coasting';
             }
         }
 
@@ -279,8 +286,6 @@ export class FlyToTargetAutoPilot extends AutoPilot {
     }
 }
 
-// autopilot.js (only LandOnPlanetAutoPilot is updated)
-
 /**
  * Autopilot that flies to a planet and lands on it.
  * Chains FlyToTargetAutoPilot and handles landing initiation and completion.
@@ -295,6 +300,7 @@ export class LandOnPlanetAutoPilot extends AutoPilot {
     constructor(ship, planet) {
         super(ship, planet);
         this.subPilot = null;
+        this._scratchDistanceToTarget = new Vector2D(); // Distance from ship to planet
     }
 
     /**
@@ -333,19 +339,21 @@ export class LandOnPlanetAutoPilot extends AutoPilot {
                     this.stop();
                     return;
                 }
-                this.subPilot = null; // Sub-pilot done; proceed to landing
+                this.subPilot = null;
             }
         } else if (this.ship.state === 'Flying') {
             // Sub-pilot is done or never started; check if we can land
-            const distanceToPlanetCenter = this.ship.position.subtract(this.target.position).magnitude();
+            this._scratchDistanceToTarget.set(this.ship.position)
+                .subtractInPlace(this.target.position);
+            const distanceToPlanetCenter = this._scratchDistanceToTarget.magnitude();
             if (distanceToPlanetCenter <= this.target.radius) {
                 if (this.ship.canLand(this.target)) {
-                    this.ship.initiateLanding(this.target); // Start landing animation
+                    this.ship.initiateLanding(this.target);
                 } else {
                     // Slow down if not ready to land (e.g., speed too high)
-                    this.ship.velocityError.set(this.ship.velocity.x * -1, this.ship.velocity.y * -1);
+                    this.ship.velocityError.set(-this.ship.velocity.x, -this.ship.velocity.y);
                     const desiredAngle = Math.atan2(this.ship.velocityError.y, this.ship.velocityError.x);
-                    const angleToDesired = ((desiredAngle - this.ship.angle + Math.PI) % (2 * Math.PI)) - Math.PI;
+                    const angleToDesired = normalizeAngle(desiredAngle - this.ship.angle);
                     this.ship.setTargetAngle(this.ship.angle + angleToDesired);
                     this.ship.applyThrust(Math.abs(angleToDesired) < Math.PI / 12);
                 }
@@ -358,7 +366,6 @@ export class LandOnPlanetAutoPilot extends AutoPilot {
                 this.subPilot.start();
             }
         } else if (this.ship.state === 'Landing') {
-            // Wait for landing animation to complete
             // Do nothing; ship is handling its own animation
         } else if (this.ship.state === 'Landed') {
             // Landing complete; mark autopilot as done
@@ -407,6 +414,7 @@ export class TraverseJumpGateAutoPilot extends AutoPilot {
     constructor(ship, gate) {
         super(ship, gate);
         this.subPilot = null;
+        this._scratchDistanceToTarget = new Vector2D(); // Distance from ship to gate
     }
 
     /**
@@ -453,26 +461,27 @@ export class TraverseJumpGateAutoPilot extends AutoPilot {
             this.stop();
         } else if (this.ship.state === 'Flying') {
             // Ship is flying in the original system; try to initiate hyperjump
-            const distanceToGate = this.ship.position.subtract(this.target.position).magnitude();
+            this._scratchDistanceToTarget.set(this.ship.position)
+                .subtractInPlace(this.target.position);
+            const distanceToGate = this._scratchDistanceToTarget.magnitude();
             if (distanceToGate <= 50 && this.target.overlapsShip(this.ship.position)) {
                 if (this.ship.initiateHyperjump()) {
                     // Hyperjump started successfully
                 } else {
                     // Hyperdrive not ready or gate not found; slow down and wait
-                    this.ship.velocityError.set(this.ship.velocity.x * -1, this.ship.velocity.y * -1);
+                    this.ship.velocityError.set(-this.ship.velocity.x, -this.ship.velocity.y);
                     const desiredAngle = Math.atan2(this.ship.velocityError.y, this.ship.velocityError.x);
-                    const angleToDesired = ((desiredAngle - this.ship.angle + Math.PI) % (2 * Math.PI)) - Math.PI;
+                    const angleToDesired = normalizeAngle(desiredAngle - this.ship.angle);
                     this.ship.setTargetAngle(this.ship.angle + angleToDesired);
                     this.ship.applyThrust(Math.abs(angleToDesired) < Math.PI / 12);
                 }
             } else {
                 // Not close enough or not overlapping; restart sub-pilot to approach again
-                console.log(`Not aligned with ${this.target.name || 'jump gate'}; restarting fly-to phase`);
+                //console.log(`Not aligned with ${this.target.name || 'jump gate'}; restarting fly-to phase`);
                 this.subPilot = new FlyToTargetAutoPilot(this.ship, this.target, 50, 10, 30);
                 this.subPilot.start();
             }
         } else if (this.ship.state === 'JumpingOut' || this.ship.state === 'JumpingIn') {
-            // Wait for jump animation to complete
             // Do nothing; ship is handling its own animation
         } else {
             // Unexpected ship state (e.g., Landed, TakingOff)

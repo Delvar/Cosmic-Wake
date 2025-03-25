@@ -3,6 +3,7 @@
 import { Vector2D } from './vector2d.js';
 import { Colour } from './colour.js';
 import { GameObject } from './gameObject.js';
+import { TWO_PI } from './utils.js';
 
 /**
  * Defines the types and colors for celestial bodies in the game.
@@ -69,6 +70,9 @@ export class CelestialBody extends GameObject {
         this.name = name;
         this.ring = ring;
         this.landedShips = [];
+
+        // Temporary scratch values to avoid allocations
+        this._scratchScreenPos = new Vector2D(); // For storing screen position in draw
     }
 
     /**
@@ -78,9 +82,9 @@ export class CelestialBody extends GameObject {
      */
     draw(ctx, camera) {
         ctx.save();
-        const screenPos = camera.worldToScreen(this.position);
-        const screenX = screenPos.x;
-        const screenY = screenPos.y;
+        camera.worldToScreen(this.position, this._scratchScreenPos); // Use scratch for screen pos
+        const screenX = this._scratchScreenPos.x;
+        const screenY = this._scratchScreenPos.y;
         const scaledRadius = camera.worldToSize(this.radius);
 
         if (!isFinite(screenX) || !isFinite(screenY) || !isFinite(scaledRadius) || scaledRadius <= 0) {
@@ -108,7 +112,7 @@ export class CelestialBody extends GameObject {
         }
 
         ctx.beginPath();
-        ctx.arc(screenX, screenY, scaledRadius, 0, Math.PI * 2);
+        ctx.arc(screenX, screenY, scaledRadius, 0, TWO_PI);
         ctx.fillStyle = fillStyle;
         ctx.fill();
         ctx.closePath();
@@ -177,8 +181,8 @@ export class PlanetaryRing {
         const innerTiltFactor = tiltFactor * this.scalingFactor;
 
         ctx.beginPath();
-        ctx.ellipse(flooredX, flooredY, scaledOuterRadius, scaledOuterRadius * tiltFactor, 0, Math.PI, Math.PI * 2);
-        ctx.ellipse(flooredX, flooredY, scaledInnerRadius, scaledInnerRadius * innerTiltFactor, 0, Math.PI, Math.PI * 2);
+        ctx.ellipse(flooredX, flooredY, scaledOuterRadius, scaledOuterRadius * tiltFactor, 0, Math.PI, TWO_PI);
+        ctx.ellipse(flooredX, flooredY, scaledInnerRadius, scaledInnerRadius * innerTiltFactor, 0, Math.PI, TWO_PI);
         ctx.fillStyle = this.color.toRGBA();
         ctx.fill('evenodd');
         ctx.restore();
@@ -232,6 +236,9 @@ export class JumpGate extends CelestialBody {
         const angle = Math.atan2(norm.y, norm.x);
         super(dist, radius, celestialTypes['jumpgate'].color, null, angle, celestialTypes['jumpgate'], null, `Jump To ${lane.target.name}`, lane.source);
         this.lane = lane;
+
+        // Temporary scratch values to avoid allocations
+        this._scratchScreenPos = new Vector2D(); // For storing screen position in draw
     }
 
     /**
@@ -241,10 +248,10 @@ export class JumpGate extends CelestialBody {
      */
     draw(ctx, camera) {
         ctx.save();
-        const screenPos = camera.worldToScreen(this.position);
+        camera.worldToScreen(this.position, this._scratchScreenPos); // Use scratch for screen pos
         const radius = camera.worldToSize(this.radius);
         ctx.beginPath();
-        ctx.arc(screenPos.x, screenPos.y, radius, 0, Math.PI * 2);
+        ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, radius, 0, TWO_PI);
         ctx.strokeStyle = this.color.toRGB();
         ctx.lineWidth = camera.worldToSize(5);
         ctx.stroke();

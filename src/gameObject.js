@@ -12,8 +12,7 @@ export class GameObject {
      * @param {StarSystem} starSystem - The star system the object belongs to.
      */
     constructor(position, starSystem) {
-        this.position = new Vector2D(0, 0);
-        this.position.set(position);
+        this.position = position.clone();
         this.starSystem = starSystem;
         this.despawned = false;
         this.debug = false;

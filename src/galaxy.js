@@ -4,13 +4,14 @@ import { CelestialBody, PlanetaryRing, celestialTypes } from './celestialBody.js
 import { AsteroidBelt } from './asteroidBelt.js';
 import { Vector2D } from './vector2d.js';
 import { Colour } from './colour.js';
+import { TWO_PI } from './utils.js';
 
 /**
  * Creates and initializes the galaxy with star systems, celestial bodies, and hyperlanes.
  * @returns {Array<StarSystem>} An array of initialized StarSystem instances.
  */
 export function createGalaxy() {
-    const randomAngle = () => Math.random() * Math.PI * 2;
+    const randomAngle = () => Math.random() * TWO_PI;
     // Define the Sol System
     const sol = new StarSystem("sol", "Sol System", new Vector2D(0, 0), [
         new CelestialBody(0, 100, new Colour(1, 1, 0), null, 0, celestialTypes['star'], null, 'Sun', null),

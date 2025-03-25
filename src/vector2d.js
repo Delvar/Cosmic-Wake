@@ -45,7 +45,8 @@ export class Vector2D {
      * @returns {Vector2D} A new vector representing the sum.
      */
     add(other) {
-        return new Vector2D(this.x + other.x, this.y + other.y);
+        throw new Error("Use inPlace to avoid allocations");
+        //return new Vector2D(this.x + other.x, this.y + other.y);
     }
 
     /**
@@ -54,7 +55,8 @@ export class Vector2D {
      * @returns {Vector2D} A new vector representing the difference.
      */
     subtract(other) {
-        return new Vector2D(this.x - other.x, this.y - other.y);
+        throw new Error("Use inPlace to avoid allocations");
+        //return new Vector2D(this.x - other.x, this.y - other.y);
     }
 
     /**
@@ -63,7 +65,8 @@ export class Vector2D {
      * @returns {Vector2D} A new vector scaled by the scalar.
      */
     multiply(scalar) {
-        return new Vector2D(this.x * scalar, this.y * scalar);
+        throw new Error("Use inPlace to avoid allocations");
+        //return new Vector2D(this.x * scalar, this.y * scalar);
     }
 
     /**
@@ -72,8 +75,9 @@ export class Vector2D {
      * @returns {Vector2D} A new normalized vector.
      */
     normalize() {
-        const mag = Math.sqrt(this.x * this.x + this.y * this.y);
-        return mag > 0 ? new Vector2D(this.x / mag, this.y / mag) : new Vector2D(0, 0);
+        throw new Error("Use inPlace to avoid allocations");
+        //const mag = Math.sqrt(this.x * this.x + this.y * this.y);
+        //return mag > 0 ? new Vector2D(this.x / mag, this.y / mag) : new Vector2D(0, 0);
     }
 
     /**
@@ -109,7 +113,8 @@ export class Vector2D {
      * @returns {Vector2D} A new Vector2D instance with components divided by the scalar.
      */
     divide(scalar) {
-        return new Vector2D(this.x / scalar, this.y / scalar);
+        throw new Error("Use inPlace to avoid allocations");
+        //return new Vector2D(this.x / scalar, this.y / scalar);
     }
 
     /**
@@ -129,9 +134,10 @@ export class Vector2D {
      * @returns {Vector2D} A new Vector2D instance representing the interpolated position.
      */
     lerp(source, target, factor) {
-        const x = source.x + (target.x - source.x) * factor;
-        const y = source.y + (target.y - source.y) * factor;
-        return new Vector2D(x, y);
+        throw new Error("Use inPlace to avoid allocations");
+        //const x = source.x + (target.x - source.x) * factor;
+        //const y = source.y + (target.y - source.y) * factor;
+        //return new Vector2D(x, y);
     }
 
     /**

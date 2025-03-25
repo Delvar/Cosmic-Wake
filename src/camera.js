@@ -18,7 +18,11 @@ export class Camera {
         this.position = position.clone();
         this.zoom = zoom;
         this.screenSize = screenSize.clone();
-        this.worldSize = screenSize.divide(zoom); // Still one allocation here
+        this.worldSize = screenSize.clone().divideInPlace(zoom); // Use in-place to avoid allocation
+
+        // Temporary scratch values to avoid allocations
+        this._scratchScreenCenter = new Vector2D(); // For getScreenCenter calculations
+        this._scratchRelativePosition = new Vector2D(); // For world-to-screen relative position
     }
 
     /**
@@ -35,8 +39,7 @@ export class Camera {
      * @param {number} screenSizeY - The new screen height in pixels.
      */
     resize(screenSizeX, screenSizeY) {
-        this.screenSize.x = screenSizeX;
-        this.screenSize.y = screenSizeY;
+        this.screenSize.set(screenSizeX, screenSizeY);
         this.worldSize.set(this.screenSize).divideInPlace(this.zoom); // Reuse worldSize
     }
 
@@ -58,22 +61,27 @@ export class Camera {
     }
 
     /**
-     * Gets the center of the screen in screen coordinates.
-     * @returns {Vector2D} The screen center position in pixels.
+     * Gets the center of the screen in screen coordinates, modifying the provided output vector.
+     * @param {Vector2D} out - The vector to store the screen center position in pixels.
+     * @returns {Vector2D} The modified output vector with screen center coordinates.
      */
-    getScreenCenter() {
-        return this.screenSize.divide(2); // Still one allocation, needed for return
+    getScreenCenter(out) {
+        return out.set(this.screenSize).divideInPlace(2);
     }
 
     /**
-     * Converts a world position to screen coordinates.
+     * Converts a world position to screen coordinates, modifying the provided output vector.
      * @param {Vector2D} position - The position in world coordinates.
-     * @returns {Vector2D} The position in screen coordinates (pixels).
+     * @param {Vector2D} out - The vector to store the result in.
+     * @returns {Vector2D} The position in screen coordinates (pixels), stored in out.
      */
-    worldToScreen(position) {
-        const center = this.getScreenCenter();
-        const relativePosition = position.subtract(this.position).multiply(this.zoom); // Two allocations here
-        return center.add(relativePosition); // One more allocation
+    worldToScreen(position, out) {
+        this.getScreenCenter(this._scratchScreenCenter); // Use scratch for center
+        this._scratchRelativePosition.set(position)
+            .subtractInPlace(this.position)
+            .multiplyInPlace(this.zoom); // Compute relative position in-place
+        return out.set(this._scratchScreenCenter)
+            .addInPlace(this._scratchRelativePosition); // Combine in output
     }
 
     /**
@@ -86,22 +94,27 @@ export class Camera {
     }
 
     /**
-     * Converts a world position to camera-relative coordinates.
+     * Converts a world position to camera-relative coordinates, modifying the provided output vector.
      * @param {Vector2D} position - The position in world coordinates.
-     * @returns {Vector2D} The position relative to the camera in zoomed world units.
+     * @param {Vector2D} out - The vector to store the result in.
+     * @returns {Vector2D} The position relative to the camera in zoomed world units, stored in out.
      */
-    worldToCamera(position) {
-        return position.subtract(this.position).multiply(this.zoom); // Two allocations
+    worldToCamera(position, out) {
+        return out.set(position)
+            .subtractInPlace(this.position)
+            .multiplyInPlace(this.zoom);
     }
 
     /**
-     * Converts a camera-relative position to screen coordinates.
+     * Converts a camera-relative position to screen coordinates, modifying the provided output vector.
      * @param {Vector2D} position - The position relative to the camera in zoomed world units.
-     * @returns {Vector2D} The position in screen coordinates (pixels).
+     * @param {Vector2D} out - The vector to store the result in.
+     * @returns {Vector2D} The position in screen coordinates (pixels), stored in out.
      */
-    cameraToScreen(position) {
-        const center = this.getScreenCenter();
-        return center.add(position); // One allocation
+    cameraToScreen(position, out) {
+        this.getScreenCenter(this._scratchScreenCenter);
+        return out.set(this._scratchScreenCenter)
+            .addInPlace(position);
     }
 
     /**
@@ -111,13 +124,13 @@ export class Camera {
      * @returns {boolean} True if the position is in view, false otherwise.
      */
     isInView(position, size) {
-        const screenPos = this.worldToScreen(position); // Three allocations from worldToScreen
+        this.worldToScreen(position, this._scratchRelativePosition); // Reuse scratch as temp storage
         const buffer = size * this.zoom * 2; // Buffer scales with zoom
         return (
-            screenPos.x + buffer > 0 &&
-            screenPos.x - buffer < this.screenSize.width &&
-            screenPos.y + buffer > 0 &&
-            screenPos.y - buffer < this.screenSize.height
+            this._scratchRelativePosition.x + buffer > 0 &&
+            this._scratchRelativePosition.x - buffer < this.screenSize.width &&
+            this._scratchRelativePosition.y + buffer > 0 &&
+            this._scratchRelativePosition.y - buffer < this.screenSize.height
         );
     }
 }

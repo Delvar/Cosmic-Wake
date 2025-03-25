@@ -10,6 +10,7 @@ import { Asteroid } from './asteroidBelt.js';
 import { HeadsUpDisplay } from './headsUpDisplay.js';
 import { PlayerPilot, AIPilot } from './pilot.js';
 import { createGalaxy } from './galaxy.js';
+import { TWO_PI } from './utils.js';
 
 /**
  * Manages the targeting system for selecting game objects like planets, ships, and asteroids.
@@ -57,8 +58,7 @@ class Game {
         this.manager = manager;
         this.canvas = canvas;
         this.ctx = this.canvas.getContext('2d');
-        this.canvasSize = new Vector2D(0, 0);
-        this.canvasSize.set(window.innerWidth, window.innerHeight);
+        this.canvasSize = new Vector2D(window.innerWidth, window.innerHeight);
         this.canvas.width = this.canvasSize.width;
         this.canvas.height = this.canvasSize.height;
 
@@ -240,6 +240,9 @@ class GameManager {
         this.game = new Game(this, this.canvas, this.targetCanvas);
         this.targetingSystem = new TargetingSystem(this);
 
+        // Temporary scratch values to avoid allocations
+        this._scratchSpawnPos = new Vector2D(0, 0); // For calculating spawn positions in spawnAIShips
+
         this.spawnAIShips();
         this.setupEventListeners();
 
@@ -360,10 +363,15 @@ class GameManager {
         this.galaxy.forEach(starSystem => {
             while (starSystem.ships.length < 10) {
                 const spawnPlanet = starSystem.celestialBodies[Math.floor(Math.random() * starSystem.celestialBodies.length)];
-                const angle = Math.random() * Math.PI * 2;
-                const aiShip = new Ship(
+                const angle = Math.random() * TWO_PI;
+                // Use scratch vector for spawn position
+                this._scratchSpawnPos.set(
                     spawnPlanet.position.x + Math.cos(angle) * 50,
-                    spawnPlanet.position.y + Math.sin(angle) * 50,
+                    spawnPlanet.position.y + Math.sin(angle) * 50
+                );
+                const aiShip = new Ship(
+                    this._scratchSpawnPos.x,
+                    this._scratchSpawnPos.y,
                     starSystem,
                     new Colour(0.5, 0.5, 0.5),
                     new Colour(0.5, 0.5, 0.5, 0.5)

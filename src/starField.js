@@ -1,6 +1,6 @@
 // starField.js
 
-import { remapRange01, remapClamp } from './utils.js';
+import { TWO_PI, remapRange01, remapClamp } from './utils.js';
 import { Vector2D } from './vector2d.js';
 
 /**
@@ -57,13 +57,13 @@ export class StarField {
         this.positionPool = new Float32Array(this.initialVisibleStars * 2); // 2 floats per star
         this.positionIndex = 0;
 
-        // Reusable Vector2D instances
-        this.cellWorldPos = new Vector2D();
-        this.screenCellPos = new Vector2D();
-        this.starScreenPos = new Vector2D();
-        this.screenSize = new Vector2D();
-        this.halfScreenSize = new Vector2D();
-        this.starRelPosition = new Vector2D();
+        // Reusable Vector2D instances for coordinate transformations
+        this._scratchCellWorldPos = new Vector2D(); // World position of grid cell
+        this._scratchScreenCellPos = new Vector2D(); // Screen position of grid cell
+        this._scratchStarScreenPos = new Vector2D(); // Screen position of individual star
+        this._scratchScreenSize = new Vector2D(); // Full screen dimensions
+        this._scratchHalfScreenSize = new Vector2D(); // Half screen dimensions for centering
+        this._scratchStarRelPos = new Vector2D(); // Relative position of star within cell
 
         // Pre-generate colour palettes for each layer
         this.colourPalettes = this.generateColourPalettes();
@@ -126,7 +126,7 @@ export class StarField {
         const currentCapacity = this.positionPool.length / 2; // Current max stars
         if (requiredStars <= currentCapacity) return;
 
-        const newCapacity = Math.max(requiredStars, currentCapacity + 100); // expand to requiredStars or current + 100
+        const newCapacity = Math.max(requiredStars, currentCapacity + 100); // Expand to requiredStars or current + 100
         const newPool = new Float32Array(newCapacity * 2);
         newPool.set(this.positionPool); // Copy existing data
         this.positionPool = newPool;
@@ -145,16 +145,16 @@ export class StarField {
     }
 
     /**
-        * Renders the starfield to the canvas, batching stars by colour.
-        * @param {CanvasRenderingContext2D} ctx - The canvas rendering context.
-        * @param {Camera} camera - The camera object with position (Vector2D) and screenSize (width/height).
-        */
+     * Renders the starfield to the canvas, batching stars by colour.
+     * @param {CanvasRenderingContext2D} ctx - The canvas rendering context.
+     * @param {Camera} camera - The camera object with position (Vector2D) and screenSize (width/height).
+     */
     draw(ctx, camera) {
         ctx.save();
-        const TWO_PI = Math.PI * 2;
+
         const zoomThreshold = 1 - remapClamp(camera.zoom, 0.5, 1, 0.5, 1);
-        this.screenSize.set(camera.screenSize.width, camera.screenSize.height);
-        this.halfScreenSize.set(this.screenSize).multiplyInPlace(0.5);
+        this._scratchScreenSize.set(camera.screenSize.width, camera.screenSize.height);
+        this._scratchHalfScreenSize.set(this._scratchScreenSize).multiplyInPlace(0.5);
 
         this.positionIndex = 0;
 
@@ -199,11 +199,11 @@ export class StarField {
                         this.starCache.set(cacheKey, starData);
                     }
 
-                    this.cellWorldPos.set(i * this.gridSize, j * this.gridSize);
-                    this.screenCellPos.set(this.cellWorldPos)
+                    this._scratchCellWorldPos.set(i * this.gridSize, j * this.gridSize);
+                    this._scratchScreenCellPos.set(this._scratchCellWorldPos)
                         .subtractInPlace(camera.position)
                         .multiplyInPlace(parallaxZoom)
-                        .addInPlace(this.halfScreenSize);
+                        .addInPlace(this._scratchHalfScreenSize);
 
                     for (let k = 0; k < starCount; k++) {
                         const baseIdx = k * 3;
@@ -211,17 +211,17 @@ export class StarField {
                         const relY = starData[baseIdx + 1] / 255;
                         const colourIdx = starData[baseIdx + 2];
 
-                        this.starRelPosition.set(relX * cellScreenWidth, relY * cellScreenHeight);
-                        this.starScreenPos.set(this.screenCellPos).addInPlace(this.starRelPosition);
+                        this._scratchStarRelPos.set(relX * cellScreenWidth, relY * cellScreenHeight);
+                        this._scratchStarScreenPos.set(this._scratchScreenCellPos).addInPlace(this._scratchStarRelPos);
 
-                        if (this.starScreenPos.x >= 0 && this.starScreenPos.x < this.screenSize.x &&
-                            this.starScreenPos.y >= 0 && this.starScreenPos.y < this.screenSize.y) {
+                        if (this._scratchStarScreenPos.x >= 0 && this._scratchStarScreenPos.x < this._scratchScreenSize.x &&
+                            this._scratchStarScreenPos.y >= 0 && this._scratchStarScreenPos.y < this._scratchScreenSize.y) {
                             if (this.positionIndex >= this.positionPool.length / 2) {
                                 this.expandPositionPool(this.positionIndex + 1);
                             }
                             const posIdx = this.positionIndex * 2;
-                            this.positionPool[posIdx] = this.starScreenPos.x;
-                            this.positionPool[posIdx + 1] = this.starScreenPos.y;
+                            this.positionPool[posIdx] = this._scratchStarScreenPos.x;
+                            this.positionPool[posIdx + 1] = this._scratchStarScreenPos.y;
                             starsByColour[colourIdx].push(posIdx);
                             this.positionIndex++;
                         }

@@ -1,7 +1,7 @@
 // asteroidBelt.js
 
 import { Vector2D } from './vector2d.js';
-import { remapRange01 } from './utils.js';
+import { TWO_PI, remapRange01 } from './utils.js';
 import { GameObject } from './gameObject.js';
 
 /**
@@ -24,6 +24,10 @@ export class AsteroidBelt {
         this.interactiveCount = interactiveCount;
         this.backgroundAsteroids = [];
         this.interactiveAsteroids = [];
+
+        // Temporary scratch values to avoid allocations
+        this._scratchWorldPos = new Vector2D(); // For calculating world position in draw
+        this._scratchScreenPos = new Vector2D(); // For storing screen position in draw
     }
 
     /**
@@ -33,9 +37,9 @@ export class AsteroidBelt {
         // Generate background asteroids
         for (let i = 0; i < this.backgroundCount; i++) {
             const radius = remapRange01(Math.random(), this.innerRadius, this.outerRadius);
-            const angle = remapRange01(Math.random(), 0, Math.PI * 2);
+            const angle = remapRange01(Math.random(), 0, TWO_PI);
             const size = remapRange01(Math.random(), 2, 20);
-            const spinSpeed = remapRange01(Math.random(), Math.PI * -2.0, Math.PI * 2.0);
+            const spinSpeed = remapRange01(Math.random(), -TWO_PI, TWO_PI);
             const orbitSpeed = remapRange01(Math.random(), Math.PI * 0.001, Math.PI * 0.006);
             this.backgroundAsteroids.push({
                 radius: radius,
@@ -61,7 +65,7 @@ export class AsteroidBelt {
     generateShape(sides) {
         const points = [];
         for (let i = 0; i < sides; i++) {
-            const angle = (i / sides) * Math.PI * 2;
+            const angle = (i / sides) * TWO_PI;
             const r = 0.5 + Math.random() * 0.5;
             points.push({ x: Math.cos(angle) * r, y: Math.sin(angle) * r });
         }
@@ -76,8 +80,8 @@ export class AsteroidBelt {
         this.backgroundAsteroids.forEach(asteroid => {
             asteroid.angle += asteroid.orbitSpeed * deltaTime;
             asteroid.spin += asteroid.spinSpeed * deltaTime;
-            asteroid.angle %= Math.PI * 2;
-            asteroid.spin %= Math.PI * 2;
+            asteroid.angle %= TWO_PI;
+            asteroid.spin %= TWO_PI;
         });
         this.interactiveAsteroids.forEach(asteroid => asteroid.update(deltaTime));
     }
@@ -92,15 +96,18 @@ export class AsteroidBelt {
         ctx.fillStyle = 'rgb(100, 100, 100)';
         ctx.strokeStyle = 'rgb(50, 50, 50)';
         ctx.lineWidth = 1;
-        const worldPos = new Vector2D(0, 0);
+
         this.backgroundAsteroids.forEach(asteroid => {
-            // Use set to avoid new Vector2D allocation
-            worldPos.set(Math.cos(asteroid.angle) * asteroid.radius, Math.sin(asteroid.angle) * asteroid.radius);
-            if (camera.isInView(worldPos, asteroid.size)) {
-                const screenPos = camera.worldToScreen(worldPos);
+            // Use scratch vector for world position
+            this._scratchWorldPos.set(
+                Math.cos(asteroid.angle) * asteroid.radius,
+                Math.sin(asteroid.angle) * asteroid.radius
+            );
+            if (camera.isInView(this._scratchWorldPos, asteroid.size)) {
+                camera.worldToScreen(this._scratchWorldPos, this._scratchScreenPos); // Use scratch for screen pos
                 const scaledSize = camera.worldToSize(asteroid.size);
                 ctx.save();
-                ctx.translate(screenPos.x, screenPos.y);
+                ctx.translate(this._scratchScreenPos.x, this._scratchScreenPos.y);
                 ctx.rotate(asteroid.spin);
                 ctx.beginPath();
                 ctx.moveTo(asteroid.shape[0].x * scaledSize, asteroid.shape[0].y * scaledSize);
@@ -130,18 +137,21 @@ export class Asteroid extends GameObject {
      */
     constructor(belt) {
         const radius = remapRange01(Math.random(), belt.innerRadius, belt.outerRadius);
-        const angle = remapRange01(Math.random(), 0, Math.PI * 2);
+        const angle = remapRange01(Math.random(), 0, TWO_PI);
         super(new Vector2D(0, 0), belt.starSystem); // Initial position set below
         this.belt = belt;
         this.size = remapRange01(Math.random(), 15, 30);
         this.spin = 0;
-        this.spinSpeed = remapRange01(Math.random(), Math.PI * -2.0, Math.PI * 2.0);
+        this.spinSpeed = remapRange01(Math.random(), -TWO_PI, TWO_PI);
         this.orbitSpeed = remapRange01(Math.random(), Math.PI * 0.002, Math.PI * 0.006);
         this.orbitRadius = radius;
         this.orbitAngle = angle;
         this.shape = this.generateShape(6 + Math.floor(Math.random() * 4));
         // Set initial position using in-place method
         this.position.set(Math.cos(this.orbitAngle) * this.orbitRadius, Math.sin(this.orbitAngle) * this.orbitRadius);
+
+        // Temporary scratch values to avoid allocations
+        this._scratchScreenPos = new Vector2D(); // For storing screen position in draw
     }
 
     /**
@@ -152,7 +162,7 @@ export class Asteroid extends GameObject {
     generateShape(sides) {
         const points = [];
         for (let i = 0; i < sides; i++) {
-            const angle = (i / sides) * Math.PI * 2;
+            const angle = (i / sides) * TWO_PI;
             const r = 0.6 + Math.random() * 0.4;
             points.push({ x: Math.cos(angle) * r, y: Math.sin(angle) * r });
         }
@@ -171,8 +181,8 @@ export class Asteroid extends GameObject {
             Math.cos(this.orbitAngle) * this.orbitRadius,
             Math.sin(this.orbitAngle) * this.orbitRadius
         );
-        this.orbitAngle %= Math.PI * 2;
-        this.spin %= Math.PI * 2;
+        this.orbitAngle %= TWO_PI;
+        this.spin %= TWO_PI;
     }
 
     /**
@@ -181,12 +191,12 @@ export class Asteroid extends GameObject {
      * @param {Camera} camera - The camera object for coordinate transformations.
      */
     draw(ctx, camera) {
-        const screenPos = camera.worldToScreen(this.position);
+        camera.worldToScreen(this.position, this._scratchScreenPos); // Use scratch for screen pos
         const scaledSize = camera.worldToSize(this.size);
 
         if (camera.isInView(this.position, this.size)) {
             ctx.save();
-            ctx.translate(screenPos.x, screenPos.y);
+            ctx.translate(this._scratchScreenPos.x, this._scratchScreenPos.y);
             ctx.rotate(this.spin);
             ctx.fillStyle = 'rgb(100, 100, 100)';
             ctx.strokeStyle = 'rgb(50, 50, 50)';

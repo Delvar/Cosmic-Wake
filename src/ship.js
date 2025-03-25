@@ -5,125 +5,61 @@ import { Trail } from './trail.js';
 import { Colour } from './colour.js';
 import { GameObject } from './gameObject.js';
 import { JumpGate } from './celestialBody.js';
+import { TWO_PI, normalizeAngle } from './utils.js';
 import { AIPilot } from './pilot.js';
 
-/**
- * Generates a random ship name by combining prefixes, roots, and optional suffixes or numbers.
- * @returns {string} A randomly generated ship name (e.g., "Starlance", "Voidreaver-X", "Nova Scout 42").
- */
 function generateShipName() {
-    // Word pools for name generation
     const prefixes = [
-        // Serious sci-fi
         "Star", "Void", "Nova", "Astro", "Hyper", "Galacto", "Nebula",
         "Cosmo", "Solar", "Lunar", "Stellar", "Eclipse", "Quantum", "Ion",
         "Pulse", "Graviton", "Meteor", "Celestial",
-        // Funny
         "Mega", "Disco", "Funky", "Wobbly", "Gizmo", "Bloop", "Snaccident"
     ];
     const roots = [
-        // Serious sci-fi
         "lance", "reaver", "scout", "wing", "drifter", "navigator", "breaker",
         "strike", "voyager", "frigate", "cruiser", "probe", "dread", "spire",
         "runner", "falcon", "comet", "raider",
-        // Funny
         "tickler", "wobbler", "floof", "noodle", "blasterpants", "zoomzoom", "chugger"
     ];
     const suffixes = [
-        // Serious sci-fi
         "-X", "-on", "-ia", "-or", "-tron", "-ix", "-us", "-ex", "-is", "-oid",
         "-ara", "-tek", "-nova", "-pulse",
-        // Funny
         "-inator", "-zoid", "-omatic", "-erino", "-splosion", "-licious", "-pants"
     ];
-    const upperFirst = (word) => { return word.charAt(0).toUpperCase() + word.slice(1); };
-    // Pick random prefix and root
+    const upperFirst = (word) => word.charAt(0).toUpperCase() + word.slice(1);
     const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
     const root = (Math.random() > 0.5) ? roots[Math.floor(Math.random() * roots.length)] : ' ' + upperFirst(roots[Math.floor(Math.random() * roots.length)]);
     let name = `${prefix}${root}`;
-
-    // Add suffix (20% chance)
     const addSuffix = Math.random() < 0.2;
-    if (addSuffix) {
-        const suffix = suffixes[Math.floor(Math.random() * suffixes.length)];
-        name += suffix;
-    }
-
-    // Add number (20% chance, but only 5% if suffix is present to avoid overuse)
+    if (addSuffix) name += suffixes[Math.floor(Math.random() * suffixes.length)];
     const addNumber = Math.random() < (addSuffix ? 0.05 : 0.2);
-    if (addNumber) {
-        const number = Math.floor(Math.random() * 99) + 1; // 1–99
-        name += ` ${number}`;
-    }
+    if (addNumber) name += ` ${Math.floor(Math.random() * 99) + 1}`;
     return name;
 }
 
-/**
- * Represents a ship in the game with a state machine for movement and interactions.
- * Extends GameObject to inherit position and star system properties.
- * @extends GameObject
- */
 export class Ship extends GameObject {
-    /** @type {number} Maximum speed for safe landing (world units per second) */
     static LANDING_SPEED = 10;
 
-    /**
-     * Creates a new Ship instance.
-     * @param {number} x - Initial x-coordinate in world space.
-     * @param {number} y - Initial y-coordinate in world space.
-     * @param {StarSystem} starSystem - The star system this ship belongs to.
-     * @param {Colour} [color=new Colour(1, 1, 1)] - Ship color (default: white).
-     * @param {Colour} [trailColor=new Colour(1, 1, 1, 0.5)] - Trail color (default: semi-transparent white).
-     */
     constructor(x, y, starSystem, color = new Colour(1, 1, 1), trailColor = new Colour(1, 1, 1, 0.5)) {
         super(new Vector2D(x, y), starSystem);
 
-        this.name = generateShipName(); // Assign random name on creation
-
-        // Physics properties
-        /** @type {number} Rotation speed in radians per second */
+        this.name = generateShipName();
         this.rotationSpeed = Math.PI * 1;
-        /** @type {number} Thrust acceleration in world units per second squared */
         this.thrust = 250;
-        /** @type {number} Maximum velocity in world units per second */
         this.maxVelocity = 500;
-        /** @type {Vector2D} Current velocity vector */
         this.velocity = new Vector2D(0, 0);
-        /** @type {number} Current angle in radians */
         this.angle = 0;
-        /** @type {number} Target angle for rotation in radians */
         this.targetAngle = 0;
-
-        // Control flags
-        /** @type {boolean} Whether the ship is currently thrusting */
         this.isThrusting = false;
-        /** @type {boolean} Whether the ship is currently braking */
         this.isBraking = false;
-
-        // Hyperdrive properties
-        /** @type {boolean} Whether the hyperdrive is ready to use */
         this.hyperdriveReady = true;
-        /** @type {number} Cooldown time in milliseconds between hyperjumps */
         this.hyperdriveCooldown = 5000;
-        /** @type {number} Timestamp of the last hyperjump in milliseconds */
         this.lastJumpTime = 0;
-
-        // Visual properties
-        /** @type {Trail} Trail effect following the ship */
         this.trail = new Trail(this, 250, 2, trailColor.toRGBA());
-        /** @type {Colour} Color of the ship */
         this.color = color;
-
-        // Targeting
-        /** @type {GameObject|null} General navigation target (planet, gate, ship, etc.) */
         this.target = null;
-        /** @type {CelestialBody|null} Planet the ship is currently landed on or landing on/taking off from */
         this.landedPlanet = null;
-
-        // State machine properties
-        /** @type {string} Current state: 'Flying', 'Landing', 'Landed', 'TakingOff', 'JumpingOut', 'JumpingIn' */
         this.state = 'Flying';
-        /** @type {Object<string, Function>} Map of state names to update handlers */
         this.stateHandlers = {
             'Flying': this.updateFlying.bind(this),
             'Landing': this.updateLanding.bind(this),
@@ -132,111 +68,75 @@ export class Ship extends GameObject {
             'JumpingOut': this.updateJumpingOut.bind(this),
             'JumpingIn': this.updateJumpingIn.bind(this)
         };
-
-        // Animation properties
-        /** @type {number} Current scale factor for rendering (0 to 1) */
         this.shipScale = 1;
-        /** @type {number} Stretch factor for hyperjump animation (1 to 10) */
         this.stretchFactor = 1;
-        /** @type {number} Time elapsed in current animation in seconds */
         this.animationTime = 0;
-        /** @type {number} Duration of animations in seconds */
         this.animationDuration = 2;
-        /** @type {Vector2D|null} Starting position for landing animation */
-        this.landingStartPosition = null;
-        /** @type {JumpGate|null} Jump gate used for hyperjump */
+        this.landingStartPosition = new Vector2D(0, 0);
         this.jumpGate = null;
-        /** @type {Vector2D|null} Starting position for jumping out */
-        this.jumpStartPosition = null;
-        /** @type {Vector2D|null} Ending position for jumping in */
-        this.jumpEndPosition = null;
-        /** @type {number|null} Initial angle for hyperjump animation */
+        this.jumpStartPosition = new Vector2D(0, 0);
+        this.jumpEndPosition = new Vector2D(0, 0);
         this.jumpStartAngle = null;
-
-        //Debug
         this.velocityError = new Vector2D(0, 0);
         this.decelerationDistance = 0;
         this.farApproachDistance = 0;
         this.closeApproachDistance = 0;
 
+        // Scratch vectors to eliminate allocations in main loop
+        this._scratchThrustVector = new Vector2D(0, 0);
+        this._scratchTakeoffOffset = new Vector2D(0, 0);
+        this._scratchRadialOut = new Vector2D(0, 0);
+        this._scratchRadialIn = new Vector2D(0, 0);
+        this._scratchScreenPos = new Vector2D(0, 0);
+        this._scratchVelocityEnd = new Vector2D(0, 0);
+        this._scratchStoppingPoint = new Vector2D(0, 0);
+        this._scratchVelocityDelta = new Vector2D(0, 0);
+        this._scratchDistanceToPlanet = new Vector2D(0, 0); // For canLand distance calculation
     }
 
-    /**
-     * Transitions the ship to a new state, resetting animation time.
-     * @param {string} newState - The new state to transition to.
-     */
     setState(newState) {
         if (!this.stateHandlers[newState]) {
             console.warn(`Invalid state transition attempted: ${newState}`);
             return;
         }
         this.state = newState;
-        this.animationTime = 0; // Reset animation timer for new state
+        this.animationTime = 0;
     }
 
-    /**
-     * Sets the general navigation target for the ship.
-     * @param {GameObject} target - The target object (e.g., planet, gate, ship).
-     */
     setTarget(target) {
         this.target = target;
     }
 
-    /**
-     * Clears the current navigation target.
-     */
     clearTarget() {
         this.target = null;
     }
 
-    /**
-     * Sets the target angle for the ship to rotate towards.
-     * @param {number} angle - Target angle in radians.
-     */
     setTargetAngle(angle) {
-        this.targetAngle = (angle + Math.PI) % (2 * Math.PI) - Math.PI;
+        this.targetAngle = normalizeAngle(angle);
     }
 
-    /**
-     * Toggles thrust application.
-     * @param {boolean} thrusting - True to apply thrust, false to stop.
-     */
     applyThrust(thrusting) {
         this.isThrusting = thrusting;
     }
 
-    /**
-     * Toggles brake application.
-     * @param {boolean} braking - True to apply brakes, false to stop.
-     */
     applyBrakes(braking) {
         this.isBraking = braking;
     }
 
-    /**
-     * Checks if the ship can land on a given planet.
-     * @param {CelestialBody} planet - The planet to check landing feasibility for.
-     * @returns {boolean} True if landing is possible, false otherwise.
-     */
     canLand(planet) {
         if (!planet || !planet.position || this.state !== 'Flying') return false;
-        const distanceToPlanetCenter = this.position.subtract(planet.position).magnitude();
+        this._scratchDistanceToPlanet.set(this.position).subtractInPlace(planet.position);
+        const distanceToPlanetCenter = this._scratchDistanceToPlanet.magnitude();
         const currentSpeed = this.velocity.magnitude();
         return distanceToPlanetCenter <= planet.radius && currentSpeed <= Ship.LANDING_SPEED;
     }
 
-    /**
-     * Initiates landing on a planet if conditions are met.
-     * @param {CelestialBody} planet - The planet to land on.
-     * @returns {boolean} True if landing initiated, false otherwise.
-     */
     initiateLanding(planet) {
         if (this.canLand(planet)) {
             this.setState('Landing');
-            this.landedPlanet = planet; // Set the planet we're landing on
-            this.landingStartPosition = new Vector2D(0, 0);
+            this.landedPlanet = planet;
             this.landingStartPosition.set(this.position);
-            this.velocity.set(0, 0); // Stop movement
+            this.velocity.set(0, 0);
             this.isThrusting = false;
             this.isBraking = false;
             return true;
@@ -244,24 +144,16 @@ export class Ship extends GameObject {
         return false;
     }
 
-    /**
-     * Initiates takeoff from a landed state.
-     * @returns {boolean} True if takeoff initiated, false otherwise.
-     */
     initiateTakeoff() {
         if (this.state === 'Landed' && this.landedPlanet) {
             this.setState('TakingOff');
-            this.angle = this.targetAngle; // Align to target angle
+            this.angle = this.targetAngle;
             this.landedPlanet.removeLandedShip(this);
             return true;
         }
         return false;
     }
 
-    /**
-     * Initiates a hyperjump through a nearby jump gate.
-     * @returns {boolean} True if hyperjump initiated, false otherwise.
-     */
     initiateHyperjump() {
         const currentTime = performance.now();
         if (!this.hyperdriveReady || currentTime - this.lastJumpTime < this.hyperdriveCooldown) return false;
@@ -272,7 +164,6 @@ export class Ship extends GameObject {
 
         this.setState('JumpingOut');
         this.jumpGate = gate;
-        this.jumpStartPosition = new Vector2D(0, 0);
         this.jumpStartPosition.set(this.position);
         this.lastJumpTime = currentTime;
         this.isThrusting = false;
@@ -280,74 +171,50 @@ export class Ship extends GameObject {
         return true;
     }
 
-    /**
-     * Updates the ship's state and position based on elapsed time.
-     * Delegates to the appropriate state handler.
-     * @param {number} deltaTime - Time elapsed since last update in seconds.
-     */
     update(deltaTime) {
         if (isNaN(this.position.x) && this.debug) {
             console.log('Position became NaN');
         }
         const handler = this.stateHandlers[this.state];
         if (handler) {
-            handler(deltaTime); // Update position, velocity, and state first
+            handler(deltaTime);
         } else {
-            console.warn(`No handler for state: ${this.state}`); // Warn on invalid state
+            console.warn(`No handler for state: ${this.state}`);
         }
-        this.trail.update(deltaTime); // Update trail after position is finalized to keep it attached
+        this.trail.update(deltaTime);
     }
 
-    /**
-     * Updates the ship in the 'Flying' state, handling rotation and movement.
-     * @param {number} deltaTime - Time elapsed since last update in seconds.
-     */
     updateFlying(deltaTime) {
-        // Smoothly rotate towards target angle
-        const angleDiff = (this.targetAngle - this.angle + Math.PI) % (2 * Math.PI) - Math.PI;
+        const angleDiff = normalizeAngle(this.targetAngle - this.angle);
         this.angle += Math.min(Math.max(angleDiff, -this.rotationSpeed * deltaTime), this.rotationSpeed * deltaTime);
-        this.angle = ((this.angle + Math.PI) % (2 * Math.PI)) - Math.PI;
+        this.angle = normalizeAngle(this.angle);
 
         if (this.isThrusting) {
-            const thrustVector = new Vector2D(Math.cos(this.angle), Math.sin(this.angle)).multiply(this.thrust * deltaTime);
-            this.velocity.addInPlace(thrustVector);
+            this._scratchThrustVector.set(Math.cos(this.angle), Math.sin(this.angle))
+                .multiplyInPlace(this.thrust * deltaTime);
+            this.velocity.addInPlace(this._scratchThrustVector);
         } else if (this.isBraking) {
-            // Rotate to oppose velocity and slow down
             const velAngle = Math.atan2(-this.velocity.y, -this.velocity.x);
-            const brakeAngleDiff = (velAngle - this.angle + Math.PI) % (2 * Math.PI) - Math.PI;
+            const brakeAngleDiff = normalizeAngle(velAngle - this.angle);
             this.angle += brakeAngleDiff * this.rotationSpeed * deltaTime;
-            this.angle = ((this.angle + Math.PI) % (2 * Math.PI)) - Math.PI;
+            this.angle = normalizeAngle(this.angle);;
         }
 
-        // Cap velocity at maxVelocity
         const speedSquared = this.velocity.squareMagnitude();
         if (speedSquared > this.maxVelocity * this.maxVelocity) {
             const scale = this.maxVelocity / Math.sqrt(speedSquared);
             this.velocity.multiplyInPlace(scale);
         }
 
-        this.position.addInPlace(this.velocity.multiply(deltaTime));
+        this._scratchVelocityDelta.set(this.velocity).multiplyInPlace(deltaTime);
+        this.position.addInPlace(this._scratchVelocityDelta);
     }
 
-    /**
-    * Updates the ship in the 'Landing' state, animating it to the planet's center.
-    * @param {number} deltaTime - Time elapsed since last update in seconds.
-    */
     updateLanding(deltaTime) {
         this.animationTime += deltaTime;
         const t = Math.min(this.animationTime / this.animationDuration, 1);
-        this.shipScale = 1 - t; // Shrink to 0
+        this.shipScale = 1 - t;
 
-        // // Log positions for debugging
-        // if (this.debug) {
-        //     console.log(`updateLanding (t=${t}):`, {
-        //         shipPos: { x: this.position.x, y: this.position.y },
-        //         landingStartPos: this.landingStartPosition ? { x: this.landingStartPosition.x, y: this.landingStartPosition.y } : null,
-        //         landedPlanetPos: this.landedPlanet?.position ? { x: this.landedPlanet.position.x, y: this.landedPlanet.position.y } : null
-        //     });
-        // }
-
-        // Safeguard against NaN values
         if (!this.landingStartPosition || !this.landedPlanet || !this.landedPlanet.position ||
             isNaN(this.landingStartPosition.x) || isNaN(this.landingStartPosition.y) ||
             isNaN(this.landedPlanet.position.x) || isNaN(this.landedPlanet.position.y) ||
@@ -357,7 +224,6 @@ export class Ship extends GameObject {
                 landedPlanetPosition: this.landedPlanet?.position,
                 shipPosition: this.position
             });
-            // Reset to a safe state
             this.position.set(this.landedPlanet?.position || new Vector2D(0, 0));
             this.setState('Landed');
             this.shipScale = 0;
@@ -365,130 +231,117 @@ export class Ship extends GameObject {
             return;
         }
 
-        // Use updated lerpInPlace to interpolate between landingStartPosition and landedPlanet.position
         this.position.lerpInPlace(this.landingStartPosition, this.landedPlanet.position, t);
 
         if (t >= 1) {
             this.setState('Landed');
-            this.shipScale = 0; // Fully invisible
-            this.position.set(this.landedPlanet.position); // Ensure exact position
-            this.landedPlanet.addLandedShip(this); // Register with planet
+            this.shipScale = 0;
+            this.position.set(this.landedPlanet.position);
+            this.landedPlanet.addLandedShip(this);
         }
     }
 
-    /**
-     * Updates the ship in the 'Landed' state (no movement).
-     * @param {number} deltaTime - Time elapsed since last update in seconds.
-     */
     updateLanded(deltaTime) {
-        // No movement or animation; ship is stationary on the planet
         if (this.landedPlanet && this.landedPlanet.position) {
             this.position.set(this.landedPlanet.position);
         }
     }
 
-    /**
-     * Updates the ship in the 'TakingOff' state, animating it away from the planet.
-     * @param {number} deltaTime - Time elapsed since last update in seconds.
-     */
     updateTakingOff(deltaTime) {
         this.animationTime += deltaTime;
         const t = Math.min(this.animationTime / this.animationDuration, 1);
-        this.shipScale = t; // Grow from 0 to 1
-        const takeoffOffset = new Vector2D(Math.cos(this.angle), Math.sin(this.angle)).multiply(this.landedPlanet.radius * 1.5);
-        this.position.set(this.landedPlanet.position).addInPlace(takeoffOffset.multiply(t));
+        this.shipScale = t;
+        this._scratchTakeoffOffset.set(Math.cos(this.angle), Math.sin(this.angle))
+            .multiplyInPlace(this.landedPlanet.radius * 1.5);
+        this._scratchVelocityDelta.set(this._scratchTakeoffOffset).multiplyInPlace(t);
+        this.position.set(this.landedPlanet.position)
+            .addInPlace(this._scratchVelocityDelta);
 
         if (t >= 1) {
             this.setState('Flying');
             this.shipScale = 1;
-            this.velocity.set(takeoffOffset).divideInPlace(this.animationDuration); // Initial velocity
-            this.landedPlanet = null; // Clear landing planet reference
+            this.velocity.set(this._scratchTakeoffOffset).divideInPlace(this.animationDuration);
+            this.landedPlanet = null;
         }
     }
 
-    /**
-     * Updates the ship in the 'JumpingOut' state, animating the exit through a jump gate.
-     * @param {number} deltaTime - Time elapsed since last update in seconds.
-     */
     updateJumpingOut(deltaTime) {
         this.animationTime += deltaTime;
         const t = Math.min(this.animationTime / this.animationDuration, 1);
 
         if (t < 0.5) {
-            // Phase 1: Shrink and move to gate center
-            this.shipScale = 1 - (t * 1.5); // 1 to 0.25
+            this.shipScale = 1 - (t * 1.5);
             this.position.lerpInPlace(this.jumpStartPosition, this.jumpGate.position, t * 2);
-            const radialOut = this.jumpGate.position.clone().normalizeInPlace();
-            const desiredAngle = Math.atan2(radialOut.y, radialOut.x);
+            this._scratchRadialOut.set(this.jumpGate.position).normalizeInPlace();
+            const desiredAngle = Math.atan2(this._scratchRadialOut.y, this._scratchRadialOut.x);
             const startAngle = this.jumpStartAngle || this.angle;
-            if (!this.jumpStartAngle) this.jumpStartAngle = this.angle; // Capture initial angle
-            const angleDiff = (desiredAngle - startAngle + Math.PI) % (2 * Math.PI) - Math.PI;
+            if (!this.jumpStartAngle) this.jumpStartAngle = this.angle;
+            const angleDiff = normalizeAngle(desiredAngle - startAngle);
             this.angle = startAngle + angleDiff * (t * 2);
             this.targetAngle = this.angle;
             this.stretchFactor = 1;
         } else {
-            // Phase 2: Stretch and accelerate outward with quadratic easing
             this.shipScale = 0.25;
-            const easedT = (t - 0.5) * 2; // Normalize to 0-1 for this phase
-            const progress = easedT * easedT; // Quadratic ease-in: slow start, fast end
-            this.stretchFactor = 1 + progress * 9; // 1 to 10
-            const radialOut = this.jumpGate.position.clone().normalizeInPlace();
-            const maxDistance = 5000; // Max distance outward
-            this.position.set(this.jumpGate.position).addInPlace(radialOut.multiply(maxDistance * progress));
-            this.velocity.set(radialOut).multiplyInPlace(2000 * easedT); // Velocity ramps up
+            const easedT = (t - 0.5) * 2;
+            const progress = easedT * easedT;
+            this.stretchFactor = 1 + progress * 9;
+            this._scratchRadialOut.set(this.jumpGate.position).normalizeInPlace();
+            const maxDistance = 5000;
+            this._scratchVelocityDelta.set(this._scratchRadialOut).multiplyInPlace(maxDistance * progress);
+            this.position.set(this.jumpGate.position)
+                .addInPlace(this._scratchVelocityDelta);
+            this.velocity.set(this._scratchRadialOut).multiplyInPlace(2000 * easedT);
         }
 
         if (t >= 1) {
-            // Transition to new system and JumpingIn state
             const oldSystem = this.starSystem;
             this.starSystem = this.jumpGate.lane.target;
-            const radialIn = this.jumpGate.lane.targetGate.position.clone().normalizeInPlace().multiplyInPlace(-1);
-            this.jumpEndPosition = new Vector2D(0, 0);
-            this.jumpEndPosition.set(this.jumpGate.lane.targetGate.position); // Set the end position
-            this.position.set(this.jumpEndPosition).subtractInPlace(radialIn.multiply(5000)); // Start outside the target gate
+            this._scratchRadialIn.set(this.jumpGate.lane.targetGate.position)
+                .normalizeInPlace()
+                .multiplyInPlace(-1);
+            this.jumpEndPosition.set(this.jumpGate.lane.targetGate.position);
+            this._scratchVelocityDelta.set(this._scratchRadialIn).multiplyInPlace(5000);
+            this.position.set(this.jumpEndPosition)
+                .subtractInPlace(this._scratchVelocityDelta);
             this.setState('JumpingIn');
-            this.velocity.set(radialIn).multiplyInPlace(2000); // Initial velocity for JumpingIn
-            this.trail.points = []; // Clear trail for new system
+            this.velocity.set(this._scratchRadialIn).multiplyInPlace(2000);
+            this.trail.points = [];
             this.jumpStartAngle = null;
             oldSystem.ships = oldSystem.ships.filter(ship => ship !== this);
             this.starSystem.ships.push(this);
         }
     }
 
-    /**
-     * Updates the ship in the 'JumpingIn' state, animating arrival in a new system with a speed ramp.
-     * @param {number} deltaTime - Time elapsed since last update in seconds.
-     */
     updateJumpingIn(deltaTime) {
         this.animationTime += deltaTime;
         const t = Math.min(this.animationTime / this.animationDuration, 1);
 
         if (!this.jumpEndPosition) {
             console.error('jumpEndPosition is null in JumpingIn state; resetting to current position');
-            this.jumpEndPosition = new Vector2D(0, 0);
-            this.jumpEndPosition.set(this.position); // Fallback to current position
+            this.jumpEndPosition.set(this.position);
         }
 
         if (t < 0.5) {
-            // Phase 1: Stretched arrival from outside with quadratic easing (fast start, slowing down)
             this.shipScale = 0.25;
-            const easedT = t * 2; // Normalize to 0-1 for this phase
-            const progress = 1 - (1 - easedT) * (1 - easedT); // Quadratic ease-out: fast start, slow end
-            this.stretchFactor = 10 - progress * 9; // 10 to 1
-            const radialIn = this.jumpEndPosition.clone().normalizeInPlace().multiplyInPlace(-1);
+            const easedT = t * 2;
+            const progress = 1 - (1 - easedT) * (1 - easedT);
+            this.stretchFactor = 10 - progress * 9;
+            this._scratchRadialOut.set(this.jumpEndPosition).normalizeInPlace();
+            this._scratchRadialIn.set(this._scratchRadialOut).multiplyInPlace(-1);
+
             const maxDistance = 5000;
-            const outsidePos = this.jumpEndPosition.subtract(radialIn.multiply(maxDistance));
-            this.position.lerpInPlace(outsidePos, this.jumpEndPosition, progress);
-            const desiredAngle = Math.atan2(radialIn.y, radialIn.x);
+            this._scratchVelocityDelta.set(this._scratchRadialOut).multiplyInPlace(maxDistance)
+                .addInPlace(this.jumpEndPosition);
+            this.position.lerpInPlace(this._scratchVelocityDelta, this.jumpEndPosition, progress);
+            const desiredAngle = Math.atan2(this._scratchRadialIn.y, this._scratchRadialIn.x);
             const startAngle = this.jumpStartAngle || this.angle;
             if (!this.jumpStartAngle) this.jumpStartAngle = this.angle;
-            const angleDiff = (desiredAngle - startAngle + Math.PI) % (2 * Math.PI) - Math.PI;
+            const angleDiff = normalizeAngle(desiredAngle - startAngle);
             this.angle = startAngle + angleDiff * easedT;
             this.targetAngle = this.angle;
-            this.velocity.set(radialIn).multiplyInPlace(2000 * (1 - easedT)); // Velocity ramps down
+            this.velocity.set(this._scratchRadialIn).multiplyInPlace(2000 * (1 - easedT));
         } else {
-            // Phase 2: Normalize and stop (unchanged)
-            this.shipScale = 0.25 + (t - 0.5) * 1.5; // 0.25 to 1
+            this.shipScale = 0.25 + (t - 0.5) * 1.5;
             this.stretchFactor = 1;
             this.position.set(this.jumpEndPosition);
             this.velocity.set(0, 0);
@@ -499,151 +352,124 @@ export class Ship extends GameObject {
             this.shipScale = 1;
             this.stretchFactor = 1;
             this.jumpGate = null;
-            this.jumpStartPosition = null;
-            this.jumpEndPosition = null;
+            this.jumpStartPosition.set(0, 0);
+            this.jumpEndPosition.set(0, 0);
             this.jumpStartAngle = null;
             this.hyperdriveReady = false;
-            setTimeout(() => { this.hyperdriveReady = true; }, this.hyperdriveCooldown); // Reset hyperdrive
+            setTimeout(() => { this.hyperdriveReady = true; }, this.hyperdriveCooldown);
         }
     }
 
-    /**
-     * Draws the ship and its trail on the canvas.
-     * @param {CanvasRenderingContext2D} ctx - Canvas rendering context.
-     * @param {Camera} camera - Camera for world-to-screen transformations.
-     */
     draw(ctx, camera) {
-        if (this.state === 'Landed') return; // Invisible when landed
+        if (this.state === 'Landed') return;
 
         ctx.save();
         this.trail.draw(ctx, camera);
-        const screenPos = camera.worldToScreen(this.position, new Vector2D(0, 0)); //FIXME: use scratch
-        ctx.translate(screenPos.x, screenPos.y);
+        camera.worldToScreen(this.position, this._scratchScreenPos);
+        ctx.translate(this._scratchScreenPos.x, this._scratchScreenPos.y);
         ctx.rotate(this.angle);
 
-        // Apply scale and stretch for animations
         const scale = camera.zoom * this.shipScale;
         ctx.scale(scale * this.stretchFactor, scale);
 
-        // Draw ship body
         ctx.fillStyle = this.color.toRGB();
         ctx.beginPath();
-        ctx.moveTo(15, 0); // Nose
-        ctx.lineTo(-10, 10); // Bottom left
-        ctx.lineTo(-10, -10); // Top left
+        ctx.moveTo(15, 0);
+        ctx.lineTo(-10, 10);
+        ctx.lineTo(-10, -10);
         ctx.closePath();
         ctx.fill();
 
-        // Draw thrust effect if applicable
         if ((this.isThrusting && this.state === 'Flying') || this.state === 'Landing' || this.state === 'TakingOff') {
-            ctx.fillStyle = new Colour(1, 1, 0).toRGB(); // Yellow thrust
+            ctx.fillStyle = new Colour(1, 1, 0).toRGB();
             ctx.beginPath();
-            ctx.moveTo(-15, 0); // Thrust base
-            ctx.lineTo(-10, 5); // Bottom
-            ctx.lineTo(-10, -5); // Top
+            ctx.moveTo(-15, 0);
+            ctx.lineTo(-10, 5);
+            ctx.lineTo(-10, -5);
             ctx.closePath();
             ctx.fill();
         }
 
         ctx.restore();
-        // Debug indicators (only if this.debug is true)
+
         if (this.debug && camera.debug) {
-            // 1. Velocity Vector (blue line from ship position in world coordinates)
-            const velocityScale = 1; // Adjust scale for visibility
-            const velocityEnd = this.position.add(this.velocity.multiply(velocityScale));
-            const velocityStartScreen = camera.worldToScreen(this.position);
-            const velocityEndScreen = camera.worldToScreen(velocityEnd);
+            this._scratchVelocityEnd.set(this.velocity)
+                .multiplyInPlace(1)
+                .addInPlace(this.position);
+            camera.worldToScreen(this._scratchVelocityEnd, this._scratchVelocityEnd);
             ctx.strokeStyle = 'red';
             ctx.beginPath();
-            ctx.moveTo(velocityStartScreen.x, velocityStartScreen.y);
-            ctx.lineTo(velocityEndScreen.x, velocityEndScreen.y);
+            ctx.moveTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
+            ctx.lineTo(this._scratchVelocityEnd.x, this._scratchVelocityEnd.y);
             ctx.stroke();
 
-            // 2. Target Angle Arc (arc from current angle to target angle, starting from ship front)
             ctx.save();
-            ctx.translate(screenPos.x, screenPos.y);
-            ctx.rotate(this.angle); // Apply rotation only for the arc
-            const angleDiff = (this.targetAngle - this.angle + Math.PI) % (2 * Math.PI) - Math.PI;
-            const startAngle = 0; // Start at the front of the ship
-            const endAngle = angleDiff;
+            ctx.translate(this._scratchScreenPos.x, this._scratchScreenPos.y);
+            ctx.rotate(this.angle);
+            const angleDiff = normalizeAngle(this.targetAngle - this.angle);
             ctx.fillStyle = 'rgba(255,0,255,0.25)';
             ctx.beginPath();
             ctx.moveTo(0, 0);
-            ctx.arc(0, 0, 30 * scale, startAngle, endAngle, angleDiff < 0); // Radius = ship length
+            ctx.arc(0, 0, 30 * scale, 0, angleDiff, angleDiff < 0);
             ctx.lineTo(0, 0);
             ctx.closePath();
             ctx.fill();
             ctx.restore();
 
-            // 3. AIPilot State (static text below the ship in screen coordinates)
-            if (this.pilot /*&& this.pilot instanceof AIPilot*/) {
+            if (this.pilot) {
                 const state = this.pilot.getState();
                 ctx.fillStyle = 'white';
                 ctx.font = `${10 * scale}px Arial`;
                 const textMetrics = ctx.measureText(state);
-                const textX = screenPos.x - textMetrics.width / 2; // Center horizontally
-                const textY = screenPos.y + 20 * scale; // Below the ship
+                const textX = this._scratchScreenPos.x - textMetrics.width / 2;
+                const textY = this._scratchScreenPos.y + 20 * scale;
                 ctx.fillText(state, textX, textY);
             }
 
-            // 4. Stopping Distance (vector along velocity ending in a green circle)
-            //if (this.pilot /*&& this.pilot instanceof AIPilot*/) {
-            const decelerationDistance = this.decelerationDistance;
-            const farApproachDistance = this.farApproachDistance;
-            const closeApproachDistance = this.closeApproachDistance;
-            const currentSpeed = this.velocity.magnitude(); // Calculate currentSpeed here
-            const stoppingPoint = this.position.add(
-                currentSpeed > 0 ? this.velocity.clone().normalizeInPlace().multiply(decelerationDistance) : new Vector2D(0, 0)
-            );
-            const stoppingScreen = camera.worldToScreen(stoppingPoint);
-            const originScreen = camera.worldToScreen(this.position);
+            const currentSpeed = this.velocity.magnitude();
+            this._scratchStoppingPoint.set(this.velocity)
+                .normalizeInPlace()
+                .multiplyInPlace(currentSpeed > 0 ? this.decelerationDistance : 0)
+                .addInPlace(this.position);
+            camera.worldToScreen(this._scratchStoppingPoint, this._scratchStoppingPoint);
 
-            // Draw line along velocity
             ctx.strokeStyle = 'gray';
             ctx.beginPath();
-            ctx.moveTo(originScreen.x, originScreen.y);
-            ctx.lineTo(stoppingScreen.x, stoppingScreen.y);
+            ctx.moveTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
+            ctx.lineTo(this._scratchStoppingPoint.x, this._scratchStoppingPoint.y);
             ctx.stroke();
 
-            // Draw green circle at stopping point
             ctx.fillStyle = 'green';
             ctx.beginPath();
-            ctx.arc(stoppingScreen.x, stoppingScreen.y, 5 * scale, 0, 2 * Math.PI);
+            ctx.arc(this._scratchStoppingPoint.x, this._scratchStoppingPoint.y, 5 * scale, 0, TWO_PI);
             ctx.fill();
 
             if (this.target) {
-                const targetScreen = camera.worldToScreen(this.target.position);
-                if (farApproachDistance > 0) {
-                    // Draw giant green circle around the target
+                camera.worldToScreen(this.target.position, this._scratchRadialOut);
+                if (this.farApproachDistance > 0) {
                     ctx.beginPath();
                     ctx.fillStyle = 'rgba(0,255,0,0.1)';
-                    ctx.arc(targetScreen.x, targetScreen.y, farApproachDistance * scale, 0, 2 * Math.PI, false);
-                    if (closeApproachDistance > 0) {
-                        // cut out the inner circle to fill in later
-                        ctx.arc(targetScreen.x, targetScreen.y, closeApproachDistance * scale, 0, 2 * Math.PI, true);
+                    ctx.arc(this._scratchRadialOut.x, this._scratchRadialOut.y, this.farApproachDistance * scale, 0, TWO_PI, false);
+                    if (this.closeApproachDistance > 0) {
+                        ctx.arc(this._scratchRadialOut.x, this._scratchRadialOut.y, this.closeApproachDistance * scale, 0, TWO_PI, true);
                     }
                     ctx.fill();
-                    if (closeApproachDistance > 0) {
-                        // Draw giant orange circle around the target
+                    if (this.closeApproachDistance > 0) {
                         ctx.beginPath();
                         ctx.fillStyle = 'rgba(255,255,0,0.2)';
-                        ctx.arc(targetScreen.x, targetScreen.y, closeApproachDistance * scale, 0, 2 * Math.PI);
+                        ctx.arc(this._scratchRadialOut.x, this._scratchRadialOut.y, this.closeApproachDistance * scale, 0, TWO_PI);
                         ctx.fill();
                     }
                 }
             }
-            //}
-            // 5. Velocity error
-            if (this.pilot /*&& this.pilot instanceof AIPilot*/) {
-                const stoppingPoint = this.position.add(this.velocityError);
-                const stoppingScreen = camera.worldToScreen(stoppingPoint);
-                const originScreen = camera.worldToScreen(this.position);
 
-                // Draw line along velocity
+            if (this.pilot) {
+                this._scratchRadialIn.set(this.position).addInPlace(this.velocityError);
+                camera.worldToScreen(this._scratchRadialIn, this._scratchRadialIn);
                 ctx.strokeStyle = 'purple';
                 ctx.beginPath();
-                ctx.moveTo(originScreen.x, originScreen.y);
-                ctx.lineTo(stoppingScreen.x, stoppingScreen.y);
+                ctx.moveTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
+                ctx.lineTo(this._scratchRadialIn.x, this._scratchRadialIn.y);
                 ctx.stroke();
             }
         }

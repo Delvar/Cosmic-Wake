@@ -1,5 +1,7 @@
 // utils.js
 
+export const TWO_PI = Math.PI * 2;
+
 /**
  * Remaps a value from 0 to 1 to a specified output range.
  * @param {number} value - The value to remap (between 0 and 1).
@@ -43,4 +45,13 @@ export function clamp(value, min, max) {
  */
 export function remapClamp(value, inMin, inMax, outMin, outMax) {
     return Math.min(Math.max((outMax - outMin) * (value - inMin) / (inMax - inMin) + outMin, outMin), outMax);
+}
+
+/**
+ * Normalizes an angle to the range [-π, π).
+ * @param {number} angle - The angle in radians to normalize.
+ * @returns {number} The normalized angle in radians, between -π (inclusive) and π (exclusive).
+ */
+export function normalizeAngle(angle) {
+    return ((angle + Math.PI) % (TWO_PI)) - Math.PI;
 }

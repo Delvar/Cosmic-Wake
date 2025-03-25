@@ -91,10 +91,12 @@ export class PlayerPilot extends Pilot {
 
         // Manual controls
         if (keys['ArrowLeft']) {
-            this.ship.setTargetAngle(this.ship.targetAngle - this.ship.rotationSpeed * deltaTime);
+            this.ship.setTargetAngle(this.ship.angle - this.ship.rotationSpeed * deltaTime);
+            console.log('ArrowLeft');
         }
         if (keys['ArrowRight']) {
-            this.ship.setTargetAngle(this.ship.targetAngle + this.ship.rotationSpeed * deltaTime);
+            this.ship.setTargetAngle(this.ship.angle + this.ship.rotationSpeed * deltaTime);
+            console.log('ArrowRight');
         }
         this.ship.applyThrust(keys['ArrowUp']);
         this.ship.applyBrakes(keys['ArrowDown']);

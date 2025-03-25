@@ -194,7 +194,7 @@ export class Ship extends GameObject {
      * @param {number} angle - Target angle in radians.
      */
     setTargetAngle(angle) {
-        this.targetAngle = angle;
+        this.targetAngle = (angle + Math.PI) % (2 * Math.PI) - Math.PI;
     }
 
     /**
@@ -517,7 +517,7 @@ export class Ship extends GameObject {
 
         ctx.save();
         this.trail.draw(ctx, camera);
-        const screenPos = camera.worldToScreen(this.position);
+        const screenPos = camera.worldToScreen(this.position, new Vector2D(0, 0)); //FIXME: use scratch
         ctx.translate(screenPos.x, screenPos.y);
         ctx.rotate(this.angle);
 

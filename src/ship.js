@@ -305,7 +305,7 @@ export class Ship extends GameObject {
                 .subtractInPlace(this._scratchVelocityDelta);
             this.setState('JumpingIn');
             this.velocity.set(this._scratchRadialIn).multiplyInPlace(2000);
-            this.trail.points = [];
+            this.trail.points.clear();
             this.jumpStartAngle = null;
             oldSystem.ships = oldSystem.ships.filter(ship => ship !== this);
             this.starSystem.ships.push(this);

@@ -38,9 +38,6 @@ export class StarSystem {
      * Initializes the star system by setting up asteroid belts and jump gates.
      */
     initialize() {
-        if (this.asteroidBelt) {
-            this.asteroidBelt.initialize();
-        }
         this.initializeJumpGates();
     }
 

@@ -5,6 +5,26 @@ import { TWO_PI, remapRange01 } from './utils.js';
 import { GameObject } from './gameObject.js';
 
 /**
+ * A precomputed asteroid shape, stored as a Float32Array of [x1, y1, x2, y2, ...].
+ */
+class AsteroidShape {
+    /**
+     * @param {number} numPoints - Number of points in the shape.
+     */
+    constructor(numPoints) {
+        this.numPoints = numPoints;
+        this.points = new Float32Array(numPoints * 2); // [x1, y1, x2, y2, ...]
+        const angleStep = (Math.PI * 2) / numPoints;
+        for (let i = 0; i < numPoints; i++) {
+            const angle = i * angleStep + (Math.random() - 0.5) * 0.5;
+            const radius = 0.5 + Math.random() * 0.5; // Between 0.5 and 1
+            this.points[i * 2] = Math.cos(angle) * radius;
+            this.points[i * 2 + 1] = Math.sin(angle) * radius;
+        }
+    }
+}
+
+/**
  * Manages a collection of asteroids forming a belt in a star system.
  */
 export class AsteroidBelt {
@@ -22,67 +42,51 @@ export class AsteroidBelt {
         this.outerRadius = outerRadius;
         this.backgroundCount = backgroundCount;
         this.interactiveCount = interactiveCount;
-        this.backgroundAsteroids = [];
         this.interactiveAsteroids = [];
 
-        // Temporary scratch values to avoid allocations
-        this._scratchWorldPos = new Vector2D(); // For calculating world position in draw
-        this._scratchScreenPos = new Vector2D(); // For storing screen position in draw
-    }
+        // Precompute asteroid shapes (tunable number of shapes)
+        this.shapeCount = 20;
+        this.shapes = new Array(this.shapeCount);
+        for (let i = 0; i < this.shapeCount; i++) {
+            const numPoints = 5 + Math.floor(Math.random() * 4); // 5 to 8 points
+            this.shapes[i] = new AsteroidShape(numPoints);
+        }
 
-    /**
-     * Initializes the belt by creating background and interactive asteroids.
-     */
-    initialize() {
-        // Generate background asteroids
-        for (let i = 0; i < this.backgroundCount; i++) {
+        // Background asteroids stored in a Float32Array
+        // Each asteroid: [shapeIndex, size, spinSpeed, orbitalDistance, orbitalSpeed, orbitalOffset]
+        this.backgroundAsteroids = new Float32Array(backgroundCount * 6);
+        for (let i = 0; i < backgroundCount; i++) {
+            const idx = i * 6;
             const radius = remapRange01(Math.random(), this.innerRadius, this.outerRadius);
-            const angle = remapRange01(Math.random(), 0, TWO_PI);
             const size = remapRange01(Math.random(), 2, 20);
             const spinSpeed = remapRange01(Math.random(), -TWO_PI, TWO_PI);
             const orbitSpeed = remapRange01(Math.random(), Math.PI * 0.001, Math.PI * 0.006);
-            this.backgroundAsteroids.push({
-                radius: radius,
-                angle: angle,
-                size: size,
-                spin: 0,
-                spinSpeed: spinSpeed,
-                orbitSpeed: orbitSpeed,
-                shape: this.generateShape(5 + Math.floor(Math.random() * 4))
-            });
+            this.backgroundAsteroids[idx] = Math.floor(Math.random() * this.shapeCount); // shapeIndex
+            this.backgroundAsteroids[idx + 1] = size;
+            this.backgroundAsteroids[idx + 2] = spinSpeed;
+            this.backgroundAsteroids[idx + 3] = radius; // orbitalDistance
+            this.backgroundAsteroids[idx + 4] = orbitSpeed;
+            this.backgroundAsteroids[idx + 5] = Math.random() * TWO_PI; // orbitalOffset
         }
+
         // Generate interactive asteroids
-        for (let i = 0; i < this.interactiveCount; i++) {
+        for (let i = 0; i < interactiveCount; i++) {
             this.interactiveAsteroids.push(new Asteroid(this));
         }
+
+        // Temporary scratch values to avoid allocations
+        this._scratchWorldPos = new Vector2D();
+        this._scratchScreenPos = new Vector2D();
+        this.elapsedTime = 0;
     }
 
     /**
-     * Generates a random polygonal shape for an asteroid.
-     * @param {number} sides - Number of sides for the shape.
-     * @returns {Array<{x: number, y: number}>} Array of points defining the shape in local coordinates.
-     */
-    generateShape(sides) {
-        const points = [];
-        for (let i = 0; i < sides; i++) {
-            const angle = (i / sides) * TWO_PI;
-            const r = 0.5 + Math.random() * 0.5;
-            points.push({ x: Math.cos(angle) * r, y: Math.sin(angle) * r });
-        }
-        return points;
-    }
-
-    /**
-     * Updates the positions and spins of all asteroids in the belt.
+     * Updates the asteroid belt.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
      */
     update(deltaTime) {
-        this.backgroundAsteroids.forEach(asteroid => {
-            asteroid.angle += asteroid.orbitSpeed * deltaTime;
-            asteroid.spin += asteroid.spinSpeed * deltaTime;
-            asteroid.angle %= TWO_PI;
-            asteroid.spin %= TWO_PI;
-        });
+        this.elapsedTime += deltaTime;
+        // Only update interactive asteroids
         this.interactiveAsteroids.forEach(asteroid => asteroid.update(deltaTime));
     }
 
@@ -97,31 +101,89 @@ export class AsteroidBelt {
         ctx.strokeStyle = 'rgb(50, 50, 50)';
         ctx.lineWidth = 1;
 
-        this.backgroundAsteroids.forEach(asteroid => {
-            // Use scratch vector for world position
+        // Draw background asteroids in a single fill
+        ctx.beginPath();
+        for (let i = 0; i < this.backgroundCount; i++) {
+            const idx = i * 6;
+            const shapeIndex = this.backgroundAsteroids[idx];
+            const size = this.backgroundAsteroids[idx + 1];
+            const spinSpeed = this.backgroundAsteroids[idx + 2];
+            const orbitalDistance = this.backgroundAsteroids[idx + 3];
+            const orbitalSpeed = this.backgroundAsteroids[idx + 4];
+            const orbitalOffset = this.backgroundAsteroids[idx + 5];
+
+            // Calculate orbital angle and position
+            const orbitalAngle = this.elapsedTime * orbitalSpeed + orbitalOffset;
             this._scratchWorldPos.set(
-                Math.cos(asteroid.angle) * asteroid.radius,
-                Math.sin(asteroid.angle) * asteroid.radius
+                Math.cos(orbitalAngle) * orbitalDistance,
+                Math.sin(orbitalAngle) * orbitalDistance
             );
-            if (camera.isInView(this._scratchWorldPos, asteroid.size)) {
-                camera.worldToScreen(this._scratchWorldPos, this._scratchScreenPos); // Use scratch for screen pos
-                const scaledSize = camera.worldToSize(asteroid.size);
-                ctx.save();
-                ctx.translate(this._scratchScreenPos.x, this._scratchScreenPos.y);
-                ctx.rotate(asteroid.spin);
-                ctx.beginPath();
-                ctx.moveTo(asteroid.shape[0].x * scaledSize, asteroid.shape[0].y * scaledSize);
-                for (let i = 1; i < asteroid.shape.length; i++) {
-                    ctx.lineTo(asteroid.shape[i].x * scaledSize, asteroid.shape[i].y * scaledSize);
+
+            // Check visibility
+            if (camera.isInView(this._scratchWorldPos, size)) {
+                camera.worldToScreen(this._scratchWorldPos, this._scratchScreenPos);
+                const scaledSize = camera.worldToSize(size);
+                const rotationAngle = this.elapsedTime * spinSpeed;
+                const shape = this.shapes[shapeIndex];
+                const cosA = Math.cos(rotationAngle);
+                const sinA = Math.sin(rotationAngle);
+
+                // Draw shape points
+                for (let j = 0; j < shape.numPoints; j++) {
+                    const px = shape.points[j * 2];
+                    const py = shape.points[j * 2 + 1];
+                    // Rotate
+                    const rotatedX = px * cosA - py * sinA;
+                    const rotatedY = px * sinA + py * cosA;
+                    // Scale and translate
+                    const x = rotatedX * scaledSize + this._scratchScreenPos.x;
+                    const y = rotatedY * scaledSize + this._scratchScreenPos.y;
+                    if (j === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
                 }
                 ctx.closePath();
-                ctx.stroke();
-                ctx.fill();
-                ctx.restore();
             }
-        });
+        }
+        ctx.stroke();
+        ctx.fill();
 
-        this.interactiveAsteroids.forEach(asteroid => asteroid.draw(ctx, camera));
+        // Draw interactive asteroids in a single fill
+        ctx.beginPath();
+        for (let i = 0; i < this.interactiveAsteroids.length; i++) {
+            const asteroid = this.interactiveAsteroids[i];
+            // Check visibility
+            if (camera.isInView(asteroid.position, asteroid.size)) {
+                camera.worldToScreen(asteroid.position, this._scratchScreenPos);
+                const scaledSize = camera.worldToSize(asteroid.size);
+                const cosA = Math.cos(asteroid.spin);
+                const sinA = Math.sin(asteroid.spin);
+                const shape = asteroid.shape;
+
+                // Draw shape points
+                for (let j = 0; j < shape.numPoints; j++) {
+                    const px = shape.points[j * 2];
+                    const py = shape.points[j * 2 + 1];
+                    // Rotate
+                    const rotatedX = px * cosA - py * sinA;
+                    const rotatedY = px * sinA + py * cosA;
+                    // Scale and translate
+                    const x = rotatedX * scaledSize + this._scratchScreenPos.x;
+                    const y = rotatedY * scaledSize + this._scratchScreenPos.y;
+                    if (j === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                }
+                ctx.closePath();
+            }
+        }
+        ctx.stroke();
+        ctx.fill();
+
         ctx.restore();
     }
 }
@@ -138,35 +200,20 @@ export class Asteroid extends GameObject {
     constructor(belt) {
         const radius = remapRange01(Math.random(), belt.innerRadius, belt.outerRadius);
         const angle = remapRange01(Math.random(), 0, TWO_PI);
-        super(new Vector2D(0, 0), belt.starSystem); // Initial position set below
+        super(new Vector2D(0, 0), belt.starSystem);
         this.belt = belt;
+        this.shapeIndex = Math.floor(Math.random() * belt.shapeCount);
+        this.shape = belt.shapes[this.shapeIndex];
         this.size = remapRange01(Math.random(), 15, 30);
         this.spin = 0;
         this.spinSpeed = remapRange01(Math.random(), -TWO_PI, TWO_PI);
         this.orbitSpeed = remapRange01(Math.random(), Math.PI * 0.002, Math.PI * 0.006);
         this.orbitRadius = radius;
         this.orbitAngle = angle;
-        this.shape = this.generateShape(6 + Math.floor(Math.random() * 4));
-        // Set initial position using in-place method
         this.position.set(Math.cos(this.orbitAngle) * this.orbitRadius, Math.sin(this.orbitAngle) * this.orbitRadius);
 
         // Temporary scratch values to avoid allocations
-        this._scratchScreenPos = new Vector2D(); // For storing screen position in draw
-    }
-
-    /**
-     * Generates a random polygonal shape for the asteroid.
-     * @param {number} sides - Number of sides for the shape.
-     * @returns {Array<{x: number, y: number}>} Array of points defining the shape in local coordinates.
-     */
-    generateShape(sides) {
-        const points = [];
-        for (let i = 0; i < sides; i++) {
-            const angle = (i / sides) * TWO_PI;
-            const r = 0.6 + Math.random() * 0.4;
-            points.push({ x: Math.cos(angle) * r, y: Math.sin(angle) * r });
-        }
-        return points;
+        this._scratchScreenPos = new Vector2D();
     }
 
     /**
@@ -176,40 +223,11 @@ export class Asteroid extends GameObject {
     update(deltaTime) {
         this.orbitAngle += this.orbitSpeed * deltaTime;
         this.spin += this.spinSpeed * deltaTime;
-        // Update position using set to avoid allocation
         this.position.set(
             Math.cos(this.orbitAngle) * this.orbitRadius,
             Math.sin(this.orbitAngle) * this.orbitRadius
         );
         this.orbitAngle %= TWO_PI;
         this.spin %= TWO_PI;
-    }
-
-    /**
-     * Draws the asteroid on the canvas if in view.
-     * @param {CanvasRenderingContext2D} ctx - The canvas rendering context.
-     * @param {Camera} camera - The camera object for coordinate transformations.
-     */
-    draw(ctx, camera) {
-        camera.worldToScreen(this.position, this._scratchScreenPos); // Use scratch for screen pos
-        const scaledSize = camera.worldToSize(this.size);
-
-        if (camera.isInView(this.position, this.size)) {
-            ctx.save();
-            ctx.translate(this._scratchScreenPos.x, this._scratchScreenPos.y);
-            ctx.rotate(this.spin);
-            ctx.fillStyle = 'rgb(100, 100, 100)';
-            ctx.strokeStyle = 'rgb(50, 50, 50)';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(this.shape[0].x * scaledSize, this.shape[0].y * scaledSize);
-            for (let i = 1; i < this.shape.length; i++) {
-                ctx.lineTo(this.shape[i].x * scaledSize, this.shape[i].y * scaledSize);
-            }
-            ctx.closePath();
-            ctx.stroke();
-            ctx.fill();
-            ctx.restore();
-        }
     }
 }

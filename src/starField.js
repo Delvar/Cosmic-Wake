@@ -191,7 +191,7 @@ export class StarField {
 
             for (let i = gridLeft; i < gridRight; i++) {
                 for (let j = gridTop; j < gridBottom; j++) {
-                    const cacheKey = `${i}-${j}-${layer}`;
+                    const cacheKey = ((i % 1000 + 1000) % 1000) * 1e4 + ((j % 1000 + 1000) % 1000) * 1e1 + layer;
                     let starData = this.starCache.get(cacheKey);
                     if (!starData) {
                         starData = this.generateStarsForCell(i, j, layer, starCount, palette);

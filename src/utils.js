@@ -53,5 +53,5 @@ export function remapClamp(value, inMin, inMax, outMin, outMax) {
  * @returns {number} The normalized angle in radians, between -π (inclusive) and π (exclusive).
  */
 export function normalizeAngle(angle) {
-    return ((angle + Math.PI) % (TWO_PI)) - Math.PI;
+    return ((angle + Math.PI) % TWO_PI + TWO_PI) % TWO_PI - Math.PI;
 }

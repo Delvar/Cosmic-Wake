@@ -11,6 +11,7 @@ import { HeadsUpDisplay } from './headsUpDisplay.js';
 import { PlayerPilot, AIPilot } from './pilot.js';
 import { createGalaxy } from './galaxy.js';
 import { TWO_PI } from './utils.js';
+import { GameObject } from './gameObject.js';
 
 /**
  * Manages the targeting system for selecting game objects like planets, ships, and asteroids.
@@ -26,21 +27,25 @@ class TargetingSystem {
 
     /**
      * Checks if a target is still valid (not despawned and exists in the galaxy).
+     * @param {GameObject} source - The source game object to validate.
      * @param {GameObject} target - The target game object to validate.
      * @returns {boolean} True if the target is valid, false otherwise.
      */
-    isValidTarget(target) {
-        if (target.isDespawned()) return false;
-        if (target instanceof Ship) {
-            return this.gameManager.galaxy.some(starSystem => starSystem.ships.includes(target));
-        }
-        if (target instanceof CelestialBody || target instanceof JumpGate) {
-            return this.gameManager.galaxy.some(starSystem => starSystem.celestialBodies.includes(target));
-        }
-        if (target instanceof Asteroid) {
-            return this.gameManager.galaxy.some(starSystem => starSystem.asteroidBelt && starSystem.asteroidBelt.interactiveAsteroids.includes(target));
-        }
-        return false;
+    isValidTarget(source, target) {
+        if (!source || !target) return false;
+        if (!(source instanceof GameObject) || !(target instanceof GameObject)) return false;
+        if (source.isDespawned() || target.isDespawned()) return false;
+        if (source.starSystem !== target.starSystem) return false;
+        // if (target instanceof Ship) {
+        //     return this.gameManager.galaxy.some(starSystem => starSystem.ships.includes(target));
+        // }
+        // if (target instanceof CelestialBody || target instanceof JumpGate) {
+        //     return this.gameManager.galaxy.some(starSystem => starSystem.celestialBodies.includes(target));
+        // }
+        // if (target instanceof Asteroid) {
+        //     return this.gameManager.galaxy.some(starSystem => starSystem.asteroidBelt && starSystem.asteroidBelt.interactiveAsteroids.includes(target));
+        // }
+        return true;
     }
 }
 
@@ -64,8 +69,6 @@ class Game {
 
         this.targetCanvas = targetCanvas;
         this.targetCtx = this.targetCanvas.getContext('2d');
-        this.targetCanvas.width = this.targetCanvas.offsetWidth;
-        this.targetCanvas.height = this.targetCanvas.offsetHeight;
         this.targetCamera = manager.targetCamera;
 
         this.camera = manager.camera;
@@ -115,17 +118,6 @@ class Game {
 
         this.manager.update(deltaTime);
         this.camera.update(this.manager.cameraTarget.position);
-
-        if (this.manager.cameraTarget instanceof Ship && this.manager.cameraTarget.target) {
-            const target = this.manager.cameraTarget.target;
-            if (target.isDespawned() || this.manager.cameraTarget.starSystem !== target.starSystem) {
-                this.manager.cameraTarget.clearTarget();
-                console.log("force clear target");
-            } else if (this.manager.targetingSystem.isValidTarget(target) && this.targetCanvas.style.display === 'none') {
-                this.targetCanvas.style.display = 'block';
-                console.log("force display of target window");
-            }
-        }
 
         if (this.manager.zoomTextTimer > 0) {
             this.manager.zoomTextTimer -= deltaTime;
@@ -184,14 +176,29 @@ class Game {
      * Renders the target view in the target canvas if a valid target is selected.
      */
     renderTargetView() {
-        let target = this.manager.cameraTarget instanceof Ship ? this.manager.cameraTarget.target : null;
+        //Ensure target is valid, if not hide the window
+
+        let target = null;
+        if (
+            this.manager.cameraTarget &&
+            this.manager.cameraTarget instanceof Ship &&
+            this.manager.targetingSystem.isValidTarget(this.manager.cameraTarget, this.manager.cameraTarget.target)) {
+            target = this.manager.cameraTarget.target;
+        };
+
+        if (!target) {
+            if (this.targetCanvas.style.display !== 'none') {
+                this.targetCanvas.style.display = 'none';
+            }
+            return;
+        } else {
+            if (this.targetCanvas.style.display !== 'block') {
+                this.targetCanvas.style.display = 'block';
+            }
+        }
+
         this.targetCtx.fillStyle = 'black';
         this.targetCtx.fillRect(0, 0, this.targetCanvas.width, this.targetCanvas.height);
-        if (!target || !this.manager.targetingSystem.isValidTarget(target)) {
-            this.targetCanvas.style.display = 'none';
-            return;
-        }
-        this.targetCanvas.style.display = 'block';
         this.starField.draw(this.targetCtx, this.targetCamera);
         const starSystem = this.manager.cameraTarget.starSystem;
         if (starSystem.asteroidBelt) starSystem.asteroidBelt.draw(this.targetCtx, this.targetCamera);
@@ -226,17 +233,14 @@ class GameManager {
         this.playerPilot = new PlayerPilot(this.playerShip);
         this.playerShip.pilot = this.playerPilot;
         this.galaxy[0].ships.push(this.playerShip);
-        this.camera = new Camera(this.playerShip.position, new Vector2D(0, 0));
-        this.camera.screenSize.set(window.innerWidth, window.innerHeight);
+        this.camera = new Camera(this.playerShip.position, new Vector2D(window.innerWidth, window.innerHeight), 1);
         this.cameraTarget = this.playerShip;
-        this.targetCamera = new TargetCamera(new Vector2D(0, 0), new Vector2D(0, 0));
-        this.targetCamera.screenSize.set(this.targetCanvas.offsetWidth, this.targetCanvas.offsetHeight);
+        this.targetCamera = new TargetCamera(new Vector2D(0, 0), new Vector2D(this.targetCanvas.width, this.targetCanvas.height));
         this.starField = new StarField(20, 1000, 10);
         this.hud = new HeadsUpDisplay(this, window.innerWidth, window.innerHeight);
         this.zoomTextTimer = 0;
         this.lastSpawnTime = performance.now();
         this.spawnInterval = this.randomSpawnInterval();
-
         this.game = new Game(this, this.canvas, this.targetCanvas);
         this.targetingSystem = new TargetingSystem(this);
 
@@ -310,14 +314,12 @@ class GameManager {
             } else if (aiShipCount > system.maxAIShips) {
                 const excessCount = aiShipCount - system.maxAIShips;
                 let despawned = 0;
-
                 const landedShips = [];
                 system.celestialBodies.forEach(body => {
                     if (body.landedShips && body.landedShips.length > 0) {
                         landedShips.push(...body.landedShips.filter(ship => ship.pilot instanceof AIPilot));
                     }
                 });
-
                 while (despawned < excessCount && landedShips.length > 0) {
                     const index = Math.floor(Math.random() * landedShips.length);
                     const shipToDespawn = landedShips[index];
@@ -402,23 +404,18 @@ class GameManager {
      */
     setupEventListeners() {
         let offsetX, offsetY;
+
         this.targetCanvas.addEventListener('dragstart', (e) => {
             offsetX = e.offsetX;
             offsetY = e.offsetY;
         });
+
         this.targetCanvas.addEventListener('drag', (e) => {
             if (e.clientX > 0 && e.clientY > 0) {
                 this.targetCanvas.style.left = `${e.clientX - offsetX}px`;
                 this.targetCanvas.style.top = `${e.clientY - offsetY}px`;
             }
         });
-
-        const resizeObserver = new ResizeObserver(() => {
-            this.targetCanvas.width = this.targetCanvas.offsetWidth;
-            this.targetCanvas.height = this.targetCanvas.offsetHeight;
-            this.targetCamera.screenSize.set(this.targetCanvas.width, this.targetCanvas.height);
-        });
-        resizeObserver.observe(this.targetCanvas);
 
         window.addEventListener('resize', () => { this.game.resizeCanvas(); });
 
@@ -449,6 +446,7 @@ class GameManager {
                 console.log("DEBUG: ", this.debug);
             }
         });
+
         window.addEventListener('keyup', (e) => { this.keys[e.key] = false; });
 
         window.addEventListener('wheel', (e) => {

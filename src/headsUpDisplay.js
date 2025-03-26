@@ -48,7 +48,7 @@ export class HeadsUpDisplay {
      * @param {Camera} camera - The camera object for coordinate transformations.
      */
     draw(ctx, camera) {
-        camera.getScreenCenter(this._scratchCenter); // Use scratch for center
+        this._scratchCenter.set(camera.screenCenter); // Use scratch for center
         ctx.save();
 
         // Draw autopilot status at top middle if the camera's target ship has an active autopilot
@@ -90,13 +90,16 @@ export class HeadsUpDisplay {
         const maxRadius = 5000; // Maximum distance for arrow visibility
 
         // Determine the current target
-        let target = this.gameManager.playerShip.target;
-        if (this.gameManager.cameraTarget instanceof Ship && this.gameManager.targetingSystem.isValidTarget(this.gameManager.cameraTarget)) {
+        let target = null;
+        if (
+            this.gameManager.cameraTarget &&
+            this.gameManager.cameraTarget instanceof Ship &&
+            this.gameManager.targetingSystem.isValidTarget(this.gameManager.cameraTarget, this.gameManager.cameraTarget.target)) {
             target = this.gameManager.cameraTarget.target;
-        }
+        };
 
         // Draw arrow for target if outside its ring
-        if (target && this.gameManager.targetingSystem.isValidTarget(target)) {
+        if (target) {
             camera.worldToCamera(target.position, this._scratchCameraPos);
             const distSquared = this._scratchCameraPos.x * this._scratchCameraPos.x + this._scratchCameraPos.y * this._scratchCameraPos.y;
             const isGate = target instanceof JumpGate;
@@ -206,7 +209,7 @@ export class HeadsUpDisplay {
         });
 
         // Draw rectangle around the target
-        if (target && this.gameManager.targetingSystem.isValidTarget(target)) {
+        if (target) {
             camera.worldToScreen(target.position, this._scratchScreenPos);
             const size = target instanceof Ship ? 20 : target.radius + 10 || target.size + 10;
             const scaledSize = camera.worldToSize(size);

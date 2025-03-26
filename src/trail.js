@@ -79,7 +79,6 @@ class TrailPointPool {
         this.tail = 0;
         this.head = this.count;
         this.maxPoints = newMaxPoints;
-        console.log(`Expanded TrailPointPool to ${this.maxPoints} points`);
         return newMaxPoints;
     }
 

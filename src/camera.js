@@ -15,13 +15,24 @@ export class Camera {
      */
     constructor(position, screenSize, zoom = 1) {
         this.debug = false;
+        // Clone position and screenSize to ensure they aren't modified externally
         this.position = position.clone();
-        this.zoom = zoom;
         this.screenSize = screenSize.clone();
-        this.worldSize = screenSize.clone().divideInPlace(zoom); // Use in-place to avoid allocation
+        this.zoom = zoom;
+        this.zoomReciprocal = 1 / zoom; // Precompute reciprocal for faster division
+        this.worldSize = new Vector2D(screenSize.x * this.zoomReciprocal, screenSize.y * this.zoomReciprocal);
+        // Precompute screen center
+        this.screenCenter = new Vector2D(screenSize.x / 2, screenSize.y / 2);
+        // Initialize worldBounds object once to avoid allocations in _updateWorldBounds
+        this.worldBounds = {
+            left: 0,
+            right: 0,
+            top: 0,
+            bottom: 0
+        };
+        this._updateWorldBounds(); // Set initial bounds
 
         // Temporary scratch values to avoid allocations
-        this._scratchScreenCenter = new Vector2D(); // For getScreenCenter calculations
         this._scratchRelativePosition = new Vector2D(); // For world-to-screen relative position
     }
 
@@ -31,16 +42,19 @@ export class Camera {
      */
     update(position) {
         this.position.set(position); // Reuse position vector
+        this._updateWorldBounds(); // Update world-space bounds
     }
 
     /**
-     * Resizes the screen and updates the world size accordingly.
+     * Resizes the screen and updates the world size and screen center.
      * @param {number} screenSizeX - The new screen width in pixels.
      * @param {number} screenSizeY - The new screen height in pixels.
      */
     resize(screenSizeX, screenSizeY) {
         this.screenSize.set(screenSizeX, screenSizeY);
-        this.worldSize.set(this.screenSize).divideInPlace(this.zoom); // Reuse worldSize
+        this.screenCenter.set(screenSizeX / 2, screenSizeY / 2); // Update cached screen center
+        this.worldSize.set(screenSizeX * this.zoomReciprocal, screenSizeY * this.zoomReciprocal);
+        this._updateWorldBounds(); // Update world-space bounds
     }
 
     /**
@@ -49,7 +63,9 @@ export class Camera {
      */
     setZoom(zoom) {
         this.zoom = Math.max(0.5, Math.min(5, zoom));
-        this.worldSize.set(this.screenSize).divideInPlace(this.zoom); // Reuse worldSize
+        this.zoomReciprocal = 1 / this.zoom; // Update reciprocal
+        this.worldSize.set(this.screenSize.x * this.zoomReciprocal, this.screenSize.y * this.zoomReciprocal);
+        this._updateWorldBounds(); // Update world-space bounds
     }
 
     /**
@@ -58,15 +74,21 @@ export class Camera {
      */
     setCenter(position) {
         this.position.set(position); // Reuse position vector
+        this._updateWorldBounds(); // Update world-space bounds
     }
 
     /**
-     * Gets the center of the screen in screen coordinates, modifying the provided output vector.
-     * @param {Vector2D} out - The vector to store the screen center position in pixels.
-     * @returns {Vector2D} The modified output vector with screen center coordinates.
+     * Updates the world-space bounds for visibility checks without allocation.
+     * @private
      */
-    getScreenCenter(out) {
-        return out.set(this.screenSize).divideInPlace(2);
+    _updateWorldBounds() {
+        const halfWidth = this.worldSize.width / 2;
+        const halfHeight = this.worldSize.height / 2;
+        // Update existing worldBounds fields instead of creating a new object
+        this.worldBounds.left = this.position.x - halfWidth;
+        this.worldBounds.right = this.position.x + halfWidth;
+        this.worldBounds.top = this.position.y - halfHeight;
+        this.worldBounds.bottom = this.position.y + halfHeight;
     }
 
     /**
@@ -76,12 +98,10 @@ export class Camera {
      * @returns {Vector2D} The position in screen coordinates (pixels), stored in out.
      */
     worldToScreen(position, out) {
-        this.getScreenCenter(this._scratchScreenCenter); // Use scratch for center
-        this._scratchRelativePosition.set(position)
-            .subtractInPlace(this.position)
-            .multiplyInPlace(this.zoom); // Compute relative position in-place
-        return out.set(this._scratchScreenCenter)
-            .addInPlace(this._scratchRelativePosition); // Combine in output
+        // Combine operations into a single set for clarity and efficiency
+        const relX = (position.x - this.position.x) * this.zoom;
+        const relY = (position.y - this.position.y) * this.zoom;
+        return out.set(this.screenCenter.x + relX, this.screenCenter.y + relY);
     }
 
     /**
@@ -100,9 +120,11 @@ export class Camera {
      * @returns {Vector2D} The position relative to the camera in zoomed world units, stored in out.
      */
     worldToCamera(position, out) {
-        return out.set(position)
-            .subtractInPlace(this.position)
-            .multiplyInPlace(this.zoom);
+        // Combine operations into a single set
+        return out.set(
+            (position.x - this.position.x) * this.zoom,
+            (position.y - this.position.y) * this.zoom
+        );
     }
 
     /**
@@ -112,25 +134,23 @@ export class Camera {
      * @returns {Vector2D} The position in screen coordinates (pixels), stored in out.
      */
     cameraToScreen(position, out) {
-        this.getScreenCenter(this._scratchScreenCenter);
-        return out.set(this._scratchScreenCenter)
-            .addInPlace(position);
+        return out.set(this.screenCenter.x + position.x, this.screenCenter.y + position.y);
     }
 
     /**
-     * Checks if a position is within the camera's view, with a buffer.
+     * Checks if a position is within the camera's view, with a buffer, directly in world space.
      * @param {Vector2D} position - The position to check in world coordinates.
      * @param {number} size - The size of the object in world units.
      * @returns {boolean} True if the position is in view, false otherwise.
      */
     isInView(position, size) {
-        this.worldToScreen(position, this._scratchRelativePosition); // Reuse scratch as temp storage
-        const buffer = size * this.zoom * 2; // Buffer scales with zoom
+        // Use precomputed world-space bounds
+        const buffer = size * 2; // Double the size for a conservative buffer
         return (
-            this._scratchRelativePosition.x + buffer > 0 &&
-            this._scratchRelativePosition.x - buffer < this.screenSize.width &&
-            this._scratchRelativePosition.y + buffer > 0 &&
-            this._scratchRelativePosition.y - buffer < this.screenSize.height
+            position.x + buffer > this.worldBounds.left &&
+            position.x - buffer < this.worldBounds.right &&
+            position.y + buffer > this.worldBounds.top &&
+            position.y - buffer < this.worldBounds.bottom
         );
     }
 }
@@ -148,6 +168,8 @@ export class TargetCamera extends Camera {
      */
     constructor(position, screenSize) {
         super(position, screenSize, 1);
+        this.lastTargetSize = null; // Cache for target size to avoid recomputing zoom
+        this.lastZoom = this.zoom; // Cache for zoom to detect changes
     }
 
     /**
@@ -158,11 +180,21 @@ export class TargetCamera extends Camera {
         if (!target) return;
         this.position.set(target.position); // Reuse position vector
 
+        // Compute target size and check if it has changed
         const size = target instanceof Ship ? 20 : target.radius || target.size || 10;
-        const buffer = size * 2;
-        const targetWorldSize = buffer * 2;
-        const viewSize = Math.min(this.screenSize.width, this.screenSize.height);
-        this.zoom = Math.max(0.5, Math.min(viewSize / targetWorldSize, 5));
-        this.worldSize.set(this.screenSize).divideInPlace(this.zoom); // Update worldSize in-place
+        if (size !== this.lastTargetSize) {
+            // Adjust zoom calculation to ensure the target fits comfortably on screen
+            const targetWorldSize = size * 4; // Simplified: Use diameter * 2 for buffer
+            const viewSize = Math.min(this.screenSize.width, this.screenSize.height);
+            const newZoom = Math.max(0.5, Math.min((viewSize * 0.8) / targetWorldSize, 5)); // 0.8 to leave some padding
+            if (newZoom !== this.lastZoom) {
+                this.setZoom(newZoom); // Only update zoom if it has changed
+                this.lastZoom = newZoom;
+            }
+            this.lastTargetSize = size;
+        }
+
+        // Update world bounds after position change
+        this._updateWorldBounds();
     }
 }

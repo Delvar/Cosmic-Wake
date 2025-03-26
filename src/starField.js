@@ -130,7 +130,6 @@ export class StarField {
         const newPool = new Float32Array(newCapacity * 2);
         newPool.set(this.positionPool); // Copy existing data
         this.positionPool = newPool;
-        //console.log(`Expanded positionPool to ${newCapacity} stars`);
     }
 
     /**

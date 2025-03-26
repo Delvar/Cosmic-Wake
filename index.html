@@ -17,20 +17,18 @@
             position: absolute;
             top: 10px;
             right: 10px;
-            width: 200px;
-            height: 200px;
+            /*width: 200px;
+            height: 200px;*/
             border: 1px solid rgba(255, 255, 255, 1);
             resize: both;
             overflow: auto;
-            display: none;
-            /* Hidden by default */
         }
     </style>
 </head>
 
 <body>
     <canvas id="gameCanvas"></canvas>
-    <canvas id="targetCanvas" draggable="true"></canvas>
+    <canvas id="targetCanvas" draggable="true" width="200" height="200" style="display: none;"></canvas>
     <script type="module" src="src/game.js"></script>
 </body>
 

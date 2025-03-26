@@ -477,7 +477,9 @@ export class TraverseJumpGateAutoPilot extends AutoPilot {
                 }
             } else {
                 // Not close enough or not overlapping; restart sub-pilot to approach again
-                //console.log(`Not aligned with ${this.target.name || 'jump gate'}; restarting fly-to phase`);
+                if (this.ship.debug) {
+                    console.log(`Not aligned with ${this.target.name || 'jump gate'}; restarting fly-to phase`);
+                }
                 this.subPilot = new FlyToTargetAutoPilot(this.ship, this.target, 50, 10, 30);
                 this.subPilot.start();
             }

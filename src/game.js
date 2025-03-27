@@ -3,7 +3,7 @@
 import { Vector2D } from './vector2d.js';
 import { Colour } from './colour.js';
 import { Camera, TargetCamera } from './camera.js';
-import { Ship } from './ship.js';
+import { createRandomShip, Ship, Arrow } from './ship.js';
 import { CelestialBody, JumpGate } from './celestialBody.js';
 import { StarField } from './starField.js';
 import { Asteroid } from './asteroidBelt.js';
@@ -229,7 +229,7 @@ class GameManager {
         this.isFocused = true;
         this.galaxy = createGalaxy();
         const earth = this.galaxy[0].celestialBodies[5];
-        this.playerShip = new Ship(earth.position.x + 50, earth.position.y, this.galaxy[0]);
+        this.playerShip = new Arrow(earth.position.x + 50, earth.position.y, this.galaxy[0]);
         this.playerPilot = new PlayerPilot(this.playerShip);
         this.playerShip.pilot = this.playerPilot;
         this.galaxy[0].ships.push(this.playerShip);
@@ -302,7 +302,8 @@ class GameManager {
                     !(body instanceof JumpGate) && body.landedShips
                 ) || system.celestialBodies[Math.floor(Math.random() * system.celestialBodies.length)];
                 if (!(spawnPlanet instanceof JumpGate)) {
-                    const aiShip = new Ship(spawnPlanet.position.x, spawnPlanet.position.y, system);
+                    //const aiShip = new Ship(spawnPlanet.position.x, spawnPlanet.position.y, system);
+                    const aiShip = createRandomShip(spawnPlanet.position.x, spawnPlanet.position.y, system, new Colour(1, 1, 1, 0.5));
                     aiShip.pilot = new AIPilot(aiShip, spawnPlanet);
                     aiShip.setState('Landed');
                     aiShip.shipScale = 0;
@@ -371,13 +372,14 @@ class GameManager {
                     spawnPlanet.position.x + Math.cos(angle) * 50,
                     spawnPlanet.position.y + Math.sin(angle) * 50
                 );
-                const aiShip = new Ship(
-                    this._scratchSpawnPos.x,
-                    this._scratchSpawnPos.y,
-                    starSystem,
-                    new Colour(0.5, 0.5, 0.5),
-                    new Colour(0.5, 0.5, 0.5, 0.5)
-                );
+                // const aiShip = new Ship(
+                //     this._scratchSpawnPos.x,
+                //     this._scratchSpawnPos.y,
+                //     starSystem,
+                //     new Colour(0.5, 0.5, 0.5),
+                //     new Colour(0.5, 0.5, 0.5, 0.5)
+                // );
+                const aiShip = createRandomShip(this._scratchSpawnPos.x, this._scratchSpawnPos.y, starSystem, new Colour(1, 1, 1, 0.5));
                 aiShip.pilot = new AIPilot(aiShip, spawnPlanet);
                 starSystem.ships.push(aiShip);
             }

@@ -5,7 +5,7 @@ import { Trail } from './trail.js';
 import { Colour } from './colour.js';
 import { GameObject } from './gameObject.js';
 import { JumpGate } from './celestialBody.js';
-import { TWO_PI, normalizeAngle } from './utils.js';
+import { TWO_PI, normalizeAngle, randomBetween } from './utils.js';
 import { AIPilot } from './pilot.js';
 
 function generateShipName() {
@@ -40,13 +40,13 @@ function generateShipName() {
 export class Ship extends GameObject {
     static LANDING_SPEED = 10;
 
-    constructor(x, y, starSystem, color = new Colour(1, 1, 1), trailColor = new Colour(1, 1, 1, 0.5)) {
+    constructor(x, y, starSystem, trailColor = new Colour(1, 1, 1, 0.5)) {
         super(new Vector2D(x, y), starSystem);
 
         this.name = generateShipName();
-        this.rotationSpeed = Math.PI * 1;
-        this.thrust = 250;
-        this.maxVelocity = 500;
+        this.rotationSpeed = Math.PI * 1; // Default rotation speed
+        this.thrust = 250; // Default thrust
+        this.maxVelocity = 500; // Default max velocity
         this.velocity = new Vector2D(0, 0);
         this.angle = 0;
         this.targetAngle = 0;
@@ -56,7 +56,14 @@ export class Ship extends GameObject {
         this.hyperdriveCooldown = 5000;
         this.lastJumpTime = 0;
         this.trail = new Trail(this, 250, 2, trailColor.toRGBA());
-        this.color = color;
+
+        // Generate random colors for cockpit, wings, and hull
+        this.colors = {
+            cockpit: this.generateRandomBlue(),
+            wings: this.generateRandomColor(),
+            hull: this.generateRandomGrey()
+        };
+
         this.target = null;
         this.landedPlanet = null;
         this.state = 'Flying';
@@ -91,7 +98,29 @@ export class Ship extends GameObject {
         this._scratchVelocityEnd = new Vector2D(0, 0);
         this._scratchStoppingPoint = new Vector2D(0, 0);
         this._scratchVelocityDelta = new Vector2D(0, 0);
-        this._scratchDistanceToPlanet = new Vector2D(0, 0); // For canLand distance calculation
+        this._scratchDistanceToPlanet = new Vector2D(0, 0);
+    }
+
+    // Generate a random shade of blue for the cockpit
+    generateRandomBlue() {
+        const r = randomBetween(0, 0.2); // Low red component
+        const g = randomBetween(0, 0.5); // Medium green component
+        const b = randomBetween(0.7, 1); // High blue component
+        return new Colour(r, g, b);
+    }
+
+    // Generate a completely random color for the wings
+    generateRandomColor() {
+        const r = Math.random();
+        const g = Math.random();
+        const b = Math.random();
+        return new Colour(r, g, b);
+    }
+
+    // Generate a random shade of grey for the hull
+    generateRandomGrey() {
+        const shade = randomBetween(0.3, 0.8); // Range from light grey (0.8) to dark grey (0.3)
+        return new Colour(shade, shade, shade);
     }
 
     setState(newState) {
@@ -197,7 +226,7 @@ export class Ship extends GameObject {
             const velAngle = Math.atan2(-this.velocity.y, -this.velocity.x);
             const brakeAngleDiff = normalizeAngle(velAngle - this.angle);
             this.angle += brakeAngleDiff * this.rotationSpeed * deltaTime;
-            this.angle = normalizeAngle(this.angle);;
+            this.angle = normalizeAngle(this.angle);
         }
 
         const speedSquared = this.velocity.squareMagnitude();
@@ -372,7 +401,8 @@ export class Ship extends GameObject {
         const scale = camera.zoom * this.shipScale;
         ctx.scale(scale * this.stretchFactor, scale);
 
-        ctx.fillStyle = this.color.toRGB();
+        // Default drawing (to be overridden by subclasses)
+        ctx.fillStyle = this.colors.hull.toRGB();
         ctx.beginPath();
         ctx.moveTo(15, 0);
         ctx.lineTo(-10, 10);
@@ -392,86 +422,288 @@ export class Ship extends GameObject {
 
         ctx.restore();
 
-        if (this.debug && camera.debug) {
-            this._scratchVelocityEnd.set(this.velocity)
-                .multiplyInPlace(1)
-                .addInPlace(this.position);
-            camera.worldToScreen(this._scratchVelocityEnd, this._scratchVelocityEnd);
-            ctx.strokeStyle = 'red';
-            ctx.beginPath();
-            ctx.moveTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
-            ctx.lineTo(this._scratchVelocityEnd.x, this._scratchVelocityEnd.y);
-            ctx.stroke();
+        // Draw debug information if enabled
+        this.drawDebug(ctx, camera, scale);
+    }
 
-            ctx.save();
-            ctx.translate(this._scratchScreenPos.x, this._scratchScreenPos.y);
-            ctx.rotate(this.angle);
-            const angleDiff = normalizeAngle(this.targetAngle - this.angle);
-            ctx.fillStyle = 'rgba(255,0,255,0.25)';
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.arc(0, 0, 30 * scale, 0, angleDiff, angleDiff < 0);
-            ctx.lineTo(0, 0);
-            ctx.closePath();
-            ctx.fill();
-            ctx.restore();
+    drawDebug(ctx, camera, scale) {
+        if (!this.debug || !camera.debug) return;
 
-            if (this.pilot) {
-                const state = this.pilot.getState();
-                ctx.fillStyle = 'white';
-                ctx.font = `${10 * scale}px Arial`;
-                const textMetrics = ctx.measureText(state);
-                const textX = this._scratchScreenPos.x - textMetrics.width / 2;
-                const textY = this._scratchScreenPos.y + 20 * scale;
-                ctx.fillText(state, textX, textY);
-            }
+        this._scratchVelocityEnd.set(this.velocity)
+            .multiplyInPlace(1)
+            .addInPlace(this.position);
+        camera.worldToScreen(this._scratchVelocityEnd, this._scratchVelocityEnd);
+        ctx.strokeStyle = 'red';
+        ctx.beginPath();
+        ctx.moveTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
+        ctx.lineTo(this._scratchVelocityEnd.x, this._scratchVelocityEnd.y);
+        ctx.stroke();
 
-            const currentSpeed = this.velocity.magnitude();
-            this._scratchStoppingPoint.set(this.velocity)
-                .normalizeInPlace()
-                .multiplyInPlace(currentSpeed > 0 ? this.decelerationDistance : 0)
-                .addInPlace(this.position);
-            camera.worldToScreen(this._scratchStoppingPoint, this._scratchStoppingPoint);
+        ctx.save();
+        ctx.translate(this._scratchScreenPos.x, this._scratchScreenPos.y);
+        ctx.rotate(this.angle);
+        const angleDiff = normalizeAngle(this.targetAngle - this.angle);
+        ctx.fillStyle = 'rgba(255,0,255,0.25)';
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, 30 * scale, 0, angleDiff, angleDiff < 0);
+        ctx.lineTo(0, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
 
-            ctx.strokeStyle = 'gray';
-            ctx.beginPath();
-            ctx.moveTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
-            ctx.lineTo(this._scratchStoppingPoint.x, this._scratchStoppingPoint.y);
-            ctx.stroke();
+        if (this.pilot) {
+            const state = this.pilot.getState();
+            ctx.fillStyle = 'white';
+            ctx.font = `${10 * scale}px Arial`;
+            const textMetrics = ctx.measureText(state);
+            const textX = this._scratchScreenPos.x - textMetrics.width / 2;
+            const textY = this._scratchScreenPos.y + 20 * scale;
+            ctx.fillText(state, textX, textY);
+        }
 
-            ctx.fillStyle = 'green';
-            ctx.beginPath();
-            ctx.arc(this._scratchStoppingPoint.x, this._scratchStoppingPoint.y, 5 * scale, 0, TWO_PI);
-            ctx.fill();
+        const currentSpeed = this.velocity.magnitude();
+        this._scratchStoppingPoint.set(this.velocity)
+            .normalizeInPlace()
+            .multiplyInPlace(currentSpeed > 0 ? this.decelerationDistance : 0)
+            .addInPlace(this.position);
+        camera.worldToScreen(this._scratchStoppingPoint, this._scratchStoppingPoint);
 
-            if (this.target) {
-                camera.worldToScreen(this.target.position, this._scratchRadialOut);
-                if (this.farApproachDistance > 0) {
+        ctx.strokeStyle = 'gray';
+        ctx.beginPath();
+        ctx.moveTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
+        ctx.lineTo(this._scratchStoppingPoint.x, this._scratchStoppingPoint.y);
+        ctx.stroke();
+
+        ctx.fillStyle = 'green';
+        ctx.beginPath();
+        ctx.arc(this._scratchStoppingPoint.x, this._scratchStoppingPoint.y, 5 * scale, 0, TWO_PI);
+        ctx.fill();
+
+        if (this.target) {
+            camera.worldToScreen(this.target.position, this._scratchRadialOut);
+            if (this.farApproachDistance > 0) {
+                ctx.beginPath();
+                ctx.fillStyle = 'rgba(0,255,0,0.1)';
+                ctx.arc(this._scratchRadialOut.x, this._scratchRadialOut.y, this.farApproachDistance * scale, 0, TWO_PI, false);
+                if (this.closeApproachDistance > 0) {
+                    ctx.arc(this._scratchRadialOut.x, this._scratchRadialOut.y, this.closeApproachDistance * scale, 0, TWO_PI, true);
+                }
+                ctx.fill();
+                if (this.closeApproachDistance > 0) {
                     ctx.beginPath();
-                    ctx.fillStyle = 'rgba(0,255,0,0.1)';
-                    ctx.arc(this._scratchRadialOut.x, this._scratchRadialOut.y, this.farApproachDistance * scale, 0, TWO_PI, false);
-                    if (this.closeApproachDistance > 0) {
-                        ctx.arc(this._scratchRadialOut.x, this._scratchRadialOut.y, this.closeApproachDistance * scale, 0, TWO_PI, true);
-                    }
+                    ctx.fillStyle = 'rgba(255,255,0,0.2)';
+                    ctx.arc(this._scratchRadialOut.x, this._scratchRadialOut.y, this.closeApproachDistance * scale, 0, TWO_PI);
                     ctx.fill();
-                    if (this.closeApproachDistance > 0) {
-                        ctx.beginPath();
-                        ctx.fillStyle = 'rgba(255,255,0,0.2)';
-                        ctx.arc(this._scratchRadialOut.x, this._scratchRadialOut.y, this.closeApproachDistance * scale, 0, TWO_PI);
-                        ctx.fill();
-                    }
                 }
             }
+        }
 
-            if (this.pilot) {
-                this._scratchRadialIn.set(this.position).addInPlace(this.velocityError);
-                camera.worldToScreen(this._scratchRadialIn, this._scratchRadialIn);
-                ctx.strokeStyle = 'purple';
-                ctx.beginPath();
-                ctx.moveTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
-                ctx.lineTo(this._scratchRadialIn.x, this._scratchRadialIn.y);
-                ctx.stroke();
-            }
+        if (this.pilot) {
+            this._scratchRadialIn.set(this.position).addInPlace(this.velocityError);
+            camera.worldToScreen(this._scratchRadialIn, this._scratchRadialIn);
+            ctx.strokeStyle = 'purple';
+            ctx.beginPath();
+            ctx.moveTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
+            ctx.lineTo(this._scratchRadialIn.x, this._scratchRadialIn.y);
+            ctx.stroke();
         }
     }
+}
+
+export class Shuttle extends Ship {
+    constructor(x, y, starSystem, trailColor = new Colour(1, 1, 1, 0.5)) {
+        super(x, y, starSystem, trailColor);
+        // Flight dynamics for Shuttle: balanced
+        this.rotationSpeed = Math.PI * 1.2; // Slightly better turning
+        this.thrust = 200; // Lower thrust
+        this.maxVelocity = 400; // Lower max speed
+    }
+
+    draw(ctx, camera) {
+        if (this.state === 'Landed') return;
+
+        ctx.save();
+        this.trail.draw(ctx, camera);
+        camera.worldToScreen(this.position, this._scratchScreenPos);
+        ctx.translate(this._scratchScreenPos.x, this._scratchScreenPos.y);
+        ctx.rotate(this.angle);
+
+        const scale = camera.zoom * this.shipScale;
+        ctx.scale(scale * this.stretchFactor, scale);
+
+        // Draw the hull (rectangular body)
+        ctx.fillStyle = this.colors.hull.toRGB();
+        ctx.beginPath();
+        ctx.rect(-15, -10, 30, 20); // Rectangular hull
+        ctx.fill();
+
+        // Draw the cockpit (small rectangle at the front)
+        ctx.fillStyle = this.colors.cockpit.toRGB();
+        ctx.beginPath();
+        ctx.rect(10, -5, 5, 10); // Small cockpit at the front
+        ctx.fill();
+
+        // Draw the wings (small stubs on the sides)
+        ctx.fillStyle = this.colors.wings.toRGB();
+        ctx.beginPath();
+        ctx.rect(-20, -5, 5, 10); // Left wing
+        ctx.rect(15, -5, 5, 10); // Right wing
+        ctx.fill();
+
+        // Draw thrust effect if thrusting
+        if ((this.isThrusting && this.state === 'Flying') || this.state === 'Landing' || this.state === 'TakingOff') {
+            ctx.fillStyle = new Colour(1, 1, 0).toRGB();
+            ctx.beginPath();
+            ctx.moveTo(-15, 0);
+            ctx.lineTo(-20, 5);
+            ctx.lineTo(-20, -5);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        ctx.restore();
+
+        // Draw debug information if enabled
+        this.drawDebug(ctx, camera, scale);
+    }
+}
+
+export class Arrow extends Ship {
+    constructor(x, y, starSystem, trailColor = new Colour(1, 1, 1, 0.5)) {
+        super(x, y, starSystem, trailColor);
+        // Flight dynamics for Arrow: faster but less maneuverable
+        this.rotationSpeed = Math.PI * 0.8; // Lower turning speed
+        this.thrust = 300; // Higher thrust
+        this.maxVelocity = 600; // Higher max speed
+    }
+
+    draw(ctx, camera) {
+        if (this.state === 'Landed') return;
+
+        ctx.save();
+        this.trail.draw(ctx, camera);
+        camera.worldToScreen(this.position, this._scratchScreenPos);
+        ctx.translate(this._scratchScreenPos.x, this._scratchScreenPos.y);
+        ctx.rotate(this.angle);
+
+        const scale = camera.zoom * this.shipScale; // 1 canvas unit = 1 grid unit
+        ctx.scale(scale * this.stretchFactor, scale);
+
+        // Draw the hull
+        ctx.strokeStyle = 'rgb(50, 50, 50)';
+        ctx.lineWidth = 0.1;
+        ctx.fillStyle = this.colors.hull.toRGB();
+        ctx.beginPath();
+        // Main hull
+        ctx.moveTo(0, 3);
+        ctx.lineTo(-11, 3);
+        ctx.lineTo(-11, -3);
+        ctx.lineTo(0, -3);
+        ctx.lineTo(4, -3);
+        ctx.lineTo(28, -2);
+        ctx.lineTo(30, -1);
+        ctx.lineTo(31, 0);
+        ctx.lineTo(30, 1);
+        ctx.lineTo(28, 2);
+        ctx.lineTo(4, 3);
+        ctx.lineTo(0, 3);
+        ctx.closePath();
+        // Left hull extension
+        ctx.moveTo(0, -7);
+        ctx.lineTo(0, -3);
+        ctx.lineTo(-12, -3);
+        ctx.lineTo(-12, -7);
+        ctx.closePath();
+        // Right hull extension
+        ctx.moveTo(0, 3);
+        ctx.lineTo(0, 7);
+        ctx.lineTo(-12, 7);
+        ctx.lineTo(-12, 3);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Draw the cockpit
+        ctx.fillStyle = this.colors.cockpit.toRGB();
+        ctx.beginPath();
+        ctx.moveTo(20, -1);
+        ctx.lineTo(20, 1);
+        ctx.lineTo(16, 2);
+        ctx.lineTo(16, -2);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Draw the small wings
+        ctx.fillStyle = this.colors.wings.toRGB();
+        // Left small wing
+        ctx.beginPath();
+        ctx.moveTo(12, -2);
+        ctx.lineTo(10, -5);
+        ctx.lineTo(9, -5);
+        ctx.lineTo(10, -2);
+        ctx.closePath();
+        // Right small wing
+        ctx.moveTo(12, 2);
+        ctx.lineTo(10, 5);
+        ctx.lineTo(9, 5);
+        ctx.lineTo(10, 2);
+        ctx.closePath();
+        ctx.fill();
+
+        // Draw the large wings
+        // Left large wing
+        ctx.moveTo(-6, -7);
+        ctx.lineTo(-10, -15);
+        ctx.lineTo(-13, -15);
+        ctx.lineTo(-14, -15);
+        ctx.lineTo(-11, -7);
+        ctx.closePath();
+        // Right large wing
+        ctx.moveTo(-6, 7);
+        ctx.lineTo(-10, 15);
+        ctx.lineTo(-13, 15);
+        ctx.lineTo(-14, 15);
+        ctx.lineTo(-11, 7);
+
+        // Vertical large wing
+        ctx.moveTo(-6, -0.5);
+        ctx.lineTo(-6, 0.5);
+        ctx.lineTo(-14, 0.5);
+        ctx.lineTo(-14, -0.5);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Draw thrust effect if applicable
+        if ((this.isThrusting && this.state === 'Flying') || this.state === 'Landing' || this.state === 'TakingOff') {
+            ctx.fillStyle = new Colour(1, 1, 0).toRGB();
+            // Left thrust (tail of left hull extension)
+            ctx.beginPath();
+            ctx.moveTo(-12, -7);
+            ctx.lineTo(-25, -5);
+            ctx.lineTo(-12, -3);
+            ctx.closePath();
+            ctx.fill();
+            // Right thrust (tail of right hull extension)
+            ctx.beginPath();
+            ctx.moveTo(-12, 3);
+            ctx.lineTo(-25, 5);
+            ctx.lineTo(-12, 7);
+            ctx.closePath();
+            ctx.fill();
+        }
+        ctx.restore();
+
+        // Draw debug information if enabled
+        this.drawDebug(ctx, camera, scale);
+    }
+}
+
+// Factory function to create a random ship type
+export function createRandomShip(x, y, starSystem, trailColor = new Colour(1, 1, 1, 0.5)) {
+    const shipClasses = [Shuttle, Arrow];
+    const RandomShipClass = shipClasses[Math.floor(Math.random() * shipClasses.length)];
+    return new RandomShipClass(x, y, starSystem, trailColor);
 }

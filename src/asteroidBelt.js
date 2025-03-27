@@ -15,11 +15,21 @@ class AsteroidShape {
         this.numPoints = numPoints;
         this.points = new Float32Array(numPoints * 2); // [x1, y1, x2, y2, ...]
         const angleStep = (Math.PI * 2) / numPoints;
+        let centerPoint = new Vector2D(0, 0);
         for (let i = 0; i < numPoints; i++) {
             const angle = i * angleStep + (Math.random() - 0.5) * 0.5;
             const radius = 0.5 + Math.random() * 0.5; // Between 0.5 and 1
             this.points[i * 2] = Math.sin(angle) * radius;
             this.points[i * 2 + 1] = -Math.cos(angle) * radius;
+            centerPoint.x += this.points[i * 2];
+            centerPoint.y += this.points[i * 2 + 1];
+        }
+
+        //recenter the asteroid if one side sticks out too far
+        centerPoint.divideInPlace(numPoints);
+        for (let i = 0; i < numPoints; i++) {
+            this.points[i * 2] -= centerPoint.x;
+            this.points[i * 2 + 1] -= centerPoint.y;
         }
     }
 }
@@ -147,8 +157,8 @@ export class AsteroidBelt {
                 ctx.closePath();
             }
         }
-        ctx.stroke();
         ctx.fill();
+        ctx.stroke();
 
         // Draw interactive asteroids in a single fill
         ctx.beginPath();
@@ -181,8 +191,8 @@ export class AsteroidBelt {
                 ctx.closePath();
             }
         }
-        ctx.stroke();
         ctx.fill();
+        ctx.stroke();
 
         ctx.restore();
     }

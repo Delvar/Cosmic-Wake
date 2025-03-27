@@ -318,7 +318,7 @@ export class LandOnPlanetAutoPilot extends AutoPilot {
             this.active = false;
             return;
         }
-        this.subPilot = new FlyToTargetAutoPilot(this.ship, this.target, this.target.radius, Ship.LANDING_SPEED, 30);
+        this.subPilot = new FlyToTargetAutoPilot(this.ship, this.target, this.target.radius, Ship.LANDING_SPEED * 0.9, Ship.LANDING_SPEED * 2);
         this.subPilot.start();
     }
 
@@ -362,7 +362,7 @@ export class LandOnPlanetAutoPilot extends AutoPilot {
                 if (this.ship.debug) {
                     console.log(`Overshot ${this.target.name || 'target'}; restarting fly-to phase`);
                 }
-                this.subPilot = new FlyToTargetAutoPilot(this.ship, this.target, this.target.radius, Ship.LANDING_SPEED, 30);
+                this.subPilot = new FlyToTargetAutoPilot(this.ship, this.target, this.target.radius, Ship.LANDING_SPEED * 0.9, Ship.LANDING_SPEED * 2);
                 this.subPilot.start();
             }
         } else if (this.ship.state === 'Landing') {
@@ -433,7 +433,7 @@ export class TraverseJumpGateAutoPilot extends AutoPilot {
             return;
         }
         // Fly to the gate's position with a small arrival distance
-        this.subPilot = new FlyToTargetAutoPilot(this.ship, this.target, 50, 10, 30);
+        this.subPilot = new FlyToTargetAutoPilot(this.ship, this.target, this.target.radius, Ship.LANDING_SPEED * 0.9, Ship.LANDING_SPEED * 2);
         this.subPilot.start();
     }
 
@@ -480,7 +480,7 @@ export class TraverseJumpGateAutoPilot extends AutoPilot {
                 if (this.ship.debug) {
                     console.log(`Not aligned with ${this.target.name || 'jump gate'}; restarting fly-to phase`);
                 }
-                this.subPilot = new FlyToTargetAutoPilot(this.ship, this.target, 50, 10, 30);
+                this.subPilot = new FlyToTargetAutoPilot(this.ship, this.target, this.target.radius, Ship.LANDING_SPEED * 0.9, Ship.LANDING_SPEED * 2);
                 this.subPilot.start();
             }
         } else if (this.ship.state === 'JumpingOut' || this.ship.state === 'JumpingIn') {

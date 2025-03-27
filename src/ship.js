@@ -517,10 +517,9 @@ export class Ship extends GameObject {
 export class Shuttle extends Ship {
     constructor(x, y, starSystem) {
         super(x, y, starSystem);
-        // Flight dynamics for Shuttle: balanced
-        this.rotationSpeed = Math.PI * 1.2; // Slightly better turning
-        this.thrust = 200; // Lower thrust
-        this.maxVelocity = 400; // Lower max speed
+        this.rotationSpeed = Math.PI * 1.2;
+        this.thrust = 200;
+        this.maxVelocity = 400;
     }
 
     draw(ctx, camera) {
@@ -532,7 +531,7 @@ export class Shuttle extends Ship {
         ctx.translate(this._scratchScreenPos.x, this._scratchScreenPos.y);
         ctx.rotate(this.angle);
 
-        const scale = camera.zoom * this.shipScale; // 1 canvas unit = 1 grid unit
+        const scale = camera.zoom * this.shipScale;
         ctx.scale(scale, scale * this.stretchFactor);
 
         // Draw the hull (main, lower, and base)
@@ -541,33 +540,33 @@ export class Shuttle extends Ship {
         ctx.fillStyle = this.colors.hull.toRGB();
         ctx.beginPath();
         // Main hull
-        ctx.moveTo(0, -13);      // (0, -195)
-        ctx.lineTo(2, -12);      // (30, -180)
-        ctx.lineTo(3, -10);      // (45, -150)
-        ctx.lineTo(3, -6);       // (45, -90)
-        ctx.lineTo(2, -5);       // (30, -75)
-        ctx.lineTo(-2, -5);      // (-30, -75)
-        ctx.lineTo(-3, -6);      // (-45, -90)
-        ctx.lineTo(-3, -10);     // (-45, -150)
-        ctx.lineTo(-2, -12);     // (-30, -180)
+        ctx.moveTo(0, -13);
+        ctx.lineTo(2, -12);
+        ctx.lineTo(3, -10);
+        ctx.lineTo(3, -6);
+        ctx.lineTo(2, -5);
+        ctx.lineTo(-2, -5);
+        ctx.lineTo(-3, -6);
+        ctx.lineTo(-3, -10)
+        ctx.lineTo(-2, -12)
         ctx.closePath();
         // Lower hull
-        ctx.moveTo(2, -5);       // (30, -75)
-        ctx.lineTo(5, -4);       // (75, -60)
-        ctx.lineTo(6, 2);        // (90, 30)
-        ctx.lineTo(6, 11);       // (90, 165)
-        ctx.lineTo(4, 12);       // (60, 180)
-        ctx.lineTo(-4, 12);      // (-60, 180)
-        ctx.lineTo(-6, 11);      // (-90, 165)
-        ctx.lineTo(-6, 2);       // (-90, 30)
-        ctx.lineTo(-5, -4);      // (-75, -60)
-        ctx.lineTo(-2, -5);      // (-30, -75)
+        ctx.moveTo(2, -5);
+        ctx.lineTo(5, -4);
+        ctx.lineTo(6, 2);
+        ctx.lineTo(6, 11);
+        ctx.lineTo(4, 12);
+        ctx.lineTo(-4, 12);
+        ctx.lineTo(-6, 11);
+        ctx.lineTo(-6, 2);
+        ctx.lineTo(-5, -4);
+        ctx.lineTo(-2, -5);
         ctx.closePath();
         // Base
-        ctx.moveTo(3, 12);       // (45, 180)
-        ctx.lineTo(2, 13);       // (30, 195)
-        ctx.lineTo(-2, 13);      // (-30, 195)
-        ctx.lineTo(-3, 12);      // (-45, 180)
+        ctx.moveTo(3, 12);
+        ctx.lineTo(2, 13);
+        ctx.lineTo(-2, 13);
+        ctx.lineTo(-3, 12);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
@@ -575,10 +574,10 @@ export class Shuttle extends Ship {
         // Draw the cockpit
         ctx.fillStyle = this.colors.cockpit.toRGB();
         ctx.beginPath();
-        ctx.moveTo(-1, -11);     // (-15, -165)
-        ctx.lineTo(1, -11);      // (15, -165)
-        ctx.lineTo(2, -9);       // (30, -135)
-        ctx.lineTo(-2, -9);      // (-30, -135)
+        ctx.moveTo(-1, -11);
+        ctx.lineTo(1, -11);
+        ctx.lineTo(2, -9);
+        ctx.lineTo(-2, -9);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
@@ -587,37 +586,37 @@ export class Shuttle extends Ship {
         ctx.fillStyle = this.colors.wings.toRGB();
         ctx.beginPath();
         // Left small wing
-        ctx.moveTo(3, -10);      // (45, -150)
-        ctx.lineTo(4, -8);       // (60, -120)
-        ctx.lineTo(4, -7);       // (60, -105)
-        ctx.lineTo(3, -8);       // (45, -120)
+        ctx.moveTo(3, -10);
+        ctx.lineTo(4, -8);
+        ctx.lineTo(4, -7);
+        ctx.lineTo(3, -8);
         ctx.closePath();
         // Right small wing
-        ctx.moveTo(-3, -10);     // (-75, -150)
-        ctx.lineTo(-4, -8);      // (-75, -120)
-        ctx.lineTo(-4, -7);      // (-90, -105)
-        ctx.lineTo(-3, -8);      // (-90, -120)
+        ctx.moveTo(-3, -10);
+        ctx.lineTo(-4, -8);
+        ctx.lineTo(-4, -7);
+        ctx.lineTo(-3, -8);
         ctx.closePath();
         ctx.fill();
 
         // Draw the large wings and central fin
         ctx.beginPath();
         // Left large wing
-        ctx.moveTo(-6, 2);       // (-90, 30)
-        ctx.lineTo(-8, 6);       // (-120, 90)
-        ctx.lineTo(-8, 11);      // (-120, 165)
-        ctx.lineTo(-6, 11);      // (-90, 165)
+        ctx.moveTo(-6, 2);
+        ctx.lineTo(-8, 6);
+        ctx.lineTo(-8, 11);
+        ctx.lineTo(-6, 11);
         ctx.closePath();
         // Right large wing
-        ctx.moveTo(6, 2);        // (90, 30)
-        ctx.lineTo(8, 6);        // (120, 90)
-        ctx.lineTo(8, 11);       // (120, 165)
-        ctx.lineTo(6, 11);       // (90, 165)
+        ctx.moveTo(6, 2);
+        ctx.lineTo(8, 6);
+        ctx.lineTo(8, 11);
+        ctx.lineTo(6, 11);
         ctx.closePath();
         // Central fin
-        ctx.moveTo(0, 2);        // (0, 30)
-        ctx.lineTo(1, 11);       // (15, 165)
-        ctx.lineTo(-1, 11);      // (-15, 165)
+        ctx.moveTo(0, 2);
+        ctx.lineTo(1, 11);
+        ctx.lineTo(-1, 11);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
@@ -626,9 +625,9 @@ export class Shuttle extends Ship {
         if ((this.isThrusting && this.state === 'Flying') || this.state === 'Landing' || this.state === 'TakingOff') {
             ctx.fillStyle = new Colour(1, 1, 0).toRGB();
             ctx.beginPath();
-            ctx.moveTo(-2, 13);      // (-30, 195)
-            ctx.lineTo(0, 28);       // (0, 420)
-            ctx.lineTo(2, 13);       // (30, 195)
+            ctx.moveTo(-2, 13);
+            ctx.lineTo(0, 28);
+            ctx.lineTo(2, 13);
             ctx.closePath();
             ctx.fill();
         }
@@ -643,7 +642,6 @@ export class Shuttle extends Ship {
 export class HeavyShuttle extends Ship {
     constructor(x, y, starSystem) {
         super(x, y, starSystem);
-        // Flight dynamics for Shuttle: balanced
         this.rotationSpeed = Math.PI * 1.1;
         this.thrust = 150;
         this.maxVelocity = 350;
@@ -658,8 +656,8 @@ export class HeavyShuttle extends Ship {
         ctx.translate(this._scratchScreenPos.x, this._scratchScreenPos.y);
         ctx.rotate(this.angle);
 
-        const scale = camera.zoom * this.shipScale; // 1 canvas unit = 1 grid unit
-        ctx.scale(scale, scale * this.stretchFactor); // stretchFactor on y-axis
+        const scale = camera.zoom * this.shipScale;
+        ctx.scale(scale, scale * this.stretchFactor);
 
         // Draw the hull (main, lower, and base)
         ctx.strokeStyle = 'rgb(50, 50, 50)';
@@ -667,33 +665,33 @@ export class HeavyShuttle extends Ship {
         ctx.fillStyle = this.colors.hull.toRGB();
         ctx.beginPath();
         // Main hull
-        ctx.moveTo(0, -20);      // (0, -300)
-        ctx.lineTo(3, -19);      // (45, -285)
-        ctx.lineTo(4, -15);      // (60, -225)
-        ctx.lineTo(4, -9);       // (60, -135)
-        ctx.lineTo(3, -8);       // (45, -120)
-        ctx.lineTo(-3, -8);      // (-45, -120)
-        ctx.lineTo(-4, -9);      // (-60, -135)
-        ctx.lineTo(-4, -15);     // (-60, -225)
-        ctx.lineTo(-3, -19);     // (-45, -285)
+        ctx.moveTo(0, -20);
+        ctx.lineTo(3, -19);
+        ctx.lineTo(4, -15);
+        ctx.lineTo(4, -9);
+        ctx.lineTo(3, -8);
+        ctx.lineTo(-3, -8);
+        ctx.lineTo(-4, -9);
+        ctx.lineTo(-4, -15);
+        ctx.lineTo(-3, -19);
         ctx.closePath();
         // Lower hull
-        ctx.moveTo(3, -8);       // (45, -120)
-        ctx.lineTo(5, -7);       // (75, -105)
-        ctx.lineTo(6, -4);       // (90, -60)
-        ctx.lineTo(6, 10);       // (90, 150)
-        ctx.lineTo(4, 12);       // (60, 180)
-        ctx.lineTo(-4, 12);      // (-60, 180)
-        ctx.lineTo(-6, 10);      // (-90, 150)
-        ctx.lineTo(-6, -4);      // (-90, -60)
-        ctx.lineTo(-5, -7);      // (-75, -105)
-        ctx.lineTo(-3, -8);      // (-45, -120)
+        ctx.moveTo(3, -8);
+        ctx.lineTo(5, -7);
+        ctx.lineTo(6, -4);
+        ctx.lineTo(6, 10);
+        ctx.lineTo(4, 12);
+        ctx.lineTo(-4, 12);
+        ctx.lineTo(-6, 10);
+        ctx.lineTo(-6, -4);
+        ctx.lineTo(-5, -7);
+        ctx.lineTo(-3, -8);
         ctx.closePath();
         // Base
-        ctx.moveTo(3, 12);       // (45, 180)
-        ctx.lineTo(2, 13);       // (30, 195)
-        ctx.lineTo(-2, 13);      // (-30, 195)
-        ctx.lineTo(-3, 12);      // (-45, 180)
+        ctx.moveTo(3, 12);
+        ctx.lineTo(2, 13);
+        ctx.lineTo(-2, 13);
+        ctx.lineTo(-3, 12);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
@@ -701,14 +699,14 @@ export class HeavyShuttle extends Ship {
         // Draw the cockpit
         ctx.fillStyle = this.colors.cockpit.toRGB();
         ctx.beginPath();
-        ctx.moveTo(-1, -18);     // (-15, -270)
-        ctx.lineTo(1, -18);      // (15, -270)
-        ctx.lineTo(2, -14);      // (30, -210)
-        ctx.lineTo(2, -12);      // (30, -180)
-        ctx.lineTo(1, -11);      // (15, -165)
-        ctx.lineTo(-1, -11);     // (-15, -165)
-        ctx.lineTo(-2, -12);     // (-30, -180)
-        ctx.lineTo(-2, -14);     // (-30, -210)
+        ctx.moveTo(-1, -18);
+        ctx.lineTo(1, -18);
+        ctx.lineTo(2, -14);
+        ctx.lineTo(2, -12);
+        ctx.lineTo(1, -11);
+        ctx.lineTo(-1, -11);
+        ctx.lineTo(-2, -12);
+        ctx.lineTo(-2, -14);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
@@ -717,38 +715,38 @@ export class HeavyShuttle extends Ship {
         ctx.fillStyle = this.colors.wings.toRGB();
         ctx.beginPath();
         // Left small wing
-        ctx.moveTo(4, -15);      // (60, -195)
-        ctx.lineTo(4, -11);      // (60, -150)
-        ctx.lineTo(5, -10);       // (45, -135)
-        ctx.lineTo(5, -11);      // (45, -165)
+        ctx.moveTo(4, -15);
+        ctx.lineTo(4, -11);
+        ctx.lineTo(5, -10);
+        ctx.lineTo(5, -11);
         ctx.closePath();
         // Right small wing
-        ctx.moveTo(-4, -15);     // (-60, -225)
-        ctx.lineTo(-4, -11);     // (-60, -165)
-        ctx.lineTo(-5, -10);     // (-75, -150)
-        ctx.lineTo(-5, -11);     // (-75, -165)
+        ctx.moveTo(-4, -15);
+        ctx.lineTo(-4, -11);
+        ctx.lineTo(-5, -10);
+        ctx.lineTo(-5, -11);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
-            
+
         // Draw the large wings and central fin
         ctx.beginPath();
         // Left large wing
-        ctx.moveTo(-6, -1);      // (-90, -15)
-        ctx.lineTo(-8, 3);       // (-120, 45)
-        ctx.lineTo(-8, 11);      // (-120, 165)
-        ctx.lineTo(-6, 10);      // (-90, 150)
+        ctx.moveTo(-6, -1);
+        ctx.lineTo(-8, 3);
+        ctx.lineTo(-8, 11);
+        ctx.lineTo(-6, 10);
         ctx.closePath();
         // Right large wing
-        ctx.moveTo(6, -1);       // (90, -15)
-        ctx.lineTo(8, 3);        // (120, 45)
-        ctx.lineTo(8, 11);       // (120, 165)
-        ctx.lineTo(6, 10);       // (90, 150)
+        ctx.moveTo(6, -1);
+        ctx.lineTo(8, 3);
+        ctx.lineTo(8, 11);
+        ctx.lineTo(6, 10);
         ctx.closePath();
         // Central fin
-        ctx.moveTo(0, -1);       // (0, -15)
-        ctx.lineTo(1, 11);       // (15, 165)
-        ctx.lineTo(-1, 11);      // (-15, 165)
+        ctx.moveTo(0, -1);
+        ctx.lineTo(1, 11);
+        ctx.lineTo(-1, 11);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
@@ -757,9 +755,202 @@ export class HeavyShuttle extends Ship {
         if ((this.isThrusting && this.state === 'Flying') || this.state === 'Landing' || this.state === 'TakingOff') {
             ctx.fillStyle = new Colour(1, 1, 0).toRGB();
             ctx.beginPath();
-            ctx.moveTo(-2, 13);      // (-30, 195)
-            ctx.lineTo(0, 28);       // (0, 420)
-            ctx.lineTo(2, 13);       // (30, 195)
+            ctx.moveTo(-2, 13);
+            ctx.lineTo(0, 28);
+            ctx.lineTo(2, 13);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        ctx.restore();
+
+        // Draw debug information if enabled
+        this.drawDebug(ctx, camera, scale);
+    }
+}
+
+export class StarBarge extends Ship {
+    constructor(x, y, starSystem) {
+        super(x, y, starSystem);
+        this.rotationSpeed = Math.PI * 0.5;
+        this.thrust = 25;
+        this.maxVelocity = 100;
+    }
+
+    draw(ctx, camera) {
+        if (this.state === 'Landed') return;
+
+        ctx.save();
+        this.trail.draw(ctx, camera);
+        camera.worldToScreen(this.position, this._scratchScreenPos);
+        ctx.translate(this._scratchScreenPos.x, this._scratchScreenPos.y);
+        ctx.rotate(this.angle);
+
+        const scale = camera.zoom * this.shipScale;
+        ctx.scale(scale, scale * this.stretchFactor);
+
+        // Draw the hull (main, mid, extensions, and base)
+        ctx.strokeStyle = 'rgb(50, 50, 50)';
+        ctx.lineWidth = 0.1;
+        ctx.fillStyle = this.colors.hull.toRGB();
+        ctx.beginPath();
+        // Main hull
+        ctx.moveTo(0, -22);
+        ctx.lineTo(3, -21);
+        ctx.lineTo(4, -17);
+        ctx.lineTo(4, -12);
+        ctx.lineTo(3, -11);
+        ctx.lineTo(-3, -11);
+        ctx.lineTo(-4, -12);
+        ctx.lineTo(-4, -17);
+        ctx.lineTo(-3, -21);
+        ctx.closePath();
+        // Mid hull
+        ctx.moveTo(-3, -11);
+        ctx.lineTo(3, -11);
+        ctx.lineTo(8, -9);
+        ctx.lineTo(2, -9);
+        ctx.lineTo(1, -8);
+        ctx.lineTo(1, 14);
+        ctx.lineTo(2, 15);
+        ctx.lineTo(8, 15);
+        ctx.lineTo(3, 17);
+        ctx.lineTo(-3, 17);
+        ctx.lineTo(-8, 15);
+        ctx.lineTo(-2, 15);
+        ctx.lineTo(-1, 14);
+        ctx.lineTo(-1, -8);
+        ctx.lineTo(-2, -9);
+        ctx.lineTo(-8, -9);
+        ctx.closePath();
+        // Right hull extension
+        ctx.moveTo(2, 15);
+        ctx.lineTo(1, 14);
+        ctx.lineTo(1, -8);
+        ctx.lineTo(2, -9);
+        ctx.lineTo(8, -9);
+        ctx.lineTo(7, -8);
+        ctx.lineTo(7, 14);
+        ctx.lineTo(8, 15);
+        ctx.closePath();
+        ctx.moveTo(8, -9);
+        ctx.lineTo(7, -8);
+        ctx.lineTo(7, 14);
+        ctx.lineTo(8, 15);
+        ctx.lineTo(12, 15);
+        ctx.lineTo(13, 14);
+        ctx.lineTo(13, -8);
+        ctx.lineTo(12, -9);
+        ctx.closePath();
+        ctx.moveTo(9, 4);
+        ctx.lineTo(8, 5);
+        ctx.lineTo(8, 13);
+        ctx.lineTo(9, 14);
+        ctx.lineTo(11, 14);
+        ctx.lineTo(12, 13);
+        ctx.lineTo(12, 5);
+        ctx.lineTo(11, 4);
+        ctx.closePath();
+        ctx.moveTo(9, -8);
+        ctx.lineTo(8, -7);
+        ctx.lineTo(8, 1);
+        ctx.lineTo(9, 2);
+        ctx.lineTo(11, 2);
+        ctx.lineTo(12, 1);
+        ctx.lineTo(12, -7);
+        ctx.lineTo(11, -8);
+        ctx.closePath();
+        // Left hull extension (mirrored)
+        ctx.moveTo(-2, 15);
+        ctx.lineTo(-1, 14);
+        ctx.lineTo(-1, -8);
+        ctx.lineTo(-2, -9);
+        ctx.lineTo(-8, -9);
+        ctx.lineTo(-7, -8);
+        ctx.lineTo(-7, 14);
+        ctx.lineTo(-8, 15);
+        ctx.closePath();
+        ctx.moveTo(-8, -9);
+        ctx.lineTo(-7, -8);
+        ctx.lineTo(-7, 14);
+        ctx.lineTo(-8, 15);
+        ctx.lineTo(-12, 15);
+        ctx.lineTo(-13, 14);
+        ctx.lineTo(-13, -8);
+        ctx.lineTo(-12, -9);
+        ctx.closePath();
+        ctx.moveTo(-9, 4);
+        ctx.lineTo(-8, 5);
+        ctx.lineTo(-8, 13);
+        ctx.lineTo(-9, 14);
+        ctx.lineTo(-11, 14);
+        ctx.lineTo(-12, 13);
+        ctx.lineTo(-12, 5);
+        ctx.lineTo(-11, 4);
+        ctx.closePath();
+        ctx.moveTo(-9, -8);
+        ctx.lineTo(-8, -7);
+        ctx.lineTo(-8, 1);
+        ctx.lineTo(-9, 2);
+        ctx.lineTo(-11, 2);
+        ctx.lineTo(-12, 1);
+        ctx.lineTo(-12, -7);
+        ctx.lineTo(-11, -8);
+        ctx.closePath();
+        // Base
+        ctx.moveTo(3, 17);
+        ctx.lineTo(2, 18);
+        ctx.lineTo(-2, 18);
+        ctx.lineTo(-3, 17);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Draw the cockpit
+        ctx.fillStyle = this.colors.cockpit.toRGB();
+        ctx.beginPath();
+        ctx.moveTo(-1, -20);
+        ctx.lineTo(1, -20);
+        ctx.lineTo(2, -16);
+        ctx.lineTo(2, -14);
+        ctx.lineTo(1, -13);
+        ctx.lineTo(-1, -13);
+        ctx.lineTo(-2, -14);
+        ctx.lineTo(-2, -16);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Draw the large wings and central fin
+        ctx.fillStyle = this.colors.wings.toRGB();
+        ctx.beginPath();
+        // Right large wing
+        ctx.moveTo(13, 1);
+        ctx.lineTo(16, 7);
+        ctx.lineTo(16, 13);
+        ctx.lineTo(13, 12);
+        ctx.closePath();
+        // Left large wing
+        ctx.moveTo(-13, 1);
+        ctx.lineTo(-16, 7);
+        ctx.lineTo(-16, 13);
+        ctx.lineTo(-13, 12);
+        ctx.closePath();
+        // Central fin
+        ctx.moveTo(0, 4);
+        ctx.lineTo(1, 16);
+        ctx.lineTo(-1, 16);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Draw thrust effect if applicable
+        if ((this.isThrusting && this.state === 'Flying') || this.state === 'Landing' || this.state === 'TakingOff') {
+            ctx.fillStyle = new Colour(1, 1, 0).toRGB();
+            ctx.beginPath();
+            ctx.moveTo(-2, 18);
+            ctx.lineTo(0, 33);
+            ctx.lineTo(2, 18);
             ctx.closePath();
             ctx.fill();
         }
@@ -774,10 +965,9 @@ export class HeavyShuttle extends Ship {
 export class Arrow extends Ship {
     constructor(x, y, starSystem) {
         super(x, y, starSystem);
-        // Flight dynamics for Arrow: faster but less maneuverable
-        this.rotationSpeed = Math.PI * 0.8; // Lower turning speed
-        this.thrust = 300; // Higher thrust
-        this.maxVelocity = 600; // Higher max speed
+        this.rotationSpeed = Math.PI * 0.8;
+        this.thrust = 300;
+        this.maxVelocity = 600;
     }
 
     draw(ctx, camera) {
@@ -905,7 +1095,7 @@ export class Arrow extends Ship {
 
 // Factory function to create a random ship type
 export function createRandomShip(x, y, starSystem) {
-    const shipClasses = [Shuttle, HeavyShuttle, Arrow];
+    const shipClasses = [Shuttle, HeavyShuttle, StarBarge, Arrow];
     const RandomShipClass = shipClasses[Math.floor(Math.random() * shipClasses.length)];
     return new RandomShipClass(x, y, starSystem);
 }

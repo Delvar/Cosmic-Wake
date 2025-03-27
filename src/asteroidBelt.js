@@ -18,8 +18,8 @@ class AsteroidShape {
         for (let i = 0; i < numPoints; i++) {
             const angle = i * angleStep + (Math.random() - 0.5) * 0.5;
             const radius = 0.5 + Math.random() * 0.5; // Between 0.5 and 1
-            this.points[i * 2] = Math.cos(angle) * radius;
-            this.points[i * 2 + 1] = Math.sin(angle) * radius;
+            this.points[i * 2] = Math.sin(angle) * radius;
+            this.points[i * 2 + 1] = -Math.cos(angle) * radius;
         }
     }
 }
@@ -115,8 +115,8 @@ export class AsteroidBelt {
             // Calculate orbital angle and position
             const orbitalAngle = this.elapsedTime * orbitalSpeed + orbitalOffset;
             this._scratchWorldPos.set(
-                Math.cos(orbitalAngle) * orbitalDistance,
-                Math.sin(orbitalAngle) * orbitalDistance
+                Math.sin(orbitalAngle) * orbitalDistance,
+                -Math.cos(orbitalAngle) * orbitalDistance
             );
 
             // Check visibility
@@ -210,7 +210,10 @@ export class Asteroid extends GameObject {
         this.orbitSpeed = remapRange01(Math.random(), Math.PI * 0.002, Math.PI * 0.006);
         this.orbitRadius = radius;
         this.orbitAngle = angle;
-        this.position.set(Math.cos(this.orbitAngle) * this.orbitRadius, Math.sin(this.orbitAngle) * this.orbitRadius);
+        this.position.set(
+            Math.sin(this.orbitAngle) * this.orbitRadius,
+            -Math.cos(this.orbitAngle) * this.orbitRadius
+        );
 
         // Temporary scratch values to avoid allocations
         this._scratchScreenPos = new Vector2D();
@@ -224,8 +227,8 @@ export class Asteroid extends GameObject {
         this.orbitAngle += this.orbitSpeed * deltaTime;
         this.spin += this.spinSpeed * deltaTime;
         this.position.set(
-            Math.cos(this.orbitAngle) * this.orbitRadius,
-            Math.sin(this.orbitAngle) * this.orbitRadius
+            Math.sin(this.orbitAngle) * this.orbitRadius,
+            -Math.cos(this.orbitAngle) * this.orbitRadius
         );
         this.orbitAngle %= TWO_PI;
         this.spin %= TWO_PI;

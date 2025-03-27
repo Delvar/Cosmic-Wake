@@ -178,22 +178,22 @@ export class FlyToTargetAutoPilot extends AutoPilot {
             const velocityErrorMagnitude = this._scratchVelocityError.magnitude();
 
             if (velocityErrorMagnitude > 5) {
-                desiredAngle = Math.atan2(this._scratchVelocityError.y, this._scratchVelocityError.x);
+                desiredAngle = Math.atan2(this._scratchVelocityError.x, -this._scratchVelocityError.y);
                 const angleToDesired = normalizeAngle(desiredAngle - this.ship.angle);
                 desiredAngle = this.ship.angle + angleToDesired;
                 shouldThrust = Math.abs(angleToDesired) < Math.PI / 4;
             } else {
-                desiredAngle = Math.atan2(this.ship.velocity.y, this.ship.velocity.x);
+                desiredAngle = Math.atan2(this.ship.velocity.x, -this.ship.velocity.y);
             }
         } else if (distanceToPlanetCenter > this.closeApproachDistance) {
             const distanceToClose = distanceToPlanetCenter - this.closeApproachDistance;
             const stoppingDistance = decelerationDistance + ((currentSpeed - this.closeApproachSpeed) * timeToTurn);
 
-            const angleToReverseVelocity = normalizeAngle(Math.atan2(-this.ship.velocity.y, -this.ship.velocity.x) - this.ship.angle);
+            const angleToReverseVelocity = normalizeAngle(Math.atan2(-this.ship.velocity.x, this.ship.velocity.y) - this.ship.angle);
             const isFacingAway = Math.abs(angleToReverseVelocity) < Math.PI / 6;
             if (velocityTowardPlanet > 0 && isFacingAway && decelerationDistance < (distanceToPlanetCenter - this.arrivalDistance)) {
                 this._scratchDesiredVelocity.set(this.ship.velocity);
-                desiredAngle = Math.atan2(-this.ship.velocity.y, -this.ship.velocity.x);
+                desiredAngle = Math.atan2(-this.ship.velocity.x, this.ship.velocity.y);
             } else if (stoppingDistance > distanceToClose && currentSpeed > this.closeApproachSpeed * 1.2) {
                 this._scratchTargetVelocity.set(this.ship.velocity)
                     .normalizeInPlace()
@@ -230,12 +230,12 @@ export class FlyToTargetAutoPilot extends AutoPilot {
             const velocityErrorMagnitude = this._scratchVelocityError.magnitude();
 
             if (velocityErrorMagnitude > 5) {
-                desiredAngle = Math.atan2(this._scratchVelocityError.y, this._scratchVelocityError.x);
+                desiredAngle = Math.atan2(this._scratchVelocityError.x, -this._scratchVelocityError.y);
                 const angleToDesired = normalizeAngle(desiredAngle - this.ship.angle);
                 desiredAngle = this.ship.angle + angleToDesired;
                 shouldThrust = Math.abs(angleToDesired) < Math.PI / 12 || velocityTowardPlanet < -5;
             } else if (!shouldThrust) {
-                desiredAngle = Math.atan2(-this.ship.velocity.y, -this.ship.velocity.x);
+                desiredAngle = Math.atan2(-this.ship.velocity.x, this.ship.velocity.y);
             }
         } else {
             const finalSpeed = remapClamp(distanceToPlanetCenter, 0, this.closeApproachDistance, this.arrivalSpeed, this.closeApproachSpeed);
@@ -264,12 +264,12 @@ export class FlyToTargetAutoPilot extends AutoPilot {
             const velocityErrorMagnitude = this._scratchVelocityError.magnitude();
 
             if (velocityErrorMagnitude > 1) {
-                desiredAngle = Math.atan2(this._scratchVelocityError.y, this._scratchVelocityError.x);
+                desiredAngle = Math.atan2(this._scratchVelocityError.x, -this._scratchVelocityError.y);
                 const angleToDesired = normalizeAngle(desiredAngle - this.ship.angle);
                 desiredAngle = this.ship.angle + angleToDesired;
                 shouldThrust = Math.abs(angleToDesired) < Math.PI / 12;
             } else {
-                desiredAngle = Math.atan2(-this.ship.velocity.y, -this.ship.velocity.x);
+                desiredAngle = Math.atan2(-this.ship.velocity.x, this.ship.velocity.y);
             }
         }
 
@@ -352,7 +352,7 @@ export class LandOnPlanetAutoPilot extends AutoPilot {
                 } else {
                     // Slow down if not ready to land (e.g., speed too high)
                     this.ship.velocityError.set(-this.ship.velocity.x, -this.ship.velocity.y);
-                    const desiredAngle = Math.atan2(this.ship.velocityError.y, this.ship.velocityError.x);
+                    const desiredAngle = Math.atan2(this.ship.velocityError.x, -this.ship.velocityError.y);
                     const angleToDesired = normalizeAngle(desiredAngle - this.ship.angle);
                     this.ship.setTargetAngle(this.ship.angle + angleToDesired);
                     this.ship.applyThrust(Math.abs(angleToDesired) < Math.PI / 12);
@@ -470,7 +470,7 @@ export class TraverseJumpGateAutoPilot extends AutoPilot {
                 } else {
                     // Hyperdrive not ready or gate not found; slow down and wait
                     this.ship.velocityError.set(-this.ship.velocity.x, -this.ship.velocity.y);
-                    const desiredAngle = Math.atan2(this.ship.velocityError.y, this.ship.velocityError.x);
+                    const desiredAngle = Math.atan2(this.ship.velocityError.x, -this.ship.velocityError.y);
                     const angleToDesired = normalizeAngle(desiredAngle - this.ship.angle);
                     this.ship.setTargetAngle(this.ship.angle + angleToDesired);
                     this.ship.applyThrust(Math.abs(angleToDesired) < Math.PI / 12);

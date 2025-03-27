@@ -58,8 +58,10 @@ export class CelestialBody extends GameObject {
      */
     constructor(distance, radius, color, parent = null, angle = 0, type = celestialTypes['planet'], subtype = null, name = '', starSystem = null, ring = null) {
         super(new Vector2D(0, 0), starSystem);
-        this.position.set(parent ? parent.position.x + Math.cos(angle) * distance : Math.cos(angle) * distance,
-            parent ? parent.position.y + Math.sin(angle) * distance : Math.sin(angle) * distance);
+        this.position.set(
+            parent ? parent.position.x + Math.sin(angle) * distance : Math.sin(angle) * distance,
+            parent ? parent.position.y - Math.cos(angle) * distance : -Math.cos(angle) * distance
+        );
         this.distance = distance;
         this.radius = radius;
         this.color = color;
@@ -96,9 +98,9 @@ export class CelestialBody extends GameObject {
             this.ring.drawBack(ctx, camera, screenX, screenY, this.radius);
         }
 
-        const sunAngle = Math.atan2(-this.position.y, -this.position.x);
-        const lightX = screenX + Math.cos(sunAngle) * scaledRadius * 0.7;
-        const lightY = screenY + Math.sin(sunAngle) * scaledRadius * 0.7;
+        const sunAngle = Math.atan2(-this.position.x, this.position.y);
+        const lightX = screenX + Math.sin(sunAngle) * scaledRadius * 0.7;
+        const lightY = screenY - Math.cos(sunAngle) * scaledRadius * 0.7;
 
         let fillStyle = this.color.toRGB();
         if (this.type.type !== 'star') {
@@ -233,7 +235,7 @@ export class JumpGate extends CelestialBody {
         norm.set(dir).divideInPlace(mag);
         const radius = 50;
         const dist = 1000;
-        const angle = Math.atan2(norm.y, norm.x);
+        const angle = Math.atan2(norm.x, norm.y);
         super(dist, radius, celestialTypes['jumpgate'].color, null, angle, celestialTypes['jumpgate'], null, `Jump To ${lane.target.name}`, lane.source);
         this.lane = lane;
 

@@ -108,17 +108,17 @@ export class HeadsUpDisplay {
             const ringRadius = isGate ? this.gateRingRadius : isAsteroid || isShip ? this.shipRingRadius : this.ringRadius;
 
             if (distSquared > ringRadius * ringRadius) {
-                const angle = Math.atan2(this._scratchCameraPos.y, this._scratchCameraPos.x);
-                const arrowX = this._scratchCenter.x + Math.cos(angle) * ringRadius;
-                const arrowY = this._scratchCenter.y + Math.sin(angle) * ringRadius;
+                const angle = Math.atan2(this._scratchCameraPos.x, -this._scratchCameraPos.y);
+                const arrowX = this._scratchCenter.x + Math.sin(angle) * ringRadius;
+                const arrowY = this._scratchCenter.y - Math.cos(angle) * ringRadius;
                 ctx.save();
                 ctx.globalAlpha = 1;
                 ctx.translate(arrowX, arrowY);
                 ctx.rotate(angle);
                 ctx.beginPath();
-                ctx.moveTo(20, 0);
-                ctx.lineTo(0, 5);
-                ctx.lineTo(0, -5);
+                ctx.moveTo(0, -20);  // Tip pointing up
+                ctx.lineTo(5, 0);    // Bottom right
+                ctx.lineTo(-5, 0);   // Bottom left
                 ctx.closePath();
                 // Color based on target type
                 if (isGate) {
@@ -143,7 +143,7 @@ export class HeadsUpDisplay {
             const isGate = body instanceof JumpGate;
             const radius = isGate ? this.gateRingRadius : this.ringRadius;
 
-            // Label for bodies inside their ring
+            // Label for bodies inside their ring (unchanged)
             if (distSquared < radius * radius && body.name) {
                 ctx.save();
                 ctx.globalAlpha = 1;
@@ -157,9 +157,9 @@ export class HeadsUpDisplay {
 
             // Arrow for bodies outside their ring but within maxRadius
             if ((distSquared > radius * radius) && (distSquared < maxRadius * maxRadius) && body !== target) {
-                const angle = Math.atan2(this._scratchCameraPos.y, this._scratchCameraPos.x);
-                const arrowX = this._scratchCenter.x + Math.cos(angle) * radius;
-                const arrowY = this._scratchCenter.y + Math.sin(angle) * radius;
+                const angle = Math.atan2(this._scratchCameraPos.x, -this._scratchCameraPos.y);
+                const arrowX = this._scratchCenter.x + Math.sin(angle) * radius;
+                const arrowY = this._scratchCenter.y - Math.cos(angle) * radius;
                 const ringDist = Math.sqrt(distSquared) - radius;
                 const opacity = remapClamp(ringDist, maxRadius, 0, 0.2, 1);
                 ctx.save();
@@ -167,9 +167,9 @@ export class HeadsUpDisplay {
                 ctx.rotate(angle);
                 ctx.globalAlpha = opacity;
                 ctx.beginPath();
-                ctx.moveTo(10, 0);
-                ctx.lineTo(0, 5);
-                ctx.lineTo(0, -5);
+                ctx.moveTo(0, -10);  // Tip up
+                ctx.lineTo(5, 0);    // Bottom right
+                ctx.lineTo(-5, 0);   // Bottom left
                 ctx.closePath();
                 if (isGate) {
                     ctx.fillStyle = 'rgba(0, 255, 0, 1)';
@@ -188,9 +188,9 @@ export class HeadsUpDisplay {
             camera.worldToCamera(ship.position, this._scratchCameraPos);
             const distSquared = this._scratchCameraPos.x * this._scratchCameraPos.x + this._scratchCameraPos.y * this._scratchCameraPos.y;
             if ((distSquared > this.shipRingRadius * this.shipRingRadius) && (distSquared < maxRadius * maxRadius) && ship !== target) {
-                const angle = Math.atan2(this._scratchCameraPos.y, this._scratchCameraPos.x);
-                const arrowX = this._scratchCenter.x + Math.cos(angle) * this.shipRingRadius;
-                const arrowY = this._scratchCenter.y + Math.sin(angle) * this.shipRingRadius;
+                const angle = Math.atan2(this._scratchCameraPos.x, -this._scratchCameraPos.y);
+                const arrowX = this._scratchCenter.x + Math.sin(angle) * this.shipRingRadius;
+                const arrowY = this._scratchCenter.y - Math.cos(angle) * this.shipRingRadius;
                 const ringDist = Math.sqrt(distSquared) - this.shipRingRadius;
                 const opacity = remapClamp(ringDist, maxRadius, 0, 0.2, 1);
                 ctx.save();
@@ -198,9 +198,9 @@ export class HeadsUpDisplay {
                 ctx.rotate(angle);
                 ctx.globalAlpha = opacity;
                 ctx.beginPath();
-                ctx.moveTo(10, 0);
-                ctx.lineTo(0, 5);
-                ctx.lineTo(0, -5);
+                ctx.moveTo(0, -10);  // Tip up
+                ctx.lineTo(5, 0);    // Bottom right
+                ctx.lineTo(-5, 0);   // Bottom left
                 ctx.closePath();
                 ctx.fillStyle = ship.pilot instanceof AIPilot ? 'rgba(128, 128, 128, 1)' : 'rgba(255, 255, 255, 1)';
                 ctx.fill();

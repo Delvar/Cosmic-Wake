@@ -369,8 +369,8 @@ class GameManager {
                 const angle = Math.random() * TWO_PI;
                 // Use scratch vector for spawn position
                 this._scratchSpawnPos.set(
-                    spawnPlanet.position.x + Math.cos(angle) * 50,
-                    spawnPlanet.position.y + Math.sin(angle) * 50
+                    spawnPlanet.position.x + Math.sin(angle) * 50,
+                    spawnPlanet.position.y - Math.cos(angle) * 50
                 );
                 // const aiShip = new Ship(
                 //     this._scratchSpawnPos.x,

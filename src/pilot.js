@@ -77,7 +77,7 @@ export class PlayerPilot extends Pilot {
                 if (this.ship.target) {
                     this._scratchDirectionToTarget.set(this.ship.target.position)
                         .subtractInPlace(this.ship.position);
-                    this.ship.setTargetAngle(Math.atan2(this._scratchDirectionToTarget.y, this._scratchDirectionToTarget.x));
+                    this.ship.setTargetAngle(Math.atan2(this._scratchDirectionToTarget.x, -this._scratchDirectionToTarget.y));
                 }
                 this.ship.initiateTakeoff();
             }
@@ -233,7 +233,7 @@ export class AIPilot extends Pilot {
             this.target = this.pickDestination(this.ship.starSystem, this.spawnPlanet);
             this._scratchDirectionToTarget.set(this.target.position)
                 .subtractInPlace(this.ship.position);
-            this.ship.setTargetAngle(Math.atan2(this._scratchDirectionToTarget.y, this._scratchDirectionToTarget.x));
+            this.ship.setTargetAngle(Math.atan2(this._scratchDirectionToTarget.x, -this._scratchDirectionToTarget.y));
             this.ship.initiateTakeoff();
             this.state = 'TakingOff';
         }

@@ -219,11 +219,13 @@ export class Ship extends GameObject {
         this.angle = normalizeAngle(this.angle);
 
         if (this.isThrusting) {
-            this._scratchThrustVector.set(Math.cos(this.angle), Math.sin(this.angle))
+            // 0 radians = up (-Y), π/2 = right (+X)
+            this._scratchThrustVector.set(Math.sin(this.angle), -Math.cos(this.angle))
                 .multiplyInPlace(this.thrust * deltaTime);
+
             this.velocity.addInPlace(this._scratchThrustVector);
         } else if (this.isBraking) {
-            const velAngle = Math.atan2(-this.velocity.y, -this.velocity.x);
+            const velAngle = Math.atan2(-this.velocity.x, this.velocity.y);
             const brakeAngleDiff = normalizeAngle(velAngle - this.angle);
             this.angle += brakeAngleDiff * this.rotationSpeed * deltaTime;
             this.angle = normalizeAngle(this.angle);
@@ -280,7 +282,7 @@ export class Ship extends GameObject {
         this.animationTime += deltaTime;
         const t = Math.min(this.animationTime / this.animationDuration, 1);
         this.shipScale = t;
-        this._scratchTakeoffOffset.set(Math.cos(this.angle), Math.sin(this.angle))
+        this._scratchTakeoffOffset.set(Math.sin(this.angle), -Math.cos(this.angle))
             .multiplyInPlace(this.landedPlanet.radius * 1.5);
         this._scratchVelocityDelta.set(this._scratchTakeoffOffset).multiplyInPlace(t);
         this.position.set(this.landedPlanet.position)
@@ -302,7 +304,7 @@ export class Ship extends GameObject {
             this.shipScale = 1 - (t * 1.5);
             this.position.lerpInPlace(this.jumpStartPosition, this.jumpGate.position, t * 2);
             this._scratchRadialOut.set(this.jumpGate.position).normalizeInPlace();
-            const desiredAngle = Math.atan2(this._scratchRadialOut.y, this._scratchRadialOut.x);
+            const desiredAngle = Math.atan2(this._scratchRadialOut.x, -this._scratchRadialOut.y);
             const startAngle = this.jumpStartAngle || this.angle;
             if (!this.jumpStartAngle) this.jumpStartAngle = this.angle;
             const angleDiff = normalizeAngle(desiredAngle - startAngle);
@@ -362,7 +364,7 @@ export class Ship extends GameObject {
             this._scratchVelocityDelta.set(this._scratchRadialOut).multiplyInPlace(maxDistance)
                 .addInPlace(this.jumpEndPosition);
             this.position.lerpInPlace(this._scratchVelocityDelta, this.jumpEndPosition, progress);
-            const desiredAngle = Math.atan2(this._scratchRadialIn.y, this._scratchRadialIn.x);
+            const desiredAngle = Math.atan2(this._scratchRadialIn.x, -this._scratchRadialIn.y);
             const startAngle = this.jumpStartAngle || this.angle;
             if (!this.jumpStartAngle) this.jumpStartAngle = this.angle;
             const angleDiff = normalizeAngle(desiredAngle - startAngle);
@@ -404,18 +406,18 @@ export class Ship extends GameObject {
         // Default drawing (to be overridden by subclasses)
         ctx.fillStyle = this.colors.hull.toRGB();
         ctx.beginPath();
-        ctx.moveTo(15, 0);
+        ctx.moveTo(0, -15);
+        ctx.lineTo(10, 10);
         ctx.lineTo(-10, 10);
-        ctx.lineTo(-10, -10);
         ctx.closePath();
         ctx.fill();
 
         if ((this.isThrusting && this.state === 'Flying') || this.state === 'Landing' || this.state === 'TakingOff') {
             ctx.fillStyle = new Colour(1, 1, 0).toRGB();
             ctx.beginPath();
-            ctx.moveTo(-15, 0);
-            ctx.lineTo(-10, 5);
-            ctx.lineTo(-10, -5);
+            ctx.moveTo(0, 15);
+            ctx.lineTo(5, 10);
+            ctx.lineTo(-5, 10);
             ctx.closePath();
             ctx.fill();
         }
@@ -596,30 +598,30 @@ export class Arrow extends Ship {
         ctx.fillStyle = this.colors.hull.toRGB();
         ctx.beginPath();
         // Main hull
-        ctx.moveTo(0, 3);
-        ctx.lineTo(-11, 3);
-        ctx.lineTo(-11, -3);
-        ctx.lineTo(0, -3);
-        ctx.lineTo(4, -3);
-        ctx.lineTo(28, -2);
-        ctx.lineTo(30, -1);
-        ctx.lineTo(31, 0);
-        ctx.lineTo(30, 1);
-        ctx.lineTo(28, 2);
-        ctx.lineTo(4, 3);
-        ctx.lineTo(0, 3);
+        ctx.moveTo(3, 0);
+        ctx.lineTo(3, 11);
+        ctx.lineTo(-3, 11);
+        ctx.lineTo(-3, 0);
+        ctx.lineTo(-3, -4);
+        ctx.lineTo(-2, -28);
+        ctx.lineTo(-1, -30);
+        ctx.lineTo(0, -31);
+        ctx.lineTo(1, -30);
+        ctx.lineTo(2, -28);
+        ctx.lineTo(3, -4);
+        ctx.lineTo(3, 0);
         ctx.closePath();
         // Left hull extension
-        ctx.moveTo(0, -7);
-        ctx.lineTo(0, -3);
-        ctx.lineTo(-12, -3);
-        ctx.lineTo(-12, -7);
+        ctx.moveTo(-7, 0);
+        ctx.lineTo(-3, 0);
+        ctx.lineTo(-3, 12);
+        ctx.lineTo(-7, 12);
         ctx.closePath();
         // Right hull extension
-        ctx.moveTo(0, 3);
-        ctx.lineTo(0, 7);
-        ctx.lineTo(-12, 7);
-        ctx.lineTo(-12, 3);
+        ctx.moveTo(3, 0);
+        ctx.lineTo(7, 0);
+        ctx.lineTo(7, 12);
+        ctx.lineTo(3, 12);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
@@ -627,10 +629,10 @@ export class Arrow extends Ship {
         // Draw the cockpit
         ctx.fillStyle = this.colors.cockpit.toRGB();
         ctx.beginPath();
-        ctx.moveTo(20, -1);
-        ctx.lineTo(20, 1);
-        ctx.lineTo(16, 2);
-        ctx.lineTo(16, -2);
+        ctx.moveTo(-1, -20);
+        ctx.lineTo(1, -20);
+        ctx.lineTo(2, -16);
+        ctx.lineTo(-2, -16);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
@@ -639,39 +641,39 @@ export class Arrow extends Ship {
         ctx.fillStyle = this.colors.wings.toRGB();
         // Left small wing
         ctx.beginPath();
-        ctx.moveTo(12, -2);
-        ctx.lineTo(10, -5);
-        ctx.lineTo(9, -5);
-        ctx.lineTo(10, -2);
+        ctx.moveTo(-2, -12);
+        ctx.lineTo(-5, -10);
+        ctx.lineTo(-5, -9);
+        ctx.lineTo(-2, -10);
         ctx.closePath();
         // Right small wing
-        ctx.moveTo(12, 2);
-        ctx.lineTo(10, 5);
-        ctx.lineTo(9, 5);
-        ctx.lineTo(10, 2);
+        ctx.moveTo(2, -12);
+        ctx.lineTo(5, -10);
+        ctx.lineTo(5, -9);
+        ctx.lineTo(2, -10);
         ctx.closePath();
         ctx.fill();
 
         // Draw the large wings
         // Left large wing
-        ctx.moveTo(-6, -7);
-        ctx.lineTo(-10, -15);
-        ctx.lineTo(-13, -15);
-        ctx.lineTo(-14, -15);
-        ctx.lineTo(-11, -7);
+        ctx.moveTo(-7, 6);
+        ctx.lineTo(-15, 10);
+        ctx.lineTo(-15, 13);
+        ctx.lineTo(-15, 14);
+        ctx.lineTo(-7, 11);
         ctx.closePath();
         // Right large wing
-        ctx.moveTo(-6, 7);
-        ctx.lineTo(-10, 15);
-        ctx.lineTo(-13, 15);
-        ctx.lineTo(-14, 15);
-        ctx.lineTo(-11, 7);
+        ctx.moveTo(7, 6);
+        ctx.lineTo(15, 10);
+        ctx.lineTo(15, 13);
+        ctx.lineTo(15, 14);
+        ctx.lineTo(7, 11);
 
         // Vertical large wing
-        ctx.moveTo(-6, -0.5);
-        ctx.lineTo(-6, 0.5);
-        ctx.lineTo(-14, 0.5);
-        ctx.lineTo(-14, -0.5);
+        ctx.moveTo(-0.5, 6);
+        ctx.lineTo(0.5, 6);
+        ctx.lineTo(0.5, 14);
+        ctx.lineTo(-0.5, 14);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
@@ -681,16 +683,16 @@ export class Arrow extends Ship {
             ctx.fillStyle = new Colour(1, 1, 0).toRGB();
             // Left thrust (tail of left hull extension)
             ctx.beginPath();
-            ctx.moveTo(-12, -7);
-            ctx.lineTo(-25, -5);
-            ctx.lineTo(-12, -3);
+            ctx.moveTo(-7, 12);
+            ctx.lineTo(-5, 25);
+            ctx.lineTo(-3, 12);
             ctx.closePath();
             ctx.fill();
             // Right thrust (tail of right hull extension)
             ctx.beginPath();
-            ctx.moveTo(-12, 3);
-            ctx.lineTo(-25, 5);
-            ctx.lineTo(-12, 7);
+            ctx.moveTo(3, 12);
+            ctx.lineTo(5, 25);
+            ctx.lineTo(7, 12);
             ctx.closePath();
             ctx.fill();
         }

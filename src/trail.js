@@ -181,8 +181,8 @@ export class Trail {
 
         // Initialize with at least 2 points
         if (this.points.count < 2) {
-            this._scratchForwardVec.set(-Math.cos(this.parent.angle), -Math.sin(this.parent.angle));
-            this._scratchRightPoint.set(Math.sin(this.parent.angle), -Math.cos(this.parent.angle));
+            this._scratchForwardVec.set(Math.sin(this.parent.angle), -Math.cos(this.parent.angle)); // Forward is up
+            this._scratchRightPoint.set(-Math.cos(this.parent.angle), -Math.sin(this.parent.angle)); // Right is perpendicular
             this.points.addPoint(this.parent.position, this._scratchForwardVec, this._scratchRightPoint, 1);
             this.currentLength += 1;
             return;
@@ -238,7 +238,7 @@ export class Trail {
             if (distance > 0.1) {
                 this._scratchForwardVec.set(this._scratchRelativePos).multiplyInPlace(-1).divideInPlace(distance);
             } else {
-                this._scratchForwardVec.set(-Math.cos(this.parent.angle), -Math.sin(this.parent.angle));
+                this._scratchForwardVec.set(Math.sin(this.parent.angle), -Math.cos(this.parent.angle));
             }
             this.points.data[firstIdx + 2] = this._scratchForwardVec.x;
             this.points.data[firstIdx + 3] = this._scratchForwardVec.y;

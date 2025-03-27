@@ -40,7 +40,7 @@ function generateShipName() {
 export class Ship extends GameObject {
     static LANDING_SPEED = 10;
 
-    constructor(x, y, starSystem, trailColor = new Colour(1, 1, 1, 0.5)) {
+    constructor(x, y, starSystem) {
         super(new Vector2D(x, y), starSystem);
 
         this.name = generateShipName();
@@ -55,7 +55,7 @@ export class Ship extends GameObject {
         this.hyperdriveReady = true;
         this.hyperdriveCooldown = 5000;
         this.lastJumpTime = 0;
-        this.trail = new Trail(this, 250, 2, trailColor.toRGBA());
+
 
         // Generate random colors for cockpit, wings, and hull
         this.colors = {
@@ -64,6 +64,7 @@ export class Ship extends GameObject {
             hull: this.generateRandomGrey()
         };
 
+        this.trail = new Trail(this, 500, 2, this.colors.wings.toRGBA(0.5));
         this.target = null;
         this.landedPlanet = null;
         this.state = 'Flying';
@@ -514,8 +515,8 @@ export class Ship extends GameObject {
 }
 
 export class Shuttle extends Ship {
-    constructor(x, y, starSystem, trailColor = new Colour(1, 1, 1, 0.5)) {
-        super(x, y, starSystem, trailColor);
+    constructor(x, y, starSystem) {
+        super(x, y, starSystem);
         // Flight dynamics for Shuttle: balanced
         this.rotationSpeed = Math.PI * 1.2; // Slightly better turning
         this.thrust = 200; // Lower thrust
@@ -531,35 +532,234 @@ export class Shuttle extends Ship {
         ctx.translate(this._scratchScreenPos.x, this._scratchScreenPos.y);
         ctx.rotate(this.angle);
 
-        const scale = camera.zoom * this.shipScale;
+        const scale = camera.zoom * this.shipScale; // 1 canvas unit = 1 grid unit
         ctx.scale(scale, scale * this.stretchFactor);
 
-        // Draw the hull (rectangular body)
+        // Draw the hull (main, lower, and base)
+        ctx.strokeStyle = 'rgb(50, 50, 50)';
+        ctx.lineWidth = 0.1;
         ctx.fillStyle = this.colors.hull.toRGB();
         ctx.beginPath();
-        ctx.rect(-15, -10, 30, 20); // Rectangular hull
+        // Main hull
+        ctx.moveTo(0, -13);      // (0, -195)
+        ctx.lineTo(2, -12);      // (30, -180)
+        ctx.lineTo(3, -10);      // (45, -150)
+        ctx.lineTo(3, -6);       // (45, -90)
+        ctx.lineTo(2, -5);       // (30, -75)
+        ctx.lineTo(-2, -5);      // (-30, -75)
+        ctx.lineTo(-3, -6);      // (-45, -90)
+        ctx.lineTo(-3, -10);     // (-45, -150)
+        ctx.lineTo(-2, -12);     // (-30, -180)
+        ctx.closePath();
+        // Lower hull
+        ctx.moveTo(2, -5);       // (30, -75)
+        ctx.lineTo(5, -4);       // (75, -60)
+        ctx.lineTo(6, 2);        // (90, 30)
+        ctx.lineTo(6, 11);       // (90, 165)
+        ctx.lineTo(4, 12);       // (60, 180)
+        ctx.lineTo(-4, 12);      // (-60, 180)
+        ctx.lineTo(-6, 11);      // (-90, 165)
+        ctx.lineTo(-6, 2);       // (-90, 30)
+        ctx.lineTo(-5, -4);      // (-75, -60)
+        ctx.lineTo(-2, -5);      // (-30, -75)
+        ctx.closePath();
+        // Base
+        ctx.moveTo(3, 12);       // (45, 180)
+        ctx.lineTo(2, 13);       // (30, 195)
+        ctx.lineTo(-2, 13);      // (-30, 195)
+        ctx.lineTo(-3, 12);      // (-45, 180)
+        ctx.closePath();
         ctx.fill();
+        ctx.stroke();
 
-        // Draw the cockpit (small rectangle at the front)
+        // Draw the cockpit
         ctx.fillStyle = this.colors.cockpit.toRGB();
         ctx.beginPath();
-        ctx.rect(10, -5, 5, 10); // Small cockpit at the front
+        ctx.moveTo(-1, -11);     // (-15, -165)
+        ctx.lineTo(1, -11);      // (15, -165)
+        ctx.lineTo(2, -9);       // (30, -135)
+        ctx.lineTo(-2, -9);      // (-30, -135)
+        ctx.closePath();
         ctx.fill();
+        ctx.stroke();
 
-        // Draw the wings (small stubs on the sides)
+        // Draw the small wings
         ctx.fillStyle = this.colors.wings.toRGB();
         ctx.beginPath();
-        ctx.rect(-20, -5, 5, 10); // Left wing
-        ctx.rect(15, -5, 5, 10); // Right wing
+        // Left small wing
+        ctx.moveTo(3, -10);      // (45, -150)
+        ctx.lineTo(4, -8);       // (60, -120)
+        ctx.lineTo(4, -7);       // (60, -105)
+        ctx.lineTo(3, -8);       // (45, -120)
+        ctx.closePath();
+        // Right small wing
+        ctx.moveTo(-3, -10);     // (-75, -150)
+        ctx.lineTo(-4, -8);      // (-75, -120)
+        ctx.lineTo(-4, -7);      // (-90, -105)
+        ctx.lineTo(-3, -8);      // (-90, -120)
+        ctx.closePath();
         ctx.fill();
 
-        // Draw thrust effect if thrusting
+        // Draw the large wings and central fin
+        ctx.beginPath();
+        // Left large wing
+        ctx.moveTo(-6, 2);       // (-90, 30)
+        ctx.lineTo(-8, 6);       // (-120, 90)
+        ctx.lineTo(-8, 11);      // (-120, 165)
+        ctx.lineTo(-6, 11);      // (-90, 165)
+        ctx.closePath();
+        // Right large wing
+        ctx.moveTo(6, 2);        // (90, 30)
+        ctx.lineTo(8, 6);        // (120, 90)
+        ctx.lineTo(8, 11);       // (120, 165)
+        ctx.lineTo(6, 11);       // (90, 165)
+        ctx.closePath();
+        // Central fin
+        ctx.moveTo(0, 2);        // (0, 30)
+        ctx.lineTo(1, 11);       // (15, 165)
+        ctx.lineTo(-1, 11);      // (-15, 165)
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Draw thrust effect if applicable
         if ((this.isThrusting && this.state === 'Flying') || this.state === 'Landing' || this.state === 'TakingOff') {
             ctx.fillStyle = new Colour(1, 1, 0).toRGB();
             ctx.beginPath();
-            ctx.moveTo(-15, 0);
-            ctx.lineTo(-20, 5);
-            ctx.lineTo(-20, -5);
+            ctx.moveTo(-2, 13);      // (-30, 195)
+            ctx.lineTo(0, 28);       // (0, 420)
+            ctx.lineTo(2, 13);       // (30, 195)
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        ctx.restore();
+
+        // Draw debug information if enabled
+        this.drawDebug(ctx, camera, scale);
+    }
+}
+
+export class HeavyShuttle extends Ship {
+    constructor(x, y, starSystem) {
+        super(x, y, starSystem);
+        // Flight dynamics for Shuttle: balanced
+        this.rotationSpeed = Math.PI * 1.1;
+        this.thrust = 150;
+        this.maxVelocity = 350;
+    }
+
+    draw(ctx, camera) {
+        if (this.state === 'Landed') return;
+
+        ctx.save();
+        this.trail.draw(ctx, camera);
+        camera.worldToScreen(this.position, this._scratchScreenPos);
+        ctx.translate(this._scratchScreenPos.x, this._scratchScreenPos.y);
+        ctx.rotate(this.angle);
+
+        const scale = camera.zoom * this.shipScale; // 1 canvas unit = 1 grid unit
+        ctx.scale(scale, scale * this.stretchFactor); // stretchFactor on y-axis
+
+        // Draw the hull (main, lower, and base)
+        ctx.strokeStyle = 'rgb(50, 50, 50)';
+        ctx.lineWidth = 0.1;
+        ctx.fillStyle = this.colors.hull.toRGB();
+        ctx.beginPath();
+        // Main hull
+        ctx.moveTo(0, -20);      // (0, -300)
+        ctx.lineTo(3, -19);      // (45, -285)
+        ctx.lineTo(4, -15);      // (60, -225)
+        ctx.lineTo(4, -9);       // (60, -135)
+        ctx.lineTo(3, -8);       // (45, -120)
+        ctx.lineTo(-3, -8);      // (-45, -120)
+        ctx.lineTo(-4, -9);      // (-60, -135)
+        ctx.lineTo(-4, -15);     // (-60, -225)
+        ctx.lineTo(-3, -19);     // (-45, -285)
+        ctx.closePath();
+        // Lower hull
+        ctx.moveTo(3, -8);       // (45, -120)
+        ctx.lineTo(5, -7);       // (75, -105)
+        ctx.lineTo(6, -4);       // (90, -60)
+        ctx.lineTo(6, 10);       // (90, 150)
+        ctx.lineTo(4, 12);       // (60, 180)
+        ctx.lineTo(-4, 12);      // (-60, 180)
+        ctx.lineTo(-6, 10);      // (-90, 150)
+        ctx.lineTo(-6, -4);      // (-90, -60)
+        ctx.lineTo(-5, -7);      // (-75, -105)
+        ctx.lineTo(-3, -8);      // (-45, -120)
+        ctx.closePath();
+        // Base
+        ctx.moveTo(3, 12);       // (45, 180)
+        ctx.lineTo(2, 13);       // (30, 195)
+        ctx.lineTo(-2, 13);      // (-30, 195)
+        ctx.lineTo(-3, 12);      // (-45, 180)
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Draw the cockpit
+        ctx.fillStyle = this.colors.cockpit.toRGB();
+        ctx.beginPath();
+        ctx.moveTo(-1, -18);     // (-15, -270)
+        ctx.lineTo(1, -18);      // (15, -270)
+        ctx.lineTo(2, -14);      // (30, -210)
+        ctx.lineTo(2, -12);      // (30, -180)
+        ctx.lineTo(1, -11);      // (15, -165)
+        ctx.lineTo(-1, -11);     // (-15, -165)
+        ctx.lineTo(-2, -12);     // (-30, -180)
+        ctx.lineTo(-2, -14);     // (-30, -210)
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Draw the small wings
+        ctx.fillStyle = this.colors.wings.toRGB();
+        ctx.beginPath();
+        // Left small wing
+        ctx.moveTo(4, -15);      // (60, -195)
+        ctx.lineTo(4, -11);      // (60, -150)
+        ctx.lineTo(5, -10);       // (45, -135)
+        ctx.lineTo(5, -11);      // (45, -165)
+        ctx.closePath();
+        // Right small wing
+        ctx.moveTo(-4, -15);     // (-60, -225)
+        ctx.lineTo(-4, -11);     // (-60, -165)
+        ctx.lineTo(-5, -10);     // (-75, -150)
+        ctx.lineTo(-5, -11);     // (-75, -165)
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+            
+        // Draw the large wings and central fin
+        ctx.beginPath();
+        // Left large wing
+        ctx.moveTo(-6, -1);      // (-90, -15)
+        ctx.lineTo(-8, 3);       // (-120, 45)
+        ctx.lineTo(-8, 11);      // (-120, 165)
+        ctx.lineTo(-6, 10);      // (-90, 150)
+        ctx.closePath();
+        // Right large wing
+        ctx.moveTo(6, -1);       // (90, -15)
+        ctx.lineTo(8, 3);        // (120, 45)
+        ctx.lineTo(8, 11);       // (120, 165)
+        ctx.lineTo(6, 10);       // (90, 150)
+        ctx.closePath();
+        // Central fin
+        ctx.moveTo(0, -1);       // (0, -15)
+        ctx.lineTo(1, 11);       // (15, 165)
+        ctx.lineTo(-1, 11);      // (-15, 165)
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Draw thrust effect if applicable
+        if ((this.isThrusting && this.state === 'Flying') || this.state === 'Landing' || this.state === 'TakingOff') {
+            ctx.fillStyle = new Colour(1, 1, 0).toRGB();
+            ctx.beginPath();
+            ctx.moveTo(-2, 13);      // (-30, 195)
+            ctx.lineTo(0, 28);       // (0, 420)
+            ctx.lineTo(2, 13);       // (30, 195)
             ctx.closePath();
             ctx.fill();
         }
@@ -572,8 +772,8 @@ export class Shuttle extends Ship {
 }
 
 export class Arrow extends Ship {
-    constructor(x, y, starSystem, trailColor = new Colour(1, 1, 1, 0.5)) {
-        super(x, y, starSystem, trailColor);
+    constructor(x, y, starSystem) {
+        super(x, y, starSystem);
         // Flight dynamics for Arrow: faster but less maneuverable
         this.rotationSpeed = Math.PI * 0.8; // Lower turning speed
         this.thrust = 300; // Higher thrust
@@ -704,8 +904,8 @@ export class Arrow extends Ship {
 }
 
 // Factory function to create a random ship type
-export function createRandomShip(x, y, starSystem, trailColor = new Colour(1, 1, 1, 0.5)) {
-    const shipClasses = [Shuttle, Arrow];
+export function createRandomShip(x, y, starSystem) {
+    const shipClasses = [Shuttle, HeavyShuttle, Arrow];
     const RandomShipClass = shipClasses[Math.floor(Math.random() * shipClasses.length)];
-    return new RandomShipClass(x, y, starSystem, trailColor);
+    return new RandomShipClass(x, y, starSystem);
 }

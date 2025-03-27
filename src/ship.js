@@ -401,7 +401,7 @@ export class Ship extends GameObject {
         ctx.rotate(this.angle);
 
         const scale = camera.zoom * this.shipScale;
-        ctx.scale(scale * this.stretchFactor, scale);
+        ctx.scale(scale, scale * this.stretchFactor);
 
         // Default drawing (to be overridden by subclasses)
         ctx.fillStyle = this.colors.hull.toRGB();
@@ -532,7 +532,7 @@ export class Shuttle extends Ship {
         ctx.rotate(this.angle);
 
         const scale = camera.zoom * this.shipScale;
-        ctx.scale(scale * this.stretchFactor, scale);
+        ctx.scale(scale, scale * this.stretchFactor);
 
         // Draw the hull (rectangular body)
         ctx.fillStyle = this.colors.hull.toRGB();
@@ -589,8 +589,8 @@ export class Arrow extends Ship {
         ctx.translate(this._scratchScreenPos.x, this._scratchScreenPos.y);
         ctx.rotate(this.angle);
 
-        const scale = camera.zoom * this.shipScale; // 1 canvas unit = 1 grid unit
-        ctx.scale(scale * this.stretchFactor, scale);
+        const scale = camera.zoom * this.shipScale;
+        ctx.scale(scale, scale * this.stretchFactor);
 
         // Draw the hull
         ctx.strokeStyle = 'rgb(50, 50, 50)';

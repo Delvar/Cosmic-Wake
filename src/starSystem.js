@@ -60,6 +60,30 @@ export class StarSystem {
     }
 
     /**
+     * Given a game object it adds it to the relevant arrays
+     * @param {GameObject} gameObject - The GameObject to remove
+     * @returns {boolean} true if the GameObejct added
+     */
+    addGameObject(gameObject) {
+        if (!(gameObject instanceof GameObject)) {
+            return false;
+        }
+
+        if (gameObject instanceof Ship) {
+            removeObjectFromArrayInPlace(gameObject, this.ships);
+            this.ships.push(gameObject);
+        } else if (gameObject instanceof CelestialBody) {
+            removeObjectFromArrayInPlace(gameObject, this.celestialBodies);
+            this.celestialBodies.push(gameObject);
+        } else if (gameObject instanceof Asteroid) {
+            this.asteroidBelt.removeAsteroid(gameObject);
+            this.asteroidBelt.addAsteroid(gameObject);
+        }
+        gameObject.starSystem = this;
+        return true;
+    }
+
+    /**
      * Initializes the star system by setting up asteroid belts and jump gates.
      */
     initialize() {

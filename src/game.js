@@ -7,7 +7,7 @@ import { createRandomShip, Ship, Flivver, Shuttle, HeavyShuttle, StarBarge, Frei
 import { JumpGate } from './celestialBody.js';
 import { StarField } from './starField.js';
 import { HeadsUpDisplay } from './headsUpDisplay.js';
-import { PlayerPilot, AIPilot, InterdictionAIPilot } from './pilot.js';
+import { PlayerPilot, AIPilot, InterdictionAIPilot, EscortAIPilot } from './pilot.js';
 import { createGalaxy } from './galaxy.js';
 import { TWO_PI } from './utils.js';
 import { isValidTarget } from './gameObject.js';
@@ -191,8 +191,26 @@ class GameManager {
         this.lastKeys = {};
         this.isFocused = true;
         this.galaxy = createGalaxy();
-        const earth = this.galaxy[0].celestialBodies[5];
-        this.playerShip = createRandomShip(earth.position.x + 50, earth.position.y, this.galaxy[0]);
+        const starSystem = this.galaxy[0];
+        const earth = starSystem.celestialBodies[3];
+        this.playerShip = createRandomShip(earth.position.x + 50, earth.position.y, starSystem);
+
+        this.escort01 = new Flivver(earth.position.x - 50, earth.position.y, starSystem);
+        this.escort01.pilot = new EscortAIPilot(this.escort01, this.playerShip);
+        this.escort01.colors.cockpit = this.playerShip.colors.cockpit;
+        this.escort01.colors.wings = this.playerShip.colors.wings;
+        this.escort01.colors.hull = this.playerShip.colors.hull;
+        this.escort01.trail.color = this.playerShip.trail.color;
+        starSystem.addGameObject(this.escort01);
+
+        this.escort02 = new Flivver(earth.position.x + 100, earth.position.y, starSystem);
+        this.escort02.pilot = new EscortAIPilot(this.escort02, this.playerShip);
+        this.escort02.colors.cockpit = this.playerShip.colors.cockpit;
+        this.escort02.colors.wings = this.playerShip.colors.wings;
+        this.escort02.colors.hull = this.playerShip.colors.hull;
+        this.escort02.trail.color = this.playerShip.trail.color;
+        starSystem.addGameObject(this.escort02);
+
         this.playerPilot = new PlayerPilot(this.playerShip);
         this.playerShip.pilot = this.playerPilot;
         this.galaxy[0].ships.push(this.playerShip);
@@ -261,7 +279,7 @@ class GameManager {
 
             if (aiShipCount < system.maxAIShips) {
                 const spawnPlanet = system.celestialBodies.find(body =>
-                    !(body instanceof JumpGate)
+                    !(body instanceof JumpGate || body.type.type == 'star')
                 );
                 if (!spawnPlanet) {
                     console.warn('No spawnPlanet found!');
@@ -278,12 +296,22 @@ class GameManager {
                         aiShip.pilot = new AIPilot(aiShip, spawnPlanet);
                     }
 
+                    if (aiShip instanceof Freighter) {
+                        const escort01 = new Flivver(spawnPlanet.position.x, spawnPlanet.position.y, system);
+                        escort01.pilot = new EscortAIPilot(escort01, aiShip);
+                        escort01.colors.cockpit = aiShip.colors.cockpit;
+                        escort01.colors.wings = aiShip.colors.wings;
+                        escort01.colors.hull = aiShip.colors.hull;
+                        escort01.trail.color = aiShip.trail.color;
+                        system.addGameObject(escort01);
+                    }
+
                     aiShip.setState('Landed');
                     aiShip.shipScale = 0;
                     aiShip.velocity.set(0, 0);
                     aiShip.landedPlanet = spawnPlanet;
                     spawnPlanet.addLandedShip(aiShip);
-                    system.ships.push(aiShip);
+                    system.addGameObject(aiShip);
                 }
             } else if (aiShipCount > system.maxAIShips) {
                 const excessCount = aiShipCount - system.maxAIShips;

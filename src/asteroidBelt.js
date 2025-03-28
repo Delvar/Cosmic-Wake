@@ -107,6 +107,22 @@ export class AsteroidBelt {
     }
 
     /**
+     * Add an interactive Asteroid
+     * @param {Asteroid} interactiveAsteroid - The Asteroid to add
+     * @returns {boolean} true if the Asteroid was added
+     */
+    addAsteroid(interactiveAsteroid) {
+        if (!(interactiveAsteroid instanceof Asteroid)) {
+            return false;
+        }
+        removeObjectFromArrayInPlace(interactiveAsteroid, this.interactiveAsteroids);
+        this.interactiveAsteroids.push(interactiveAsteroid);
+        interactiveAsteroid.starSystem = this.starSystem;
+        interactiveAsteroid.belt = this;
+        return true;
+    }
+
+    /**
      * Updates the asteroid belt.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
      */

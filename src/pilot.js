@@ -3,7 +3,7 @@
 import { Vector2D } from './vector2d.js';
 import { JumpGate } from './celestialBody.js';
 import { remapClamp, randomBetween, normalizeAngle } from './utils.js';
-import { TraverseJumpGateAutoPilot, FlyToTargetAutoPilot, LandOnPlanetAutoPilot, FollowShipAutoPilot } from './autopilot.js';
+import { TraverseJumpGateAutoPilot, FlyToTargetAutoPilot, LandOnPlanetAutoPilot, FollowShipAutoPilot, EscortAutoPilot } from './autopilot.js';
 import { Ship } from './ship.js';
 
 export class Pilot {
@@ -30,8 +30,8 @@ export class PlayerPilot extends Pilot {
         this.autopilot = null;
 
         // Scratch vector to eliminate allocations in update
-        this._scratchDirectionToTarget = new Vector2D(); // For direction calculations
-        this._scratchDistanceToTarget = new Vector2D(); // For distance calculations
+        this._scratchDirectionToTarget = new Vector2D();
+        this._scratchDistanceToTarget = new Vector2D();
     }
 
     listTargetableObjects() {
@@ -89,7 +89,6 @@ export class PlayerPilot extends Pilot {
                 if (this.ship.target instanceof JumpGate) {
                     this._scratchDistanceToTarget.set(this.ship.position)
                         .subtractInPlace(this.ship.target.position);
-                    //const distanceToGate = this._scratchDistanceToTarget.magnitude();
                     if (this.ship.target.overlapsShip(this.ship.position)) {
                         this.ship.initiateHyperjump();
                     } else {
@@ -97,6 +96,14 @@ export class PlayerPilot extends Pilot {
                         this.autopilot.start();
                     }
                 }
+            }
+        }
+
+        // New keybinding: 'f' to escort a targeted ship
+        if (keys['f'] && !lastKeys['f']) {
+            if (this.ship.state === 'Flying' && this.ship.target && this.ship.target instanceof Ship) {
+                this.autopilot = new EscortAutoPilot(this.ship, this.ship.target);
+                this.autopilot.start();
             }
         }
 
@@ -711,5 +718,90 @@ export class InterdictionAIPilot extends Pilot {
             return `Interdiction: Waiting`;
         }
         return `Interdiction: ${this.state}`;
+    }
+}
+
+/**
+ * An AI pilot that escorts a designated ship using the EscortAutoPilot.
+ * Despawns if the escorted ship despawns.
+ * @extends Pilot
+ */
+export class EscortAIPilot extends Pilot {
+    /**
+     * Creates a new EscortAIPilot instance.
+     * @param {Ship} ship - The ship to control.
+     * @param {Ship} escortedShip - The ship to escort.
+     */
+    constructor(ship, escortedShip) {
+        super(ship);
+        this.escortedShip = escortedShip;
+        this.autopilot = null;
+
+        // Constants for behavior tuning
+        this.followDistance = 250; // Distance to maintain while following
+    }
+
+    /**
+     * Updates the AI pilot's behavior.
+     * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @param {Object} gameManager - The game manager instance.
+     */
+    update(deltaTime, gameManager) {
+        // Check if the escorted ship has despawned
+        if (!this.escortedShip || this.escortedShip.isDespawned()) {
+            this.ship.despawn();
+            return;
+        }
+
+        // Set the escorted ship as the target for HUD purposes
+        this.ship.setTarget(this.escortedShip);
+
+        // Start the autopilot if not already active
+        if (!this.autopilot || !this.autopilot.active) {
+            this.autopilot = new EscortAutoPilot(this.ship, this.escortedShip, this.followDistance);
+            this.autopilot.start();
+        }
+
+        // Update the autopilot
+        if (this.autopilot?.active) {
+            this.autopilot.update(deltaTime);
+            if (this.autopilot.isComplete()) {
+                if (this.autopilot.error) {
+                    console.warn(`Autopilot failed: ${this.autopilot.error}`);
+                }
+                this.autopilot = null;
+            }
+        }
+    }
+
+    /**
+     * Attempts to hyperjump if the escorted ship has jumped.
+     * @returns {boolean} True if a hyperjump is initiated, false otherwise.
+     */
+    tryHyperjump(gameManager) {
+        if (this.autopilot?.active) {
+            // Delegate to the autopilot's logic
+            const targetSystem = this.escortedShip.starSystem;
+            const gates = this.ship.starSystem.celestialBodies.filter(body => body instanceof JumpGate && !body.isDespawned());
+            for (let i = 0; i < gates.length; i++) {
+                const gate = gates[i];
+                if (gate.lane && gate.lane.target === targetSystem && gate.overlapsShip(this.ship.position)) {
+                    this.ship.initiateHyperjump();
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Returns the current state of the AI pilot for HUD display.
+     * @returns {string} A descriptive status string.
+     */
+    getState() {
+        if (this.autopilot?.active) {
+            return this.autopilot.getStatus();
+        }
+        return `Escort: Idle`;
     }
 }

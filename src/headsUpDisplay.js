@@ -29,6 +29,11 @@ export class HeadsUpDisplay {
         this._scratchCenter = new Vector2D(0, 0); // For screen center in draw
         this._scratchCameraPos = new Vector2D(0, 0); // For camera-relative position
         this._scratchScreenPos = new Vector2D(0, 0); // For screen position of objects
+        // Additional scratch vectors for bounding box corners
+        this._scratchCorner1 = new Vector2D(0, 0);
+        this._scratchCorner2 = new Vector2D(0, 0);
+        this._scratchCorner3 = new Vector2D(0, 0);
+        this._scratchCorner4 = new Vector2D(0, 0);
     }
 
     /**
@@ -95,9 +100,10 @@ export class HeadsUpDisplay {
         if (
             this.gameManager.cameraTarget &&
             this.gameManager.cameraTarget instanceof Ship &&
-            isValidTarget(this.gameManager.cameraTarget, this.gameManager.cameraTarget.target)) {
+            isValidTarget(this.gameManager.cameraTarget, this.gameManager.cameraTarget.target)
+        ) {
             target = this.gameManager.cameraTarget.target;
-        };
+        }
 
         // Draw arrow for target if outside its ring
         if (target) {
@@ -212,18 +218,94 @@ export class HeadsUpDisplay {
         // Draw rectangle around the target
         if (target) {
             camera.worldToScreen(target.position, this._scratchScreenPos);
-            const size = target instanceof Ship ? 20 : target.radius + 10 || target.size + 10;
-            const scaledSize = camera.worldToSize(size);
-            ctx.strokeStyle = 'rgba(255, 255, 0, 0.8)';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.rect(
-                this._scratchScreenPos.x - scaledSize,
-                this._scratchScreenPos.y - scaledSize,
-                scaledSize * 2,
-                scaledSize * 2
-            );
-            ctx.stroke();
+
+            if (target instanceof Ship) {
+                // Compute the rotated bounding box corners in world space
+                // Apply shipScale but ignore stretchFactor
+                const halfWidth = (target.boundingBox.x * target.shipScale) / 2;
+                const halfHeight = (target.boundingBox.y * target.shipScale) / 2;
+                const cosAngle = Math.cos(target.angle);
+                const sinAngle = Math.sin(target.angle);
+
+                // Define the four corners of the bounding box in local space (before rotation)
+                // Corner 1: Top-left
+                this._scratchCorner1.set(-halfWidth, -halfHeight);
+                // Corner 2: Top-right
+                this._scratchCorner2.set(halfWidth, -halfHeight);
+                // Corner 3: Bottom-right
+                this._scratchCorner3.set(halfWidth, halfHeight);
+                // Corner 4: Bottom-left
+                this._scratchCorner4.set(-halfWidth, halfHeight);
+
+                // Rotate each corner around the ship's center (which is at target.position)
+                const rotatePoint = (point) => {
+                    const x = point.x * cosAngle - point.y * sinAngle;
+                    const y = point.x * sinAngle + point.y * cosAngle;
+                    point.set(x, y).addInPlace(target.position);
+                };
+                rotatePoint(this._scratchCorner1);
+                rotatePoint(this._scratchCorner2);
+                rotatePoint(this._scratchCorner3);
+                rotatePoint(this._scratchCorner4);
+
+                // Convert corners to screen space
+                camera.worldToScreen(this._scratchCorner1, this._scratchCorner1);
+                camera.worldToScreen(this._scratchCorner2, this._scratchCorner2);
+                camera.worldToScreen(this._scratchCorner3, this._scratchCorner3);
+                camera.worldToScreen(this._scratchCorner4, this._scratchCorner4);
+
+                // Compute the axis-aligned bounding box (AABB) in screen space
+                const minX = Math.min(
+                    this._scratchCorner1.x,
+                    this._scratchCorner2.x,
+                    this._scratchCorner3.x,
+                    this._scratchCorner4.x
+                );
+                const maxX = Math.max(
+                    this._scratchCorner1.x,
+                    this._scratchCorner2.x,
+                    this._scratchCorner3.x,
+                    this._scratchCorner4.x
+                );
+                const minY = Math.min(
+                    this._scratchCorner1.y,
+                    this._scratchCorner2.y,
+                    this._scratchCorner3.y,
+                    this._scratchCorner4.y
+                );
+                const maxY = Math.max(
+                    this._scratchCorner1.y,
+                    this._scratchCorner2.y,
+                    this._scratchCorner3.y,
+                    this._scratchCorner4.y
+                );
+
+                // Draw the AABB as the yellow rectangle
+                ctx.strokeStyle = 'rgba(255, 255, 0, 0.8)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.rect(
+                    minX,
+                    minY,
+                    maxX - minX,
+                    maxY - minY
+                );
+                ctx.stroke();
+            } else {
+                // For non-ships, use radius or size with padding, as before
+                const size = target.radius + 10 || target.size + 10 || 20;
+                const scaledSize = camera.worldToSize(size);
+                ctx.strokeStyle = 'rgba(255, 255, 0, 0.8)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.rect(
+                    this._scratchScreenPos.x - scaledSize,
+                    this._scratchScreenPos.y - scaledSize,
+                    scaledSize * 2,
+                    scaledSize * 2
+                );
+                ctx.stroke();
+            }
         }
 
         ctx.restore();

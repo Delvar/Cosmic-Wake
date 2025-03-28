@@ -88,7 +88,6 @@ export class FlyToTargetAutoPilot extends AutoPilot {
         this.arrivalDistance = arrivalDistance;
         this.arrivalSpeed = arrivalSpeed;
         this.closeApproachSpeed = closeApproachSpeed;
-        this.velocityError = new Vector2D(); // Persistent vector for debugging compatibility with Ship
         this.farApproachDistance = 0;
         this.closeApproachDistance = 0;
 
@@ -174,7 +173,7 @@ export class FlyToTargetAutoPilot extends AutoPilot {
 
             this._scratchVelocityError.set(this._scratchDesiredVelocity)
                 .subtractInPlace(this.ship.velocity);
-            this.velocityError.set(this._scratchVelocityError); // Copy values, not reference
+            this.ship.velocityError.set(this._scratchVelocityError);
             const velocityErrorMagnitude = this._scratchVelocityError.magnitude();
 
             if (velocityErrorMagnitude > 5) {
@@ -226,7 +225,7 @@ export class FlyToTargetAutoPilot extends AutoPilot {
 
             this._scratchVelocityError.set(this._scratchDesiredVelocity)
                 .subtractInPlace(this.ship.velocity);
-            this.velocityError.set(this._scratchVelocityError);
+            this.ship.velocityError.set(this._scratchVelocityError);
             const velocityErrorMagnitude = this._scratchVelocityError.magnitude();
 
             if (velocityErrorMagnitude > 5) {
@@ -260,7 +259,7 @@ export class FlyToTargetAutoPilot extends AutoPilot {
 
             this._scratchVelocityError.set(this._scratchDesiredVelocity)
                 .subtractInPlace(this.ship.velocity);
-            this.velocityError.set(this._scratchVelocityError);
+            this.ship.velocityError.set(this._scratchVelocityError);
             const velocityErrorMagnitude = this._scratchVelocityError.magnitude();
 
             if (velocityErrorMagnitude > 1) {
@@ -541,7 +540,6 @@ export class FollowShipAutoPilot extends AutoPilot {
         super(ship, targetShip);
         this.followRadius = followRadius;
         this.approachSpeed = approachSpeed;
-        this.velocityError = new Vector2D(); // For debugging compatibility with Ship
 
         // Distance zones for gradual velocity matching
         this.farApproachDistance = 0; // Computed dynamically
@@ -609,7 +607,7 @@ export class FollowShipAutoPilot extends AutoPilot {
         // Recalculate direction and distance to the future position
         this._scratchDirectionToTarget.set(this._scratchFuturePosition)
             .subtractInPlace(this.ship.position);
-        const distanceToFuture = this._scratchDirectionToTarget.magnitude();
+        //const distanceToFuture = this._scratchDirectionToTarget.magnitude();
         this._scratchDirectionToTarget.normalizeInPlace();
 
         let desiredAngle = this.ship.angle;
@@ -623,7 +621,7 @@ export class FollowShipAutoPilot extends AutoPilot {
 
             this._scratchVelocityError.set(this._scratchDesiredVelocity)
                 .subtractInPlace(this.ship.velocity);
-            this.velocityError.set(this._scratchVelocityError);
+            this.ship.velocityError.set(this._scratchVelocityError);
             const velocityErrorMagnitude = this._scratchVelocityError.magnitude();
 
             if (velocityErrorMagnitude > 5) {
@@ -632,7 +630,11 @@ export class FollowShipAutoPilot extends AutoPilot {
                 desiredAngle = this.ship.angle + angleToDesired;
                 shouldThrust = Math.abs(angleToDesired) < Math.PI / 4;
             } else {
-                desiredAngle = Math.atan2(this.ship.velocity.x, -this.ship.velocity.y);
+                if (this.target.isThrusting) {
+                    desiredAngle = this.ship.angle; // Maintain current heading
+                } else {
+                    desiredAngle = this.target.angle; // Align with target's heading
+                }
             }
         } else if (distanceToTarget > this.followRadius) {
             // Approach distance: gradually match the target's velocity
@@ -650,7 +652,7 @@ export class FollowShipAutoPilot extends AutoPilot {
 
             this._scratchVelocityError.set(this._scratchDesiredVelocity)
                 .subtractInPlace(this.ship.velocity);
-            this.velocityError.set(this._scratchVelocityError);
+            this.ship.velocityError.set(this._scratchVelocityError);
             const velocityErrorMagnitude = this._scratchVelocityError.magnitude();
 
             if (velocityErrorMagnitude > 5) {
@@ -659,14 +661,18 @@ export class FollowShipAutoPilot extends AutoPilot {
                 desiredAngle = this.ship.angle + angleToDesired;
                 shouldThrust = Math.abs(angleToDesired) < Math.PI / 12;
             } else {
-                desiredAngle = Math.atan2(this.ship.velocity.x, -this.ship.velocity.y);
+                if (this.target.isThrusting) {
+                    desiredAngle = this.ship.angle; // Maintain current heading
+                } else {
+                    desiredAngle = this.target.angle; // Align with target's heading
+                }
             }
         } else {
             // Inside follow radius: fully match the target's velocity
             this._scratchDesiredVelocity.set(this.target.velocity);
             this._scratchVelocityError.set(this._scratchDesiredVelocity)
                 .subtractInPlace(this.ship.velocity);
-            this.velocityError.set(this._scratchVelocityError);
+            this.ship.velocityError.set(this._scratchVelocityError);
             const velocityErrorMagnitude = this._scratchVelocityError.magnitude();
 
             if (velocityErrorMagnitude > 5) {
@@ -675,11 +681,15 @@ export class FollowShipAutoPilot extends AutoPilot {
                 desiredAngle = this.ship.angle + angleToDesired;
                 shouldThrust = Math.abs(angleToDesired) < Math.PI / 12;
             } else {
-                desiredAngle = Math.atan2(this.ship.velocity.x, -this.ship.velocity.y);
+                if (this.target.isThrusting) {
+                    desiredAngle = this.ship.angle; // Maintain current heading
+                } else {
+                    desiredAngle = this.target.angle; // Align with target's heading
+                }
             }
 
             // If too close, adjust position to stay at the edge of the follow radius
-            if (distanceToTarget < this.followRadius * 0.8) {
+            if (distanceToTarget < this.followRadius * 0.5) {
                 const excessDistance = this.followRadius - distanceToTarget;
                 this._scratchTemp.set(this._scratchDirectionToTarget)
                     .multiplyInPlace(-excessDistance * 0.1 * deltaTime);
@@ -817,9 +827,9 @@ export class EscortAutoPilot extends AutoPilot {
     }
 
     /**
-     * Handles the Following state: follows the escorted ship and reacts to its actions.
-     * @param {number} deltaTime - Time elapsed since the last update in seconds.
-     */
+       * Handles the Following state: follows the escorted ship and reacts to its actions.
+       * @param {number} deltaTime - Time elapsed since the last update in seconds.
+       */
     updateFollowing(deltaTime) {
         if (!this.subAutopilot) {
             console.warn('Sub-autopilot is not set during Following state');
@@ -827,8 +837,26 @@ export class EscortAutoPilot extends AutoPilot {
             return;
         }
 
+        // Check if the escorted ship has started a jump (JumpingOut state)
+        if (this.target.state === 'JumpingOut') {
+            this.subAutopilot.stop();
+            const jumpGate = this.target.jumpGate; // Get the jump gate directly from the escorted ship
+
+            if (jumpGate && jumpGate instanceof JumpGate && !jumpGate.isDespawned()) {
+                this.subAutopilot = new TraverseJumpGateAutoPilot(this.ship, jumpGate);
+                this.subAutopilot.start();
+                this.state = 'TraversingJumpGate';
+            } else {
+                console.warn('Jump gate not found or invalid for escorted ship during jump; waiting');
+                this.subAutopilot = null;
+                this.waitTime = randomBetween(this.waitTimeMin, this.waitTimeMax);
+                this.state = 'Waiting';
+            }
+            return;
+        }
+
         // Check if the escorted ship has landed
-        if (this.target.state === 'Landed') {
+        if (this.target.state === 'Landed' || this.target.state === 'Landing') {
             this.subAutopilot.stop();
             this.subAutopilot = new LandOnPlanetAutoPilot(this.ship, this.target.landedPlanet);
             this.subAutopilot.start();
@@ -878,10 +906,27 @@ export class EscortAutoPilot extends AutoPilot {
      * Handles the Landing state: lands on the same body as the escorted ship.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
      */
+    /**
+ * Handles the Landing state: lands on the same body as the escorted ship.
+ * Aborts landing if the escorted ship takes off.
+ * @param {number} deltaTime - Time elapsed since the last update in seconds.
+ */
     updateLanding(deltaTime) {
         if (!this.subAutopilot) {
             console.warn('Sub-autopilot is not set during Landing state');
             this.state = 'Idle';
+            return;
+        }
+
+        // Check if the escorted ship has taken off
+        if (this.target.state === 'TakingOff' || this.target.state === 'Flying') {
+            this.subAutopilot.stop();
+            this.subAutopilot = null;
+            this._scratchDirectionToTarget.set(this.target.position)
+                .subtractInPlace(this.ship.position);
+            this.ship.setTargetAngle(Math.atan2(this._scratchDirectionToTarget.x, -this._scratchDirectionToTarget.y));
+            this.ship.initiateTakeoff();
+            this.state = 'TakingOff';
             return;
         }
 

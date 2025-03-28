@@ -658,6 +658,7 @@ export class InterdictionAIPilot extends Pilot {
             // Calculate velocity error
             this._scratchVelocityDifference.set(this._scratchDesiredVelocity)
                 .subtractInPlace(this.ship.velocity);
+            this.ship.velocityError.set(this._scratchVelocityDifference);
             const velocityErrorMagnitude = this._scratchVelocityDifference.magnitude();
 
             let desiredAngle = this.ship.angle;

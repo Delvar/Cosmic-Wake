@@ -179,9 +179,14 @@ export class TargetCamera extends Camera {
     updateTarget(target) {
         if (!target) return;
         this.position.set(target.position); // Reuse position vector
-
+        let size = 10;
         // Compute target size and check if it has changed
-        const size = target instanceof Ship ? 20 : target.radius || target.size || 10;
+        if (target instanceof Ship) {
+            size = Math.max(target.boundingBox.width, target.boundingBox.height) * 0.5;
+        } else {
+            size = target.radius || target.size;
+        }
+
         if (size !== this.lastTargetSize) {
             // Adjust zoom calculation to ensure the target fits comfortably on screen
             const targetWorldSize = size * 4; // Simplified: Use diameter * 2 for buffer

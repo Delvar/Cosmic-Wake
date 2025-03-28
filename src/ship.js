@@ -56,7 +56,6 @@ export class Ship extends GameObject {
         this.hyperdriveCooldown = 5000;
         this.lastJumpTime = 0;
 
-
         // Generate random colors for cockpit, wings, and hull
         this.colors = {
             cockpit: this.generateRandomBlue(),
@@ -89,6 +88,9 @@ export class Ship extends GameObject {
         this.decelerationDistance = 0;
         this.farApproachDistance = 0;
         this.closeApproachDistance = 0;
+
+        // Bounding box dimensions for HUD targeting rectangle (default values)
+        this.boundingBox = new Vector2D(20, 20); // Default width and height
 
         // Scratch vectors to eliminate allocations in main loop
         this._scratchThrustVector = new Vector2D(0, 0);
@@ -455,7 +457,7 @@ export class Ship extends GameObject {
 
         ctx.save();
         ctx.translate(this._scratchScreenPos.x, this._scratchScreenPos.y);
-        ctx.rotate(this.angle);
+        ctx.rotate(this.angle - Math.PI * 0.5);
         const angleDiff = normalizeAngle(this.targetAngle - this.angle);
         ctx.fillStyle = 'rgba(255,0,255,0.25)';
         ctx.beginPath();
@@ -516,7 +518,7 @@ export class Ship extends GameObject {
         if (this.pilot) {
             this._scratchRadialIn.set(this.position).addInPlace(this.velocityError);
             camera.worldToScreen(this._scratchRadialIn, this._scratchRadialIn);
-            ctx.strokeStyle = 'purple';
+            ctx.strokeStyle = 'green';
             ctx.beginPath();
             ctx.moveTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
             ctx.lineTo(this._scratchRadialIn.x, this._scratchRadialIn.y);
@@ -530,6 +532,8 @@ export class Flivver extends Ship {
         this.rotationSpeed = Math.PI * 2.5;
         this.thrust = 800;
         this.maxVelocity = 700;
+        // Bounding box: width = 36 (from -18 to 18), height = 36 (from -20 to 16)
+        this.boundingBox.set(36, 36);
     }
 
     draw(ctx, camera) {
@@ -691,6 +695,8 @@ export class Shuttle extends Ship {
         this.rotationSpeed = Math.PI * 1.2;
         this.thrust = 200;
         this.maxVelocity = 400;
+        // Bounding box: width = 16 (from -8 to 8), height = 41 (from -20.5 to 20.5)
+        this.boundingBox.set(16, 41);
     }
 
     draw(ctx, camera) {
@@ -804,6 +810,8 @@ export class HeavyShuttle extends Ship {
         this.rotationSpeed = Math.PI * 1.1;
         this.thrust = 150;
         this.maxVelocity = 350;
+        // Bounding box: width = 16 (from -8 to 8), height = 48 (from -24 to 24)
+        this.boundingBox.set(16, 48);
     }
 
     draw(ctx, camera) {
@@ -921,6 +929,8 @@ export class StarBarge extends Ship {
         this.rotationSpeed = Math.PI * 0.5;
         this.thrust = 25;
         this.maxVelocity = 100;
+        // Bounding box: width = 32 (from -16 to 16), height = 55 (from -27.5 to 27.5)
+        this.boundingBox.set(32, 55);
     }
 
     draw(ctx, camera) {
@@ -1107,6 +1117,8 @@ export class Freighter extends Ship {
         this.rotationSpeed = Math.PI * 0.25;
         this.thrust = 25;
         this.maxVelocity = 100;
+        // Bounding box: width = 40 (from -20 to 20), height = 141 (from -70.5 to 70.5)
+        this.boundingBox.set(40, 141);
     }
 
     draw(ctx, camera) {
@@ -1586,6 +1598,8 @@ export class Arrow extends Ship {
         this.rotationSpeed = Math.PI * 0.5;
         this.thrust = 300;
         this.maxVelocity = 600;
+        // Bounding box: width = 30 (from -15 to 15), height = 56 (from -31 to 25)
+        this.boundingBox.set(30, 56);
     }
 
     draw(ctx, camera) {

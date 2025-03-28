@@ -350,12 +350,15 @@ export class LandOnPlanetAutoPilot extends AutoPilot {
                 if (this.ship.canLand(this.target)) {
                     this.ship.initiateLanding(this.target);
                 } else {
+                    //Hack to slow ships down if htey have slow turning rate
+                    this.ship.velocity.multiplyInPlace(1 - (0.05 * deltaTime));
                     // Slow down if not ready to land (e.g., speed too high)
                     this.ship.velocityError.set(-this.ship.velocity.x, -this.ship.velocity.y);
                     const desiredAngle = Math.atan2(this.ship.velocityError.x, -this.ship.velocityError.y);
                     const angleToDesired = normalizeAngle(desiredAngle - this.ship.angle);
                     this.ship.setTargetAngle(this.ship.angle + angleToDesired);
                     this.ship.applyThrust(Math.abs(angleToDesired) < Math.PI / 12);
+
                 }
             } else {
                 // Overshot the target; restart the sub-pilot to fly back

@@ -480,7 +480,7 @@ export class Ship extends GameObject {
 
         ctx.fillStyle = 'green';
         ctx.beginPath();
-        ctx.arc(this._scratchStoppingPoint.x, this._scratchStoppingPoint.y, 5 * scale, 0, TWO_PI);
+        ctx.arc(this._scratchStoppingPoint.x, this._scratchStoppingPoint.y, 1 * scale, 0, TWO_PI);
         ctx.fill();
 
         if (this.target) {
@@ -530,43 +530,39 @@ export class Shuttle extends Ship {
         camera.worldToScreen(this.position, this._scratchScreenPos);
         ctx.translate(this._scratchScreenPos.x, this._scratchScreenPos.y);
         ctx.rotate(this.angle);
-
         const scale = camera.zoom * this.shipScale;
         ctx.scale(scale, scale * this.stretchFactor);
 
-        // Draw the hull (main, lower, and base)
+        // Draw the hull
         ctx.strokeStyle = 'rgb(50, 50, 50)';
         ctx.lineWidth = 0.1;
         ctx.fillStyle = this.colors.hull.toRGB();
         ctx.beginPath();
-        // Main hull
-        ctx.moveTo(0, -13);
-        ctx.lineTo(2, -12);
-        ctx.lineTo(3, -10);
-        ctx.lineTo(3, -6);
-        ctx.lineTo(2, -5);
-        ctx.lineTo(-2, -5);
-        ctx.lineTo(-3, -6);
-        ctx.lineTo(-3, -10)
-        ctx.lineTo(-2, -12)
+        ctx.moveTo(0.00, -20.50);
+        ctx.lineTo(2.00, -19.50);
+        ctx.lineTo(3.00, -17.50);
+        ctx.lineTo(3.00, -13.50);
+        ctx.lineTo(2.00, -12.50);
+        ctx.lineTo(-2.00, -12.50);
+        ctx.lineTo(-3.00, -13.50);
+        ctx.lineTo(-3.00, -17.50);
+        ctx.lineTo(-2.00, -19.50);
         ctx.closePath();
-        // Lower hull
-        ctx.moveTo(2, -5);
-        ctx.lineTo(5, -4);
-        ctx.lineTo(6, 2);
-        ctx.lineTo(6, 11);
-        ctx.lineTo(4, 12);
-        ctx.lineTo(-4, 12);
-        ctx.lineTo(-6, 11);
-        ctx.lineTo(-6, 2);
-        ctx.lineTo(-5, -4);
-        ctx.lineTo(-2, -5);
+        ctx.moveTo(2.00, -12.50);
+        ctx.lineTo(5.00, -11.50);
+        ctx.lineTo(6.00, -5.50);
+        ctx.lineTo(6.00, 3.50);
+        ctx.lineTo(4.00, 4.50);
+        ctx.lineTo(-4.00, 4.50);
+        ctx.lineTo(-6.00, 3.50);
+        ctx.lineTo(-6.00, -5.50);
+        ctx.lineTo(-5.00, -11.50);
+        ctx.lineTo(-2.00, -12.50);
         ctx.closePath();
-        // Base
-        ctx.moveTo(3, 12);
-        ctx.lineTo(2, 13);
-        ctx.lineTo(-2, 13);
-        ctx.lineTo(-3, 12);
+        ctx.moveTo(3.00, 4.50);
+        ctx.lineTo(2.00, 5.50);
+        ctx.lineTo(-2.00, 5.50);
+        ctx.lineTo(-3.00, 4.50);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
@@ -574,49 +570,40 @@ export class Shuttle extends Ship {
         // Draw the cockpit
         ctx.fillStyle = this.colors.cockpit.toRGB();
         ctx.beginPath();
-        ctx.moveTo(-1, -11);
-        ctx.lineTo(1, -11);
-        ctx.lineTo(2, -9);
-        ctx.lineTo(-2, -9);
+        ctx.moveTo(-1.00, -18.50);
+        ctx.lineTo(1.00, -18.50);
+        ctx.lineTo(2.00, -14.50);
+        ctx.lineTo(-2.00, -14.50);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
 
-        // Draw the small wings
+        // Draw the wings and fins
         ctx.fillStyle = this.colors.wings.toRGB();
         ctx.beginPath();
-        // Left small wing
-        ctx.moveTo(3, -10);
-        ctx.lineTo(4, -8);
-        ctx.lineTo(4, -7);
-        ctx.lineTo(3, -8);
+        ctx.moveTo(3.00, -17.50);
+        ctx.lineTo(4.00, -15.50);
+        ctx.lineTo(4.00, -14.50);
+        ctx.lineTo(3.00, -15.50);
         ctx.closePath();
-        // Right small wing
-        ctx.moveTo(-3, -10);
-        ctx.lineTo(-4, -8);
-        ctx.lineTo(-4, -7);
-        ctx.lineTo(-3, -8);
+        ctx.moveTo(-3.00, -17.50);
+        ctx.lineTo(-3.00, -15.50);
+        ctx.lineTo(-4.00, -14.50);
+        ctx.lineTo(-4.00, -15.50);
         ctx.closePath();
-        ctx.fill();
-
-        // Draw the large wings and central fin
-        ctx.beginPath();
-        // Left large wing
-        ctx.moveTo(-6, 2);
-        ctx.lineTo(-8, 6);
-        ctx.lineTo(-8, 11);
-        ctx.lineTo(-6, 11);
+        ctx.moveTo(6.00, -5.50);
+        ctx.lineTo(8.00, -1.50);
+        ctx.lineTo(8.00, 3.50);
+        ctx.lineTo(6.00, 3.50);
         ctx.closePath();
-        // Right large wing
-        ctx.moveTo(6, 2);
-        ctx.lineTo(8, 6);
-        ctx.lineTo(8, 11);
-        ctx.lineTo(6, 11);
+        ctx.moveTo(-6.00, -5.50);
+        ctx.lineTo(-8.00, -1.50);
+        ctx.lineTo(-8.00, 3.50);
+        ctx.lineTo(-6.00, 3.50);
         ctx.closePath();
-        // Central fin
-        ctx.moveTo(0, 2);
-        ctx.lineTo(1, 11);
-        ctx.lineTo(-1, 11);
+        ctx.moveTo(0.00, -5.50);
+        ctx.lineTo(1.00, 3.50);
+        ctx.lineTo(-1.00, 3.50);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
@@ -625,9 +612,9 @@ export class Shuttle extends Ship {
         if ((this.isThrusting && this.state === 'Flying') || this.state === 'Landing' || this.state === 'TakingOff') {
             ctx.fillStyle = new Colour(1, 1, 0).toRGB();
             ctx.beginPath();
-            ctx.moveTo(-2, 13);
-            ctx.lineTo(0, 28);
-            ctx.lineTo(2, 13);
+            ctx.moveTo(-2.00, 5.50);
+            ctx.lineTo(0.00, 20.50);
+            ctx.lineTo(2.00, 5.50);
             ctx.closePath();
             ctx.fill();
         }
@@ -637,6 +624,7 @@ export class Shuttle extends Ship {
         // Draw debug information if enabled
         this.drawDebug(ctx, camera, scale);
     }
+
 }
 
 export class HeavyShuttle extends Ship {
@@ -655,43 +643,39 @@ export class HeavyShuttle extends Ship {
         camera.worldToScreen(this.position, this._scratchScreenPos);
         ctx.translate(this._scratchScreenPos.x, this._scratchScreenPos.y);
         ctx.rotate(this.angle);
-
         const scale = camera.zoom * this.shipScale;
         ctx.scale(scale, scale * this.stretchFactor);
 
-        // Draw the hull (main, lower, and base)
+        // Draw the hull
         ctx.strokeStyle = 'rgb(50, 50, 50)';
         ctx.lineWidth = 0.1;
         ctx.fillStyle = this.colors.hull.toRGB();
         ctx.beginPath();
-        // Main hull
-        ctx.moveTo(0, -20);
-        ctx.lineTo(3, -19);
-        ctx.lineTo(4, -15);
-        ctx.lineTo(4, -9);
-        ctx.lineTo(3, -8);
-        ctx.lineTo(-3, -8);
-        ctx.lineTo(-4, -9);
-        ctx.lineTo(-4, -15);
-        ctx.lineTo(-3, -19);
+        ctx.moveTo(0.00, -24.00);
+        ctx.lineTo(3.00, -23.00);
+        ctx.lineTo(4.00, -19.00);
+        ctx.lineTo(4.00, -13.00);
+        ctx.lineTo(3.00, -12.00);
+        ctx.lineTo(-3.00, -12.00);
+        ctx.lineTo(-4.00, -13.00);
+        ctx.lineTo(-4.00, -19.00);
+        ctx.lineTo(-3.00, -23.00);
         ctx.closePath();
-        // Lower hull
-        ctx.moveTo(3, -8);
-        ctx.lineTo(5, -7);
-        ctx.lineTo(6, -4);
-        ctx.lineTo(6, 10);
-        ctx.lineTo(4, 12);
-        ctx.lineTo(-4, 12);
-        ctx.lineTo(-6, 10);
-        ctx.lineTo(-6, -4);
-        ctx.lineTo(-5, -7);
-        ctx.lineTo(-3, -8);
+        ctx.moveTo(3.00, -12.00);
+        ctx.lineTo(5.00, -11.00);
+        ctx.lineTo(6.00, -8.00);
+        ctx.lineTo(6.00, 6.00);
+        ctx.lineTo(4.00, 8.00);
+        ctx.lineTo(-4.00, 8.00);
+        ctx.lineTo(-6.00, 6.00);
+        ctx.lineTo(-6.00, -8.00);
+        ctx.lineTo(-5.00, -11.00);
+        ctx.lineTo(-3.00, -12.00);
         ctx.closePath();
-        // Base
-        ctx.moveTo(3, 12);
-        ctx.lineTo(2, 13);
-        ctx.lineTo(-2, 13);
-        ctx.lineTo(-3, 12);
+        ctx.moveTo(3.00, 8.00);
+        ctx.lineTo(2.00, 9.00);
+        ctx.lineTo(-2.00, 9.00);
+        ctx.lineTo(-3.00, 8.00);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
@@ -699,54 +683,44 @@ export class HeavyShuttle extends Ship {
         // Draw the cockpit
         ctx.fillStyle = this.colors.cockpit.toRGB();
         ctx.beginPath();
-        ctx.moveTo(-1, -18);
-        ctx.lineTo(1, -18);
-        ctx.lineTo(2, -14);
-        ctx.lineTo(2, -12);
-        ctx.lineTo(1, -11);
-        ctx.lineTo(-1, -11);
-        ctx.lineTo(-2, -12);
-        ctx.lineTo(-2, -14);
+        ctx.moveTo(-1.00, -22.00);
+        ctx.lineTo(1.00, -22.00);
+        ctx.lineTo(2.00, -18.00);
+        ctx.lineTo(2.00, -16.00);
+        ctx.lineTo(1.00, -15.00);
+        ctx.lineTo(-1.00, -15.00);
+        ctx.lineTo(-2.00, -16.00);
+        ctx.lineTo(-2.00, -18.00);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
 
-        // Draw the small wings
+        // Draw the wings and fins
         ctx.fillStyle = this.colors.wings.toRGB();
         ctx.beginPath();
-        // Left small wing
-        ctx.moveTo(4, -15);
-        ctx.lineTo(4, -11);
-        ctx.lineTo(5, -10);
-        ctx.lineTo(5, -11);
+        ctx.moveTo(4.00, -19.00);
+        ctx.lineTo(5.00, -17.00);
+        ctx.lineTo(5.00, -14.00);
+        ctx.lineTo(4.00, -15.00);
         ctx.closePath();
-        // Right small wing
-        ctx.moveTo(-4, -15);
-        ctx.lineTo(-4, -11);
-        ctx.lineTo(-5, -10);
-        ctx.lineTo(-5, -11);
+        ctx.moveTo(-4.00, -19.00);
+        ctx.lineTo(-4.00, -15.00);
+        ctx.lineTo(-5.00, -14.00);
+        ctx.lineTo(-5.00, -17.00);
         ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-
-        // Draw the large wings and central fin
-        ctx.beginPath();
-        // Left large wing
-        ctx.moveTo(-6, -1);
-        ctx.lineTo(-8, 3);
-        ctx.lineTo(-8, 11);
-        ctx.lineTo(-6, 10);
+        ctx.moveTo(6.00, -5.00);
+        ctx.lineTo(8.00, -1.00);
+        ctx.lineTo(8.00, 7.00);
+        ctx.lineTo(6.00, 6.00);
         ctx.closePath();
-        // Right large wing
-        ctx.moveTo(6, -1);
-        ctx.lineTo(8, 3);
-        ctx.lineTo(8, 11);
-        ctx.lineTo(6, 10);
+        ctx.moveTo(-6.00, -5.00);
+        ctx.lineTo(-8.00, -1.00);
+        ctx.lineTo(-8.00, 7.00);
+        ctx.lineTo(-6.00, 6.00);
         ctx.closePath();
-        // Central fin
-        ctx.moveTo(0, -1);
-        ctx.lineTo(1, 11);
-        ctx.lineTo(-1, 11);
+        ctx.moveTo(0.00, -5.00);
+        ctx.lineTo(1.00, 7.00);
+        ctx.lineTo(-1.00, 7.00);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
@@ -755,9 +729,9 @@ export class HeavyShuttle extends Ship {
         if ((this.isThrusting && this.state === 'Flying') || this.state === 'Landing' || this.state === 'TakingOff') {
             ctx.fillStyle = new Colour(1, 1, 0).toRGB();
             ctx.beginPath();
-            ctx.moveTo(-2, 13);
-            ctx.lineTo(0, 28);
-            ctx.lineTo(2, 13);
+            ctx.moveTo(-2.00, 9.00);
+            ctx.lineTo(0.00, 24.00);
+            ctx.lineTo(2.00, 9.00);
             ctx.closePath();
             ctx.fill();
         }
@@ -767,6 +741,7 @@ export class HeavyShuttle extends Ship {
         // Draw debug information if enabled
         this.drawDebug(ctx, camera, scale);
     }
+
 }
 
 export class StarBarge extends Ship {
@@ -785,123 +760,117 @@ export class StarBarge extends Ship {
         camera.worldToScreen(this.position, this._scratchScreenPos);
         ctx.translate(this._scratchScreenPos.x, this._scratchScreenPos.y);
         ctx.rotate(this.angle);
-
         const scale = camera.zoom * this.shipScale;
         ctx.scale(scale, scale * this.stretchFactor);
 
-        // Draw the hull (main, mid, extensions, and base)
+        // Draw the hull
         ctx.strokeStyle = 'rgb(50, 50, 50)';
         ctx.lineWidth = 0.1;
         ctx.fillStyle = this.colors.hull.toRGB();
         ctx.beginPath();
-        // Main hull
-        ctx.moveTo(0, -22);
-        ctx.lineTo(3, -21);
-        ctx.lineTo(4, -17);
-        ctx.lineTo(4, -12);
-        ctx.lineTo(3, -11);
-        ctx.lineTo(-3, -11);
-        ctx.lineTo(-4, -12);
-        ctx.lineTo(-4, -17);
-        ctx.lineTo(-3, -21);
+        ctx.moveTo(0.00, -27.50);
+        ctx.lineTo(3.00, -26.50);
+        ctx.lineTo(4.00, -22.50);
+        ctx.lineTo(4.00, -17.50);
+        ctx.lineTo(3.00, -16.50);
+        ctx.lineTo(-3.00, -16.50);
+        ctx.lineTo(-4.00, -17.50);
+        ctx.lineTo(-4.00, -22.50);
+        ctx.lineTo(-3.00, -26.50);
         ctx.closePath();
-        // Mid hull
-        ctx.moveTo(-3, -11);
-        ctx.lineTo(3, -11);
-        ctx.lineTo(8, -9);
-        ctx.lineTo(2, -9);
-        ctx.lineTo(1, -8);
-        ctx.lineTo(1, 14);
-        ctx.lineTo(2, 15);
-        ctx.lineTo(8, 15);
-        ctx.lineTo(3, 17);
-        ctx.lineTo(-3, 17);
-        ctx.lineTo(-8, 15);
-        ctx.lineTo(-2, 15);
-        ctx.lineTo(-1, 14);
-        ctx.lineTo(-1, -8);
-        ctx.lineTo(-2, -9);
-        ctx.lineTo(-8, -9);
+        ctx.moveTo(3.00, 11.50);
+        ctx.lineTo(2.00, 12.50);
+        ctx.lineTo(-2.00, 12.50);
+        ctx.lineTo(-3.00, 11.50);
         ctx.closePath();
-        // Right hull extension
-        ctx.moveTo(2, 15);
-        ctx.lineTo(1, 14);
-        ctx.lineTo(1, -8);
-        ctx.lineTo(2, -9);
-        ctx.lineTo(8, -9);
-        ctx.lineTo(7, -8);
-        ctx.lineTo(7, 14);
-        ctx.lineTo(8, 15);
+        ctx.moveTo(2.00, 9.50);
+        ctx.lineTo(1.00, 8.50);
+        ctx.lineTo(1.00, -13.50);
+        ctx.lineTo(2.00, -14.50);
+        ctx.lineTo(8.00, -14.50);
+        ctx.lineTo(7.00, -13.50);
+        ctx.lineTo(7.00, 8.50);
+        ctx.lineTo(8.00, 9.50);
         ctx.closePath();
-        ctx.moveTo(8, -9);
-        ctx.lineTo(7, -8);
-        ctx.lineTo(7, 14);
-        ctx.lineTo(8, 15);
-        ctx.lineTo(12, 15);
-        ctx.lineTo(13, 14);
-        ctx.lineTo(13, -8);
-        ctx.lineTo(12, -9);
+        ctx.moveTo(8.00, -14.50);
+        ctx.lineTo(7.00, -13.50);
+        ctx.lineTo(7.00, 8.50);
+        ctx.lineTo(8.00, 9.50);
+        ctx.lineTo(12.00, 9.50);
+        ctx.lineTo(13.00, 8.50);
+        ctx.lineTo(13.00, -13.50);
+        ctx.lineTo(12.00, -14.50);
         ctx.closePath();
-        ctx.moveTo(9, 4);
-        ctx.lineTo(8, 5);
-        ctx.lineTo(8, 13);
-        ctx.lineTo(9, 14);
-        ctx.lineTo(11, 14);
-        ctx.lineTo(12, 13);
-        ctx.lineTo(12, 5);
-        ctx.lineTo(11, 4);
+        ctx.moveTo(9.00, -1.50);
+        ctx.lineTo(8.00, -0.50);
+        ctx.lineTo(8.00, 7.50);
+        ctx.lineTo(9.00, 8.50);
+        ctx.lineTo(11.00, 8.50);
+        ctx.lineTo(12.00, 7.50);
+        ctx.lineTo(12.00, -0.50);
+        ctx.lineTo(11.00, -1.50);
         ctx.closePath();
-        ctx.moveTo(9, -8);
-        ctx.lineTo(8, -7);
-        ctx.lineTo(8, 1);
-        ctx.lineTo(9, 2);
-        ctx.lineTo(11, 2);
-        ctx.lineTo(12, 1);
-        ctx.lineTo(12, -7);
-        ctx.lineTo(11, -8);
+        ctx.moveTo(9.00, -13.50);
+        ctx.lineTo(8.00, -12.50);
+        ctx.lineTo(8.00, -4.50);
+        ctx.lineTo(9.00, -3.50);
+        ctx.lineTo(11.00, -3.50);
+        ctx.lineTo(12.00, -4.50);
+        ctx.lineTo(12.00, -12.50);
+        ctx.lineTo(11.00, -13.50);
         ctx.closePath();
-        // Left hull extension (mirrored)
-        ctx.moveTo(-2, 15);
-        ctx.lineTo(-1, 14);
-        ctx.lineTo(-1, -8);
-        ctx.lineTo(-2, -9);
-        ctx.lineTo(-8, -9);
-        ctx.lineTo(-7, -8);
-        ctx.lineTo(-7, 14);
-        ctx.lineTo(-8, 15);
+        ctx.moveTo(-2.00, 9.50);
+        ctx.lineTo(-1.00, 8.50);
+        ctx.lineTo(-1.00, -13.50);
+        ctx.lineTo(-2.00, -14.50);
+        ctx.lineTo(-8.00, -14.50);
+        ctx.lineTo(-7.00, -13.50);
+        ctx.lineTo(-7.00, 8.50);
+        ctx.lineTo(-8.00, 9.50);
         ctx.closePath();
-        ctx.moveTo(-8, -9);
-        ctx.lineTo(-7, -8);
-        ctx.lineTo(-7, 14);
-        ctx.lineTo(-8, 15);
-        ctx.lineTo(-12, 15);
-        ctx.lineTo(-13, 14);
-        ctx.lineTo(-13, -8);
-        ctx.lineTo(-12, -9);
+        ctx.moveTo(-8.00, -14.50);
+        ctx.lineTo(-7.00, -13.50);
+        ctx.lineTo(-7.00, 8.50);
+        ctx.lineTo(-8.00, 9.50);
+        ctx.lineTo(-12.00, 9.50);
+        ctx.lineTo(-13.00, 8.50);
+        ctx.lineTo(-13.00, -13.50);
+        ctx.lineTo(-12.00, -14.50);
         ctx.closePath();
-        ctx.moveTo(-9, 4);
-        ctx.lineTo(-8, 5);
-        ctx.lineTo(-8, 13);
-        ctx.lineTo(-9, 14);
-        ctx.lineTo(-11, 14);
-        ctx.lineTo(-12, 13);
-        ctx.lineTo(-12, 5);
-        ctx.lineTo(-11, 4);
+        ctx.moveTo(-9.00, -1.50);
+        ctx.lineTo(-8.00, -0.50);
+        ctx.lineTo(-8.00, 7.50);
+        ctx.lineTo(-9.00, 8.50);
+        ctx.lineTo(-11.00, 8.50);
+        ctx.lineTo(-12.00, 7.50);
+        ctx.lineTo(-12.00, -0.50);
+        ctx.lineTo(-11.00, -1.50);
         ctx.closePath();
-        ctx.moveTo(-9, -8);
-        ctx.lineTo(-8, -7);
-        ctx.lineTo(-8, 1);
-        ctx.lineTo(-9, 2);
-        ctx.lineTo(-11, 2);
-        ctx.lineTo(-12, 1);
-        ctx.lineTo(-12, -7);
-        ctx.lineTo(-11, -8);
+        ctx.moveTo(-9.00, -13.50);
+        ctx.lineTo(-8.00, -12.50);
+        ctx.lineTo(-8.00, -4.50);
+        ctx.lineTo(-9.00, -3.50);
+        ctx.lineTo(-11.00, -3.50);
+        ctx.lineTo(-12.00, -4.50);
+        ctx.lineTo(-12.00, -12.50);
+        ctx.lineTo(-11.00, -13.50);
         ctx.closePath();
-        // Base
-        ctx.moveTo(3, 17);
-        ctx.lineTo(2, 18);
-        ctx.lineTo(-2, 18);
-        ctx.lineTo(-3, 17);
+        ctx.moveTo(-3.00, -16.50);
+        ctx.lineTo(3.00, -16.50);
+        ctx.lineTo(8.00, -14.50);
+        ctx.lineTo(2.00, -14.50);
+        ctx.lineTo(1.00, -13.50);
+        ctx.lineTo(1.00, 8.50);
+        ctx.lineTo(2.00, 9.50);
+        ctx.lineTo(8.00, 9.50);
+        ctx.lineTo(3.00, 11.50);
+        ctx.lineTo(-3.00, 11.50);
+        ctx.lineTo(-8.00, 9.50);
+        ctx.lineTo(-2.00, 9.50);
+        ctx.lineTo(-1.00, 8.50);
+        ctx.lineTo(-1.00, -13.50);
+        ctx.lineTo(-2.00, -14.50);
+        ctx.lineTo(-8.00, -14.50);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
@@ -909,37 +878,34 @@ export class StarBarge extends Ship {
         // Draw the cockpit
         ctx.fillStyle = this.colors.cockpit.toRGB();
         ctx.beginPath();
-        ctx.moveTo(-1, -20);
-        ctx.lineTo(1, -20);
-        ctx.lineTo(2, -16);
-        ctx.lineTo(2, -14);
-        ctx.lineTo(1, -13);
-        ctx.lineTo(-1, -13);
-        ctx.lineTo(-2, -14);
-        ctx.lineTo(-2, -16);
+        ctx.moveTo(-1.00, -25.50);
+        ctx.lineTo(1.00, -25.50);
+        ctx.lineTo(2.00, -21.50);
+        ctx.lineTo(2.00, -19.50);
+        ctx.lineTo(1.00, -18.50);
+        ctx.lineTo(-1.00, -18.50);
+        ctx.lineTo(-2.00, -19.50);
+        ctx.lineTo(-2.00, -21.50);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
 
-        // Draw the large wings and central fin
+        // Draw the wings and fins
         ctx.fillStyle = this.colors.wings.toRGB();
         ctx.beginPath();
-        // Right large wing
-        ctx.moveTo(13, 1);
-        ctx.lineTo(16, 7);
-        ctx.lineTo(16, 13);
-        ctx.lineTo(13, 12);
+        ctx.moveTo(13.00, -4.50);
+        ctx.lineTo(16.00, 1.50);
+        ctx.lineTo(16.00, 7.50);
+        ctx.lineTo(13.00, 6.50);
         ctx.closePath();
-        // Left large wing
-        ctx.moveTo(-13, 1);
-        ctx.lineTo(-16, 7);
-        ctx.lineTo(-16, 13);
-        ctx.lineTo(-13, 12);
+        ctx.moveTo(0.00, -1.50);
+        ctx.lineTo(1.00, 10.50);
+        ctx.lineTo(-1.00, 10.50);
         ctx.closePath();
-        // Central fin
-        ctx.moveTo(0, 4);
-        ctx.lineTo(1, 16);
-        ctx.lineTo(-1, 16);
+        ctx.moveTo(-13.00, -4.50);
+        ctx.lineTo(-16.00, 1.50);
+        ctx.lineTo(-16.00, 7.50);
+        ctx.lineTo(-13.00, 6.50);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
@@ -948,9 +914,490 @@ export class StarBarge extends Ship {
         if ((this.isThrusting && this.state === 'Flying') || this.state === 'Landing' || this.state === 'TakingOff') {
             ctx.fillStyle = new Colour(1, 1, 0).toRGB();
             ctx.beginPath();
-            ctx.moveTo(-2, 18);
-            ctx.lineTo(0, 33);
-            ctx.lineTo(2, 18);
+            ctx.moveTo(-2.00, 12.50);
+            ctx.lineTo(0.00, 27.50);
+            ctx.lineTo(2.00, 12.50);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        ctx.restore();
+
+        // Draw debug information if enabled
+        this.drawDebug(ctx, camera, scale);
+    }
+
+
+}
+
+export class Freighter extends Ship {
+    constructor(x, y, starSystem) {
+        super(x, y, starSystem);
+        this.rotationSpeed = Math.PI * 0.25;
+        this.thrust = 25;
+        this.maxVelocity = 100;
+    }
+
+    draw(ctx, camera) {
+        if (this.state === 'Landed') return;
+
+        ctx.save();
+        this.trail.draw(ctx, camera);
+        camera.worldToScreen(this.position, this._scratchScreenPos);
+        ctx.translate(this._scratchScreenPos.x, this._scratchScreenPos.y);
+        ctx.rotate(this.angle);
+        const scale = camera.zoom * this.shipScale;
+        ctx.scale(scale, scale * this.stretchFactor);
+
+        // Draw the hull
+        ctx.strokeStyle = 'rgb(50, 50, 50)';
+        ctx.lineWidth = 0.1;
+        ctx.fillStyle = this.colors.hull.toRGB();
+        ctx.beginPath();
+        ctx.moveTo(0.00, 43.50);
+        ctx.lineTo(2.00, 45.50);
+        ctx.lineTo(12.00, 45.50);
+        ctx.lineTo(11.00, 48.50);
+        ctx.lineTo(1.00, 50.50);
+        ctx.lineTo(-1.00, 50.50);
+        ctx.lineTo(-11.00, 48.50);
+        ctx.lineTo(-12.00, 45.50);
+        ctx.lineTo(-2.00, 45.50);
+        ctx.closePath();
+        ctx.moveTo(0.00, -70.50);
+        ctx.lineTo(3.00, -69.50);
+        ctx.lineTo(4.00, -65.50);
+        ctx.lineTo(4.00, -58.50);
+        ctx.lineTo(3.00, -57.50);
+        ctx.lineTo(-3.00, -57.50);
+        ctx.lineTo(-4.00, -58.50);
+        ctx.lineTo(-4.00, -65.50);
+        ctx.lineTo(-3.00, -69.50);
+        ctx.closePath();
+        ctx.moveTo(9.00, 55.50);
+        ctx.lineTo(11.00, 53.50);
+        ctx.lineTo(11.00, 48.50);
+        ctx.lineTo(1.00, 50.50);
+        ctx.lineTo(1.00, 53.50);
+        ctx.lineTo(3.00, 55.50);
+        ctx.closePath();
+        ctx.moveTo(-3.00, 55.50);
+        ctx.lineTo(-1.00, 53.50);
+        ctx.lineTo(-1.00, 50.50);
+        ctx.lineTo(-11.00, 48.50);
+        ctx.lineTo(-11.00, 53.50);
+        ctx.lineTo(-9.00, 55.50);
+        ctx.closePath();
+        ctx.moveTo(-2.00, -53.50);
+        ctx.lineTo(-1.00, -52.50);
+        ctx.lineTo(-1.00, -30.50);
+        ctx.lineTo(-2.00, -29.50);
+        ctx.lineTo(-8.00, -29.50);
+        ctx.lineTo(-7.00, -30.50);
+        ctx.lineTo(-7.00, -52.50);
+        ctx.lineTo(-8.00, -53.50);
+        ctx.closePath();
+        ctx.moveTo(-8.00, -29.50);
+        ctx.lineTo(-7.00, -30.50);
+        ctx.lineTo(-7.00, -52.50);
+        ctx.lineTo(-8.00, -53.50);
+        ctx.lineTo(-12.00, -53.50);
+        ctx.lineTo(-13.00, -52.50);
+        ctx.lineTo(-13.00, -30.50);
+        ctx.lineTo(-12.00, -29.50);
+        ctx.closePath();
+        ctx.moveTo(-9.00, -42.50);
+        ctx.lineTo(-8.00, -43.50);
+        ctx.lineTo(-8.00, -51.50);
+        ctx.lineTo(-9.00, -52.50);
+        ctx.lineTo(-11.00, -52.50);
+        ctx.lineTo(-12.00, -51.50);
+        ctx.lineTo(-12.00, -43.50);
+        ctx.lineTo(-11.00, -42.50);
+        ctx.closePath();
+        ctx.moveTo(-9.00, -30.50);
+        ctx.lineTo(-8.00, -31.50);
+        ctx.lineTo(-8.00, -39.50);
+        ctx.lineTo(-9.00, -40.50);
+        ctx.lineTo(-11.00, -40.50);
+        ctx.lineTo(-12.00, -39.50);
+        ctx.lineTo(-12.00, -31.50);
+        ctx.lineTo(-11.00, -30.50);
+        ctx.closePath();
+        ctx.moveTo(2.00, -29.50);
+        ctx.lineTo(1.00, -30.50);
+        ctx.lineTo(1.00, -52.50);
+        ctx.lineTo(2.00, -53.50);
+        ctx.lineTo(8.00, -53.50);
+        ctx.lineTo(7.00, -52.50);
+        ctx.lineTo(7.00, -30.50);
+        ctx.lineTo(8.00, -29.50);
+        ctx.closePath();
+        ctx.moveTo(8.00, -53.50);
+        ctx.lineTo(7.00, -52.50);
+        ctx.lineTo(7.00, -30.50);
+        ctx.lineTo(8.00, -29.50);
+        ctx.lineTo(12.00, -29.50);
+        ctx.lineTo(13.00, -30.50);
+        ctx.lineTo(13.00, -52.50);
+        ctx.lineTo(12.00, -53.50);
+        ctx.closePath();
+        ctx.moveTo(9.00, -40.50);
+        ctx.lineTo(8.00, -39.50);
+        ctx.lineTo(8.00, -31.50);
+        ctx.lineTo(9.00, -30.50);
+        ctx.lineTo(11.00, -30.50);
+        ctx.lineTo(12.00, -31.50);
+        ctx.lineTo(12.00, -39.50);
+        ctx.lineTo(11.00, -40.50);
+        ctx.closePath();
+        ctx.moveTo(9.00, -52.50);
+        ctx.lineTo(8.00, -51.50);
+        ctx.lineTo(8.00, -43.50);
+        ctx.lineTo(9.00, -42.50);
+        ctx.lineTo(11.00, -42.50);
+        ctx.lineTo(12.00, -43.50);
+        ctx.lineTo(12.00, -51.50);
+        ctx.lineTo(11.00, -52.50);
+        ctx.closePath();
+        ctx.moveTo(2.00, -4.50);
+        ctx.lineTo(1.00, -5.50);
+        ctx.lineTo(1.00, -27.50);
+        ctx.lineTo(2.00, -28.50);
+        ctx.lineTo(8.00, -28.50);
+        ctx.lineTo(7.00, -27.50);
+        ctx.lineTo(7.00, -5.50);
+        ctx.lineTo(8.00, -4.50);
+        ctx.closePath();
+        ctx.moveTo(8.00, -28.50);
+        ctx.lineTo(7.00, -27.50);
+        ctx.lineTo(7.00, -5.50);
+        ctx.lineTo(8.00, -4.50);
+        ctx.lineTo(12.00, -4.50);
+        ctx.lineTo(13.00, -5.50);
+        ctx.lineTo(13.00, -27.50);
+        ctx.lineTo(12.00, -28.50);
+        ctx.closePath();
+        ctx.moveTo(9.00, -15.50);
+        ctx.lineTo(8.00, -14.50);
+        ctx.lineTo(8.00, -6.50);
+        ctx.lineTo(9.00, -5.50);
+        ctx.lineTo(11.00, -5.50);
+        ctx.lineTo(12.00, -6.50);
+        ctx.lineTo(12.00, -14.50);
+        ctx.lineTo(11.00, -15.50);
+        ctx.closePath();
+        ctx.moveTo(9.00, -27.50);
+        ctx.lineTo(8.00, -26.50);
+        ctx.lineTo(8.00, -18.50);
+        ctx.lineTo(9.00, -17.50);
+        ctx.lineTo(11.00, -17.50);
+        ctx.lineTo(12.00, -18.50);
+        ctx.lineTo(12.00, -26.50);
+        ctx.lineTo(11.00, -27.50);
+        ctx.closePath();
+        ctx.moveTo(-2.00, -28.50);
+        ctx.lineTo(-1.00, -27.50);
+        ctx.lineTo(-1.00, -5.50);
+        ctx.lineTo(-2.00, -4.50);
+        ctx.lineTo(-8.00, -4.50);
+        ctx.lineTo(-7.00, -5.50);
+        ctx.lineTo(-7.00, -27.50);
+        ctx.lineTo(-8.00, -28.50);
+        ctx.closePath();
+        ctx.moveTo(-8.00, -4.50);
+        ctx.lineTo(-7.00, -5.50);
+        ctx.lineTo(-7.00, -27.50);
+        ctx.lineTo(-8.00, -28.50);
+        ctx.lineTo(-12.00, -28.50);
+        ctx.lineTo(-13.00, -27.50);
+        ctx.lineTo(-13.00, -5.50);
+        ctx.lineTo(-12.00, -4.50);
+        ctx.closePath();
+        ctx.moveTo(-9.00, -17.50);
+        ctx.lineTo(-8.00, -18.50);
+        ctx.lineTo(-8.00, -26.50);
+        ctx.lineTo(-9.00, -27.50);
+        ctx.lineTo(-11.00, -27.50);
+        ctx.lineTo(-12.00, -26.50);
+        ctx.lineTo(-12.00, -18.50);
+        ctx.lineTo(-11.00, -17.50);
+        ctx.closePath();
+        ctx.moveTo(-9.00, -5.50);
+        ctx.lineTo(-8.00, -6.50);
+        ctx.lineTo(-8.00, -14.50);
+        ctx.lineTo(-9.00, -15.50);
+        ctx.lineTo(-11.00, -15.50);
+        ctx.lineTo(-12.00, -14.50);
+        ctx.lineTo(-12.00, -6.50);
+        ctx.lineTo(-11.00, -5.50);
+        ctx.closePath();
+        ctx.moveTo(-2.00, -3.50);
+        ctx.lineTo(-1.00, -2.50);
+        ctx.lineTo(-1.00, 19.50);
+        ctx.lineTo(-2.00, 20.50);
+        ctx.lineTo(-8.00, 20.50);
+        ctx.lineTo(-7.00, 19.50);
+        ctx.lineTo(-7.00, -2.50);
+        ctx.lineTo(-8.00, -3.50);
+        ctx.closePath();
+        ctx.moveTo(-8.00, 20.50);
+        ctx.lineTo(-7.00, 19.50);
+        ctx.lineTo(-7.00, -2.50);
+        ctx.lineTo(-8.00, -3.50);
+        ctx.lineTo(-12.00, -3.50);
+        ctx.lineTo(-13.00, -2.50);
+        ctx.lineTo(-13.00, 19.50);
+        ctx.lineTo(-12.00, 20.50);
+        ctx.closePath();
+        ctx.moveTo(-9.00, 7.50);
+        ctx.lineTo(-8.00, 6.50);
+        ctx.lineTo(-8.00, -1.50);
+        ctx.lineTo(-9.00, -2.50);
+        ctx.lineTo(-11.00, -2.50);
+        ctx.lineTo(-12.00, -1.50);
+        ctx.lineTo(-12.00, 6.50);
+        ctx.lineTo(-11.00, 7.50);
+        ctx.closePath();
+        ctx.moveTo(-9.00, 19.50);
+        ctx.lineTo(-8.00, 18.50);
+        ctx.lineTo(-8.00, 10.50);
+        ctx.lineTo(-9.00, 9.50);
+        ctx.lineTo(-11.00, 9.50);
+        ctx.lineTo(-12.00, 10.50);
+        ctx.lineTo(-12.00, 18.50);
+        ctx.lineTo(-11.00, 19.50);
+        ctx.closePath();
+        ctx.moveTo(2.00, 20.50);
+        ctx.lineTo(1.00, 19.50);
+        ctx.lineTo(1.00, -2.50);
+        ctx.lineTo(2.00, -3.50);
+        ctx.lineTo(8.00, -3.50);
+        ctx.lineTo(7.00, -2.50);
+        ctx.lineTo(7.00, 19.50);
+        ctx.lineTo(8.00, 20.50);
+        ctx.closePath();
+        ctx.moveTo(8.00, -3.50);
+        ctx.lineTo(7.00, -2.50);
+        ctx.lineTo(7.00, 19.50);
+        ctx.lineTo(8.00, 20.50);
+        ctx.lineTo(12.00, 20.50);
+        ctx.lineTo(13.00, 19.50);
+        ctx.lineTo(13.00, -2.50);
+        ctx.lineTo(12.00, -3.50);
+        ctx.closePath();
+        ctx.moveTo(9.00, 9.50);
+        ctx.lineTo(8.00, 10.50);
+        ctx.lineTo(8.00, 18.50);
+        ctx.lineTo(9.00, 19.50);
+        ctx.lineTo(11.00, 19.50);
+        ctx.lineTo(12.00, 18.50);
+        ctx.lineTo(12.00, 10.50);
+        ctx.lineTo(11.00, 9.50);
+        ctx.closePath();
+        ctx.moveTo(9.00, -2.50);
+        ctx.lineTo(8.00, -1.50);
+        ctx.lineTo(8.00, 6.50);
+        ctx.lineTo(9.00, 7.50);
+        ctx.lineTo(11.00, 7.50);
+        ctx.lineTo(12.00, 6.50);
+        ctx.lineTo(12.00, -1.50);
+        ctx.lineTo(11.00, -2.50);
+        ctx.closePath();
+        ctx.moveTo(-2.00, 21.50);
+        ctx.lineTo(-1.00, 22.50);
+        ctx.lineTo(-1.00, 44.50);
+        ctx.lineTo(-2.00, 45.50);
+        ctx.lineTo(-8.00, 45.50);
+        ctx.lineTo(-7.00, 44.50);
+        ctx.lineTo(-7.00, 22.50);
+        ctx.lineTo(-8.00, 21.50);
+        ctx.closePath();
+        ctx.moveTo(-8.00, 45.50);
+        ctx.lineTo(-7.00, 44.50);
+        ctx.lineTo(-7.00, 22.50);
+        ctx.lineTo(-8.00, 21.50);
+        ctx.lineTo(-12.00, 21.50);
+        ctx.lineTo(-13.00, 22.50);
+        ctx.lineTo(-13.00, 44.50);
+        ctx.lineTo(-12.00, 45.50);
+        ctx.closePath();
+        ctx.moveTo(-9.00, 32.50);
+        ctx.lineTo(-8.00, 31.50);
+        ctx.lineTo(-8.00, 23.50);
+        ctx.lineTo(-9.00, 22.50);
+        ctx.lineTo(-11.00, 22.50);
+        ctx.lineTo(-12.00, 23.50);
+        ctx.lineTo(-12.00, 31.50);
+        ctx.lineTo(-11.00, 32.50);
+        ctx.closePath();
+        ctx.moveTo(-9.00, 44.50);
+        ctx.lineTo(-8.00, 43.50);
+        ctx.lineTo(-8.00, 35.50);
+        ctx.lineTo(-9.00, 34.50);
+        ctx.lineTo(-11.00, 34.50);
+        ctx.lineTo(-12.00, 35.50);
+        ctx.lineTo(-12.00, 43.50);
+        ctx.lineTo(-11.00, 44.50);
+        ctx.closePath();
+        ctx.moveTo(2.00, 45.50);
+        ctx.lineTo(1.00, 44.50);
+        ctx.lineTo(1.00, 22.50);
+        ctx.lineTo(2.00, 21.50);
+        ctx.lineTo(8.00, 21.50);
+        ctx.lineTo(7.00, 22.50);
+        ctx.lineTo(7.00, 44.50);
+        ctx.lineTo(8.00, 45.50);
+        ctx.closePath();
+        ctx.moveTo(8.00, 21.50);
+        ctx.lineTo(7.00, 22.50);
+        ctx.lineTo(7.00, 44.50);
+        ctx.lineTo(8.00, 45.50);
+        ctx.lineTo(12.00, 45.50);
+        ctx.lineTo(13.00, 44.50);
+        ctx.lineTo(13.00, 22.50);
+        ctx.lineTo(12.00, 21.50);
+        ctx.closePath();
+        ctx.moveTo(9.00, 34.50);
+        ctx.lineTo(8.00, 35.50);
+        ctx.lineTo(8.00, 43.50);
+        ctx.lineTo(9.00, 44.50);
+        ctx.lineTo(11.00, 44.50);
+        ctx.lineTo(12.00, 43.50);
+        ctx.lineTo(12.00, 35.50);
+        ctx.lineTo(11.00, 34.50);
+        ctx.closePath();
+        ctx.moveTo(9.00, 22.50);
+        ctx.lineTo(8.00, 23.50);
+        ctx.lineTo(8.00, 31.50);
+        ctx.lineTo(9.00, 32.50);
+        ctx.lineTo(11.00, 32.50);
+        ctx.lineTo(12.00, 31.50);
+        ctx.lineTo(12.00, 23.50);
+        ctx.lineTo(11.00, 22.50);
+        ctx.closePath();
+        ctx.moveTo(-3.00, -57.50);
+        ctx.lineTo(3.00, -57.50);
+        ctx.lineTo(8.00, -53.50);
+        ctx.lineTo(2.00, -53.50);
+        ctx.lineTo(1.00, -52.50);
+        ctx.lineTo(1.00, -30.50);
+        ctx.lineTo(2.00, -29.50);
+        ctx.lineTo(8.00, -29.50);
+        ctx.lineTo(8.00, -28.50);
+        ctx.lineTo(2.00, -28.50);
+        ctx.lineTo(1.00, -27.50);
+        ctx.lineTo(1.00, -5.50);
+        ctx.lineTo(2.00, -4.50);
+        ctx.lineTo(8.00, -4.50);
+        ctx.lineTo(8.00, -3.50);
+        ctx.lineTo(2.00, -3.50);
+        ctx.lineTo(1.00, -2.50);
+        ctx.lineTo(1.00, 19.50);
+        ctx.lineTo(2.00, 20.50);
+        ctx.lineTo(8.00, 20.50);
+        ctx.lineTo(8.00, 21.50);
+        ctx.lineTo(2.00, 21.50);
+        ctx.lineTo(1.00, 22.50);
+        ctx.lineTo(1.00, 44.50);
+        ctx.lineTo(-1.00, 44.50);
+        ctx.lineTo(-1.00, 22.50);
+        ctx.lineTo(-2.00, 21.50);
+        ctx.lineTo(-8.00, 21.50);
+        ctx.lineTo(-8.00, 20.50);
+        ctx.lineTo(-2.00, 20.50);
+        ctx.lineTo(-1.00, 19.50);
+        ctx.lineTo(-1.00, -2.50);
+        ctx.lineTo(-2.00, -3.50);
+        ctx.lineTo(-8.00, -3.50);
+        ctx.lineTo(-8.00, -4.50);
+        ctx.lineTo(-2.00, -4.50);
+        ctx.lineTo(-1.00, -5.50);
+        ctx.lineTo(-1.00, -27.50);
+        ctx.lineTo(-2.00, -28.50);
+        ctx.lineTo(-8.00, -28.50);
+        ctx.lineTo(-8.00, -29.50);
+        ctx.lineTo(-2.00, -29.50);
+        ctx.lineTo(-1.00, -30.50);
+        ctx.lineTo(-1.00, -52.50);
+        ctx.lineTo(-2.00, -53.50);
+        ctx.lineTo(-8.00, -53.50);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Draw the cockpit
+        ctx.fillStyle = this.colors.cockpit.toRGB();
+        ctx.beginPath();
+        ctx.moveTo(-1.00, -68.50);
+        ctx.lineTo(1.00, -68.50);
+        ctx.lineTo(2.00, -64.50);
+        ctx.lineTo(2.00, -62.50);
+        ctx.lineTo(1.00, -61.50);
+        ctx.lineTo(-1.00, -61.50);
+        ctx.lineTo(-2.00, -62.50);
+        ctx.lineTo(-2.00, -64.50);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Draw the wings and fins
+        ctx.fillStyle = this.colors.wings.toRGB();
+        ctx.beginPath();
+        ctx.moveTo(13.00, 24.50);
+        ctx.lineTo(20.00, 36.50);
+        ctx.lineTo(20.00, 45.50);
+        ctx.lineTo(13.00, 44.50);
+        ctx.closePath();
+        ctx.moveTo(13.00, -19.50);
+        ctx.lineTo(20.00, -11.50);
+        ctx.lineTo(20.00, -7.50);
+        ctx.lineTo(13.00, -8.50);
+        ctx.closePath();
+        ctx.moveTo(4.00, -65.50);
+        ctx.lineTo(7.00, -62.50);
+        ctx.lineTo(7.00, -60.50);
+        ctx.lineTo(4.00, -60.50);
+        ctx.closePath();
+        ctx.moveTo(-4.00, -65.50);
+        ctx.lineTo(-7.00, -62.50);
+        ctx.lineTo(-7.00, -60.50);
+        ctx.lineTo(-4.00, -60.50);
+        ctx.closePath();
+        ctx.moveTo(-13.00, -19.50);
+        ctx.lineTo(-20.00, -11.50);
+        ctx.lineTo(-20.00, -7.50);
+        ctx.lineTo(-13.00, -8.50);
+        ctx.closePath();
+        ctx.moveTo(-13.00, 24.50);
+        ctx.lineTo(-20.00, 36.50);
+        ctx.lineTo(-20.00, 45.50);
+        ctx.lineTo(-13.00, 44.50);
+        ctx.closePath();
+        ctx.moveTo(0.00, -19.50);
+        ctx.lineTo(1.00, -7.50);
+        ctx.lineTo(-1.00, -7.50);
+        ctx.closePath();
+        ctx.moveTo(0.00, 22.50);
+        ctx.lineTo(1.00, 44.50);
+        ctx.lineTo(-1.00, 44.50);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Draw thrust effect if applicable
+        if ((this.isThrusting && this.state === 'Flying') || this.state === 'Landing' || this.state === 'TakingOff') {
+            ctx.fillStyle = new Colour(1, 1, 0).toRGB();
+            ctx.beginPath();
+            ctx.moveTo(4.00, 55.50);
+            ctx.lineTo(6.00, 70.50);
+            ctx.lineTo(8.00, 55.50);
+            ctx.closePath();
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(-8.00, 55.50);
+            ctx.lineTo(-6.00, 70.50);
+            ctx.lineTo(-4.00, 55.50);
             ctx.closePath();
             ctx.fill();
         }
@@ -965,7 +1412,7 @@ export class StarBarge extends Ship {
 export class Arrow extends Ship {
     constructor(x, y, starSystem) {
         super(x, y, starSystem);
-        this.rotationSpeed = Math.PI * 0.8;
+        this.rotationSpeed = Math.PI * 0.5;
         this.thrust = 300;
         this.maxVelocity = 600;
     }
@@ -1095,7 +1542,8 @@ export class Arrow extends Ship {
 
 // Factory function to create a random ship type
 export function createRandomShip(x, y, starSystem) {
-    const shipClasses = [Shuttle, HeavyShuttle, StarBarge, Arrow];
+    const shipClasses = [Shuttle, HeavyShuttle, StarBarge, Freighter, Arrow];
+    //const shipClasses = [Freighter];
     const RandomShipClass = shipClasses[Math.floor(Math.random() * shipClasses.length)];
     return new RandomShipClass(x, y, starSystem);
 }

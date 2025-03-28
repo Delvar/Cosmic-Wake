@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SVG to Canvas Draw Function Converter</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+
+    textarea {
+      width: 100%;
+      height: 200px;
+      margin-bottom: 10px;
+    }
+
+    button {
+      padding: 10px 20px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    pre {
+      background-color: #f4f4f4;
+      padding: 10px;
+      border: 1px solid #ddd;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .note {
+      color: #555;
+      font-style: italic;
+      margin-bottom: 15px;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>SVG to Canvas Draw Function Converter</h1>
+  <p class="note">Note: This tool I used to convert SVG files generated from <a href="https://virtual-graph-paper.com/"
+      target="_blank">https://virtual-graph-paper.com/</a> to my game’s draw functions. It classifies ship parts based
+    on the following colors:<br>
+    - Hull: rgb(194, 195, 199)<br>
+    - Cockpit: rgb(41, 173, 255)<br>
+    - Wings: rgb(255, 163, 0)<br>
+    - Thrusters: rgb(255, 236, 39)</p>
+  <p>Paste your SVG code below and click "Convert" to generate the canvas draw function.</p>
+  <form>
+    <textarea id="svgInput" placeholder="Paste your SVG code here..."></textarea>
+    <button type="button" onclick="convertSVG()">Convert</button>
+  </form>
+  <h2>Output</h2>
+  <pre id="output">Click "Convert" to see the generated draw function.</pre>
+  <button onclick="copyOutput()">Copy All</button>
+
+  <script>
+    function copyOutput() {
+      const output = document.querySelector("#output").textContent;
+      navigator.clipboard.writeText(output).then(() => alert('Output copied to clipboard!')).catch(err => alert('Failed to copy: ' + err));
+    }
+
+    function parseTransform(transform) {
+      const matrices = [];
+      if (!transform) return matrices;
+
+      const transformCommands = transform.match(/(translate|matrix|scale|rotate)\([^)]+\)/g) || [];
+      transformCommands.reverse(); // SVG applies transforms right-to-left
+      transformCommands.forEach(cmd => {
+        const values = cmd.match(/[\d.-]+/g)?.map(Number) || [];
+        if (cmd.startsWith('translate')) {
+          const tx = values[0] || 0, ty = values[1] || 0;
+          matrices.push([1, 0, 0, 1, tx, ty]);
+        } else if (cmd.startsWith('matrix')) {
+          matrices.push(values);
+        } else if (cmd.startsWith('scale')) {
+          const sx = values[0] || 1, sy = values.length > 1 ? values[1] : sx;
+          matrices.push([sx, 0, 0, sy, 0, 0]);
+        } else if (cmd.startsWith('rotate')) {
+          const angle = (values[0] || 0) * Math.PI / 180;
+          const cx = values[1] || 0, cy = values[2] || 0;
+          const cosA = Math.cos(angle), sinA = Math.sin(angle);
+          matrices.push([1, 0, 0, 1, -cx, -cy]);
+          matrices.push([cosA, sinA, -sinA, cosA, 0, 0]);
+          matrices.push([1, 0, 0, 1, cx, cy]);
+        }
+      });
+      return matrices;
+    }
+
+    function applyTransform(x, y, matrices) {
+      let newX = x, newY = y;
+      matrices.forEach(([a, b, c, d, e, f]) => {
+        const tempX = a * newX + c * newY + e;
+        const tempY = b * newX + d * newY + f;
+        newX = tempX;
+        newY = tempY;
+      });
+      return [newX, newY];
+    }
+
+    function pathToCanvasCommands(d, transformMatrices, centerX, centerY, scaleFactor) {
+      const commands = [];
+      const tokens = d.replace(/([A-Za-z])/g, ' $1 ').trim().split(/\s+/);
+      let currentX = 0, currentY = 0;
+      let i = 0;
+
+      while (i < tokens.length) {
+        const cmd = tokens[i++];
+        if (cmd === 'M') {
+          currentX = parseFloat(tokens[i++]);
+          currentY = parseFloat(tokens[i++]);
+          const [tx, ty] = applyTransform(currentX, currentY, transformMatrices);
+          const cx = (tx - centerX) * scaleFactor;
+          const cy = (ty - centerY) * scaleFactor;
+          commands.push(`ctx.moveTo(${cx.toFixed(2)}, ${cy.toFixed(2)})`);
+        } else if (cmd === 'L') {
+          currentX = parseFloat(tokens[i++]);
+          currentY = parseFloat(tokens[i++]);
+          const [tx, ty] = applyTransform(currentX, currentY, transformMatrices);
+          const cx = (tx - centerX) * scaleFactor;
+          const cy = (ty - centerY) * scaleFactor;
+          commands.push(`ctx.lineTo(${cx.toFixed(2)}, ${cy.toFixed(2)})`);
+        } else if (cmd === 'C') {
+          const x1 = parseFloat(tokens[i++]), y1 = parseFloat(tokens[i++]);
+          const x2 = parseFloat(tokens[i++]), y2 = parseFloat(tokens[i++]);
+          currentX = parseFloat(tokens[i++]);
+          currentY = parseFloat(tokens[i++]);
+          const [tx1, ty1] = applyTransform(x1, y1, transformMatrices);
+          const [tx2, ty2] = applyTransform(x2, y2, transformMatrices);
+          const [tx, ty] = applyTransform(currentX, currentY, transformMatrices);
+          const cx1 = (tx1 - centerX) * scaleFactor, cy1 = (ty1 - centerY) * scaleFactor;
+          const cx2 = (tx2 - centerX) * scaleFactor, cy2 = (ty2 - centerY) * scaleFactor;
+          const cx = (tx - centerX) * scaleFactor, cy = (ty - centerY) * scaleFactor;
+          commands.push(`ctx.bezierCurveTo(${cx1.toFixed(2)}, ${cy1.toFixed(2)}, ${cx2.toFixed(2)}, ${cy2.toFixed(2)}, ${cx.toFixed(2)}, ${cy.toFixed(2)})`);
+        } else if (cmd === 'Z') {
+          commands.push('ctx.closePath()');
+        } else {
+          i++; // Skip unsupported commands
+        }
+      }
+      return commands;
+    }
+
+    function getManualBoundingBox(paths) {
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      paths.forEach(path => {
+        const transformMatrices = parseTransform(path.transform);
+        const tokens = path.d.replace(/([A-Za-z])/g, ' $1 ').trim().split(/\s+/);
+        let i = 0;
+        while (i < tokens.length) {
+          const cmd = tokens[i++];
+          if (cmd === 'M' || cmd === 'L') {
+            const x = parseFloat(tokens[i++]);
+            const y = parseFloat(tokens[i++]);
+            const [tx, ty] = applyTransform(x, y, transformMatrices);
+            minX = Math.min(minX, tx);
+            maxX = Math.max(maxX, tx);
+            minY = Math.min(minY, ty);
+            maxY = Math.max(maxY, ty);
+          } else if (cmd === 'C') {
+            const x1 = parseFloat(tokens[i++]), y1 = parseFloat(tokens[i++]);
+            const x2 = parseFloat(tokens[i++]), y2 = parseFloat(tokens[i++]);
+            const x = parseFloat(tokens[i++]), y = parseFloat(tokens[i++]);
+            const [tx1, ty1] = applyTransform(x1, y1, transformMatrices);
+            const [tx2, ty2] = applyTransform(x2, y2, transformMatrices);
+            const [tx, ty] = applyTransform(x, y, transformMatrices);
+            minX = Math.min(minX, tx, tx1, tx2);
+            maxX = Math.max(maxX, tx, tx1, tx2);
+            minY = Math.min(minY, ty, ty1, ty2);
+            maxY = Math.max(maxY, ty, ty1, ty2);
+          } else if (cmd === 'Z') {
+            // No coordinates
+          } else {
+            i++; // Skip
+          }
+        }
+      });
+      if (minX === Infinity) {
+        console.warn('Bounding box calculation failed, using SVG defaults');
+        return { minX: 0, maxX: 720, minY: 0, maxY: 1237.5 }; // Use SVG dimensions
+      }
+      return { minX, maxX, minY, maxY };
+    }
+
+    function convertSVG() {
+      const svgInput = document.getElementById('svgInput').value;
+      const outputDiv = document.getElementById('output');
+
+      try {
+        const parser = new DOMParser();
+        const svgDoc = parser.parseFromString(svgInput, 'image/svg+xml');
+        const svgElement = svgDoc.documentElement;
+
+        if (svgElement.tagName !== 'svg') {
+          const errorNode = svgDoc.querySelector('parsererror');
+          if (errorNode) throw new Error('SVG parsing failed: ' + errorNode.textContent);
+          throw new Error('Input is not a valid SVG document');
+        }
+
+        let paths = Array.from(svgElement.querySelectorAll('g.u.current path'));
+        if (paths.length === 0) paths = Array.from(svgElement.querySelectorAll('path'));
+        if (paths.length === 0) throw new Error('No paths found in SVG');
+
+        const pathData = paths.map(path => {
+          const d = path.getAttribute('d') || '';
+          const fill = path.style.fill || 'none';
+          let transform = path.getAttribute('transform') || '';
+          let parent = path.parentElement;
+          while (parent && parent.tagName !== 'svg') {
+            if (parent.getAttribute('transform')) {
+              transform = `${parent.getAttribute('transform')} ${transform}`; // Prepend parent transforms
+            }
+            parent = parent.parentElement;
+          }
+          return { d, fill, transform };
+        });
+
+        const { minX, maxX, minY, maxY } = getManualBoundingBox(pathData);
+        console.log(`Bounding Box: minX=${minX}, maxX=${maxX}, minY=${minY}, maxY=${maxY}`);
+        const centerX = (minX + maxX) / 2;
+        const centerY = (minY + maxY) / 2;
+        console.log(`Center: (${centerX}, ${centerY})`);
+        const scaleFactor = 1 / 15;
+
+        const hullPaths = pathData.filter(p => p.fill === 'rgb(194, 195, 199)');
+        const cockpitPaths = pathData.filter(p => p.fill === 'rgb(41, 173, 255)');
+        const wingPaths = pathData.filter(p => p.fill === 'rgb(255, 163, 0)');
+        const thrusterPaths = pathData.filter(p => p.fill === 'rgb(255, 236, 39)');
+
+        let drawFunction = `draw(ctx, camera) {\n`;
+        drawFunction += `  if (this.state === 'Landed') return;\n\n`;
+        drawFunction += `  ctx.save();\n`;
+        drawFunction += `  this.trail.draw(ctx, camera);\n`;
+        drawFunction += `  camera.worldToScreen(this.position, this._scratchScreenPos);\n`;
+        drawFunction += `  ctx.translate(this._scratchScreenPos.x, this._scratchScreenPos.y);\n`;
+        drawFunction += `  ctx.rotate(this.angle);\n`;
+        drawFunction += `  const scale = camera.zoom * this.shipScale;\n`;
+        drawFunction += `  ctx.scale(scale, scale * this.stretchFactor);\n\n`;
+
+        drawFunction += `  // Draw the hull\n`;
+        drawFunction += `  ctx.strokeStyle = 'rgb(50, 50, 50)';\n`;
+        drawFunction += `  ctx.lineWidth = 0.1;\n`;
+        drawFunction += `  ctx.fillStyle = this.colors.hull.toRGB();\n`;
+        drawFunction += `  ctx.beginPath();\n`;
+        hullPaths.forEach(path => {
+          const transformMatrices = parseTransform(path.transform);
+          const commands = pathToCanvasCommands(path.d, transformMatrices, centerX, centerY, scaleFactor);
+          commands.forEach(cmd => drawFunction += `    ${cmd};\n`);
+        });
+        drawFunction += `  ctx.fill();\n`;
+        drawFunction += `  ctx.stroke();\n\n`;
+
+        if (cockpitPaths.length > 0) {
+          drawFunction += `  // Draw the cockpit\n`;
+          drawFunction += `  ctx.fillStyle = this.colors.cockpit.toRGB();\n`;
+          drawFunction += `  ctx.beginPath();\n`;
+          cockpitPaths.forEach(path => {
+            const transformMatrices = parseTransform(path.transform);
+            const commands = pathToCanvasCommands(path.d, transformMatrices, centerX, centerY, scaleFactor);
+            commands.forEach(cmd => drawFunction += `    ${cmd};\n`);
+          });
+          drawFunction += `  ctx.fill();\n`;
+          drawFunction += `  ctx.stroke();\n\n`;
+        }
+
+        if (wingPaths.length > 0) {
+          drawFunction += `  // Draw the wings and fins\n`;
+          drawFunction += `  ctx.fillStyle = this.colors.wings.toRGB();\n`;
+          drawFunction += `  ctx.beginPath();\n`;
+          wingPaths.forEach(path => {
+            const transformMatrices = parseTransform(path.transform);
+            const commands = pathToCanvasCommands(path.d, transformMatrices, centerX, centerY, scaleFactor);
+            commands.forEach(cmd => drawFunction += `    ${cmd};\n`);
+          });
+          drawFunction += `  ctx.fill();\n`;
+          drawFunction += `  ctx.stroke();\n\n`;
+        }
+
+        if (thrusterPaths.length > 0) {
+          drawFunction += `  // Draw thrust effect if applicable\n`;
+          drawFunction += `  if ((this.isThrusting && this.state === 'Flying') || this.state === 'Landing' || this.state === 'TakingOff') {\n`;
+          drawFunction += `    ctx.fillStyle = new Colour(1, 1, 0).toRGB();\n`;
+          thrusterPaths.forEach(path => {
+            const transformMatrices = parseTransform(path.transform);
+            const commands = pathToCanvasCommands(path.d, transformMatrices, centerX, centerY, scaleFactor);
+            drawFunction += `    ctx.beginPath();\n`;
+            commands.forEach(cmd => drawFunction += `      ${cmd};\n`);
+            drawFunction += `    ctx.fill();\n`;
+          });
+          drawFunction += `  }\n\n`;
+        }
+
+        drawFunction += `  ctx.restore();\n\n`;
+        drawFunction += `  // Draw debug information if enabled\n`;
+        drawFunction += `  this.drawDebug(ctx, camera, scale);\n`;
+        drawFunction += `}\n`;
+
+        outputDiv.textContent = drawFunction;
+      } catch (error) {
+        outputDiv.textContent = `Error: ${error.message}`;
+        console.error(error);
+      }
+    }
+  </script>
+</body>
+
+</html>

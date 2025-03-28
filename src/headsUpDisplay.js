@@ -6,6 +6,7 @@ import { JumpGate } from './celestialBody.js';
 import { AIPilot } from './pilot.js';
 import { Asteroid } from './asteroidBelt.js';
 import { TWO_PI } from './utils.js';
+import { isValidTarget } from './gameObject.js';
 
 /**
  * Manages the Heads-Up Display (HUD) showing rings and indicators for game objects.
@@ -94,7 +95,7 @@ export class HeadsUpDisplay {
         if (
             this.gameManager.cameraTarget &&
             this.gameManager.cameraTarget instanceof Ship &&
-            this.gameManager.targetingSystem.isValidTarget(this.gameManager.cameraTarget, this.gameManager.cameraTarget.target)) {
+            isValidTarget(this.gameManager.cameraTarget, this.gameManager.cameraTarget.target)) {
             target = this.gameManager.cameraTarget.target;
         };
 

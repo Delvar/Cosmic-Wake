@@ -3,6 +3,7 @@
 import { Vector2D } from './vector2d.js';
 import { TWO_PI, remapRange01 } from './utils.js';
 import { GameObject } from './gameObject.js';
+import { removeObjectFromArrayInPlace } from './utils.js';
 
 /**
  * A precomputed asteroid shape, stored as a Float32Array of [x1, y1, x2, y2, ...].
@@ -88,6 +89,21 @@ export class AsteroidBelt {
         this._scratchWorldPos = new Vector2D();
         this._scratchScreenPos = new Vector2D();
         this.elapsedTime = 0;
+    }
+
+    /**
+     * Remove an interactive Asteroid
+     * @param {Asteroid} interactiveAsteroid - The Asteroid to remove
+     * @returns {boolean} true if the Asteroid was not found or removed, false if it was invalid or not removed
+     */
+    removeAsteroid(interactiveAsteroid) {
+        if (!(interactiveAsteroid instanceof Asteroid)) {
+            return false;
+        }
+        removeObjectFromArrayInPlace(interactiveAsteroid, this.interactiveAsteroids);
+        interactiveAsteroid.starSystem = null;
+        interactiveAsteroid.belt = null;
+        return true;
     }
 
     /**
@@ -193,7 +209,6 @@ export class AsteroidBelt {
         }
         ctx.fill();
         ctx.stroke();
-
         ctx.restore();
     }
 }
@@ -227,6 +242,18 @@ export class Asteroid extends GameObject {
 
         // Temporary scratch values to avoid allocations
         this._scratchScreenPos = new Vector2D();
+    }
+
+    /**
+     * Marks the object as despawned, removing it from active gameplay.
+     */
+    despawn() {
+        super.despawn();
+        if (this.belt) {
+            this.belt.removeAsteroid(this);
+        }
+        this.shapeIndex = null;
+        this.shape = null;
     }
 
     /**

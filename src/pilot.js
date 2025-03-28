@@ -35,6 +35,7 @@ export class PlayerPilot extends Pilot {
     }
 
     listTargetableObjects() {
+        //FIXME: remove filters and remove array fill allocations
         const starSystem = this.ship.starSystem;
         const planets = starSystem.celestialBodies.filter(body => !(body instanceof JumpGate) && !body.isDespawned());
         const gates = starSystem.celestialBodies.filter(body => body instanceof JumpGate && !body.isDespawned());
@@ -88,8 +89,8 @@ export class PlayerPilot extends Pilot {
                 if (this.ship.target instanceof JumpGate) {
                     this._scratchDistanceToTarget.set(this.ship.position)
                         .subtractInPlace(this.ship.target.position);
-                    const distanceToGate = this._scratchDistanceToTarget.magnitude();
-                    if (distanceToGate <= 50 && this.ship.target.overlapsShip(this.ship.position)) {
+                    //const distanceToGate = this._scratchDistanceToTarget.magnitude();
+                    if (this.ship.target.overlapsShip(this.ship.position)) {
                         this.ship.initiateHyperjump();
                     } else {
                         this.autopilot = new TraverseJumpGateAutoPilot(this.ship, this.ship.target);
@@ -157,18 +158,28 @@ export class AIPilot extends Pilot {
     }
 
     pickDestination(starSystem, excludeBody) {
-        const destinations = starSystem.celestialBodies.filter(body =>
-            body !== excludeBody && body.type.type !== 'star'
-        );
-        if (destinations.length === 0) {
+        const destinations = starSystem.celestialBodies;
+        let index = Math.floor(Math.random() * destinations.length);
+        let destination = destinations[index];
+        let attempt = 0;
+        while (destination == excludeBody || destination.type.type == 'star') {
+            index = (++index) % destinations.length;
+            destination = destinations[index];
+            attempt++;
+            if (attempt > destinations.length) {
+                destination = null;
+                break;
+            }
+        }
+        if (!destination) {
             console.warn('No valid destinations found; defaulting to spawn planet');
             return excludeBody;
         }
-        return destinations[Math.floor(Math.random() * destinations.length)];
+        return destination;
     }
 
     update(deltaTime, gameManager) {
-        if (this.ship.starSystem === this.target.starSystem) {
+        if (this.ship && this.ship.starSystem && this.target && this.target.starSystem && this.ship.starSystem === this.target.starSystem) {
             this.ship.setTarget(this.target);
         }
 
@@ -182,14 +193,30 @@ export class AIPilot extends Pilot {
     }
 
     updateIdle(deltaTime, gameManager) {
-        if (this.target instanceof JumpGate) {
+        if (!this.target) {
+            this.target = this.pickDestination(this.ship.starSystem, this.spawnPlanet);
+        } else if (this.target instanceof JumpGate) {
             this.autopilot = new TraverseJumpGateAutoPilot(this.ship, this.target);
             this.autopilot.start();
-            this.state = 'TraversingJumpGate';
+            if (this.ship.state == 'Landed') {
+                this.ship.initiateTakeoff();
+                this.state = 'TakingOff';
+            } else if (this.ship.state == 'Flying') {
+                this.state = 'TraversingJumpGate';
+            } else {
+                console.warn(`invalid ship state! '${this.ship.state}' in AIPilot updateIdle`);
+            }
         } else {
             this.autopilot = new LandOnPlanetAutoPilot(this.ship, this.target);
             this.autopilot.start();
-            this.state = 'FlyingToPlanet';
+            if (this.ship.state == 'Landed') {
+                this.ship.initiateTakeoff();
+                this.state = 'TakingOff';
+            } else if (this.ship.state == 'Flying') {
+                this.state = 'FlyingToPlanet';
+            } else {
+                console.warn(`invalid ship state! '${this.ship.state}' in AIPilot updateIdle`);
+            }
         }
     }
 
@@ -231,6 +258,10 @@ export class AIPilot extends Pilot {
         if (this.waitTime <= 0) {
             this.spawnPlanet = this.target;
             this.target = this.pickDestination(this.ship.starSystem, this.spawnPlanet);
+            if (!this.target) {
+                console.warn('No target found!');
+                return;
+            }
             this._scratchDirectionToTarget.set(this.target.position)
                 .subtractInPlace(this.ship.position);
             this.ship.setTargetAngle(Math.atan2(this._scratchDirectionToTarget.x, -this._scratchDirectionToTarget.y));

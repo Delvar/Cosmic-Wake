@@ -301,6 +301,7 @@ export class LandOnPlanetAutoPilot extends AutoPilot {
         super(ship, planet);
         this.subPilot = null;
         this._scratchDistanceToTarget = new Vector2D(); // Distance from ship to planet
+        this._scratchTemp = new Vector2D();
     }
 
     /**
@@ -350,8 +351,9 @@ export class LandOnPlanetAutoPilot extends AutoPilot {
                 if (this.ship.canLand(this.target)) {
                     this.ship.initiateLanding(this.target);
                 } else {
-                    //Hack to slow ships down if htey have slow turning rate
-                    this.ship.velocity.multiplyInPlace(1 - (0.05 * deltaTime));
+                    //Hack to slow ships down if they have slow turning rate, need a better fix for this.
+                    this.ship.velocity.multiplyInPlace(1 - (0.5 * deltaTime));
+                    this.ship.position.addInPlace(this._scratchTemp.set(this._scratchDistanceToTarget).multiplyInPlace(-0.5 * deltaTime));
                     // Slow down if not ready to land (e.g., speed too high)
                     this.ship.velocityError.set(-this.ship.velocity.x, -this.ship.velocity.y);
                     const desiredAngle = Math.atan2(this.ship.velocityError.x, -this.ship.velocityError.y);
@@ -418,6 +420,7 @@ export class TraverseJumpGateAutoPilot extends AutoPilot {
         super(ship, gate);
         this.subPilot = null;
         this._scratchDistanceToTarget = new Vector2D(); // Distance from ship to gate
+        this._scratchTemp = new Vector2D();
     }
 
     /**
@@ -466,11 +469,14 @@ export class TraverseJumpGateAutoPilot extends AutoPilot {
             // Ship is flying in the original system; try to initiate hyperjump
             this._scratchDistanceToTarget.set(this.ship.position)
                 .subtractInPlace(this.target.position);
-            const distanceToGate = this._scratchDistanceToTarget.magnitude();
-            if (distanceToGate <= 50 && this.target.overlapsShip(this.ship.position)) {
+            //const distanceToGate = this._scratchDistanceToTarget.magnitude();
+            if (this.target.overlapsShip(this.ship.position)) {
                 if (this.ship.initiateHyperjump()) {
                     // Hyperjump started successfully
                 } else {
+                    //Hack to slow ships down if they have slow turning rate, need a better fix for this.
+                    this.ship.velocity.multiplyInPlace(1 - (0.5 * deltaTime));
+                    this.ship.position.addInPlace(this._scratchTemp.set(this._scratchDistanceToTarget).multiplyInPlace(-0.5 * deltaTime));
                     // Hyperdrive not ready or gate not found; slow down and wait
                     this.ship.velocityError.set(-this.ship.velocity.x, -this.ship.velocity.y);
                     const desiredAngle = Math.atan2(this.ship.velocityError.x, -this.ship.velocityError.y);

@@ -102,6 +102,17 @@ export class Ship extends GameObject {
         this._scratchDistanceToPlanet = new Vector2D(0, 0);
     }
 
+    /**
+     * Marks the object as despawned, removing it from active gameplay.
+     */
+    despawn() {
+        super.despawn();
+        if (this.landedPlanet) {
+            this.landedPlanet.removeLandedShip(this);
+            this.landedPlanet = null;
+        }
+    }
+
     // Generate a random shade of blue for the cockpit
     generateRandomBlue() {
         const r = randomBetween(0, 0.2); // Low red component
@@ -186,7 +197,7 @@ export class Ship extends GameObject {
 
     initiateHyperjump() {
         const currentTime = performance.now();
-        if (!this.hyperdriveReady || currentTime - this.lastJumpTime < this.hyperdriveCooldown) return false;
+        //if (!this.hyperdriveReady || currentTime - this.lastJumpTime < this.hyperdriveCooldown) return false;
         const gate = this.starSystem.celestialBodies.find(body =>
             body instanceof JumpGate && body.overlapsShip(this.position)
         );
@@ -1703,7 +1714,7 @@ export class Arrow extends Ship {
 // Factory function to create a random ship type
 export function createRandomShip(x, y, starSystem) {
     const shipClasses = [Flivver, Shuttle, HeavyShuttle, StarBarge, Freighter, Arrow];
-    //const shipClasses = [Freighter];
+    //const shipClasses = [Flivver];
     const RandomShipClass = shipClasses[Math.floor(Math.random() * shipClasses.length)];
     return new RandomShipClass(x, y, starSystem);
 }

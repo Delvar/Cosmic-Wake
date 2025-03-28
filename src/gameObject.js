@@ -2,6 +2,21 @@
 
 import { Vector2D } from './vector2d.js';
 
+
+/**
+ * Checks if a target is still valid (not despawned and exists in the galaxy).
+ * @param {GameObject} source - The source game object to validate.
+ * @param {GameObject} target - The target game object to validate.
+ * @returns {boolean} True if the target is valid, false otherwise.
+ */
+export function isValidTarget(source, target) {
+    if (!source || !target) return false;
+    if (!(source instanceof GameObject) || !(target instanceof GameObject)) return false;
+    if (source.isDespawned() || target.isDespawned()) return false;
+    if (source.starSystem !== target.starSystem) return false;
+    return true;
+}
+
 /**
  * Represents a base game object with position and despawn functionality.
  */
@@ -23,6 +38,12 @@ export class GameObject {
      */
     despawn() {
         this.despawned = true;
+        this.position.set(0, 0);
+        this.debug = false;
+        if (this.starSystem) {
+            this.starSystem.removeGameObject(this);
+        }
+        this.starSystem = null;
     }
 
     /**

@@ -6,7 +6,11 @@
  * The Hyperlane class represents a connection between two star systems.
  */
 
-import { JumpGate } from './celestialBody.js';
+import { GameObject } from './gameObject.js';
+import { CelestialBody, JumpGate } from './celestialBody.js';
+import { Ship } from './ship.js';
+import { Asteroid } from './asteroidBelt.js';
+import { removeObjectFromArrayInPlace } from './utils.js';
 
 /**
  * Represents a star system containing celestial bodies, ships, and connections to other systems.
@@ -32,6 +36,27 @@ export class StarSystem {
         this.maxAIShips = 10; // Maximum number of AI-controlled ships allowed
         this.hyperlanes = []; // Array to hold hyperlane connections
         this.asteroidBelt = null; // Optional asteroid belt
+    }
+
+    /**
+     * Given a game object it removes it from the relevant arrays
+     * @param {GameObject} gameObject - The GameObject to remove
+     * @returns {boolean} true if the GameObejct was not found or removed, false if it was invalid or not removed
+     */
+    removeGameObject(gameObject) {
+        if (!(gameObject instanceof GameObject)) {
+            return false;
+        }
+
+        if (gameObject instanceof Ship) {
+            removeObjectFromArrayInPlace(gameObject, this.ships);
+        } else if (gameObject instanceof CelestialBody) {
+            removeObjectFromArrayInPlace(gameObject, this.celestialBodies);
+        } else if (gameObject instanceof Asteroid) {
+            this.asteroidBelt.removeAsteroid(gameObject);
+        }
+        gameObject.starSystem = null;
+        return true;
     }
 
     /**

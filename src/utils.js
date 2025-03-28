@@ -48,10 +48,33 @@ export function remapClamp(value, inMin, inMax, outMin, outMax) {
 }
 
 /**
- * Normalizes an angle to the range [-π, π).
+ * Normalizes an angle to the range [-π, π].
  * @param {number} angle - The angle in radians to normalize.
  * @returns {number} The normalized angle in radians, between -π (inclusive) and π (exclusive).
  */
 export function normalizeAngle(angle) {
     return ((angle + Math.PI) % TWO_PI + TWO_PI) % TWO_PI - Math.PI;
+}
+
+/**
+ * Removes an item from an array, in place without having to allocate new arrays.
+ * @param {Object} object - The object to find and remove.
+ * @param {Array} array - The array to remove the Object from.
+ * @returns {array} Returns the array, if you need it.
+ */
+export function removeObjectFromArrayInPlace(object, array) {
+    const index = array.indexOf(object);
+    //Not found!
+    if (index === -1) {
+        return array;
+    }
+    const length = array.length;
+    const lastIndex = length - 1;
+
+    if (index != lastIndex) {
+        array[index] = array[lastIndex];
+    }
+
+    array.pop();
+    return array;
 }

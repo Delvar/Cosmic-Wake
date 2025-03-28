@@ -3,51 +3,14 @@
 import { Vector2D } from './vector2d.js';
 import { Colour } from './colour.js';
 import { Camera, TargetCamera } from './camera.js';
-import { createRandomShip, Ship, Arrow, Shuttle, HeavyShuttle, StarBarge } from './ship.js';
-import { CelestialBody, JumpGate } from './celestialBody.js';
+import { createRandomShip, Ship } from './ship.js';
+import { JumpGate } from './celestialBody.js';
 import { StarField } from './starField.js';
-import { Asteroid } from './asteroidBelt.js';
 import { HeadsUpDisplay } from './headsUpDisplay.js';
 import { PlayerPilot, AIPilot } from './pilot.js';
 import { createGalaxy } from './galaxy.js';
 import { TWO_PI } from './utils.js';
-import { GameObject } from './gameObject.js';
-
-/**
- * Manages the targeting system for selecting game objects like planets, ships, and asteroids.
- */
-class TargetingSystem {
-    /**
-     * Creates a new TargetingSystem instance.
-     * @param {GameManager} gameManager - The game manager providing access to game state.
-     */
-    constructor(gameManager) {
-        this.gameManager = gameManager;
-    }
-
-    /**
-     * Checks if a target is still valid (not despawned and exists in the galaxy).
-     * @param {GameObject} source - The source game object to validate.
-     * @param {GameObject} target - The target game object to validate.
-     * @returns {boolean} True if the target is valid, false otherwise.
-     */
-    isValidTarget(source, target) {
-        if (!source || !target) return false;
-        if (!(source instanceof GameObject) || !(target instanceof GameObject)) return false;
-        if (source.isDespawned() || target.isDespawned()) return false;
-        if (source.starSystem !== target.starSystem) return false;
-        // if (target instanceof Ship) {
-        //     return this.gameManager.galaxy.some(starSystem => starSystem.ships.includes(target));
-        // }
-        // if (target instanceof CelestialBody || target instanceof JumpGate) {
-        //     return this.gameManager.galaxy.some(starSystem => starSystem.celestialBodies.includes(target));
-        // }
-        // if (target instanceof Asteroid) {
-        //     return this.gameManager.galaxy.some(starSystem => starSystem.asteroidBelt && starSystem.asteroidBelt.interactiveAsteroids.includes(target));
-        // }
-        return true;
-    }
-}
+import { isValidTarget } from './gameObject.js';
 
 /**
  * Handles the game loop, rendering, and updates for the game.
@@ -182,7 +145,7 @@ class Game {
         if (
             this.manager.cameraTarget &&
             this.manager.cameraTarget instanceof Ship &&
-            this.manager.targetingSystem.isValidTarget(this.manager.cameraTarget, this.manager.cameraTarget.target)) {
+            isValidTarget(this.manager.cameraTarget, this.manager.cameraTarget.target)) {
             target = this.manager.cameraTarget.target;
         };
 
@@ -242,7 +205,6 @@ class GameManager {
         this.lastSpawnTime = performance.now();
         this.spawnInterval = this.randomSpawnInterval();
         this.game = new Game(this, this.canvas, this.targetCanvas);
-        this.targetingSystem = new TargetingSystem(this);
 
         // Temporary scratch values to avoid allocations
         this._scratchSpawnPos = new Vector2D(0, 0); // For calculating spawn positions in spawnAIShips
@@ -295,14 +257,16 @@ class GameManager {
         if (currentTime - this.lastSpawnTime < this.spawnInterval) return;
 
         this.galaxy.forEach(system => {
-            const aiShipCount = system.ships.filter(ship => ship.pilot instanceof AIPilot).length;
+            const aiShipCount = system.ships.length;
 
             if (aiShipCount < system.maxAIShips) {
                 const spawnPlanet = system.celestialBodies.find(body =>
-                    !(body instanceof JumpGate) && body.landedShips
-                ) || system.celestialBodies[Math.floor(Math.random() * system.celestialBodies.length)];
+                    !(body instanceof JumpGate)
+                );
+                if (!spawnPlanet) {
+                    console.warn('No spawnPlanet found!');
+                }
                 if (!(spawnPlanet instanceof JumpGate)) {
-                    //const aiShip = new Ship(spawnPlanet.position.x, spawnPlanet.position.y, system);
                     const aiShip = createRandomShip(spawnPlanet.position.x, spawnPlanet.position.y, system);
                     aiShip.pilot = new AIPilot(aiShip, spawnPlanet);
                     aiShip.setState('Landed');
@@ -324,10 +288,10 @@ class GameManager {
                 while (despawned < excessCount && landedShips.length > 0) {
                     const index = Math.floor(Math.random() * landedShips.length);
                     const shipToDespawn = landedShips[index];
+                    if (shipToDespawn === this.cameraTarget) {
+                        this.cameraTarget = this.playerShip;
+                    }
                     shipToDespawn.despawn();
-                    shipToDespawn.landedPlanet.removeLandedShip(shipToDespawn);
-                    system.ships = system.ships.filter(ship => ship !== shipToDespawn);
-                    landedShips.splice(index, 1);
                     despawned++;
                 }
             }
@@ -393,11 +357,11 @@ class GameManager {
         if (this.cameraTarget) {
             this.cameraTarget.debug = false;
         }
-        const aiShips = this.cameraTarget.starSystem.ships.filter(ship => ship.pilot instanceof AIPilot);
-        if (aiShips.length === 0) return;
-        const currentIndex = this.cameraTarget.pilot instanceof AIPilot ? aiShips.indexOf(this.cameraTarget) : -1;
-        const nextIndex = (currentIndex + 1) % aiShips.length;
-        this.cameraTarget = aiShips[nextIndex];
+        const ships = this.cameraTarget.starSystem.ships;
+        if (ships.length === 0) return;
+        const currentIndex = ships.indexOf(this.cameraTarget);
+        const nextIndex = (currentIndex + 1) % ships.length;
+        this.cameraTarget = ships[nextIndex];
         this.cameraTarget.debug = this.debug;
     }
 

@@ -494,7 +494,7 @@ export class Ship extends GameObject {
         ctx.arc(this._scratchStoppingPoint.x, this._scratchStoppingPoint.y, 1 * scale, 0, TWO_PI);
         ctx.fill();
 
-        if (this.target) {
+        if (this.target && this.target.position) {
             camera.worldToScreen(this.target.position, this._scratchRadialOut);
             if (this.farApproachDistance > 0) {
                 ctx.beginPath();

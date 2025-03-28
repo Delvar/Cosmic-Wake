@@ -524,3 +524,178 @@ export class TraverseJumpGateAutoPilot extends AutoPilot {
         return `Autopilot: Traversing ${this.target.name || 'jump gate'}`;
     }
 }
+
+/**
+ * Autopilot that follows a moving ship, projecting its future position and matching its velocity once within a radius.
+ * @extends AutoPilot
+ */
+export class FollowShipAutoPilot extends AutoPilot {
+    /**
+     * Creates a new FollowShipAutoPilot instance.
+     * @param {Ship} ship - The ship to control.
+     * @param {Ship} targetShip - The target ship to follow.
+     * @param {number} followRadius - The radius within which to fully match the target's velocity.
+     * @param {number} [approachSpeed=100] - Speed to approach the target when outside the approach distance.
+     */
+    constructor(ship, targetShip, followRadius, approachSpeed = 100) {
+        super(ship, targetShip);
+        this.followRadius = followRadius;
+        this.approachSpeed = approachSpeed;
+        this.velocityError = new Vector2D(); // For debugging compatibility with Ship
+
+        // Distance zones for gradual velocity matching
+        this.farApproachDistance = 0; // Computed dynamically
+        this.closeApproachDistance = followRadius * 2; // Start velocity matching at 2x follow radius
+
+        // Scratch vectors to eliminate allocations in update
+        this._scratchDirectionToTarget = new Vector2D();
+        this._scratchFuturePosition = new Vector2D();
+        this._scratchVelocityError = new Vector2D();
+        this._scratchDesiredVelocity = new Vector2D();
+        this._scratchTemp = new Vector2D();
+        this._scratchTargetVelocity = new Vector2D();
+    }
+
+    /**
+     * Starts the autopilot, ensuring the target is a ship in the same star system.
+     */
+    start() {
+        super.start();
+        if (!(this.target instanceof Ship)) {
+            this.error = "Target is not a ship";
+            this.active = false;
+        }
+        if (this.target.starSystem !== this.ship.starSystem) {
+            this.error = "Target ship not in same system";
+            this.active = false;
+        }
+
+        // Calculate far approach distance based on ship's max velocity and thrust
+        const timeToTurn = Math.PI / this.ship.rotationSpeed;
+        const maxDecelerationDistance = (this.ship.maxVelocity * this.ship.maxVelocity - this.approachSpeed * this.approachSpeed) / (2 * this.ship.thrust);
+        const maxDistanceWhileTurning = this.ship.maxVelocity * timeToTurn;
+        this.farApproachDistance = maxDecelerationDistance + maxDistanceWhileTurning;
+    }
+
+    /**
+     * Updates the ship's trajectory to follow the target ship, projecting its future position
+     * and gradually matching velocity as it approaches.
+     * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     */
+    update(deltaTime) {
+        if (!this.active || !this.target || this.target.isDespawned()) {
+            this.stop();
+            return;
+        }
+
+        // Calculate current distance to target
+        this._scratchDirectionToTarget.set(this.target.position)
+            .subtractInPlace(this.ship.position);
+        const distanceToTarget = this._scratchDirectionToTarget.magnitude();
+        this._scratchDirectionToTarget.normalizeInPlace();
+
+        // Estimate time to intercept based on distance and relative speed
+        const relativeVelocity = this._scratchTemp.set(this.ship.velocity)
+            .subtractInPlace(this.target.velocity)
+            .dot(this._scratchDirectionToTarget);
+        const closingSpeed = Math.max(this.ship.maxVelocity - relativeVelocity, 1);
+        const timeToIntercept = distanceToTarget / closingSpeed;
+
+        // Project target's future position
+        this._scratchFuturePosition.set(this.target.velocity)
+            .multiplyInPlace(timeToIntercept)
+            .addInPlace(this.target.position);
+
+        // Recalculate direction and distance to the future position
+        this._scratchDirectionToTarget.set(this._scratchFuturePosition)
+            .subtractInPlace(this.ship.position);
+        const distanceToFuture = this._scratchDirectionToTarget.magnitude();
+        this._scratchDirectionToTarget.normalizeInPlace();
+
+        let desiredAngle = this.ship.angle;
+        let shouldThrust = false;
+
+        if (distanceToTarget > this.farApproachDistance) {
+            // Far distance: fly at full speed toward the future position
+            const desiredSpeed = this.ship.maxVelocity;
+            this._scratchDesiredVelocity.set(this._scratchDirectionToTarget)
+                .multiplyInPlace(desiredSpeed);
+
+            this._scratchVelocityError.set(this._scratchDesiredVelocity)
+                .subtractInPlace(this.ship.velocity);
+            this.velocityError.set(this._scratchVelocityError);
+            const velocityErrorMagnitude = this._scratchVelocityError.magnitude();
+
+            if (velocityErrorMagnitude > 5) {
+                desiredAngle = Math.atan2(this._scratchVelocityError.x, -this._scratchVelocityError.y);
+                const angleToDesired = normalizeAngle(desiredAngle - this.ship.angle);
+                desiredAngle = this.ship.angle + angleToDesired;
+                shouldThrust = Math.abs(angleToDesired) < Math.PI / 4;
+            } else {
+                desiredAngle = Math.atan2(this.ship.velocity.x, -this.ship.velocity.y);
+            }
+        } else if (distanceToTarget > this.followRadius) {
+            // Approach distance: gradually match the target's velocity
+            const distanceRange = this.closeApproachDistance - this.followRadius;
+            const distanceProgress = (distanceToTarget - this.followRadius) / distanceRange; // 1 at closeApproachDistance, 0 at followRadius
+            const speedFactor = remapClamp(distanceProgress, 0, 1, 0, 1); // 0 to 1
+
+            // Interpolate desired velocity between approach speed and target's velocity
+            const approachVelocity = this._scratchTemp.set(this._scratchDirectionToTarget)
+                .multiplyInPlace(this.approachSpeed);
+            this._scratchTargetVelocity.set(this.target.velocity);
+            this._scratchDesiredVelocity.set(this._scratchTargetVelocity)
+                .multiplyInPlace(1 - speedFactor)
+                .addInPlace(approachVelocity.multiplyInPlace(speedFactor));
+
+            this._scratchVelocityError.set(this._scratchDesiredVelocity)
+                .subtractInPlace(this.ship.velocity);
+            this.velocityError.set(this._scratchVelocityError);
+            const velocityErrorMagnitude = this._scratchVelocityError.magnitude();
+
+            if (velocityErrorMagnitude > 5) {
+                desiredAngle = Math.atan2(this._scratchVelocityError.x, -this._scratchVelocityError.y);
+                const angleToDesired = normalizeAngle(desiredAngle - this.ship.angle);
+                desiredAngle = this.ship.angle + angleToDesired;
+                shouldThrust = Math.abs(angleToDesired) < Math.PI / 12;
+            } else {
+                desiredAngle = Math.atan2(this.ship.velocity.x, -this.ship.velocity.y);
+            }
+        } else {
+            // Inside follow radius: fully match the target's velocity
+            this._scratchDesiredVelocity.set(this.target.velocity);
+            this._scratchVelocityError.set(this._scratchDesiredVelocity)
+                .subtractInPlace(this.ship.velocity);
+            this.velocityError.set(this._scratchVelocityError);
+            const velocityErrorMagnitude = this._scratchVelocityError.magnitude();
+
+            if (velocityErrorMagnitude > 5) {
+                desiredAngle = Math.atan2(this._scratchVelocityError.x, -this._scratchVelocityError.y);
+                const angleToDesired = normalizeAngle(desiredAngle - this.ship.angle);
+                desiredAngle = this.ship.angle + angleToDesired;
+                shouldThrust = Math.abs(angleToDesired) < Math.PI / 12;
+            } else {
+                desiredAngle = Math.atan2(this.ship.velocity.x, -this.ship.velocity.y);
+            }
+
+            // If too close, adjust position to stay at the edge of the follow radius
+            if (distanceToTarget < this.followRadius * 0.8) {
+                const excessDistance = this.followRadius - distanceToTarget;
+                this._scratchTemp.set(this._scratchDirectionToTarget)
+                    .multiplyInPlace(-excessDistance * 0.1 * deltaTime);
+                this.ship.position.addInPlace(this._scratchTemp);
+            }
+        }
+
+        this.ship.setTargetAngle(desiredAngle);
+        this.ship.applyThrust(shouldThrust);
+    }
+
+    /**
+     * Returns the current status of the autopilot for HUD display.
+     * @returns {string} A descriptive status string indicating the follow target.
+     */
+    getStatus() {
+        return `Autopilot: Following ${this.target.name || 'ship'}`;
+    }
+}

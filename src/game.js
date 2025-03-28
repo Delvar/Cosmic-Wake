@@ -3,11 +3,11 @@
 import { Vector2D } from './vector2d.js';
 import { Colour } from './colour.js';
 import { Camera, TargetCamera } from './camera.js';
-import { createRandomShip, Ship } from './ship.js';
+import { createRandomShip, Ship, Flivver, Shuttle, HeavyShuttle, StarBarge, Freighter, Arrow } from './ship.js';
 import { JumpGate } from './celestialBody.js';
 import { StarField } from './starField.js';
 import { HeadsUpDisplay } from './headsUpDisplay.js';
-import { PlayerPilot, AIPilot } from './pilot.js';
+import { PlayerPilot, AIPilot, InterdictionAIPilot } from './pilot.js';
 import { createGalaxy } from './galaxy.js';
 import { TWO_PI } from './utils.js';
 import { isValidTarget } from './gameObject.js';
@@ -254,7 +254,7 @@ class GameManager {
      * @param {number} currentTime - Current time in milliseconds.
      */
     spawnAIShipsIfNeeded(currentTime) {
-        if (currentTime - this.lastSpawnTime < this.spawnInterval) return;
+        if (currentTime != 0 && (currentTime - this.lastSpawnTime < this.spawnInterval)) return;
 
         this.galaxy.forEach(system => {
             const aiShipCount = system.ships.length;
@@ -268,7 +268,16 @@ class GameManager {
                 }
                 if (!(spawnPlanet instanceof JumpGate)) {
                     const aiShip = createRandomShip(spawnPlanet.position.x, spawnPlanet.position.y, system);
-                    aiShip.pilot = new AIPilot(aiShip, spawnPlanet);
+                    if (aiShip instanceof Flivver || aiShip instanceof Shuttle || aiShip instanceof Arrow) {
+                        if (Math.random() > 0.5) {
+                            aiShip.pilot = new AIPilot(aiShip, spawnPlanet);
+                        } else {
+                            aiShip.pilot = new InterdictionAIPilot(aiShip, spawnPlanet);
+                        }
+                    } else {
+                        aiShip.pilot = new AIPilot(aiShip, spawnPlanet);
+                    }
+
                     aiShip.setState('Landed');
                     aiShip.shipScale = 0;
                     aiShip.velocity.set(0, 0);
@@ -327,27 +336,28 @@ class GameManager {
      * Spawns initial AI ships in each star system up to a limit of 10.
      */
     spawnAIShips() {
-        this.galaxy.forEach(starSystem => {
-            while (starSystem.ships.length < 10) {
-                const spawnPlanet = starSystem.celestialBodies[Math.floor(Math.random() * starSystem.celestialBodies.length)];
-                const angle = Math.random() * TWO_PI;
-                // Use scratch vector for spawn position
-                this._scratchSpawnPos.set(
-                    spawnPlanet.position.x + Math.sin(angle) * 50,
-                    spawnPlanet.position.y - Math.cos(angle) * 50
-                );
-                // const aiShip = new Ship(
-                //     this._scratchSpawnPos.x,
-                //     this._scratchSpawnPos.y,
-                //     starSystem,
-                //     new Colour(0.5, 0.5, 0.5),
-                //     new Colour(0.5, 0.5, 0.5, 0.5)
-                // );
-                const aiShip = createRandomShip(this._scratchSpawnPos.x, this._scratchSpawnPos.y, starSystem, new Colour(1, 1, 1, 0.5));
-                aiShip.pilot = new AIPilot(aiShip, spawnPlanet);
-                starSystem.ships.push(aiShip);
-            }
-        });
+        this.spawnAIShipsIfNeeded(0);
+        // this.galaxy.forEach(starSystem => {
+        //     while (starSystem.ships.length < 10) {
+        //         const spawnPlanet = starSystem.celestialBodies[Math.floor(Math.random() * starSystem.celestialBodies.length)];
+        //         const angle = Math.random() * TWO_PI;
+        //         // Use scratch vector for spawn position
+        //         this._scratchSpawnPos.set(
+        //             spawnPlanet.position.x + Math.sin(angle) * 50,
+        //             spawnPlanet.position.y - Math.cos(angle) * 50
+        //         );
+        //         // const aiShip = new Ship(
+        //         //     this._scratchSpawnPos.x,
+        //         //     this._scratchSpawnPos.y,
+        //         //     starSystem,
+        //         //     new Colour(0.5, 0.5, 0.5),
+        //         //     new Colour(0.5, 0.5, 0.5, 0.5)
+        //         // );
+        //         const aiShip = createRandomShip(this._scratchSpawnPos.x, this._scratchSpawnPos.y, starSystem, new Colour(1, 1, 1, 0.5));
+        //         aiShip.pilot = new AIPilot(aiShip, spawnPlanet);
+        //         starSystem.ships.push(aiShip);
+        //     }
+        // });
     }
 
     /**

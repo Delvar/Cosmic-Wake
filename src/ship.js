@@ -513,6 +513,166 @@ export class Ship extends GameObject {
         }
     }
 }
+export class Flivver extends Ship {
+    constructor(x, y, starSystem) {
+        super(x, y, starSystem);
+        this.rotationSpeed = Math.PI * 2.5;
+        this.thrust = 800;
+        this.maxVelocity = 700;
+    }
+
+    draw(ctx, camera) {
+        if (this.state === 'Landed') return;
+
+        ctx.save();
+        this.trail.draw(ctx, camera);
+        camera.worldToScreen(this.position, this._scratchScreenPos);
+        ctx.translate(this._scratchScreenPos.x, this._scratchScreenPos.y);
+        ctx.rotate(this.angle);
+        const scale = camera.zoom * this.shipScale;
+        ctx.scale(scale, scale * this.stretchFactor);
+
+        // Draw the hull
+        ctx.strokeStyle = 'rgb(50, 50, 50)';
+        ctx.lineWidth = 0.1;
+        ctx.fillStyle = this.colors.hull.toRGB();
+        ctx.beginPath();
+        ctx.moveTo(0.00, -4.00);
+        ctx.lineTo(2.00, -2.00);
+        ctx.lineTo(3.00, 2.00);
+        ctx.lineTo(3.00, 5.00);
+        ctx.lineTo(2.00, 7.00);
+        ctx.lineTo(-2.00, 7.00);
+        ctx.lineTo(-3.00, 5.00);
+        ctx.lineTo(-3.00, 2.00);
+        ctx.lineTo(-2.00, -2.00);
+        ctx.closePath();
+        ctx.moveTo(-2.00, -20.00);
+        ctx.lineTo(-2.00, -12.00);
+        ctx.lineTo(-4.00, -10.00);
+        ctx.lineTo(-5.00, 2.00);
+        ctx.lineTo(-5.00, 5.00);
+        ctx.lineTo(-4.00, 7.00);
+        ctx.lineTo(-4.00, 8.00);
+        ctx.lineTo(-8.00, 8.00);
+        ctx.lineTo(-8.00, 0.00);
+        ctx.closePath();
+        ctx.moveTo(-3.00, -11.00);
+        ctx.lineTo(-3.00, 2.00);
+        ctx.lineTo(-3.00, 5.00);
+        ctx.lineTo(-4.00, 7.00);
+        ctx.lineTo(-5.00, 5.00);
+        ctx.lineTo(-5.00, 2.00);
+        ctx.lineTo(-4.00, -10.00);
+        ctx.closePath();
+        ctx.moveTo(-8.00, 8.00);
+        ctx.lineTo(-4.00, 8.00);
+        ctx.lineTo(-5.00, 9.00);
+        ctx.lineTo(-7.00, 9.00);
+        ctx.closePath();
+        ctx.moveTo(-2.00, 7.00);
+        ctx.lineTo(2.00, 7.00);
+        ctx.lineTo(2.00, 8.00);
+        ctx.lineTo(1.00, 9.00);
+        ctx.lineTo(-1.00, 9.00);
+        ctx.lineTo(-2.00, 8.00);
+        ctx.closePath();
+        ctx.moveTo(2.00, -20.00);
+        ctx.lineTo(2.00, -12.00);
+        ctx.lineTo(4.00, -10.00);
+        ctx.lineTo(5.00, 2.00);
+        ctx.lineTo(5.00, 5.00);
+        ctx.lineTo(4.00, 7.00);
+        ctx.lineTo(4.00, 8.00);
+        ctx.lineTo(8.00, 8.00);
+        ctx.lineTo(8.00, 0.00);
+        ctx.closePath();
+        ctx.moveTo(3.00, -11.00);
+        ctx.lineTo(3.00, 2.00);
+        ctx.lineTo(3.00, 5.00);
+        ctx.lineTo(4.00, 7.00);
+        ctx.lineTo(5.00, 5.00);
+        ctx.lineTo(5.00, 2.00);
+        ctx.lineTo(4.00, -10.00);
+        ctx.closePath();
+        ctx.moveTo(8.00, 8.00);
+        ctx.lineTo(4.00, 8.00);
+        ctx.lineTo(5.00, 9.00);
+        ctx.lineTo(7.00, 9.00);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Draw the cockpit
+        ctx.fillStyle = this.colors.cockpit.toRGB();
+        ctx.beginPath();
+        ctx.moveTo(-1.00, -1.00);
+        ctx.lineTo(1.00, -1.00);
+        ctx.lineTo(2.00, 2.00);
+        ctx.lineTo(2.00, 3.00);
+        ctx.lineTo(1.00, 4.00);
+        ctx.lineTo(-1.00, 4.00);
+        ctx.lineTo(-2.00, 3.00);
+        ctx.lineTo(-2.00, 2.00);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Draw the wings and fins
+        ctx.fillStyle = this.colors.wings.toRGB();
+        ctx.beginPath();
+        ctx.moveTo(-8.00, 0.00);
+        ctx.lineTo(-18.00, 8.00);
+        ctx.lineTo(-18.00, 10.00);
+        ctx.lineTo(-8.00, 8.00);
+        ctx.closePath();
+        ctx.moveTo(-4.00, 0.00);
+        ctx.lineTo(-6.00, 5.00);
+        ctx.lineTo(-6.00, 7.00);
+        ctx.lineTo(-4.00, 5.00);
+        ctx.closePath();
+        ctx.moveTo(8.00, 0.00);
+        ctx.lineTo(18.00, 8.00);
+        ctx.lineTo(18.00, 10.00);
+        ctx.lineTo(8.00, 8.00);
+        ctx.closePath();
+        ctx.moveTo(4.00, 0.00);
+        ctx.lineTo(6.00, 5.00);
+        ctx.lineTo(6.00, 7.00);
+        ctx.lineTo(4.00, 5.00);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Draw thrust effect if applicable
+        if ((this.isThrusting && this.state === 'Flying') || this.state === 'Landing' || this.state === 'TakingOff') {
+            ctx.fillStyle = new Colour(1, 1, 0).toRGB();
+            ctx.beginPath();
+            ctx.moveTo(-7.00, 9.00);
+            ctx.lineTo(-5.00, 9.00);
+            ctx.lineTo(-6.00, 16.00);
+            ctx.closePath();
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(-1.00, 9.00);
+            ctx.lineTo(1.00, 9.00);
+            ctx.lineTo(0.00, 20.00);
+            ctx.closePath();
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(7.00, 9.00);
+            ctx.lineTo(5.00, 9.00);
+            ctx.lineTo(6.00, 16.00);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        ctx.restore();
+
+        // Draw debug information if enabled
+        this.drawDebug(ctx, camera, scale);
+    }
+}
 
 export class Shuttle extends Ship {
     constructor(x, y, starSystem) {
@@ -1542,7 +1702,7 @@ export class Arrow extends Ship {
 
 // Factory function to create a random ship type
 export function createRandomShip(x, y, starSystem) {
-    const shipClasses = [Shuttle, HeavyShuttle, StarBarge, Freighter, Arrow];
+    const shipClasses = [Flivver, Shuttle, HeavyShuttle, StarBarge, Freighter, Arrow];
     //const shipClasses = [Freighter];
     const RandomShipClass = shipClasses[Math.floor(Math.random() * shipClasses.length)];
     return new RandomShipClass(x, y, starSystem);

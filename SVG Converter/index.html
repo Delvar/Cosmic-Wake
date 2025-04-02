@@ -1,27 +1,65 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SVG to Canvas Draw Function Converter</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    textarea { width: 100%; height: 200px; margin-bottom: 10px; }
-    button { padding: 10px 20px; background-color: #4CAF50; color: white; border: none; cursor: pointer; margin-right: 10px; }
-    button:hover { background-color: #45a049; }
-    pre { background-color: #f4f4f4; padding: 10px; border: 1px solid #ddd; white-space: pre-wrap; word-wrap: break-word; max-height: 400px; overflow-y: auto; }
-    .note { color: #555; font-style: italic; margin-bottom: 15px; }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+
+    textarea {
+      width: 100%;
+      height: 200px;
+      margin-bottom: 10px;
+    }
+
+    button {
+      padding: 10px 20px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    pre {
+      background-color: #f4f4f4;
+      padding: 10px;
+      border: 1px solid #ddd;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .note {
+      color: #555;
+      font-style: italic;
+      margin-bottom: 15px;
+    }
   </style>
 </head>
+
 <body>
   <h1>SVG to Canvas Draw Function Converter</h1>
-  <p class="note">Note: This tool I used to convert SVG files generated from <a href="https://virtual-graph-paper.com/" target="_blank">https://virtual-graph-paper.com/</a> to my game’s draw functions. It classifies ship parts and feature points based on the following colors:<br>
+  <p class="note">Note: This tool I used to convert SVG files generated from <a href="https://virtual-graph-paper.com/"
+      target="_blank">https://virtual-graph-paper.com/</a> to my game’s draw functions. It classifies ship parts and
+    feature points based on the following colors:<br>
     - Hull: rgb(194, 195, 199)<br>
     - Cockpit: rgb(41, 173, 255)<br>
     - Wings: rgb(255, 163, 0)<br>
     - Thrusters: rgb(255, 236, 39)<br>
     - Engine Points: rgb(255, 236, 39) (circle center: spawn point, radius: thrust strength)<br>
-    - Turret Points: rgb(255, 119, 168) (circle center: spawn point, radius: range)</p>
+    - Turret Points: rgb(255, 119, 168) (circle center: spawn point, radius: range)<br>
+    - Light Points: rgb(255, 255, 255) (circle center: spawn point, radius: size)</p>
   <p>Paste your SVG code below and click "Convert" to generate the canvas draw function.</p>
   <form>
     <textarea id="svgInput" placeholder="Paste your SVG code here..."></textarea>
@@ -244,6 +282,7 @@
         const thrusterPaths = pathData.filter(p => p.fill === 'rgb(255, 236, 39)');
         const enginePoints = circleData.filter(c => c.fill === 'rgb(255, 236, 39)');
         const turretPoints = circleData.filter(c => c.fill === 'rgb(255, 119, 168)');
+        const lightPoints = circleData.filter(c => c.fill === 'rgb(255, 255, 255)');
 
         let drawFunction = `draw(ctx, camera) {\n`;
         drawFunction += `  if (this.state === 'Landed') return;\n\n`;
@@ -270,6 +309,16 @@
         drawFunction += `    ],\n`;
         drawFunction += `    turrets: [\n`;
         turretPoints.forEach(point => {
+          const transformMatrices = parseTransform(point.transform);
+          const [tx, ty] = applyTransform(parseFloat(point.cx), parseFloat(point.cy), transformMatrices);
+          const cx = (tx - centerX) * scaleFactor;
+          const cy = (ty - centerY) * scaleFactor;
+          const r = parseFloat(point.r) * scaleFactor;
+          drawFunction += `      { x: ${cx.toFixed(2)}, y: ${cy.toFixed(2)}, radius: ${r.toFixed(2)} },\n`;
+        });
+        drawFunction += `    ],\n`;
+        drawFunction += `    lights: [\n`;
+        lightPoints.forEach(point => {
           const transformMatrices = parseTransform(point.transform);
           const [tx, ty] = applyTransform(parseFloat(point.cx), parseFloat(point.cy), transformMatrices);
           const cx = (tx - centerX) * scaleFactor;
@@ -335,7 +384,8 @@
 
         // Add custom drawing calls before restore
         drawFunction += `  this.drawEngines(ctx, camera, scale);\n`;
-        drawFunction += `  this.drawTurrets(ctx, camera, scale);\n\n`;
+        drawFunction += `  this.drawTurrets(ctx, camera, scale);\n`;
+        drawFunction += `  this.drawLights(ctx, camera, scale);\n\n`;
 
         drawFunction += `  ctx.restore();\n\n`;
         drawFunction += `  // Draw debug information if enabled\n`;
@@ -350,4 +400,5 @@
     }
   </script>
 </body>
+
 </html>

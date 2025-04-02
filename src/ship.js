@@ -88,6 +88,8 @@ export class Ship extends GameObject {
         this.decelerationDistance = 0;
         this.farApproachDistance = 0;
         this.closeApproachDistance = 0;
+        this.age = 0;
+        this.thurstTime = 0;
 
         // Bounding box dimensions for HUD targeting rectangle (default values)
         this.boundingBox = new Vector2D(20, 20); // Default width and height
@@ -225,6 +227,14 @@ export class Ship extends GameObject {
             console.warn(`No handler for state: ${this.state}`);
         }
         this.trail.update(deltaTime);
+        this.age += deltaTime;
+        if (this.isThrusting) {
+            this.thurstTime += deltaTime * 2;
+            this.thurstTime = Math.min(1, this.thurstTime);
+        } else {
+            this.thurstTime -= deltaTime;
+            this.thurstTime = Math.max(0, this.thurstTime);
+        }
     }
 
     updateFlying(deltaTime) {
@@ -445,15 +455,15 @@ export class Ship extends GameObject {
     drawEngines(ctx, camera, scale) {
         // Relies on draw to setup scale and rotation
         // Draw thrust effect if applicable
-        if ((this.isThrusting && this.state === 'Flying') || this.state === 'Landing' || this.state === 'TakingOff') {
-
+        //if ((this.isThrusting && this.state === 'Flying') || this.state === 'Landing' || this.state === 'TakingOff') {
+        if (this.thurstTime > 0) {
             ctx.fillStyle = new Colour(1, 0, 0, 0.5).toRGBA();
             ctx.beginPath();
             for (let i = 0; i < this.featurePoints.engines.length; i++) {
                 const engine = this.featurePoints.engines[i];
                 ctx.moveTo(engine.x - engine.radius, engine.y);
                 ctx.lineTo(engine.x + engine.radius, engine.y);
-                ctx.lineTo(engine.x, engine.y + engine.radius * 15 + (Math.random() * engine.radius * 5));
+                ctx.lineTo(engine.x, engine.y + (engine.radius * 15 + (Math.random() * engine.radius * 5)) * this.thurstTime);
                 ctx.closePath();
             }
             ctx.fill();
@@ -464,7 +474,7 @@ export class Ship extends GameObject {
                 const engine = this.featurePoints.engines[i];
                 ctx.moveTo(engine.x - engine.radius * 0.5, engine.y);
                 ctx.lineTo(engine.x + engine.radius * 0.5, engine.y);
-                ctx.lineTo(engine.x, engine.y + engine.radius * 9 + (Math.random() * engine.radius * 2));
+                ctx.lineTo(engine.x, engine.y + (engine.radius * 9 + (Math.random() * engine.radius * 2)) * this.thurstTime);
                 ctx.closePath();
             }
             ctx.fill();
@@ -475,7 +485,7 @@ export class Ship extends GameObject {
                 const engine = this.featurePoints.engines[i];
                 ctx.moveTo(engine.x - engine.radius * 0.25, engine.y);
                 ctx.lineTo(engine.x + engine.radius * 0.25, engine.y);
-                ctx.lineTo(engine.x, engine.y + engine.radius * 4.5 + (Math.random() * engine.radius * 2));
+                ctx.lineTo(engine.x, engine.y + (engine.radius * 4.5 + (Math.random() * engine.radius * 2)) * this.thurstTime);
                 ctx.closePath();
             }
             ctx.fill();
@@ -484,7 +494,8 @@ export class Ship extends GameObject {
 
     drawTurrets(ctx, camera, scale) {
         // Relies on draw to setup scale and rotation
-        ctx.fillStyle = new Colour(0, 0, 1).toRGB();
+        ctx.fillStyle = '#FF77A8';
+
         ctx.beginPath();
         for (let i = 0; i < this.featurePoints.turrets.length; i++) {
             const turret = this.featurePoints.turrets[i];
@@ -493,6 +504,60 @@ export class Ship extends GameObject {
             ctx.closePath();
         }
         ctx.fill();
+    }
+
+    drawLights(ctx, camera, scale) {
+        // Relies on draw to setup scale and rotation
+
+        for (let i = 0; i < this.featurePoints.lights.length; i++) {
+            const light = this.featurePoints.lights[i];
+            const sinAge = Math.sin(this.age * 5);
+            const leftBrighnes = Math.max(0, sinAge) ** 8;
+            const rightBrighnes = Math.max(0, 0 - sinAge) ** 8;
+
+            if (light.x < -3) {
+                ctx.fillStyle = `rgba(255,0,0,${leftBrighnes * 0.5})`;
+            } else if (light.x > 3) {
+                ctx.fillStyle = `rgba(0,255,0,${rightBrighnes * 0.5})`;
+            } else {
+                ctx.fillStyle = 'rgba(255,255,255,0.5)';
+            }
+
+            ctx.beginPath();
+            ctx.moveTo(light.x, light.y);
+            ctx.arc(light.x, light.y, light.radius * 2, 0, TWO_PI);
+            ctx.closePath();
+            ctx.fill();
+
+            if (light.x < -3) {
+                ctx.fillStyle = `rgba(255,0,0,${leftBrighnes})`;
+            } else if (light.x > 3) {
+                ctx.fillStyle = `rgba(0,255,0,${rightBrighnes})`;
+            } else {
+                ctx.fillStyle = 'rgba(255,255,255,1)';
+            }
+
+            ctx.beginPath();
+            ctx.moveTo(light.x, light.y);
+            ctx.arc(light.x, light.y, light.radius, 0, TWO_PI);
+            ctx.closePath();
+            ctx.fill();
+
+            if (light.x < 3) {
+                ctx.fillStyle = `rgba(255,255,255,${leftBrighnes})`;
+            } else if (light.x > 3) {
+                ctx.fillStyle = `rgba(255,255,255,${rightBrighnes})`;
+            } else {
+                ctx.fillStyle = 'rgba(255,255,255,1)';
+            }
+
+            ctx.beginPath();
+            ctx.moveTo(light.x, light.y);
+            ctx.arc(light.x, light.y, light.radius * 0.5, 0, TWO_PI);
+            ctx.closePath();
+            ctx.fill();
+        }
+
     }
 
     drawDebug(ctx, camera, scale) {
@@ -596,6 +661,10 @@ export class Flivver extends Ship {
                 { x: 0.00, y: 13.50, radius: 2.00 },
             ],
             turrets: [
+            ],
+            lights: [
+                { x: -18.00, y: 14.50, radius: 1.00 },
+                { x: 18.00, y: 14.50, radius: 1.00 },
             ]
         };
     }
@@ -723,14 +792,13 @@ export class Flivver extends Ship {
 
         this.drawEngines(ctx, camera, scale);
         this.drawTurrets(ctx, camera, scale);
+        this.drawLights(ctx, camera, scale);
 
         ctx.restore();
 
         // Draw debug information if enabled
         this.drawDebug(ctx, camera, scale);
     }
-
-
 }
 
 export class Shuttle extends Ship {
@@ -745,9 +813,16 @@ export class Shuttle extends Ship {
         // Feature points for dynamic elements
         this.featurePoints = {
             engines: [
-                { x: 0.00, y: 12.00, radius: 2.00 },
+                { x: 2.00, y: 12.50, radius: 1.00 },
+                { x: -2.00, y: 12.50, radius: 1.00 },
             ],
             turrets: [
+            ],
+            lights: [
+                { x: -8.00, y: 10.50, radius: 1.00 },
+                { x: 8.00, y: 10.50, radius: 1.00 },
+                { x: -4.00, y: -7.50, radius: 1.00 },
+                { x: 4.00, y: -7.50, radius: 1.00 },
             ]
         };
     }
@@ -768,31 +843,36 @@ export class Shuttle extends Ship {
         ctx.lineWidth = 0.1;
         ctx.fillStyle = this.colors.hull.toRGB();
         ctx.beginPath();
-        ctx.moveTo(0.00, -14.00);
-        ctx.lineTo(2.00, -13.00);
-        ctx.lineTo(3.00, -11.00);
-        ctx.lineTo(3.00, -7.00);
-        ctx.lineTo(2.00, -6.00);
-        ctx.lineTo(-2.00, -6.00);
-        ctx.lineTo(-3.00, -7.00);
-        ctx.lineTo(-3.00, -11.00);
-        ctx.lineTo(-2.00, -13.00);
+        ctx.moveTo(0.00, -13.50);
+        ctx.lineTo(2.00, -12.50);
+        ctx.lineTo(3.00, -10.50);
+        ctx.lineTo(3.00, -6.50);
+        ctx.lineTo(2.00, -5.50);
+        ctx.lineTo(-2.00, -5.50);
+        ctx.lineTo(-3.00, -6.50);
+        ctx.lineTo(-3.00, -10.50);
+        ctx.lineTo(-2.00, -12.50);
         ctx.closePath();
-        ctx.moveTo(2.00, -6.00);
-        ctx.lineTo(5.00, -5.00);
-        ctx.lineTo(6.00, 1.00);
-        ctx.lineTo(6.00, 10.00);
-        ctx.lineTo(4.00, 11.00);
-        ctx.lineTo(-4.00, 11.00);
-        ctx.lineTo(-6.00, 10.00);
-        ctx.lineTo(-6.00, 1.00);
-        ctx.lineTo(-5.00, -5.00);
-        ctx.lineTo(-2.00, -6.00);
+        ctx.moveTo(2.00, -5.50);
+        ctx.lineTo(5.00, -4.50);
+        ctx.lineTo(6.00, 1.50);
+        ctx.lineTo(6.00, 10.50);
+        ctx.lineTo(4.00, 11.50);
+        ctx.lineTo(-4.00, 11.50);
+        ctx.lineTo(-6.00, 10.50);
+        ctx.lineTo(-6.00, 1.50);
+        ctx.lineTo(-5.00, -4.50);
+        ctx.lineTo(-2.00, -5.50);
         ctx.closePath();
-        ctx.moveTo(3.00, 11.00);
-        ctx.lineTo(2.00, 12.00);
-        ctx.lineTo(-2.00, 12.00);
-        ctx.lineTo(-3.00, 11.00);
+        ctx.moveTo(0.00, 11.50);
+        ctx.lineTo(-1.00, 12.50);
+        ctx.lineTo(-3.00, 12.50);
+        ctx.lineTo(-4.00, 11.50);
+        ctx.closePath();
+        ctx.moveTo(0.00, 11.50);
+        ctx.lineTo(4.00, 11.50);
+        ctx.lineTo(3.00, 12.50);
+        ctx.lineTo(1.00, 12.50);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
@@ -800,10 +880,10 @@ export class Shuttle extends Ship {
         // Draw the cockpit
         ctx.fillStyle = this.colors.cockpit.toRGB();
         ctx.beginPath();
-        ctx.moveTo(-1.00, -12.00);
-        ctx.lineTo(1.00, -12.00);
-        ctx.lineTo(2.00, -8.00);
-        ctx.lineTo(-2.00, -8.00);
+        ctx.moveTo(-1.00, -11.50);
+        ctx.lineTo(1.00, -11.50);
+        ctx.lineTo(2.00, -7.50);
+        ctx.lineTo(-2.00, -7.50);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
@@ -811,35 +891,36 @@ export class Shuttle extends Ship {
         // Draw the wings and fins
         ctx.fillStyle = this.colors.wings.toRGB();
         ctx.beginPath();
-        ctx.moveTo(3.00, -11.00);
-        ctx.lineTo(4.00, -9.00);
-        ctx.lineTo(4.00, -8.00);
-        ctx.lineTo(3.00, -9.00);
+        ctx.moveTo(3.00, -10.50);
+        ctx.lineTo(4.00, -8.50);
+        ctx.lineTo(4.00, -7.50);
+        ctx.lineTo(3.00, -8.50);
         ctx.closePath();
-        ctx.moveTo(-3.00, -11.00);
-        ctx.lineTo(-3.00, -9.00);
-        ctx.lineTo(-4.00, -8.00);
-        ctx.lineTo(-4.00, -9.00);
+        ctx.moveTo(-3.00, -10.50);
+        ctx.lineTo(-3.00, -8.50);
+        ctx.lineTo(-4.00, -7.50);
+        ctx.lineTo(-4.00, -8.50);
         ctx.closePath();
-        ctx.moveTo(6.00, 1.00);
-        ctx.lineTo(8.00, 5.00);
-        ctx.lineTo(8.00, 10.00);
-        ctx.lineTo(6.00, 10.00);
+        ctx.moveTo(6.00, 1.50);
+        ctx.lineTo(8.00, 5.50);
+        ctx.lineTo(8.00, 10.50);
+        ctx.lineTo(6.00, 10.50);
         ctx.closePath();
-        ctx.moveTo(-6.00, 1.00);
-        ctx.lineTo(-8.00, 5.00);
-        ctx.lineTo(-8.00, 10.00);
-        ctx.lineTo(-6.00, 10.00);
+        ctx.moveTo(-6.00, 1.50);
+        ctx.lineTo(-8.00, 5.50);
+        ctx.lineTo(-8.00, 10.50);
+        ctx.lineTo(-6.00, 10.50);
         ctx.closePath();
-        ctx.moveTo(0.00, 1.00);
-        ctx.lineTo(1.00, 10.00);
-        ctx.lineTo(-1.00, 10.00);
+        ctx.moveTo(0.00, 1.50);
+        ctx.lineTo(1.00, 10.50);
+        ctx.lineTo(-1.00, 10.50);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
 
         this.drawEngines(ctx, camera, scale);
         this.drawTurrets(ctx, camera, scale);
+        this.drawLights(ctx, camera, scale);
 
         ctx.restore();
 
@@ -860,9 +941,16 @@ export class HeavyShuttle extends Ship {
         // Feature points for dynamic elements
         this.featurePoints = {
             engines: [
-                { x: 0.00, y: 15.50, radius: 2.00 },
+                { x: 2.00, y: 16.00, radius: 1.00 },
+                { x: -2.00, y: 16.00, radius: 1.00 },
             ],
             turrets: [
+            ],
+            lights: [
+                { x: -8.00, y: 14.00, radius: 1.00 },
+                { x: 8.00, y: 14.00, radius: 1.00 },
+                { x: 5.00, y: -7.00, radius: 1.00 },
+                { x: -5.00, y: -7.00, radius: 1.00 },
             ]
         };
     }
@@ -883,31 +971,36 @@ export class HeavyShuttle extends Ship {
         ctx.lineWidth = 0.1;
         ctx.fillStyle = this.colors.hull.toRGB();
         ctx.beginPath();
-        ctx.moveTo(0.00, -17.50);
-        ctx.lineTo(3.00, -16.50);
-        ctx.lineTo(4.00, -12.50);
-        ctx.lineTo(4.00, -6.50);
-        ctx.lineTo(3.00, -5.50);
-        ctx.lineTo(-3.00, -5.50);
-        ctx.lineTo(-4.00, -6.50);
-        ctx.lineTo(-4.00, -12.50);
-        ctx.lineTo(-3.00, -16.50);
+        ctx.moveTo(0.00, -17.00);
+        ctx.lineTo(3.00, -16.00);
+        ctx.lineTo(4.00, -12.00);
+        ctx.lineTo(4.00, -6.00);
+        ctx.lineTo(3.00, -5.00);
+        ctx.lineTo(-3.00, -5.00);
+        ctx.lineTo(-4.00, -6.00);
+        ctx.lineTo(-4.00, -12.00);
+        ctx.lineTo(-3.00, -16.00);
         ctx.closePath();
-        ctx.moveTo(3.00, -5.50);
-        ctx.lineTo(5.00, -4.50);
-        ctx.lineTo(6.00, -1.50);
-        ctx.lineTo(6.00, 12.50);
-        ctx.lineTo(4.00, 14.50);
-        ctx.lineTo(-4.00, 14.50);
-        ctx.lineTo(-6.00, 12.50);
-        ctx.lineTo(-6.00, -1.50);
-        ctx.lineTo(-5.00, -4.50);
-        ctx.lineTo(-3.00, -5.50);
+        ctx.moveTo(3.00, -5.00);
+        ctx.lineTo(5.00, -4.00);
+        ctx.lineTo(6.00, -1.00);
+        ctx.lineTo(6.00, 13.00);
+        ctx.lineTo(4.00, 15.00);
+        ctx.lineTo(-4.00, 15.00);
+        ctx.lineTo(-6.00, 13.00);
+        ctx.lineTo(-6.00, -1.00);
+        ctx.lineTo(-5.00, -4.00);
+        ctx.lineTo(-3.00, -5.00);
         ctx.closePath();
-        ctx.moveTo(3.00, 14.50);
-        ctx.lineTo(2.00, 15.50);
-        ctx.lineTo(-2.00, 15.50);
-        ctx.lineTo(-3.00, 14.50);
+        ctx.moveTo(-4.00, 15.00);
+        ctx.lineTo(0.00, 15.00);
+        ctx.lineTo(-1.00, 16.00);
+        ctx.lineTo(-3.00, 16.00);
+        ctx.closePath();
+        ctx.moveTo(4.00, 15.00);
+        ctx.lineTo(3.00, 16.00);
+        ctx.lineTo(1.00, 16.00);
+        ctx.lineTo(0.00, 15.00);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
@@ -915,14 +1008,14 @@ export class HeavyShuttle extends Ship {
         // Draw the cockpit
         ctx.fillStyle = this.colors.cockpit.toRGB();
         ctx.beginPath();
-        ctx.moveTo(-1.00, -15.50);
-        ctx.lineTo(1.00, -15.50);
-        ctx.lineTo(2.00, -11.50);
-        ctx.lineTo(2.00, -9.50);
-        ctx.lineTo(1.00, -8.50);
-        ctx.lineTo(-1.00, -8.50);
-        ctx.lineTo(-2.00, -9.50);
-        ctx.lineTo(-2.00, -11.50);
+        ctx.moveTo(-1.00, -15.00);
+        ctx.lineTo(1.00, -15.00);
+        ctx.lineTo(2.00, -11.00);
+        ctx.lineTo(2.00, -9.00);
+        ctx.lineTo(1.00, -8.00);
+        ctx.lineTo(-1.00, -8.00);
+        ctx.lineTo(-2.00, -9.00);
+        ctx.lineTo(-2.00, -11.00);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
@@ -930,43 +1023,42 @@ export class HeavyShuttle extends Ship {
         // Draw the wings and fins
         ctx.fillStyle = this.colors.wings.toRGB();
         ctx.beginPath();
-        ctx.moveTo(4.00, -12.50);
-        ctx.lineTo(5.00, -10.50);
-        ctx.lineTo(5.00, -7.50);
-        ctx.lineTo(4.00, -8.50);
+        ctx.moveTo(4.00, -12.00);
+        ctx.lineTo(5.00, -10.00);
+        ctx.lineTo(5.00, -7.00);
+        ctx.lineTo(4.00, -8.00);
         ctx.closePath();
-        ctx.moveTo(-4.00, -12.50);
-        ctx.lineTo(-4.00, -8.50);
-        ctx.lineTo(-5.00, -7.50);
-        ctx.lineTo(-5.00, -10.50);
+        ctx.moveTo(-4.00, -12.00);
+        ctx.lineTo(-4.00, -8.00);
+        ctx.lineTo(-5.00, -7.00);
+        ctx.lineTo(-5.00, -10.00);
         ctx.closePath();
-        ctx.moveTo(6.00, 1.50);
-        ctx.lineTo(8.00, 5.50);
-        ctx.lineTo(8.00, 13.50);
-        ctx.lineTo(6.00, 12.50);
+        ctx.moveTo(6.00, 2.00);
+        ctx.lineTo(8.00, 6.00);
+        ctx.lineTo(8.00, 14.00);
+        ctx.lineTo(6.00, 13.00);
         ctx.closePath();
-        ctx.moveTo(-6.00, 1.50);
-        ctx.lineTo(-8.00, 5.50);
-        ctx.lineTo(-8.00, 13.50);
-        ctx.lineTo(-6.00, 12.50);
+        ctx.moveTo(-6.00, 2.00);
+        ctx.lineTo(-8.00, 6.00);
+        ctx.lineTo(-8.00, 14.00);
+        ctx.lineTo(-6.00, 13.00);
         ctx.closePath();
-        ctx.moveTo(0.00, 1.50);
-        ctx.lineTo(1.00, 13.50);
-        ctx.lineTo(-1.00, 13.50);
+        ctx.moveTo(0.00, 2.00);
+        ctx.lineTo(1.00, 14.00);
+        ctx.lineTo(-1.00, 14.00);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
 
         this.drawEngines(ctx, camera, scale);
         this.drawTurrets(ctx, camera, scale);
+        this.drawLights(ctx, camera, scale);
 
         ctx.restore();
 
         // Draw debug information if enabled
         this.drawDebug(ctx, camera, scale);
     }
-
-
 }
 
 export class StarBarge extends Ship {
@@ -977,6 +1069,7 @@ export class StarBarge extends Ship {
         this.maxVelocity = 100;
         // Bounding box: width = 32 (from -16 to 16), height = 55 (from -27.5 to 27.5)
         this.boundingBox.set(32, 55);
+
         // Feature points for dynamic elements
         this.featurePoints = {
             engines: [
@@ -984,6 +1077,10 @@ export class StarBarge extends Ship {
             ],
             turrets: [
                 { x: 0.00, y: -2.00, radius: 2.00 },
+            ],
+            lights: [
+                { x: -16.00, y: 14.00, radius: 1.00 },
+                { x: 16.00, y: 14.00, radius: 1.00 },
             ]
         };
     }
@@ -1148,15 +1245,13 @@ export class StarBarge extends Ship {
 
         this.drawEngines(ctx, camera, scale);
         this.drawTurrets(ctx, camera, scale);
+        this.drawLights(ctx, camera, scale);
 
         ctx.restore();
 
         // Draw debug information if enabled
         this.drawDebug(ctx, camera, scale);
     }
-
-
-
 }
 
 export class Freighter extends Ship {
@@ -1177,6 +1272,14 @@ export class Freighter extends Ship {
             turrets: [
                 { x: -0.07, y: -35.00, radius: 2.13 },
                 { x: 0.00, y: 40.00, radius: 2.00 },
+            ],
+            lights: [
+                { x: -20.00, y: 52.00, radius: 1.00 },
+                { x: 20.00, y: 52.00, radius: 1.00 },
+                { x: -20.00, y: -1.00, radius: 1.00 },
+                { x: 20.00, y: -1.00, radius: 1.00 },
+                { x: -7.00, y: -54.00, radius: 1.00 },
+                { x: 7.00, y: -54.00, radius: 1.00 },
             ]
         };
     }
@@ -1191,18 +1294,6 @@ export class Freighter extends Ship {
         ctx.rotate(this.angle);
         const scale = camera.zoom * this.shipScale;
         ctx.scale(scale, scale * this.stretchFactor);
-
-        // Feature points for dynamic elements
-        this.featurePoints = {
-            engines: [
-                { x: -6.00, y: 62.00, radius: 2.00 },
-                { x: 6.00, y: 62.00, radius: 2.00 },
-            ],
-            turrets: [
-                { x: -0.07, y: -35.00, radius: 2.13 },
-                { x: 0.00, y: 40.00, radius: 2.00 },
-            ]
-        };
 
         // Draw the hull
         ctx.strokeStyle = 'rgb(50, 50, 50)';
@@ -1642,14 +1733,13 @@ export class Freighter extends Ship {
 
         this.drawEngines(ctx, camera, scale);
         this.drawTurrets(ctx, camera, scale);
+        this.drawLights(ctx, camera, scale);
 
         ctx.restore();
 
         // Draw debug information if enabled
         this.drawDebug(ctx, camera, scale);
     }
-
-
 }
 
 export class Arrow extends Ship {
@@ -1664,11 +1754,17 @@ export class Arrow extends Ship {
         // Feature points for dynamic elements
         this.featurePoints = {
             engines: [
-                { x: -5.00, y: 20.50, radius: 2.00 },
-                { x: 5.00, y: 20.50, radius: 2.00 },
-                { x: 0.00, y: 20.50, radius: 2.00 },
+                { x: -5.00, y: 20.00, radius: 2.00 },
+                { x: 5.00, y: 20.00, radius: 2.00 },
+                { x: 0.00, y: 20.00, radius: 2.00 },
             ],
             turrets: [
+            ],
+            lights: [
+                { x: -15.00, y: 22.00, radius: 1.00 },
+                { x: 15.00, y: 22.00, radius: 1.00 },
+                { x: -5.00, y: -1.00, radius: 1.00 },
+                { x: 5.00, y: -1.00, radius: 1.00 },
             ]
         };
     }
@@ -1684,39 +1780,37 @@ export class Arrow extends Ship {
         const scale = camera.zoom * this.shipScale;
         ctx.scale(scale, scale * this.stretchFactor);
 
-
-
         // Draw the hull
         ctx.strokeStyle = 'rgb(50, 50, 50)';
         ctx.lineWidth = 0.1;
         ctx.fillStyle = this.colors.hull.toRGB();
         ctx.beginPath();
-        ctx.moveTo(-7.00, 8.50);
-        ctx.lineTo(-3.00, 8.50);
-        ctx.lineTo(-3.00, 20.50);
-        ctx.lineTo(-7.00, 20.50);
+        ctx.moveTo(-7.00, 8.00);
+        ctx.lineTo(-3.00, 8.00);
+        ctx.lineTo(-3.00, 20.00);
+        ctx.lineTo(-7.00, 20.00);
         ctx.closePath();
-        ctx.moveTo(3.00, 8.50);
-        ctx.lineTo(7.00, 8.50);
-        ctx.lineTo(7.00, 20.50);
-        ctx.lineTo(3.00, 20.50);
+        ctx.moveTo(3.00, 8.00);
+        ctx.lineTo(7.00, 8.00);
+        ctx.lineTo(7.00, 20.00);
+        ctx.lineTo(3.00, 20.00);
         ctx.closePath();
-        ctx.moveTo(3.00, 8.50);
-        ctx.lineTo(3.00, 19.50);
-        ctx.lineTo(-3.00, 19.50);
-        ctx.lineTo(-3.00, 8.50);
-        ctx.lineTo(-3.00, 4.50);
-        ctx.lineTo(-2.00, -19.50);
-        ctx.lineTo(-1.00, -21.50);
-        ctx.lineTo(0.00, -22.50);
-        ctx.lineTo(1.00, -21.50);
-        ctx.lineTo(2.00, -19.50);
-        ctx.lineTo(3.00, 4.50);
-        ctx.lineTo(3.00, 8.50);
-        ctx.moveTo(-2.00, 8.50);
-        ctx.lineTo(2.00, 8.50);
-        ctx.lineTo(2.00, 20.50);
-        ctx.lineTo(-2.00, 20.50);
+        ctx.moveTo(3.00, 8.00);
+        ctx.lineTo(3.00, 19.00);
+        ctx.lineTo(-3.00, 19.00);
+        ctx.lineTo(-3.00, 8.00);
+        ctx.lineTo(-3.00, 4.00);
+        ctx.lineTo(-2.00, -20.00);
+        ctx.lineTo(-1.00, -22.00);
+        ctx.lineTo(0.00, -23.00);
+        ctx.lineTo(1.00, -22.00);
+        ctx.lineTo(2.00, -20.00);
+        ctx.lineTo(3.00, 4.00);
+        ctx.lineTo(3.00, 8.00);
+        ctx.moveTo(-2.00, 8.00);
+        ctx.lineTo(2.00, 8.00);
+        ctx.lineTo(2.00, 20.00);
+        ctx.lineTo(-2.00, 20.00);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
@@ -1724,10 +1818,10 @@ export class Arrow extends Ship {
         // Draw the cockpit
         ctx.fillStyle = this.colors.cockpit.toRGB();
         ctx.beginPath();
-        ctx.moveTo(-1.00, -11.50);
-        ctx.lineTo(1.00, -11.50);
-        ctx.lineTo(2.00, -7.50);
-        ctx.lineTo(-2.00, -7.50);
+        ctx.moveTo(-1.00, -12.00);
+        ctx.lineTo(1.00, -12.00);
+        ctx.lineTo(2.00, -8.00);
+        ctx.lineTo(-2.00, -8.00);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
@@ -1735,41 +1829,40 @@ export class Arrow extends Ship {
         // Draw the wings and fins
         ctx.fillStyle = this.colors.wings.toRGB();
         ctx.beginPath();
-        ctx.moveTo(-2.00, -3.50);
-        ctx.lineTo(-5.00, -1.50);
-        ctx.lineTo(-5.00, -0.50);
-        ctx.lineTo(-2.00, -1.50);
+        ctx.moveTo(-2.00, -4.00);
+        ctx.lineTo(-5.00, -2.00);
+        ctx.lineTo(-5.00, -1.00);
+        ctx.lineTo(-2.00, -2.00);
         ctx.closePath();
-        ctx.moveTo(2.00, -3.50);
-        ctx.lineTo(5.00, -1.50);
-        ctx.lineTo(5.00, -0.50);
-        ctx.lineTo(2.00, -1.50);
+        ctx.moveTo(2.00, -4.00);
+        ctx.lineTo(5.00, -2.00);
+        ctx.lineTo(5.00, -1.00);
+        ctx.lineTo(2.00, -2.00);
         ctx.closePath();
-        ctx.moveTo(7.00, 14.50);
-        ctx.lineTo(15.00, 18.50);
-        ctx.lineTo(15.00, 21.50);
-        ctx.lineTo(15.00, 22.50);
-        ctx.lineTo(7.00, 19.50);
+        ctx.moveTo(7.00, 14.00);
+        ctx.lineTo(15.00, 18.00);
+        ctx.lineTo(15.00, 21.00);
+        ctx.lineTo(15.00, 22.00);
+        ctx.lineTo(7.00, 19.00);
         ctx.closePath();
-        ctx.moveTo(-7.00, 14.50);
-        ctx.lineTo(-15.00, 18.50);
-        ctx.lineTo(-15.00, 21.50);
-        ctx.lineTo(-15.00, 22.50);
-        ctx.lineTo(-7.00, 19.50);
+        ctx.moveTo(-7.00, 14.00);
+        ctx.lineTo(-15.00, 18.00);
+        ctx.lineTo(-15.00, 21.00);
+        ctx.lineTo(-15.00, 22.00);
+        ctx.lineTo(-7.00, 19.00);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
 
         this.drawEngines(ctx, camera, scale);
         this.drawTurrets(ctx, camera, scale);
+        this.drawLights(ctx, camera, scale);
 
         ctx.restore();
 
         // Draw debug information if enabled
         this.drawDebug(ctx, camera, scale);
     }
-
-
 }
 
 // Factory function to create a random ship type

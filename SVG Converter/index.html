@@ -276,6 +276,10 @@
         console.log(`Center: (${centerX}, ${centerY})`);
         const scaleFactor = 1 / 15;
 
+        // Calculate bounding box dimensions (unscaled)
+        const width = (maxX - minX) * scaleFactor;
+        const height = (maxY - minY) * scaleFactor;
+
         const hullPaths = pathData.filter(p => p.fill === 'rgb(194, 195, 199)');
         const cockpitPaths = pathData.filter(p => p.fill === 'rgb(41, 173, 255)');
         const wingPaths = pathData.filter(p => p.fill === 'rgb(255, 163, 0)');
@@ -285,16 +289,18 @@
         const lightPoints = circleData.filter(c => c.fill === 'rgb(255, 255, 255)');
 
         let drawFunction = `draw(ctx, camera) {\n`;
+        drawFunction += `  if (this.trail.currentLength > 0) {\n`;
+        drawFunction += `    this.trail.draw(ctx, camera, this.position);\n`;
+        drawFunction += `  }\n\n`;
         drawFunction += `  if (this.state === 'Landed') return;\n\n`;
         drawFunction += `  ctx.save();\n`;
-        drawFunction += `  this.trail.draw(ctx, camera);\n`;
         drawFunction += `  camera.worldToScreen(this.position, this._scratchScreenPos);\n`;
         drawFunction += `  ctx.translate(this._scratchScreenPos.x, this._scratchScreenPos.y);\n`;
         drawFunction += `  ctx.rotate(this.angle);\n`;
         drawFunction += `  const scale = camera.zoom * this.shipScale;\n`;
         drawFunction += `  ctx.scale(scale, scale * this.stretchFactor);\n\n`;
 
-        // Add feature points as an array
+        // Add feature points and bounding box
         drawFunction += `  // Feature points for dynamic elements\n`;
         drawFunction += `  this.featurePoints = {\n`;
         drawFunction += `    engines: [\n`;
@@ -328,6 +334,8 @@
         });
         drawFunction += `    ]\n`;
         drawFunction += `  };\n\n`;
+        drawFunction += `  // Bounding box: width = ${(maxX - minX).toFixed(1)} (from ${minX.toFixed(1)} to ${maxX.toFixed(1)}), height = ${(maxY - minY).toFixed(1)} (from ${minY.toFixed(1)} to ${maxY.toFixed(1)})\n`;
+        drawFunction += `  this.boundingBox.set(${width.toFixed(2)}, ${height.toFixed(2)});\n\n`;
 
         drawFunction += `  // Draw the hull\n`;
         drawFunction += `  ctx.strokeStyle = 'rgb(50, 50, 50)';\n`;

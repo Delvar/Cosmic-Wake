@@ -284,11 +284,12 @@ export class HeadsUpDisplay {
                 ctx.strokeStyle = 'rgba(255, 255, 0, 0.8)';
                 ctx.lineWidth = 2;
                 ctx.beginPath();
+                const padding = 5; // Pixels of padding in screen space
                 ctx.rect(
-                    minX,
-                    minY,
-                    maxX - minX,
-                    maxY - minY
+                    minX - padding,
+                    minY - padding,
+                    (maxX - minX) + 2 * padding,
+                    (maxY - minY) + 2 * padding
                 );
                 ctx.stroke();
             } else {

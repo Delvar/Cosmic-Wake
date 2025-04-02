@@ -44,9 +44,9 @@ export class Ship extends GameObject {
         super(new Vector2D(x, y), starSystem);
 
         this.name = generateShipName();
-        this.rotationSpeed = Math.PI * 1; // Default rotation speed
-        this.thrust = 250; // Default thrust
-        this.maxVelocity = 500; // Default max velocity
+        this.rotationSpeed = Math.PI;
+        this.thrust = 250;
+        this.maxVelocity = 500;
         this.velocity = new Vector2D(0, 0);
         this.angle = 0;
         this.targetAngle = 0;
@@ -63,7 +63,6 @@ export class Ship extends GameObject {
             hull: this.generateRandomGrey()
         };
 
-        this.trail = new Trail(this, 500, 2, this.colors.wings.toRGBA(0.5));
         this.target = null;
         this.landedPlanet = null;
         this.state = 'Flying';
@@ -91,6 +90,10 @@ export class Ship extends GameObject {
         this.age = 0;
         this.thurstTime = 0;
 
+        this.featurePoints = null;
+        this.trailPosition = 0;
+        this.trail = null;
+
         // Bounding box dimensions for HUD targeting rectangle (default values)
         this.boundingBox = new Vector2D(20, 20); // Default width and height
 
@@ -104,6 +107,22 @@ export class Ship extends GameObject {
         this._scratchStoppingPoint = new Vector2D(0, 0);
         this._scratchVelocityDelta = new Vector2D(0, 0);
         this._scratchDistanceToPlanet = new Vector2D(0, 0);
+    }
+
+    /**
+     * Sets up the trail after everything has been configured.
+     */
+    setupTrail() {
+        if (!this.featurePoints || !this.featurePoints.engines) {
+            return;
+        }
+        for (let i = 0; i < this.featurePoints.engines.length; i++) {
+            const engine = this.featurePoints.engines[i];
+            if (engine.y > this.trailPosition || this.trailPosition == 0) {
+                this.trailPosition = engine.y;
+            }
+        }
+        this.trail = new Trail(500, this.maxVelocity * 0.5, 2, this.colors.wings.toRGBA(0.5));
     }
 
     /**
@@ -217,6 +236,7 @@ export class Ship extends GameObject {
     }
 
     update(deltaTime) {
+        this.age += deltaTime;
         if (isNaN(this.position.x) && this.debug) {
             console.log('Position became NaN');
         }
@@ -226,8 +246,19 @@ export class Ship extends GameObject {
         } else {
             console.warn(`No handler for state: ${this.state}`);
         }
-        this.trail.update(deltaTime);
-        this.age += deltaTime;
+
+        if (this.state == 'Landing' || this.sate == 'Landed') {
+            if (this.trail.currentLength > 1) {
+                this.trail.currentLength -= Math.max(10 * deltaTime, this.trail.currentLength * deltaTime);
+                if (this.trail.currentLength < 1) {
+                    this.trail.currentLength = 0;
+                }
+            }
+        }
+
+        this._scratchThrustVector.set(-Math.sin(this.angle), Math.cos(this.angle)).multiplyInPlace(this.trailPosition * this.shipScale).addInPlace(this.position);
+        this.trail.update(deltaTime, this._scratchThrustVector, this.angle, this.debug);
+
         if (this.isThrusting) {
             this.thurstTime += deltaTime * 2;
             this.thurstTime = Math.min(1, this.thurstTime);
@@ -416,10 +447,13 @@ export class Ship extends GameObject {
     }
 
     draw(ctx, camera) {
+        if (this.trail.currentLength > 0) {
+            this.trail.draw(ctx, camera, this.position);
+        }
+
         if (this.state === 'Landed') return;
 
         ctx.save();
-        this.trail.draw(ctx, camera);
         camera.worldToScreen(this.position, this._scratchScreenPos);
         ctx.translate(this._scratchScreenPos.x, this._scratchScreenPos.y);
         ctx.rotate(this.angle);
@@ -650,9 +684,6 @@ export class Flivver extends Ship {
         this.rotationSpeed = Math.PI * 2.5;
         this.thrust = 800;
         this.maxVelocity = 700;
-        // Bounding box: width = 36 (from -18 to 18), height = 36 (from -20 to 16)
-        this.boundingBox.set(36, 36);
-
         // Feature points for dynamic elements
         this.featurePoints = {
             engines: [
@@ -667,13 +698,21 @@ export class Flivver extends Ship {
                 { x: 18.00, y: 14.50, radius: 1.00 },
             ]
         };
+
+        // Bounding box: width = 570.0 (from 142.5 to 712.5), height = 465.0 (from 116.3 to 581.3)
+        this.boundingBox.set(38.00, 31.00);
+
+        this.setupTrail();
     }
 
     draw(ctx, camera) {
+        if (this.trail.currentLength > 0) {
+            this.trail.draw(ctx, camera, this.position);
+        }
+
         if (this.state === 'Landed') return;
 
         ctx.save();
-        this.trail.draw(ctx, camera);
         camera.worldToScreen(this.position, this._scratchScreenPos);
         ctx.translate(this._scratchScreenPos.x, this._scratchScreenPos.y);
         ctx.rotate(this.angle);
@@ -799,6 +838,7 @@ export class Flivver extends Ship {
         // Draw debug information if enabled
         this.drawDebug(ctx, camera, scale);
     }
+
 }
 
 export class Shuttle extends Ship {
@@ -807,9 +847,6 @@ export class Shuttle extends Ship {
         this.rotationSpeed = Math.PI * 1.2;
         this.thrust = 200;
         this.maxVelocity = 400;
-        // Bounding box: width = 16 (from -8 to 8), height = 41 (from -20.5 to 20.5)
-        this.boundingBox.set(16, 41);
-
         // Feature points for dynamic elements
         this.featurePoints = {
             engines: [
@@ -825,13 +862,20 @@ export class Shuttle extends Ship {
                 { x: 4.00, y: -7.50, radius: 1.00 },
             ]
         };
+
+        // Bounding box: width = 270.0 (from 67.5 to 337.5), height = 405.0 (from 101.3 to 506.3)
+        this.boundingBox.set(18.00, 27.00);
+        this.setupTrail();
     }
 
     draw(ctx, camera) {
+        if (this.trail.currentLength > 0) {
+            this.trail.draw(ctx, camera, this.position);
+        }
+
         if (this.state === 'Landed') return;
 
         ctx.save();
-        this.trail.draw(ctx, camera);
         camera.worldToScreen(this.position, this._scratchScreenPos);
         ctx.translate(this._scratchScreenPos.x, this._scratchScreenPos.y);
         ctx.rotate(this.angle);
@@ -927,6 +971,7 @@ export class Shuttle extends Ship {
         // Draw debug information if enabled
         this.drawDebug(ctx, camera, scale);
     }
+
 }
 
 export class HeavyShuttle extends Ship {
@@ -935,9 +980,6 @@ export class HeavyShuttle extends Ship {
         this.rotationSpeed = Math.PI * 1.1;
         this.thrust = 150;
         this.maxVelocity = 350;
-        // Bounding box: width = 16 (from -8 to 8), height = 48 (from -24 to 24)
-        this.boundingBox.set(16, 48);
-
         // Feature points for dynamic elements
         this.featurePoints = {
             engines: [
@@ -953,13 +995,20 @@ export class HeavyShuttle extends Ship {
                 { x: -5.00, y: -7.00, radius: 1.00 },
             ]
         };
+
+        // Bounding box: width = 270.0 (from 67.5 to 337.5), height = 510.0 (from 127.5 to 637.5)
+        this.boundingBox.set(18.00, 34.00);
+        this.setupTrail();
     }
 
     draw(ctx, camera) {
+        if (this.trail.currentLength > 0) {
+            this.trail.draw(ctx, camera, this.position);
+        }
+
         if (this.state === 'Landed') return;
 
         ctx.save();
-        this.trail.draw(ctx, camera);
         camera.worldToScreen(this.position, this._scratchScreenPos);
         ctx.translate(this._scratchScreenPos.x, this._scratchScreenPos.y);
         ctx.rotate(this.angle);
@@ -1059,6 +1108,7 @@ export class HeavyShuttle extends Ship {
         // Draw debug information if enabled
         this.drawDebug(ctx, camera, scale);
     }
+
 }
 
 export class StarBarge extends Ship {
@@ -1067,9 +1117,6 @@ export class StarBarge extends Ship {
         this.rotationSpeed = Math.PI * 0.5;
         this.thrust = 25;
         this.maxVelocity = 100;
-        // Bounding box: width = 32 (from -16 to 16), height = 55 (from -27.5 to 27.5)
-        this.boundingBox.set(32, 55);
-
         // Feature points for dynamic elements
         this.featurePoints = {
             engines: [
@@ -1083,13 +1130,21 @@ export class StarBarge extends Ship {
                 { x: 16.00, y: 14.00, radius: 1.00 },
             ]
         };
+
+        // Bounding box: width = 510.0 (from 127.5 to 637.5), height = 630.0 (from 157.5 to 787.5)
+        this.boundingBox.set(34.00, 42.00);
+
+        this.setupTrail();
     }
 
     draw(ctx, camera) {
+        if (this.trail.currentLength > 0) {
+            this.trail.draw(ctx, camera, this.position);
+        }
+
         if (this.state === 'Landed') return;
 
         ctx.save();
-        this.trail.draw(ctx, camera);
         camera.worldToScreen(this.position, this._scratchScreenPos);
         ctx.translate(this._scratchScreenPos.x, this._scratchScreenPos.y);
         ctx.rotate(this.angle);
@@ -1252,6 +1307,7 @@ export class StarBarge extends Ship {
         // Draw debug information if enabled
         this.drawDebug(ctx, camera, scale);
     }
+
 }
 
 export class Freighter extends Ship {
@@ -1260,9 +1316,6 @@ export class Freighter extends Ship {
         this.rotationSpeed = Math.PI * 0.25;
         this.thrust = 25;
         this.maxVelocity = 100;
-        // Bounding box: width = 40 (from -20 to 20), height = 141 (from -70.5 to 70.5)
-        this.boundingBox.set(40, 141);
-
         // Feature points for dynamic elements
         this.featurePoints = {
             engines: [
@@ -1282,13 +1335,20 @@ export class Freighter extends Ship {
                 { x: 7.00, y: -54.00, radius: 1.00 },
             ]
         };
+
+        // Bounding box: width = 630.0 (from 157.5 to 787.5), height = 1920.0 (from 480.0 to 2400.0)
+        this.boundingBox.set(42.00, 128.00);
+        this.setupTrail();
     }
 
     draw(ctx, camera) {
+        if (this.trail.currentLength > 0) {
+            this.trail.draw(ctx, camera, this.position);
+        }
+
         if (this.state === 'Landed') return;
 
         ctx.save();
-        this.trail.draw(ctx, camera);
         camera.worldToScreen(this.position, this._scratchScreenPos);
         ctx.translate(this._scratchScreenPos.x, this._scratchScreenPos.y);
         ctx.rotate(this.angle);
@@ -1740,6 +1800,7 @@ export class Freighter extends Ship {
         // Draw debug information if enabled
         this.drawDebug(ctx, camera, scale);
     }
+
 }
 
 export class Arrow extends Ship {
@@ -1748,9 +1809,6 @@ export class Arrow extends Ship {
         this.rotationSpeed = Math.PI * 0.5;
         this.thrust = 300;
         this.maxVelocity = 600;
-        // Bounding box: width = 30 (from -15 to 15), height = 56 (from -31 to 25)
-        this.boundingBox.set(30, 56);
-
         // Feature points for dynamic elements
         this.featurePoints = {
             engines: [
@@ -1767,13 +1825,21 @@ export class Arrow extends Ship {
                 { x: 5.00, y: -1.00, radius: 1.00 },
             ]
         };
+
+        // Bounding box: width = 480.0 (from 120.0 to 600.0), height = 690.0 (from 172.5 to 862.5)
+        this.boundingBox.set(32.00, 46.00);
+
+        this.setupTrail();
     }
 
     draw(ctx, camera) {
+        if (this.trail.currentLength > 0) {
+            this.trail.draw(ctx, camera, this.position);
+        }
+
         if (this.state === 'Landed') return;
 
         ctx.save();
-        this.trail.draw(ctx, camera);
         camera.worldToScreen(this.position, this._scratchScreenPos);
         ctx.translate(this._scratchScreenPos.x, this._scratchScreenPos.y);
         ctx.rotate(this.angle);
@@ -1863,11 +1929,167 @@ export class Arrow extends Ship {
         // Draw debug information if enabled
         this.drawDebug(ctx, camera, scale);
     }
+
+}
+
+export class Boxwing extends Ship {
+    constructor(x, y, starSystem) {
+        super(x, y, starSystem);
+        this.rotationSpeed = Math.PI * 0.25;
+        this.thrust = 25;
+        this.maxVelocity = 100;
+        // Feature points for dynamic elements
+        this.featurePoints = {
+            engines: [
+                { x: -8.01, y: -2.76, radius: 0.50 },
+                { x: 7.99, y: -2.74, radius: 0.50 },
+                { x: 5.98, y: 8.25, radius: 0.50 },
+                { x: -6.01, y: 8.25, radius: 0.50 },
+            ],
+            turrets: [
+            ],
+            lights: [
+                { x: 8.00, y: -6.75, radius: 1.00 },
+                { x: -8.00, y: -6.75, radius: 1.00 },
+                { x: -6.00, y: 4.25, radius: 1.00 },
+                { x: 6.00, y: 4.25, radius: 1.00 },
+            ]
+        };
+
+        // Bounding box: width = 270.0 (from 67.5 to 337.5), height = 262.6 (from 65.6 to 328.2)
+        this.boundingBox.set(18.00, 17.50);
+
+        this.setupTrail();
+    }
+
+    draw(ctx, camera) {
+        if (this.trail.currentLength > 0) {
+            this.trail.draw(ctx, camera, this.position);
+        }
+
+        if (this.state === 'Landed') return;
+
+        ctx.save();
+        camera.worldToScreen(this.position, this._scratchScreenPos);
+        ctx.translate(this._scratchScreenPos.x, this._scratchScreenPos.y);
+        ctx.rotate(this.angle);
+        const scale = camera.zoom * this.shipScale;
+        ctx.scale(scale, scale * this.stretchFactor);
+
+        // Draw the hull
+        ctx.strokeStyle = 'rgb(50, 50, 50)';
+        ctx.lineWidth = 0.1;
+        ctx.fillStyle = this.colors.hull.toRGB();
+        ctx.beginPath();
+        ctx.moveTo(-4.00, -7.75);
+        ctx.lineTo(-3.00, -8.75);
+        ctx.lineTo(3.00, -8.75);
+        ctx.lineTo(4.00, -7.75);
+        ctx.lineTo(4.00, 7.25);
+        ctx.lineTo(-4.00, 7.25);
+        ctx.closePath();
+        ctx.moveTo(7.00, -5.75);
+        ctx.lineTo(8.00, -6.75);
+        ctx.lineTo(9.00, -5.75);
+        ctx.lineTo(9.00, -2.75);
+        ctx.lineTo(7.00, -2.75);
+        ctx.closePath();
+        ctx.moveTo(5.00, 5.25);
+        ctx.lineTo(6.00, 4.25);
+        ctx.lineTo(7.00, 5.25);
+        ctx.lineTo(7.00, 8.25);
+        ctx.lineTo(5.00, 8.25);
+        ctx.closePath();
+        ctx.moveTo(-7.00, -5.75);
+        ctx.lineTo(-8.00, -6.75);
+        ctx.lineTo(-9.00, -5.75);
+        ctx.lineTo(-9.00, -2.75);
+        ctx.lineTo(-7.00, -2.75);
+        ctx.closePath();
+        ctx.moveTo(-5.00, 5.25);
+        ctx.lineTo(-6.00, 4.25);
+        ctx.lineTo(-7.00, 5.25);
+        ctx.lineTo(-7.00, 8.25);
+        ctx.lineTo(-5.00, 8.25);
+        ctx.closePath();
+        ctx.moveTo(-2.00, -2.75);
+        ctx.lineTo(-1.00, -3.75);
+        ctx.lineTo(1.00, -3.75);
+        ctx.lineTo(2.00, -2.75);
+        ctx.lineTo(2.00, 4.25);
+        ctx.lineTo(1.00, 5.25);
+        ctx.lineTo(-1.00, 5.25);
+        ctx.lineTo(-2.00, 4.25);
+        ctx.closePath();
+        ctx.moveTo(-3.00, 7.25);
+        ctx.lineTo(3.00, 7.25);
+        ctx.lineTo(2.00, 8.25);
+        ctx.lineTo(-2.00, 8.25);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Draw the cockpit
+        ctx.fillStyle = this.colors.cockpit.toRGB();
+        ctx.beginPath();
+        ctx.moveTo(-3.00, -6.75);
+        ctx.lineTo(-2.00, -5.75);
+        ctx.lineTo(-2.00, -4.75);
+        ctx.lineTo(-3.00, -4.75);
+        ctx.closePath();
+        ctx.moveTo(3.00, -6.75);
+        ctx.lineTo(3.00, -4.75);
+        ctx.lineTo(2.00, -4.75);
+        ctx.lineTo(2.00, -5.75);
+        ctx.closePath();
+        ctx.moveTo(-3.00, -7.75);
+        ctx.lineTo(3.00, -7.75);
+        ctx.lineTo(2.00, -6.75);
+        ctx.lineTo(-2.00, -6.75);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Draw the wings and fins
+        ctx.fillStyle = this.colors.wings.toRGB();
+        ctx.beginPath();
+        ctx.moveTo(4.00, -3.75);
+        ctx.lineTo(7.00, -5.75);
+        ctx.lineTo(7.00, -3.75);
+        ctx.lineTo(4.00, -1.75);
+        ctx.closePath();
+        ctx.moveTo(4.00, 4.25);
+        ctx.lineTo(5.00, 5.25);
+        ctx.lineTo(5.00, 7.25);
+        ctx.lineTo(4.00, 6.25);
+        ctx.closePath();
+        ctx.moveTo(-4.00, -3.75);
+        ctx.lineTo(-7.00, -5.75);
+        ctx.lineTo(-7.00, -3.75);
+        ctx.lineTo(-4.00, -1.75);
+        ctx.closePath();
+        ctx.moveTo(-4.00, 4.25);
+        ctx.lineTo(-5.00, 5.25);
+        ctx.lineTo(-5.00, 7.25);
+        ctx.lineTo(-4.00, 6.25);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        this.drawEngines(ctx, camera, scale);
+        this.drawTurrets(ctx, camera, scale);
+        this.drawLights(ctx, camera, scale);
+
+        ctx.restore();
+
+        // Draw debug information if enabled
+        this.drawDebug(ctx, camera, scale);
+    }
 }
 
 // Factory function to create a random ship type
 export function createRandomShip(x, y, starSystem) {
-    const shipClasses = [Flivver, Shuttle, HeavyShuttle, StarBarge, Freighter, Arrow];
+    const shipClasses = [Flivver, Shuttle, HeavyShuttle, StarBarge, Freighter, Arrow, Boxwing];
     //const shipClasses = [StarBarge];
     const RandomShipClass = shipClasses[Math.floor(Math.random() * shipClasses.length)];
     return new RandomShipClass(x, y, starSystem);

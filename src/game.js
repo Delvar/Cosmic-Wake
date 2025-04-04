@@ -3,11 +3,11 @@
 import { Vector2D } from './vector2d.js';
 import { Colour } from './colour.js';
 import { Camera, TargetCamera } from './camera.js';
-import { createRandomShip, Ship, Flivver, Shuttle, HeavyShuttle, StarBarge, Freighter, Arrow } from './ship.js';
+import { createRandomShip, Ship, Flivver, Shuttle, HeavyShuttle, StarBarge, Freighter, Arrow, Boxwing } from './ship.js';
 import { JumpGate } from './celestialBody.js';
 import { StarField } from './starField.js';
 import { HeadsUpDisplay } from './headsUpDisplay.js';
-import { PlayerPilot, AIPilot, InterdictionAIPilot, EscortAIPilot } from './pilot.js';
+import { PlayerPilot, AIPilot, InterdictionAIPilot, EscortAIPilot, MiningAIPilot } from './pilot.js';
 import { createGalaxy } from './galaxy.js';
 import { TWO_PI } from './utils.js';
 import { isValidTarget } from './gameObject.js';
@@ -292,7 +292,10 @@ class GameManager {
                         } else {
                             aiShip.pilot = new InterdictionAIPilot(aiShip, spawnPlanet);
                         }
-                    } else {
+                    } else if (aiShip instanceof Boxwing) {
+                        aiShip.pilot = new MiningAIPilot(aiShip, spawnPlanet);
+                    }
+                    else {
                         aiShip.pilot = new AIPilot(aiShip, spawnPlanet);
                     }
 

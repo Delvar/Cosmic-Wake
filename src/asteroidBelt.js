@@ -197,9 +197,9 @@ export class AsteroidBelt {
         for (let i = 0; i < this.interactiveAsteroids.length; i++) {
             const asteroid = this.interactiveAsteroids[i];
             // Check visibility
-            if (camera.isInView(asteroid.position, asteroid.size)) {
+            if (camera.isInView(asteroid.position, asteroid.radius)) {
                 camera.worldToScreen(asteroid.position, this._scratchScreenPos);
-                const scaledSize = camera.worldToSize(asteroid.size);
+                const scaledSize = camera.worldToSize(asteroid.radius);
                 const cosA = Math.cos(asteroid.spin);
                 const sinA = Math.sin(asteroid.spin);
                 const shape = asteroid.shape;
@@ -239,23 +239,22 @@ export class Asteroid extends GameObject {
      * @param {AsteroidBelt} belt - The asteroid belt this asteroid belongs to.
      */
     constructor(belt) {
-        const radius = remapRange01(Math.random(), belt.innerRadius, belt.outerRadius);
+        const orbitRadius = remapRange01(Math.random(), belt.innerRadius, belt.outerRadius);
         const angle = remapRange01(Math.random(), 0, TWO_PI);
         super(new Vector2D(0, 0), belt.starSystem);
         this.belt = belt;
         this.shapeIndex = Math.floor(Math.random() * belt.shapeCount);
         this.shape = belt.shapes[this.shapeIndex];
-        this.size = remapRange01(Math.random(), 15, 30);
+        this.radius = remapRange01(Math.random(), 15, 30);
         this.spin = 0;
-        this.spinSpeed = remapRange01(Math.random(), -TWO_PI, TWO_PI);
+        this.spinSpeed = remapRange01(Math.random(), -TWO_PI, TWO_PI) * 0.5;
         this.orbitSpeed = remapRange01(Math.random(), Math.PI * 0.002, Math.PI * 0.006);
-        this.orbitRadius = radius;
+        this.orbitRadius = orbitRadius;
         this.orbitAngle = angle;
         this.position.set(
             Math.sin(this.orbitAngle) * this.orbitRadius,
             -Math.cos(this.orbitAngle) * this.orbitRadius
         );
-
         // Temporary scratch values to avoid allocations
         this._scratchScreenPos = new Vector2D();
     }
@@ -279,9 +278,15 @@ export class Asteroid extends GameObject {
     update(deltaTime) {
         this.orbitAngle += this.orbitSpeed * deltaTime;
         this.spin += this.spinSpeed * deltaTime;
+        const sinOrbitalAngle = Math.sin(this.orbitAngle);
+        const cosOrbitalAngle = Math.cos(this.orbitAngle);
         this.position.set(
-            Math.sin(this.orbitAngle) * this.orbitRadius,
-            -Math.cos(this.orbitAngle) * this.orbitRadius
+            sinOrbitalAngle * this.orbitRadius,
+            -cosOrbitalAngle * this.orbitRadius
+        );
+        this.velocity.set(
+            cosOrbitalAngle * this.orbitSpeed * this.orbitRadius,
+            sinOrbitalAngle * this.orbitSpeed * this.orbitRadius
         );
         this.orbitAngle %= TWO_PI;
         this.spin %= TWO_PI;

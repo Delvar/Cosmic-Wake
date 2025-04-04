@@ -89,11 +89,24 @@ export class Vector2D {
     }
 
     /**
+     * Calculates the estimate magnitude, no squrt but also not as far out as the squar distance.
+     * @returns {number} The squared distance.
+     */
+    magnitudeEestimateTo() {
+        const absX = Math.abs(this.x);
+        const absY = Math.abs(this.y);
+        const maxVal = Math.max(absX, absY);
+        const minVal = Math.min(absX, absY);
+        const alphaMaxBetaMin = 1.0 * maxVal + 0.4 * minVal;
+        return alphaMaxBetaMin;
+    }
+
+    /**
      * Calculates the square of the magnitude (length) of the vector.
      * This is more efficient than magnitude() when comparing distances, as it avoids the square root operation.
      * @returns {number} The squared magnitude of the vector.
      */
-    squareMagnitude() {
+    magnitudeSquare() {
         return (this.x * this.x + this.y * this.y);
     }
 
@@ -229,6 +242,31 @@ export class Vector2D {
         this.x = source.x + (target.x - source.x) * factor;
         this.y = source.y + (target.y - source.y) * factor;
         return this;
+    }
+
+    /**
+     * Calculates the distance to another vector.
+     * @param {Vector2D} other - The other vector.
+     * @returns {number} The squared distance.
+     */
+    distanceTo(other) {
+        const dx = this.x - other.x;
+        const dy = this.y - other.y;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    /**
+     * Calculates the estimate distance to another vector, no squrt but also not as far out as the squar distance.
+     * @param {Vector2D} other - The other vector.
+     * @returns {number} The squared distance.
+     */
+    distancEestimateTo(other) {
+        const absX = Math.abs(this.x - other.x);
+        const absY = Math.abs(this.y - other.y);
+        const maxVal = Math.max(absX, absY);
+        const minVal = Math.min(absX, absY);
+        const alphaMaxBetaMin = 1.0 * maxVal + 0.4 * minVal;
+        return alphaMaxBetaMin;
     }
 
     /**

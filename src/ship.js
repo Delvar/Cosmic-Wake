@@ -7,6 +7,7 @@ import { GameObject } from './gameObject.js';
 import { JumpGate } from './celestialBody.js';
 import { TWO_PI, normalizeAngle, randomBetween } from './utils.js';
 import { AIPilot } from './pilot.js';
+import { FlyToTargetAutoPilot } from './autopilot.js';
 
 function generateShipName() {
     const prefixes = [
@@ -47,7 +48,6 @@ export class Ship extends GameObject {
         this.rotationSpeed = Math.PI;
         this.thrust = 250;
         this.maxVelocity = 500;
-        this.velocity = new Vector2D(0, 0);
         this.angle = 0;
         this.targetAngle = 0;
         this.isThrusting = false;
@@ -55,6 +55,7 @@ export class Ship extends GameObject {
         this.hyperdriveReady = true;
         this.hyperdriveCooldown = 5000;
         this.lastJumpTime = 0;
+        this.pilot = null;
 
         // Generate random colors for cockpit, wings, and hull
         this.colors = {
@@ -65,6 +66,7 @@ export class Ship extends GameObject {
 
         this.target = null;
         this.landedPlanet = null;
+        this.miningAsteroid = null;
         this.state = 'Flying';
         this.stateHandlers = {
             'Flying': this.updateFlying.bind(this),
@@ -72,12 +74,16 @@ export class Ship extends GameObject {
             'Landed': this.updateLanded.bind(this),
             'TakingOff': this.updateTakingOff.bind(this),
             'JumpingOut': this.updateJumpingOut.bind(this),
-            'JumpingIn': this.updateJumpingIn.bind(this)
+            'JumpingIn': this.updateJumpingIn.bind(this),
+            'MiningLanding': this.updateMiningLanding.bind(this),
+            'Mining': this.updateMining.bind(this),
+            'MiningTakeoff': this.updateMiningTakeoff.bind(this)
         };
         this.shipScale = 1;
         this.stretchFactor = 1;
         this.animationTime = 0;
         this.animationDuration = 2;
+        this.miningAnimationDuration = 2;
         this.landingStartPosition = new Vector2D(0, 0);
         this.jumpGate = null;
         this.jumpStartPosition = new Vector2D(0, 0);
@@ -107,6 +113,7 @@ export class Ship extends GameObject {
         this._scratchStoppingPoint = new Vector2D(0, 0);
         this._scratchVelocityDelta = new Vector2D(0, 0);
         this._scratchDistanceToPlanet = new Vector2D(0, 0);
+        this._scratchTemp = new Vector2D(0, 0);
     }
 
     /**
@@ -195,6 +202,14 @@ export class Ship extends GameObject {
         return distanceToPlanetCenter <= planet.radius && currentSpeed <= Ship.LANDING_SPEED;
     }
 
+    canMine(asteroid) {
+        if (!asteroid || !asteroid.position || this.state !== 'Flying') return false;
+        this._scratchDistanceToPlanet.set(this.position).subtractInPlace(asteroid.position);
+        const distanceToAsteroidCenter = this._scratchDistanceToPlanet.magnitude();
+        const currentSpeed = this.velocity.magnitude();
+        return distanceToAsteroidCenter <= asteroid.radius + 50 && currentSpeed <= Ship.LANDING_SPEED;
+    }
+
     initiateLanding(planet) {
         if (this.canLand(planet)) {
             this.setState('Landing');
@@ -208,15 +223,33 @@ export class Ship extends GameObject {
         return false;
     }
 
+    initiateMining(asteroid) {
+        if (this.canMine(asteroid)) {
+            this.setState('MiningLanding');
+            this.miningAsteroid = asteroid;
+            this.landingStartPosition.set(this.position);
+            this.velocity.set(this.miningAsteroid.velocity);
+            this.isThrusting = false;
+            this.isBraking = false;
+            return true;
+        }
+        return false;
+    }
+
     initiateTakeoff() {
         if (this.state === 'Landed' && this.landedPlanet) {
             this.setState('TakingOff');
             this.angle = this.targetAngle;
             this.landedPlanet.removeLandedShip(this);
             return true;
+        } else if (this.state === 'Mining' && this.miningAsteroid) {
+            this.setState('MiningTakeoff');
+            //this.angle = this.targetAngle;
+            return true;
         }
         return false;
     }
+
 
     initiateHyperjump() {
         const currentTime = performance.now();
@@ -247,7 +280,7 @@ export class Ship extends GameObject {
             console.warn(`No handler for state: ${this.state}`);
         }
 
-        if (this.state == 'Landing' || this.sate == 'Landed') {
+        if (this.state == 'Landing' || this.sate == 'Landed' || this.state === 'MiningLanding' || this.state === 'Mining') {
             if (this.trail.currentLength > 1) {
                 this.trail.currentLength -= Math.max(10 * deltaTime, this.trail.currentLength * deltaTime);
                 if (this.trail.currentLength < 1) {
@@ -286,7 +319,7 @@ export class Ship extends GameObject {
             this.angle = normalizeAngle(this.angle);
         }
 
-        const speedSquared = this.velocity.squareMagnitude();
+        const speedSquared = this.velocity.magnitudeSquare();
         if (speedSquared > this.maxVelocity * this.maxVelocity) {
             const scale = this.maxVelocity / Math.sqrt(speedSquared);
             this.velocity.multiplyInPlace(scale);
@@ -446,6 +479,49 @@ export class Ship extends GameObject {
         }
     }
 
+    updateMiningLanding(deltaTime) {
+        this.animationTime += deltaTime;
+        const t = Math.min(this.animationTime / this.miningAnimationDuration, 1);
+        this.shipScale = 1 - (t * 0.2); // Scale down to 0.8 (80% of original size)
+        this.position.lerpInPlace(this.landingStartPosition, this.miningAsteroid.position, t);
+        this.velocity.set(this.miningAsteroid.velocity);
+        this.landingStartPosition.addInPlace(this._scratchTemp.set(this.miningAsteroid.velocity).multiplyInPlace(deltaTime));
+        // Interpolate angular velocity from 0 to asteroid's spinSpeed
+        const currentAngularVelocity = t * this.miningAsteroid.spinSpeed;
+        this.angle += currentAngularVelocity * deltaTime;
+        this.angle = normalizeAngle(this.angle); // Ensure angle stays within [0, 2π]
+
+        if (t >= 1) {
+            this.setState('Mining');
+            this.shipScale = 0.8;
+            this.position.set(this.miningAsteroid.position);
+        }
+    }
+
+    updateMining(deltaTime) {
+        this.position.set(this.miningAsteroid.position); // Lock to asteroid’s position
+        this.velocity.set(this.miningAsteroid.velocity || new Vector2D(0, 0)); // Match velocity if present
+        this.angle += this.miningAsteroid.spinSpeed * deltaTime;
+        this.shipScale = 0.8; // Maintain 80% scale
+    }
+
+    updateMiningTakeoff(deltaTime) {
+        this.animationTime += deltaTime;
+        const t = Math.min(this.animationTime / this.miningAnimationDuration, 1);
+        this.shipScale = 0.8 + (t * 0.2); // Scale back up to 1 (100% of original size)
+
+        // Keep position locked to the asteroid during takeoff animation
+        this.position.set(this.miningAsteroid.position);
+        this.velocity.set(this.miningAsteroid.velocity);
+        this.setTargetAngle(this.angle);
+
+        if (t >= 1) {
+            this.miningAsteroid = null;
+            this.setState('Flying');
+            this.shipScale = 1;
+        }
+    }
+
     draw(ctx, camera) {
         if (this.trail.currentLength > 0) {
             this.trail.draw(ctx, camera, this.position);
@@ -596,6 +672,45 @@ export class Ship extends GameObject {
 
     drawDebug(ctx, camera, scale) {
         if (!this.debug || !camera.debug) return;
+
+        if (this.pilot && this.pilot.autopilot && (this.pilot.autopilot._scratchFuturePosition ||
+            (this.pilot.autopilot.subPilot && this.pilot.autopilot.subPilot._scratchFuturePosition))
+        ) {
+            const autopilot = this.pilot.autopilot.subPilot ? this.pilot.autopilot.subPilot : this.pilot.autopilot;
+            camera.worldToScreen(autopilot._scratchFuturePosition, this._scratchScreenPos);
+            ctx.save();
+            ctx.lineWidth = 2;
+            ctx.fillStyle = 'rgba(255,0,255,0.5)';
+            ctx.strokeStyle = 'rgb(255,0,255)';
+
+            ctx.beginPath();
+            //ctx.moveTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
+            ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, 5 * scale, 0, TWO_PI);
+            ctx.fill();
+            ctx.closePath();
+
+            ctx.beginPath();
+            ctx.moveTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
+            camera.worldToScreen(this.position, this._scratchScreenPos);
+            ctx.lineTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
+            ctx.closePath();
+            ctx.stroke();
+
+            ctx.beginPath();
+            camera.worldToScreen(autopilot.target.position, this._scratchScreenPos);
+            ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, autopilot.finalRadius * scale, 0, TWO_PI);
+            ctx.closePath();
+            ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, autopilot.midApproachDistance * scale, 0, TWO_PI);
+            ctx.closePath();
+            ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, autopilot.farApproachDistance * scale, 0, TWO_PI);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        this._scratchScreenPos.set(this.position);
+        camera.worldToScreen(this._scratchScreenPos, this._scratchScreenPos);
 
         this._scratchVelocityEnd.set(this.velocity)
             .multiplyInPlace(1)
@@ -2090,7 +2205,7 @@ export class Boxwing extends Ship {
 // Factory function to create a random ship type
 export function createRandomShip(x, y, starSystem) {
     const shipClasses = [Flivver, Shuttle, HeavyShuttle, StarBarge, Freighter, Arrow, Boxwing];
-    //const shipClasses = [StarBarge];
+    //const shipClasses = [Boxwing];
     const RandomShipClass = shipClasses[Math.floor(Math.random() * shipClasses.length)];
     return new RandomShipClass(x, y, starSystem);
 }

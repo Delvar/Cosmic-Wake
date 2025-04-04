@@ -3,8 +3,10 @@
 import { Vector2D } from './vector2d.js';
 import { JumpGate } from './celestialBody.js';
 import { remapClamp, randomBetween, normalizeAngle } from './utils.js';
-import { TraverseJumpGateAutoPilot, FlyToTargetAutoPilot, LandOnPlanetAutoPilot, FollowShipAutoPilot, EscortAutoPilot } from './autopilot.js';
 import { Ship } from './ship.js';
+import { TraverseJumpGateAutoPilot, FlyToTargetAutoPilot, LandOnPlanetAutoPilot, FollowShipAutoPilot, EscortAutoPilot, LandOnAsteroidAutoPilot, ApproachTargetAutoPilot } from './autopilot.js';
+import { Asteroid } from './asteroidBelt.js';
+import { GameObject } from './gameObject.js';
 
 export class Pilot {
     constructor(ship) {
@@ -29,7 +31,7 @@ export class PlayerPilot extends Pilot {
         super(ship);
         this.autopilot = null;
 
-        // Scratch vector to eliminate allocations in update
+        // Scratch vectors to eliminate allocations in update
         this._scratchDirectionToTarget = new Vector2D();
         this._scratchDistanceToTarget = new Vector2D();
     }
@@ -48,6 +50,17 @@ export class PlayerPilot extends Pilot {
         const keys = gameManager.keys;
         const lastKeys = gameManager.lastKeys;
 
+        // Handle takeoff from Mining state
+        if (this.ship.state === 'Mining') {
+            // Any control input triggers takeoff
+            if (keys['ArrowLeft'] || keys['ArrowRight'] || keys['ArrowUp'] || keys['ArrowDown'] ||
+                keys['l'] || keys['j'] || keys['f'] || keys['m'] || keys['t'] || keys['T']) {
+                this.ship.initiateTakeoff();
+            }
+            return;
+        }
+
+        // Disable autopilot if manual controls are used
         if (keys['ArrowLeft'] || keys['ArrowRight'] || keys['ArrowUp'] || keys['ArrowDown']) {
             if (this.autopilot?.active) {
                 this.autopilot.stop();
@@ -55,6 +68,7 @@ export class PlayerPilot extends Pilot {
             }
         }
 
+        // Manual rotation and movement
         if (keys['ArrowLeft']) {
             this.ship.setTargetAngle(this.ship.angle - this.ship.rotationSpeed * deltaTime);
         }
@@ -64,6 +78,7 @@ export class PlayerPilot extends Pilot {
         this.ship.applyThrust(keys['ArrowUp']);
         this.ship.applyBrakes(keys['ArrowDown']);
 
+        // Landing on a targeted planet ('l' key)
         if (keys['l'] && !lastKeys['l']) {
             if (this.ship.state === 'Flying' && this.ship.target) {
                 if (!(this.ship.target instanceof JumpGate)) {
@@ -84,6 +99,21 @@ export class PlayerPilot extends Pilot {
             }
         }
 
+        // Mining a targeted asteroid ('m' key)
+        if (keys['m'] && !lastKeys['m']) {
+            if (this.ship.state === 'Flying' && this.ship.target) {
+                if (this.ship.target instanceof Asteroid) {
+                    if (this.ship.canMine(this.ship.target)) {
+                        this.ship.initiateMining(this.ship.target);
+                    } else {
+                        this.autopilot = new LandOnAsteroidAutoPilot(this.ship, this.ship.target);
+                        this.autopilot.start();
+                    }
+                }
+            }
+        }
+
+        // Hyperjump ('j' key)
         if (keys['j'] && !lastKeys['j']) {
             if (this.ship.state === 'Flying' && this.ship.target) {
                 if (this.ship.target instanceof JumpGate) {
@@ -99,7 +129,7 @@ export class PlayerPilot extends Pilot {
             }
         }
 
-        // New keybinding: 'f' to escort a targeted ship
+        // Escort a targeted ship ('f' key)
         if (keys['f'] && !lastKeys['f']) {
             if (this.ship.state === 'Flying' && this.ship.target && this.ship.target instanceof Ship) {
                 this.autopilot = new EscortAutoPilot(this.ship, this.ship.target);
@@ -107,6 +137,34 @@ export class PlayerPilot extends Pilot {
             }
         }
 
+        if (keys['F'] && !lastKeys['F']) {
+            if (this.ship.state === 'Flying' && this.ship.target && this.ship.target instanceof GameObject) {
+                const ship = this.ship;
+                const target = this.ship.target;
+                const finalRadius = target instanceof Ship ? Math.max(target.boundingBox.x, target.boundingBox.y) : target.radius;
+                const arrivalSpeedMin = Ship.LANDING_SPEED * 0.5;
+                const arrivalSpeedMax = Ship.LANDING_SPEED;
+                const velocityTolerance = arrivalSpeedMin;
+                const thrustAngleLimit = Math.PI / 12;
+                const upperVelocityErrorThreshold = arrivalSpeedMin;
+                const lowerVelocityErrorThreshold = 1;
+                const maxTimeToIntercept = 2;
+                this.autopilot = new ApproachTargetAutoPilot(
+                    ship,
+                    target,
+                    finalRadius,
+                    arrivalSpeedMin,
+                    arrivalSpeedMax,
+                    velocityTolerance,
+                    thrustAngleLimit,
+                    upperVelocityErrorThreshold,
+                    lowerVelocityErrorThreshold,
+                    maxTimeToIntercept);
+                this.autopilot.start();
+            }
+        }
+
+        // Update autopilot if active
         if (this.autopilot?.active) {
             this.autopilot.update(deltaTime);
             if (this.autopilot.isComplete()) {
@@ -117,8 +175,9 @@ export class PlayerPilot extends Pilot {
             }
         }
 
+        // Target selection ('t' and 'T' keys)
         if (keys['t'] && !lastKeys['t']) {
-            const targets = this.listTargetableObjects(gameManager);
+            const targets = this.listTargetableObjects();
             if (targets.length > 0) {
                 const currentIndex = targets.indexOf(this.ship.target);
                 const nextIndex = (currentIndex + 1) % targets.length;
@@ -126,7 +185,7 @@ export class PlayerPilot extends Pilot {
             }
         }
         if (keys['T'] && !lastKeys['T']) {
-            const targets = this.listTargetableObjects(gameManager);
+            const targets = this.listTargetableObjects();
             if (targets.length > 0) {
                 const currentIndex = targets.indexOf(this.ship.target);
                 const prevIndex = (currentIndex - 1 + targets.length) % targets.length;
@@ -804,5 +863,334 @@ export class EscortAIPilot extends Pilot {
             return this.autopilot.getStatus();
         }
         return `Escort: Idle`;
+    }
+}
+
+/**
+ * An AI pilot that mines asteroids, returns to a home planet, and repeats the process in a loop.
+ * @extends Pilot
+ */
+export class MiningAIPilot extends Pilot {
+    /**
+     * Creates a new MiningAIPilot instance.
+     * @param {Ship} ship - The ship to control.
+     * @param {GameObject} homePlanet - The home planet to return to after mining.
+     */
+    constructor(ship, homePlanet) {
+        super(ship);
+        this.homePlanet = homePlanet;
+        this.targetAsteroid = null;
+        this.state = 'Idle';
+        this.waitTime = 0;
+        this.autopilot = null;
+
+        // State handlers for the AI's behavior
+        this.stateHandlers = {
+            'Idle': this.updateIdle.bind(this),
+            'FlyingToAsteroid': this.updateFlyingToAsteroid.bind(this),
+            'Mining': this.updateMining.bind(this),
+            'TakingOffFromAsteroid': this.updateTakingOffFromAsteroid.bind(this),
+            'FlyingToHomePlanet': this.updateFlyingToHomePlanet.bind(this),
+            'LandingOnHomePlanet': this.updateLandingOnHomePlanet.bind(this),
+            'WaitingOnHomePlanet': this.updateWaitingOnHomePlanet.bind(this),
+            'TakingOffFromHomePlanet': this.updateTakingOffFromHomePlanet.bind(this)
+        };
+
+        // Scratch vectors to eliminate allocations in update
+        this._scratchDirectionToTarget = new Vector2D();
+
+        // Constants for behavior tuning
+        this.miningTime = 5; // Time to spend mining on the asteroid (seconds)
+        this.waitTimeMin = 5; // Minimum time to wait on the home planet (seconds)
+        this.waitTimeMax = 10; // Maximum time to wait on the home planet (seconds)
+    }
+
+    /**
+     * Finds the nearest asteroid in the current system that the ship can mine.
+     * @returns {Asteroid|null} The nearest asteroid, or null if none found.
+     */
+    findNearestAsteroid() {
+        let nearestAsteroid = null;
+        let minDistSquared = Infinity;
+        const asteroids = this.ship.starSystem.asteroidBelt ? this.ship.starSystem.asteroidBelt.interactiveAsteroids.filter(a => !a.isDespawned()) : [];
+        asteroids.forEach(asteroid => {
+            const distSquared = this.ship.position.distanceSquaredTo(asteroid.position);
+            if (distSquared < minDistSquared) {
+                minDistSquared = distSquared;
+                nearestAsteroid = asteroid;
+            }
+        });
+        return nearestAsteroid;
+    }
+
+    /**
+     * Updates the AI pilot's behavior based on the current state.
+     * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @param {Object} gameManager - The game manager instance.
+     */
+    update(deltaTime, gameManager) {
+        // Check if the home planet has despawned
+        if (!this.homePlanet || this.homePlanet.isDespawned()) {
+            this.ship.despawn();
+            return;
+        }
+
+        // Set the target for HUD purposes
+        if (this.targetAsteroid) {
+            this.ship.setTarget(this.targetAsteroid);
+        } else if (this.state === 'FlyingToHomePlanet' || this.state === 'LandingOnHomePlanet' || this.state === 'WaitingOnHomePlanet') {
+            this.ship.setTarget(this.homePlanet);
+        } else {
+            this.ship.clearTarget();
+        }
+
+        const handler = this.stateHandlers[this.state];
+        if (handler) {
+            handler(deltaTime, gameManager);
+        } else {
+            console.warn(`No handler for state: ${this.state}`);
+            this.state = 'Idle';
+        }
+    }
+
+    /**
+     * Handles the Idle state: decides whether to start mining or return to the home planet.
+     * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @param {Object} gameManager - The game manager instance.
+     */
+    updateIdle(deltaTime, gameManager) {
+        if (this.ship.state === 'Landed') {
+            // If on the home planet, wait before taking off
+            if (this.ship.landedPlanet === this.homePlanet) {
+                this.waitTime = randomBetween(this.waitTimeMin, this.waitTimeMax);
+                this.state = 'WaitingOnHomePlanet';
+            } else {
+                // If landed on another planet, take off
+                this.ship.initiateTakeoff();
+                this.state = 'TakingOffFromHomePlanet';
+            }
+        } else if (this.ship.state === 'Flying') {
+            // Find the nearest asteroid and start flying to it
+            this.targetAsteroid = this.findNearestAsteroid();
+            if (this.targetAsteroid) {
+                this.autopilot = new LandOnAsteroidAutoPilot(this.ship, this.targetAsteroid);
+                this.autopilot.start();
+                this.state = 'FlyingToAsteroid';
+            } else {
+                // No asteroids found; fly to home planet
+                this.autopilot = new LandOnPlanetAutoPilot(this.ship, this.homePlanet);
+                this.autopilot.start();
+                this.state = 'FlyingToHomePlanet';
+            }
+        } else if (this.ship.state === 'TakingOff') {
+            // Already in TakingOff state; wait for it to complete
+        } else {
+            console.warn(`Invalid ship state '${this.ship.state}' in MiningAIPilot updateIdle`);
+        }
+    }
+
+    /**
+     * Handles the FlyingToAsteroid state: flies to the target asteroid using an autopilot.
+     * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @param {Object} gameManager - The game manager instance.
+     */
+    updateFlyingToAsteroid(deltaTime, gameManager) {
+        if (!this.autopilot) {
+            console.warn('Autopilot is not set during FlyingToAsteroid state');
+            this.state = 'Idle';
+            return;
+        }
+
+        // Check if the asteroid has despawned
+        if (!this.targetAsteroid || this.targetAsteroid.isDespawned()) {
+            this.autopilot.stop();
+            this.autopilot = null;
+            this.targetAsteroid = null;
+            this.state = 'Idle';
+            return;
+        }
+
+        this.autopilot.update(deltaTime);
+
+        if (this.autopilot.isComplete()) {
+            if (this.autopilot.error) {
+                console.warn(`Autopilot failed: ${this.autopilot.error}`);
+                this.autopilot = null;
+                this.targetAsteroid = null;
+                this.state = 'Idle';
+            } else {
+                if (this.ship.state === 'Mining') {
+                    this.autopilot = null;
+                    this.waitTime = this.miningTime;
+                    this.state = 'Mining';
+                } else {
+                    console.warn('Autopilot completed but ship is not mining; resetting');
+                    this.autopilot = null;
+                    this.targetAsteroid = null;
+                    this.state = 'Idle';
+                }
+            }
+        } else if (!this.autopilot.active) {
+            console.warn('Autopilot is inactive but not complete during FlyingToAsteroid state');
+            this.autopilot = null;
+            this.targetAsteroid = null;
+            this.state = 'Idle';
+        }
+    }
+
+    /**
+     * Handles the Mining state: waits on the asteroid for the mining duration.
+     * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @param {Object} gameManager - The game manager instance.
+     */
+    updateMining(deltaTime, gameManager) {
+        this.waitTime -= deltaTime;
+        if (this.waitTime <= 0) {
+            this.ship.initiateTakeoff();
+            this.state = 'TakingOffFromAsteroid';
+        }
+    }
+
+    /**
+     * Handles the TakingOffFromAsteroid state: waits for the ship to finish taking off from the asteroid.
+     * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @param {Object} gameManager - The game manager instance.
+     */
+    updateTakingOffFromAsteroid(deltaTime, gameManager) {
+        if (this.ship.state === 'Flying') {
+            // Start flying back to the home planet
+            this.autopilot = new LandOnPlanetAutoPilot(this.ship, this.homePlanet);
+            this.autopilot.start();
+            this.state = 'FlyingToHomePlanet';
+            this.targetAsteroid = null;
+        }
+    }
+
+    /**
+     * Handles the FlyingToHomePlanet state: flies back to the home planet using an autopilot.
+     * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @param {Object} gameManager - The game manager instance.
+     */
+    updateFlyingToHomePlanet(deltaTime, gameManager) {
+        if (!this.autopilot) {
+            console.warn('Autopilot is not set during FlyingToHomePlanet state');
+            this.state = 'Idle';
+            return;
+        }
+
+        this.autopilot.update(deltaTime);
+
+        if (this.autopilot.isComplete()) {
+            if (this.autopilot.error) {
+                console.warn(`Autopilot failed: ${this.autopilot.error}`);
+                this.autopilot = null;
+                this.state = 'Idle';
+            } else {
+                if (this.ship.state === 'Landed') {
+                    this.autopilot = null;
+                    this.waitTime = randomBetween(this.waitTimeMin, this.waitTimeMax);
+                    this.state = 'WaitingOnHomePlanet';
+                } else {
+                    console.warn('Autopilot completed but ship is not landed; resetting');
+                    this.autopilot = null;
+                    this.state = 'Idle';
+                }
+            }
+        } else if (!this.autopilot.active) {
+            console.warn('Autopilot is inactive but not complete during FlyingToHomePlanet state');
+            this.autopilot = null;
+            this.state = 'Idle';
+        }
+    }
+
+    /**
+     * Handles the LandingOnHomePlanet state: waits for the ship to finish landing on the home planet.
+     * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @param {Object} gameManager - The game manager instance.
+     */
+    updateLandingOnHomePlanet(deltaTime, gameManager) {
+        if (!this.autopilot) {
+            console.warn('Autopilot is not set during LandingOnHomePlanet state');
+            this.state = 'Idle';
+            return;
+        }
+
+        this.autopilot.update(deltaTime);
+
+        if (this.autopilot.isComplete()) {
+            if (this.autopilot.error) {
+                console.warn(`Autopilot failed: ${this.autopilot.error}`);
+                this.autopilot = null;
+                this.state = 'Idle';
+            } else {
+                if (this.ship.state === 'Landed') {
+                    this.autopilot = null;
+                    this.waitTime = randomBetween(this.waitTimeMin, this.waitTimeMax);
+                    this.state = 'WaitingOnHomePlanet';
+                } else {
+                    console.warn('Autopilot completed but ship is not landed; resetting');
+                    this.autopilot = null;
+                    this.state = 'Idle';
+                }
+            }
+        } else if (!this.autopilot.active) {
+            console.warn('Autopilot is inactive but not complete during LandingOnHomePlanet state');
+            this.autopilot = null;
+            this.state = 'Idle';
+        }
+    }
+
+    /**
+     * Handles the WaitingOnHomePlanet state: waits on the home planet before taking off.
+     * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @param {Object} gameManager - The game manager instance.
+     */
+    updateWaitingOnHomePlanet(deltaTime, gameManager) {
+        this.waitTime -= deltaTime;
+        if (this.waitTime <= 0) {
+            this._scratchDirectionToTarget.set(this.homePlanet.position)
+                .subtractInPlace(this.ship.position);
+            this.ship.setTargetAngle(Math.atan2(this._scratchDirectionToTarget.x, -this._scratchDirectionToTarget.y));
+            this.ship.initiateTakeoff();
+            this.state = 'TakingOffFromHomePlanet';
+        }
+    }
+
+    /**
+     * Handles the TakingOffFromHomePlanet state: waits for the ship to finish taking off from the home planet.
+     * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @param {Object} gameManager - The game manager instance.
+     */
+    updateTakingOffFromHomePlanet(deltaTime, gameManager) {
+        if (this.ship.state === 'Flying') {
+            this.state = 'Idle'; // Will find a new asteroid in the next update
+        }
+    }
+
+    /**
+     * Placeholder for hyperjump attempts; mining ships do not jump.
+     * @returns {boolean} Always false.
+     */
+    tryHyperjump(gameManager) {
+        return false;
+    }
+
+    /**
+     * Returns the current state of the AI pilot for HUD display.
+     * @returns {string} A descriptive status string.
+     */
+    getState() {
+        if (this.state === 'FlyingToAsteroid' && this.autopilot?.active) {
+            return `Mining: Flying to asteroid ${this.targetAsteroid?.name || ''}`;
+        } else if (this.state === 'Mining') {
+            return `Mining: Mining asteroid`;
+        } else if (this.state === 'FlyingToHomePlanet' && this.autopilot?.active) {
+            return `Mining: Returning to ${this.homePlanet.name}`;
+        } else if (this.state === 'LandingOnHomePlanet' && this.autopilot?.active) {
+            return `Mining: Landing on ${this.homePlanet.name}`;
+        } else if (this.state === 'WaitingOnHomePlanet') {
+            return `Mining: Waiting on ${this.homePlanet.name}`;
+        }
+        return `Mining: ${this.state}`;
     }
 }

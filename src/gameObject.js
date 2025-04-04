@@ -28,6 +28,7 @@ export class GameObject {
      */
     constructor(position, starSystem) {
         this.position = position.clone();
+        this.velocity = new Vector2D(0, 0);
         this.starSystem = starSystem;
         this.despawned = false;
         this.debug = false;

@@ -205,7 +205,7 @@ export class Trail {
         // Calculate distance from second-to-last point to parent
         this._scratchRelativePos.set(currentPostion.x - this.points.data[secondIdx],
             currentPostion.y - this.points.data[secondIdx + 1]);
-        const distanceSquared = this._scratchRelativePos.squareMagnitude();
+        const distanceSquared = this._scratchRelativePos.magnitudeSquare();
         const distance = Math.sqrt(distanceSquared);
 
         let shouldAddPoint = false;

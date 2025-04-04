@@ -319,7 +319,7 @@ export class Ship extends GameObject {
             this.angle = normalizeAngle(this.angle);
         }
 
-        const speedSquared = this.velocity.magnitudeSquare();
+        const speedSquared = this.velocity.squareMagnitude();
         if (speedSquared > this.maxVelocity * this.maxVelocity) {
             const scale = this.maxVelocity / Math.sqrt(speedSquared);
             this.velocity.multiplyInPlace(scale);

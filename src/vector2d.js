@@ -7,8 +7,8 @@
 export class Vector2D {
     /**
      * Creates a new Vector2D instance.
-     * @param {number} x - The x component of the vector.
-     * @param {number} y - The y component of the vector.
+     * @param {number} [x=0] - The x component of the vector.
+     * @param {number} [y=0] - The y component of the vector.
      */
     constructor(x = 0, y = 0) {
         this.x = x;
@@ -16,124 +16,114 @@ export class Vector2D {
     }
 
     /**
-     * Gets the width of the vector (alias for the x component).
-     * @returns {number} The x component value.
+     * Gets the width of the vector (alias for x).
+     * @returns {number} The x component.
      */
     get width() { return this.x; }
 
     /**
-     * Sets the width of the vector (alias for the x component).
-     * @param {number} value - The new value for the x component.
+     * Sets the width of the vector (alias for x).
+     * @param {number} value - The new x component.
      */
     set width(value) { this.x = value; }
 
     /**
-     * Gets the height of the vector (alias for the y component).
-     * @returns {number} The y component value.
+     * Gets the height of the vector (alias for y).
+     * @returns {number} The y component.
      */
     get height() { return this.y; }
 
     /**
-     * Sets the height of the vector (alias for the y component).
-     * @param {number} value - The new value for the y component.
+     * Sets the height of the vector (alias for y).
+     * @param {number} value - The new y component.
      */
     set height(value) { this.y = value; }
 
     /**
      * Adds another vector to this vector and returns a new Vector2D.
      * @param {Vector2D} other - The vector to add.
-     * @returns {Vector2D} A new vector representing the sum.
+     * @throws {Error} Always throws; use addInPlace to avoid allocations.
      */
     add(other) {
-        throw new Error("Use inPlace to avoid allocations");
-        //return new Vector2D(this.x + other.x, this.y + other.y);
+        throw new Error("Use addInPlace to avoid allocations");
     }
 
     /**
      * Subtracts another vector from this vector and returns a new Vector2D.
      * @param {Vector2D} other - The vector to subtract.
-     * @returns {Vector2D} A new vector representing the difference.
+     * @throws {Error} Always throws; use subtractInPlace to avoid allocations.
      */
     subtract(other) {
-        throw new Error("Use inPlace to avoid allocations");
-        //return new Vector2D(this.x - other.x, this.y - other.y);
+        throw new Error("Use subtractInPlace to avoid allocations");
     }
 
     /**
      * Multiplies this vector by a scalar and returns a new Vector2D.
-     * @param {number} scalar - The scalar value to multiply by.
-     * @returns {Vector2D} A new vector scaled by the scalar.
+     * @param {number} scalar - The scalar to multiply by.
+     * @throws {Error} Always throws; use multiplyInPlace to avoid allocations.
      */
     multiply(scalar) {
-        throw new Error("Use inPlace to avoid allocations");
-        //return new Vector2D(this.x * scalar, this.y * scalar);
+        throw new Error("Use multiplyInPlace to avoid allocations");
     }
 
     /**
-     * Normalizes this vector (makes it a unit vector) and returns a new Vector2D.
-     * If the vector is zero, returns a zero vector.
-     * @returns {Vector2D} A new normalized vector.
+     * Normalizes this vector and returns a new Vector2D.
+     * @throws {Error} Always throws; use normalizeInPlace to avoid allocations.
      */
     normalize() {
-        throw new Error("Use inPlace to avoid allocations");
-        //const mag = Math.sqrt(this.x * this.x + this.y * this.y);
-        //return mag > 0 ? new Vector2D(this.x / mag, this.y / mag) : new Vector2D(0, 0);
+        throw new Error("Use normalizeInPlace to avoid allocations");
     }
 
     /**
      * Calculates the magnitude (length) of the vector.
-     * @returns {number} The magnitude of the vector, computed as the square root of the sum of squared components.
+     * @returns {number} The magnitude (square root of squared components).
      */
     magnitude() {
         return Math.sqrt(this.x * this.x + this.y * this.y);
     }
 
     /**
-     * Calculates the estimate magnitude, no squrt but also not as far out as the squar distance.
-     * @returns {number} The squared distance.
+     * Estimates the magnitude without using square root.
+     * @returns {number} The estimated magnitude using alpha-beta approximation.
      */
-    magnitudeEestimateTo() {
+    magnitudeEstimate() {
         const absX = Math.abs(this.x);
         const absY = Math.abs(this.y);
         const maxVal = Math.max(absX, absY);
         const minVal = Math.min(absX, absY);
-        const alphaMaxBetaMin = 1.0 * maxVal + 0.4 * minVal;
-        return alphaMaxBetaMin;
+        return 1.0 * maxVal + 0.4 * minVal;
     }
 
     /**
-     * Calculates the square of the magnitude (length) of the vector.
-     * This is more efficient than magnitude() when comparing distances, as it avoids the square root operation.
-     * @returns {number} The squared magnitude of the vector.
+     * Calculates the squared magnitude of the vector.
+     * More efficient than magnitude() for distance comparisons.
+     * @returns {number} The squared magnitude.
      */
-    magnitudeSquare() {
-        return (this.x * this.x + this.y * this.y);
+    squareMagnitude() {
+        return this.x * this.x + this.y * this.y;
     }
 
     /**
      * Computes the dot product of this vector and another vector.
-     * Useful for determining the angle between vectors or for projection operations.
-     * @param {Vector2D} other - The other vector to compute the dot product with.
-     * @returns {number} The dot product of the two vectors.
+     * @param {Vector2D} other - The other vector.
+     * @returns {number} The dot product.
      */
     dot(other) {
-        return (this.x * other.x + this.y * other.y);
+        return this.x * other.x + this.y * other.y;
     }
 
     /**
-     * Divides this vector by a scalar value and returns a new vector.
-     * @param {number} scalar - The scalar value to divide each component by.
-     * @returns {Vector2D} A new Vector2D instance with components divided by the scalar.
+     * Divides this vector by a scalar and returns a new vector.
+     * @param {number} scalar - The scalar to divide by.
+     * @throws {Error} Always throws; use divideInPlace to avoid allocations.
      */
     divide(scalar) {
-        throw new Error("Use inPlace to avoid allocations");
-        //return new Vector2D(this.x / scalar, this.y / scalar);
+        throw new Error("Use divideInPlace to avoid allocations");
     }
 
     /**
      * Creates a copy of this vector.
-     * Useful for avoiding unintended modifications to the original vector.
-     * @returns {Vector2D} A new Vector2D instance with the same x and y values.
+     * @returns {Vector2D} A new Vector2D with the same x and y values.
      */
     clone() {
         return new Vector2D(this.x, this.y);
@@ -142,21 +132,19 @@ export class Vector2D {
     /**
      * Linearly interpolates between two vectors, returning a new vector.
      * @param {Vector2D} source - The starting vector.
-     * @param {Vector2D} target - The target vector to interpolate towards.
-     * @param {number} factor - The interpolation factor (0 = source, 1 = target).
-     * @returns {Vector2D} A new Vector2D instance representing the interpolated position.
+     * @param {Vector2D} target - The target vector.
+     * @param {number} factor - Interpolation factor (0 = source, 1 = target).
+     * @throws {Error} Always throws; use lerpInPlace to avoid allocations.
      */
     lerp(source, target, factor) {
-        throw new Error("Use inPlace to avoid allocations");
-        //const x = source.x + (target.x - source.x) * factor;
-        //const y = source.y + (target.y - source.y) * factor;
-        //return new Vector2D(x, y);
+        throw new Error("Use lerpInPlace to avoid allocations");
     }
 
     /**
-     * Sets the components of this vector, either from another vector or scalar values.
-     * @param {number|Vector2D} xOrVector - The x component or another Vector2D to copy from.
+     * Sets the components of this vector.
+     * @param {number|Vector2D} xOrVector - The x component or another Vector2D.
      * @param {number} [y] - The y component (required if xOrVector is a number).
+     * @throws {Error} If y is undefined when xOrVector is a number.
      * @returns {Vector2D} This vector, for chaining.
      */
     set(xOrVector, y) {
@@ -164,6 +152,7 @@ export class Vector2D {
             this.x = xOrVector.x;
             this.y = xOrVector.y;
         } else {
+            if (y === undefined) throw new Error("y must be provided when xOrVector is a number");
             this.x = xOrVector;
             this.y = y;
         }
@@ -194,7 +183,7 @@ export class Vector2D {
 
     /**
      * Multiplies this vector by a scalar in-place.
-     * @param {number} scalar - The scalar value to multiply by.
+     * @param {number} scalar - The scalar to multiply by.
      * @returns {Vector2D} This vector, for chaining.
      */
     multiplyInPlace(scalar) {
@@ -205,10 +194,12 @@ export class Vector2D {
 
     /**
      * Divides this vector by a scalar in-place.
-     * @param {number} scalar - The scalar value to divide by.
+     * @param {number} scalar - The scalar to divide by.
+     * @throws {Error} If scalar is zero.
      * @returns {Vector2D} This vector, for chaining.
      */
     divideInPlace(scalar) {
+        if (scalar === 0) throw new Error("Cannot divide by zero");
         this.x /= scalar;
         this.y /= scalar;
         return this;
@@ -232,10 +223,10 @@ export class Vector2D {
     }
 
     /**
-     * Linearly interpolates between two vectors in-place, modifying this vector.
+     * Linearly interpolates between two vectors in-place.
      * @param {Vector2D} source - The starting vector.
-     * @param {Vector2D} target - The target vector to interpolate towards.
-     * @param {number} factor - The interpolation factor (0 = source, 1 = target).
+     * @param {Vector2D} target - The target vector.
+     * @param {number} factor - Interpolation factor (0 = source, 1 = target).
      * @returns {Vector2D} This vector, for chaining.
      */
     lerpInPlace(source, target, factor) {
@@ -247,7 +238,7 @@ export class Vector2D {
     /**
      * Calculates the distance to another vector.
      * @param {Vector2D} other - The other vector.
-     * @returns {number} The squared distance.
+     * @returns {number} The distance.
      */
     distanceTo(other) {
         const dx = this.x - other.x;
@@ -256,17 +247,16 @@ export class Vector2D {
     }
 
     /**
-     * Calculates the estimate distance to another vector, no squrt but also not as far out as the squar distance.
+     * Estimates the distance to another vector without using square root.
      * @param {Vector2D} other - The other vector.
-     * @returns {number} The squared distance.
+     * @returns {number} The estimated distance using alpha-beta approximation.
      */
-    distancEestimateTo(other) {
+    distanceEstimateTo(other) {
         const absX = Math.abs(this.x - other.x);
         const absY = Math.abs(this.y - other.y);
         const maxVal = Math.max(absX, absY);
         const minVal = Math.min(absX, absY);
-        const alphaMaxBetaMin = 1.0 * maxVal + 0.4 * minVal;
-        return alphaMaxBetaMin;
+        return 1.0 * maxVal + 0.4 * minVal;
     }
 
     /**

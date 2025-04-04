@@ -35,15 +35,17 @@ export function clamp(value, min, max) {
 }
 
 /**
- * Clamps a value between a minimum and maximum.
+ * Remaps a value from an input range to an output range, clamping the result.
  * @param {number} value - The value to remap and clamp.
  * @param {number} inMin - The minimum value of the input range.
  * @param {number} inMax - The maximum value of the input range.
  * @param {number} outMin - The minimum value of the output range.
  * @param {number} outMax - The maximum value of the output range.
- * @returns {number} The clamped value.
+ * @throws {Error} If inMax equals inMin (division by zero).
+ * @returns {number} The remapped and clamped value.
  */
 export function remapClamp(value, inMin, inMax, outMin, outMax) {
+    if (inMax === inMin) throw new Error("inMax cannot equal inMin (division by zero)");
     return Math.min(Math.max((outMax - outMin) * (value - inMin) / (inMax - inMin) + outMin, outMin), outMax);
 }
 
@@ -57,21 +59,21 @@ export function normalizeAngle(angle) {
 }
 
 /**
- * Removes an item from an array, in place without having to allocate new arrays.
+ * Removes an item from an array in place without allocating new arrays.
  * @param {Object} object - The object to find and remove.
- * @param {Array} array - The array to remove the Object from.
- * @returns {array} Returns the array, if you need it.
+ * @param {Array} array - The array to remove the object from.
+ * @returns {Array} The modified array.
  */
 export function removeObjectFromArrayInPlace(object, array) {
     const index = array.indexOf(object);
-    //Not found!
+    // Not found!
     if (index === -1) {
         return array;
     }
     const length = array.length;
     const lastIndex = length - 1;
 
-    if (index != lastIndex) {
+    if (index !== lastIndex) {
         array[index] = array[lastIndex];
     }
 

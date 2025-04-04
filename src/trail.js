@@ -15,7 +15,7 @@ class TrailPointPool {
         /** @type {number} Maximum number of points the buffer can store. */
         this.maxPoints = maxPoints;
         /** @type {Float32Array} Buffer storing point data (9 floats per point). */
-        this.data = new Float32Array(maxPoints * 9); // Updated to 9 floats per point
+        this.data = new Float32Array(maxPoints * 9);
         /** @type {number} Index where the next point will be added (newest). */
         this.head = 0;
         /** @type {number} Index of the oldest point to be removed (start of trail). */
@@ -45,7 +45,7 @@ class TrailPointPool {
         if (this.count >= this.maxPoints) {
             this.expand();
         }
-        const index = this.head * 9; // Each point now uses 9 floats
+        const index = this.head * 9;
         this.data[index] = position.x;
         this.data[index + 1] = position.y;
         this.data[index + 2] = backwards.x;
@@ -55,11 +55,11 @@ class TrailPointPool {
         this.data[index + 6] = distance;
         this.data[index + 7] = 0; // screenLeftPositionX (to be set during draw)
         this.data[index + 8] = 0; // screenLeftPositionY (to be set during draw)
-        this.head = (this.head + 1) % this.maxPoints; // Wrap around if at end
+        this.head = (this.head + 1) % this.maxPoints;
         if (this.count === this.maxPoints) {
-            this.tail = (this.tail + 1) % this.maxPoints; // Shift tail if full
+            this.tail = (this.tail + 1) % this.maxPoints;
         } else {
-            this.count++; // Increment count until full
+            this.count++;
         }
     }
 
@@ -69,8 +69,8 @@ class TrailPointPool {
      */
     expand() {
         const newMaxPoints = this.maxPoints * 2;
-        const newData = new Float32Array(newMaxPoints * 9); // Updated to 9 floats per point
-        let oldIdx = this.tail * 9; // Adjust for new size
+        const newData = new Float32Array(newMaxPoints * 9);
+        let oldIdx = this.tail * 9;
         for (let i = 0; i < this.count * 9; i++) {
             newData[i] = this.data[oldIdx];
             oldIdx = (oldIdx + 1) % (this.maxPoints * 9);
@@ -88,7 +88,7 @@ class TrailPointPool {
      * @returns {number} The index in the data array (multiple of 9).
      */
     getIndex(n) {
-        return ((this.head - 1 - n + this.maxPoints) % this.maxPoints) * 9; // Updated to 9 floats per point
+        return ((this.head - 1 - n + this.maxPoints) % this.maxPoints) * 9;
     }
 
     /**
@@ -97,10 +97,10 @@ class TrailPointPool {
      */
     trim(targetTail) {
         if (targetTail > this.count + 2) {
-            return; // Prevent over-trimming beyond current count
+            return;
         }
-        this.tail = this.getIndex(targetTail); // Set tail to the target point’s index
-        this.count = targetTail; // Adjust count to match points kept
+        this.tail = this.getIndex(targetTail);
+        this.count = targetTail;
     }
 }
 
@@ -111,10 +111,11 @@ export class Trail {
     /**
      * Creates a new Trail instance.
      * @param {number} [maxLength=250] - Maximum length of the trail before erosion.
+     * @param {number} [erosionSpeed=1] - Speed at which the trail erodes.
      * @param {number} [startWidth=2] - Initial width of the trail in world units.
      * @param {string} [color='rgba(255, 255, 255, 0.5)'] - CSS color for the trail fill.
      */
-    constructor(maxLength = 250, erosionSpeed, startWidth = 2, color = 'rgba(255, 255, 255, 0.5)') {
+    constructor(maxLength = 250, erosionSpeed = 1, startWidth = 2, color = 'rgba(255, 255, 255, 0.5)') {
         /** @type {TrailPointPool} Ring buffer for trail points. */
         this.points = new TrailPointPool(20);
         /** @type {number} Starting width of the trail in world units. */
@@ -135,7 +136,7 @@ export class Trail {
         this.lateralThreshold = 2;
         /** @type {string} Color of the trail fill. */
         this.color = color;
-        /** @type {boolean} Shpuild we draw debug?. */
+        /** @type {boolean} Should we draw debug visuals? */
         this.debug = false;
 
         // Scratch vectors for temporary calculations
@@ -163,18 +164,27 @@ export class Trail {
     /**
      * Updates the trail state based on parent movement and time elapsed.
      * @param {number} deltaTime - Time elapsed since last update (in seconds).
+     * @param {Vector2D} currentPosition - The current position of the parent.
+     * @param {number} currentAngle - The current angle of the parent in radians.
+     * @param {boolean} debug - Whether to enable debug rendering.
      */
-    update(deltaTime, currentPostion, currentAngle, debug) {
+    update(deltaTime, currentPosition, currentAngle, debug) {
         this.debug = debug;
+
+        // Validate inputs to prevent NaN propagation
+        if (isNaN(currentPosition.x) || isNaN(currentPosition.y) || isNaN(currentAngle)) {
+            console.warn("Invalid input in Trail.update; skipping update");
+            return;
+        }
         if (isNaN(this.currentLength)) this.currentLength = 0;
-        //Push back any points we have
-        let lastPoint = this.points.count;
-        for (let i = 0; i < lastPoint; i++) {
+
+        // Push back existing points
+        for (let i = 0; i < this.points.count; i++) {
             const idx = this.points.getIndex(i);
-            this._scratchEndPoint.set(this.points.data[idx + 2], this.points.data[idx + 3]).multiplyInPlace(10 * deltaTime);
-            //this._scratchLeftPoint.set(this.points.data[idx + 4], this.points.data[idx + 5]).multiplyInPlace(Math.sin((this.points.data[idx] + this.points.data[idx + 1]) * 3) * 100 * deltaTime);
-            this.points.data[idx] += this._scratchEndPoint.x;// + this._scratchLeftPoint.x;
-            this.points.data[idx + 1] += this._scratchEndPoint.y;// + this._scratchLeftPoint.y;
+            this._scratchEndPoint.set(this.points.data[idx + 2], this.points.data[idx + 3])
+                .multiplyInPlace(10 * deltaTime);
+            this.points.data[idx] += this._scratchEndPoint.x;
+            this.points.data[idx + 1] += this._scratchEndPoint.y;
         }
 
         // Erode trail length over time
@@ -194,7 +204,7 @@ export class Trail {
             const sinAngle = Math.sin(currentAngle);
             this._scratchForwardVec.set(sinAngle, -cosAngle); // Forward is up
             this._scratchRightPoint.set(-cosAngle, -sinAngle); // Right is perpendicular
-            this.points.addPoint(currentPostion, this._scratchForwardVec, this._scratchRightPoint, 1);
+            this.points.addPoint(currentPosition, this._scratchForwardVec, this._scratchRightPoint, 1);
             this.currentLength += 1;
             return;
         }
@@ -203,24 +213,25 @@ export class Trail {
         const secondIdx = this.points.getIndex(1); // Second newest
 
         // Calculate distance from second-to-last point to parent
-        this._scratchRelativePos.set(currentPostion.x - this.points.data[secondIdx],
-            currentPostion.y - this.points.data[secondIdx + 1]);
-        const distanceSquared = this._scratchRelativePos.magnitudeSquare();
-        const distance = Math.sqrt(distanceSquared);
+        this._scratchRelativePos.set(currentPosition)
+            .subtractInPlace(new Vector2D(this.points.data[secondIdx], this.points.data[secondIdx + 1]));
+        const distanceSquared = this._scratchRelativePos.squareMagnitude();
 
         let shouldAddPoint = false;
 
         // Conditions to add a new point
-        if (this.points.data[firstIdx + 6] > distance + 0.1) { // Distance shrinking
+        if (this.points.data[firstIdx + 6] > Math.sqrt(distanceSquared) + 0.1) { // Distance shrinking
             shouldAddPoint = true;
         }
         if (distanceSquared > this.maxPointDistSquared) { // Exceeds max distance
             shouldAddPoint = true;
         }
         if (distanceSquared > this.minPointDistSquared && !shouldAddPoint) { // Lateral movement check
-            this._scratchForwardVec.set(this._scratchRelativePos).divideInPlace(distance);
+            this._scratchForwardVec.set(this._scratchRelativePos)
+                .normalizeInPlace();
             this._scratchTemp.set(-this.points.data[secondIdx + 2], -this.points.data[secondIdx + 3]);
             const dot = this._scratchTemp.dot(this._scratchForwardVec);
+            const distance = Math.sqrt(distanceSquared);
             const minDot = distance <= this.lateralThreshold ? 0 : Math.sqrt(1 - (this.lateralThreshold / distance) ** 2);
             if (dot < minDot) {
                 shouldAddPoint = true;
@@ -229,27 +240,35 @@ export class Trail {
 
         if (shouldAddPoint) {
             // Add new point at parent position
-            this._scratchRelativePos.set(currentPostion.x - this.points.data[firstIdx],
-                currentPostion.y - this.points.data[firstIdx + 1]);
-            const newDistance = this._scratchRelativePos.magnitude() || 0;
+            this._scratchRelativePos.set(currentPosition)
+                .subtractInPlace(new Vector2D(this.points.data[firstIdx], this.points.data[firstIdx + 1]));
+            const newDistanceSquared = this._scratchRelativePos.squareMagnitude();
+            const newDistance = Math.sqrt(newDistanceSquared) || 0;
             this.currentLength += newDistance;
             if (newDistance > 0.1) {
-                this._scratchForwardVec.set(this._scratchRelativePos).multiplyInPlace(-1).divideInPlace(newDistance);
+                this._scratchForwardVec.set(this._scratchRelativePos)
+                    .multiplyInPlace(-1)
+                    .divideInPlace(newDistance);
             } else {
                 this._scratchForwardVec.set(this.points.data[firstIdx + 2], this.points.data[firstIdx + 3]);
             }
             this._scratchRightPoint.set(-this._scratchForwardVec.y, this._scratchForwardVec.x);
-            this.points.addPoint(currentPostion, this._scratchForwardVec, this._scratchRightPoint, newDistance);
+            this.points.addPoint(currentPosition, this._scratchForwardVec, this._scratchRightPoint, newDistance);
         } else {
             // Update newest point’s position
-            this.currentLength += Math.abs(distance - this.points.data[firstIdx + 6]);
-            this.points.data[firstIdx] = currentPostion.x;
-            this.points.data[firstIdx + 1] = currentPostion.y;
+            const distance = Math.sqrt(distanceSquared);
+            this.currentLength += Math.max(distance - this.points.data[firstIdx + 6], 0);
+            this.points.data[firstIdx] = currentPosition.x;
+            this.points.data[firstIdx + 1] = currentPosition.y;
             this.points.data[firstIdx + 6] = distance;
             if (distance > 0.1) {
-                this._scratchForwardVec.set(this._scratchRelativePos).multiplyInPlace(-1).divideInPlace(distance);
+                this._scratchForwardVec.set(this._scratchRelativePos)
+                    .multiplyInPlace(-1)
+                    .divideInPlace(distance);
             } else {
-                this._scratchForwardVec.set(Math.sin(currentAngle), -Math.cos(currentAngle));
+                const cosAngle = Math.cos(currentAngle);
+                const sinAngle = Math.sin(currentAngle);
+                this._scratchForwardVec.set(sinAngle, -cosAngle);
             }
             this.points.data[firstIdx + 2] = this._scratchForwardVec.x;
             this.points.data[firstIdx + 3] = this._scratchForwardVec.y;
@@ -275,11 +294,13 @@ export class Trail {
      * Draws the trail as a filled polygon on the canvas.
      * @param {CanvasRenderingContext2D} ctx - The 2D canvas rendering context.
      * @param {Object} camera - Camera object with worldToScreen and worldToSize methods.
+     * @param {Vector2D} shipPosition - The current position of the ship.
      */
     draw(ctx, camera, shipPosition) {
         if (this.points.count < 2 || this.currentLength < 1) return;
 
         let totalDistance = 0;
+        const startWidthInScreen = camera.worldToSize(this.startWidth);
 
         ctx.beginPath();
         camera.worldToScreen(shipPosition, this._scratchScreenPos);
@@ -292,14 +313,13 @@ export class Trail {
             this._scratchScreenPos.set(this.points.data[idx], this.points.data[idx + 1]);
             camera.worldToScreen(this._scratchScreenPos, this._scratchScreenPos);
             const progress = Math.min(1, totalDistance / this.currentLength);
-            const currentWidth = camera.worldToSize(this.startWidth) * (1 - progress);
+            const currentWidth = startWidthInScreen * (1 - progress);
 
             // Calculate right point for drawing
             this._scratchRightPoint.set(this.points.data[idx + 4], this.points.data[idx + 5])
                 .multiplyInPlace(currentWidth)
                 .addInPlace(this._scratchScreenPos);
             ctx.lineTo(this._scratchRightPoint.x, this._scratchRightPoint.y);
-
 
             // Calculate left point and store in ring buffer
             this._scratchLeftPoint.set(this.points.data[idx + 4], this.points.data[idx + 5])
@@ -334,7 +354,7 @@ export class Trail {
         ctx.fillStyle = this.color;
         ctx.fill();
 
-        // Optional debug rendering, toggled by parent.debug
+        // Optional debug rendering
         if (this.debug) {
             ctx.fillStyle = 'red';
             ctx.strokeStyle = 'green';

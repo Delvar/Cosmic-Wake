@@ -153,6 +153,29 @@ export class Camera {
             position.y - buffer < this.worldBounds.bottom
         );
     }
+
+    /**
+     * Checks if a bounding box defined by two Vector2D points intersects with the camera's view.
+     * @param {Vector2D} min - The minimum corner of the bounding box (minX, minY) in world space.
+     * @param {Vector2D} max - The maximum corner of the bounding box (maxX, maxY) in world space.
+     * @param {number} [buffer=0] - An optional buffer to expand the bounding box (e.g., to account for object width).
+     * @returns {boolean} True if the bounding box intersects the camera's view, false otherwise.
+     */
+    isBoxInView(min, max, buffer = 0) {
+        // Expand the bounding box by the buffer
+        const minX = min.x - buffer;
+        const minY = min.y - buffer;
+        const maxX = max.x + buffer;
+        const maxY = max.y + buffer;
+
+        // Check for intersection with the camera's world bounds
+        return !(
+            maxX < this.worldBounds.left ||  // Box is completely to the left of the viewport
+            minX > this.worldBounds.right || // Box is completely to the right of the viewport
+            maxY < this.worldBounds.top ||   // Box is completely above the viewport
+            minY > this.worldBounds.bottom   // Box is completely below the viewport
+        );
+    }
 }
 
 /**

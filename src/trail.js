@@ -145,6 +145,11 @@ export class Trail {
         /** @type {boolean} Should we draw debug visuals? */
         this.debug = true;
 
+        /** @type {Vector2D} Upper left point of bounding box for visibility culling (in world space) */
+        this.boundsMin = new Vector2D(Infinity, Infinity);
+        /** @type {Vector2D} Lower right point of bounding box for visibility culling (in world space) */
+        this.boundsMax = new Vector2D(-Infinity, -Infinity);
+
         // Scratch vectors for temporary calculations
         /** @type {Vector2D} Temporary vector for relative position. */
         this._scratchRelativePos = new Vector2D();
@@ -180,6 +185,27 @@ export class Trail {
     }
 
     /**
+     * Resets the bounding box when the trail is cleared.
+     */
+    clear() {
+        this.points.clear();
+        this.boundsMin.set(Infinity, Infinity);
+        this.boundsMax.set(-Infinity, -Infinity);
+    }
+
+    /**
+     * Updates the bounding box to include a new point.
+     * @param {number} x - The x-coordinate of the point.
+     * @param {number} y - The y-coordinate of the point.
+     */
+    updateBounds(x, y) {
+        this.boundsMin.x = Math.min(this.boundsMin.x, x);
+        this.boundsMin.y = Math.min(this.boundsMin.y, y);
+        this.boundsMax.x = Math.max(this.boundsMax.x, x);
+        this.boundsMax.y = Math.max(this.boundsMax.y, y);
+    }
+
+    /**
      * Updates the trail state based on parent movement and time elapsed.
      * @param {number} deltaTime - Time elapsed since last update (in seconds).
      * @param {Vector2D} currentPosition - The current position of the parent.
@@ -209,6 +235,10 @@ export class Trail {
             }
         }
 
+        // Reset bounds before updating points
+        this.boundsMin.set(Infinity, Infinity);
+        this.boundsMax.set(-Infinity, -Infinity);
+
         // Reduce age of all points and remove expired ones
         for (let i = 0; i < this.points.count; i++) {
             const idx = this.points.getIndex(i);
@@ -217,6 +247,8 @@ export class Trail {
             // Push back points
             this.points.data[idx] += this.points.data[idx + 2] * 10 * deltaTime;
             this.points.data[idx + 1] += this.points.data[idx + 3] * 10 * deltaTime;
+            // Update bounds with the new position
+            this.updateBounds(this.points.data[idx], this.points.data[idx + 1]);
         }
         this.points.removeExpiredPoints();
 

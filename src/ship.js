@@ -244,7 +244,6 @@ export class Ship extends GameObject {
             return true;
         } else if (this.state === 'Mining' && this.miningAsteroid) {
             this.setState('MiningTakeoff');
-            //this.angle = this.targetAngle;
             return true;
         }
         return false;
@@ -418,7 +417,7 @@ export class Ship extends GameObject {
                 .subtractInPlace(this._scratchVelocityDelta);
             this.setState('JumpingIn');
             this.velocity.set(this._scratchRadialIn).multiplyInPlace(2000);
-            this.trail.points.clear();
+            this.trail.clear();
             this.jumpStartAngle = null;
             oldSystem.ships = oldSystem.ships.filter(ship => ship !== this);
             this.starSystem.ships.push(this);
@@ -517,10 +516,28 @@ export class Ship extends GameObject {
     }
 
     draw(ctx, camera) {
-        this.trail.draw(ctx, camera, this.position);
-
+        // Check if the trail’s bounding box intersects the camera’s view
+        if (this.trail && this.trail.points.count > 0 && camera.isBoxInView(this.trail.boundsMin, this.trail.boundsMax, this.trail.startWidth)) {
+            this.trail.draw(ctx, camera, this.position);
+        }
         if (this.state === 'Landed') return;
+        if (camera.isInView(this.position, Math.max(this.boundingBox.x, this.boundingBox.y))) {
+            ctx.save();
+            camera.worldToScreen(this.position, this._scratchScreenPos);
+            ctx.translate(this._scratchScreenPos.x, this._scratchScreenPos.y);
+            ctx.rotate(this.angle);
+            const scale = camera.zoom * this.shipScale;
+            ctx.scale(scale, scale * this.stretchFactor);
+            this.drawShip(ctx, camera);
+            this.drawEngines(ctx, camera);
+            this.drawTurrets(ctx, camera);
+            this.drawLights(ctx, camera);
+            ctx.restore();
+            this.drawDebug(ctx, camera, scale);
+        }
+    }
 
+    drawShip(ctx, camera) {
         ctx.save();
         camera.worldToScreen(this.position, this._scratchScreenPos);
         ctx.translate(this._scratchScreenPos.x, this._scratchScreenPos.y);
@@ -549,15 +566,11 @@ export class Ship extends GameObject {
         }
 
         ctx.restore();
-
-        // Draw debug information if enabled
-        this.drawDebug(ctx, camera, scale);
     }
 
-    drawEngines(ctx, camera, scale) {
+    drawEngines(ctx, camera) {
         // Relies on draw to setup scale and rotation
         // Draw thrust effect if applicable
-        //if ((this.isThrusting && this.state === 'Flying') || this.state === 'Landing' || this.state === 'TakingOff') {
         if (this.thurstTime > 0) {
             ctx.fillStyle = new Colour(1, 0, 0, 0.5).toRGBA();
             ctx.beginPath();
@@ -594,7 +607,7 @@ export class Ship extends GameObject {
         }
     }
 
-    drawTurrets(ctx, camera, scale) {
+    drawTurrets(ctx, camera) {
         // Relies on draw to setup scale and rotation
         ctx.fillStyle = '#FF77A8';
 
@@ -608,7 +621,7 @@ export class Ship extends GameObject {
         ctx.fill();
     }
 
-    drawLights(ctx, camera, scale) {
+    drawLights(ctx, camera) {
         // Relies on draw to setup scale and rotation
 
         for (let i = 0; i < this.featurePoints.lights.length; i++) {
@@ -814,18 +827,7 @@ export class Flivver extends Ship {
         this.setupTrail();
     }
 
-    draw(ctx, camera) {
-        this.trail.draw(ctx, camera, this.position);
-
-        if (this.state === 'Landed') return;
-
-        ctx.save();
-        camera.worldToScreen(this.position, this._scratchScreenPos);
-        ctx.translate(this._scratchScreenPos.x, this._scratchScreenPos.y);
-        ctx.rotate(this.angle);
-        const scale = camera.zoom * this.shipScale;
-        ctx.scale(scale, scale * this.stretchFactor);
-
+    drawShip(ctx, camera) {
         // Draw the hull
         ctx.strokeStyle = 'rgb(50, 50, 50)';
         ctx.lineWidth = 0.1;
@@ -935,17 +937,7 @@ export class Flivver extends Ship {
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
-
-        this.drawEngines(ctx, camera, scale);
-        this.drawTurrets(ctx, camera, scale);
-        this.drawLights(ctx, camera, scale);
-
-        ctx.restore();
-
-        // Draw debug information if enabled
-        this.drawDebug(ctx, camera, scale);
     }
-
 }
 
 export class Shuttle extends Ship {
@@ -975,18 +967,7 @@ export class Shuttle extends Ship {
         this.setupTrail();
     }
 
-    draw(ctx, camera) {
-        this.trail.draw(ctx, camera, this.position);
-
-        if (this.state === 'Landed') return;
-
-        ctx.save();
-        camera.worldToScreen(this.position, this._scratchScreenPos);
-        ctx.translate(this._scratchScreenPos.x, this._scratchScreenPos.y);
-        ctx.rotate(this.angle);
-        const scale = camera.zoom * this.shipScale;
-        ctx.scale(scale, scale * this.stretchFactor);
-
+    drawShip(ctx, camera) {
         // Draw the hull
         ctx.strokeStyle = 'rgb(50, 50, 50)';
         ctx.lineWidth = 0.1;
@@ -1066,17 +1047,7 @@ export class Shuttle extends Ship {
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
-
-        this.drawEngines(ctx, camera, scale);
-        this.drawTurrets(ctx, camera, scale);
-        this.drawLights(ctx, camera, scale);
-
-        ctx.restore();
-
-        // Draw debug information if enabled
-        this.drawDebug(ctx, camera, scale);
     }
-
 }
 
 export class HeavyShuttle extends Ship {
@@ -1106,18 +1077,7 @@ export class HeavyShuttle extends Ship {
         this.setupTrail();
     }
 
-    draw(ctx, camera) {
-        this.trail.draw(ctx, camera, this.position);
-
-        if (this.state === 'Landed') return;
-
-        ctx.save();
-        camera.worldToScreen(this.position, this._scratchScreenPos);
-        ctx.translate(this._scratchScreenPos.x, this._scratchScreenPos.y);
-        ctx.rotate(this.angle);
-        const scale = camera.zoom * this.shipScale;
-        ctx.scale(scale, scale * this.stretchFactor);
-
+    drawShip(ctx, camera) {
         // Draw the hull
         ctx.strokeStyle = 'rgb(50, 50, 50)';
         ctx.lineWidth = 0.1;
@@ -1201,17 +1161,7 @@ export class HeavyShuttle extends Ship {
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
-
-        this.drawEngines(ctx, camera, scale);
-        this.drawTurrets(ctx, camera, scale);
-        this.drawLights(ctx, camera, scale);
-
-        ctx.restore();
-
-        // Draw debug information if enabled
-        this.drawDebug(ctx, camera, scale);
     }
-
 }
 
 export class StarBarge extends Ship {
@@ -1240,18 +1190,7 @@ export class StarBarge extends Ship {
         this.setupTrail();
     }
 
-    draw(ctx, camera) {
-        this.trail.draw(ctx, camera, this.position);
-
-        if (this.state === 'Landed') return;
-
-        ctx.save();
-        camera.worldToScreen(this.position, this._scratchScreenPos);
-        ctx.translate(this._scratchScreenPos.x, this._scratchScreenPos.y);
-        ctx.rotate(this.angle);
-        const scale = camera.zoom * this.shipScale;
-        ctx.scale(scale, scale * this.stretchFactor);
-
+    drawShip(ctx, camera) {
         // Draw the hull
         ctx.strokeStyle = 'rgb(50, 50, 50)';
         ctx.lineWidth = 0.1;
@@ -1398,17 +1337,7 @@ export class StarBarge extends Ship {
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
-
-        this.drawEngines(ctx, camera, scale);
-        this.drawTurrets(ctx, camera, scale);
-        this.drawLights(ctx, camera, scale);
-
-        ctx.restore();
-
-        // Draw debug information if enabled
-        this.drawDebug(ctx, camera, scale);
     }
-
 }
 
 export class Freighter extends Ship {
@@ -1442,18 +1371,7 @@ export class Freighter extends Ship {
         this.setupTrail();
     }
 
-    draw(ctx, camera) {
-        this.trail.draw(ctx, camera, this.position);
-
-        if (this.state === 'Landed') return;
-
-        ctx.save();
-        camera.worldToScreen(this.position, this._scratchScreenPos);
-        ctx.translate(this._scratchScreenPos.x, this._scratchScreenPos.y);
-        ctx.rotate(this.angle);
-        const scale = camera.zoom * this.shipScale;
-        ctx.scale(scale, scale * this.stretchFactor);
-
+    drawShip(ctx, camera) {
         // Draw the hull
         ctx.strokeStyle = 'rgb(50, 50, 50)';
         ctx.lineWidth = 0.1;
@@ -1889,17 +1807,7 @@ export class Freighter extends Ship {
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
-
-        this.drawEngines(ctx, camera, scale);
-        this.drawTurrets(ctx, camera, scale);
-        this.drawLights(ctx, camera, scale);
-
-        ctx.restore();
-
-        // Draw debug information if enabled
-        this.drawDebug(ctx, camera, scale);
     }
-
 }
 
 export class Arrow extends Ship {
@@ -1931,18 +1839,7 @@ export class Arrow extends Ship {
         this.setupTrail();
     }
 
-    draw(ctx, camera) {
-        this.trail.draw(ctx, camera, this.position);
-
-        if (this.state === 'Landed') return;
-
-        ctx.save();
-        camera.worldToScreen(this.position, this._scratchScreenPos);
-        ctx.translate(this._scratchScreenPos.x, this._scratchScreenPos.y);
-        ctx.rotate(this.angle);
-        const scale = camera.zoom * this.shipScale;
-        ctx.scale(scale, scale * this.stretchFactor);
-
+    drawShip(ctx, camera) {
         // Draw the hull
         ctx.strokeStyle = 'rgb(50, 50, 50)';
         ctx.lineWidth = 0.1;
@@ -2016,17 +1913,7 @@ export class Arrow extends Ship {
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
-
-        this.drawEngines(ctx, camera, scale);
-        this.drawTurrets(ctx, camera, scale);
-        this.drawLights(ctx, camera, scale);
-
-        ctx.restore();
-
-        // Draw debug information if enabled
-        this.drawDebug(ctx, camera, scale);
     }
-
 }
 
 export class Boxwing extends Ship {
@@ -2059,18 +1946,7 @@ export class Boxwing extends Ship {
         this.setupTrail();
     }
 
-    draw(ctx, camera) {
-        this.trail.draw(ctx, camera, this.position);
-
-        if (this.state === 'Landed') return;
-
-        ctx.save();
-        camera.worldToScreen(this.position, this._scratchScreenPos);
-        ctx.translate(this._scratchScreenPos.x, this._scratchScreenPos.y);
-        ctx.rotate(this.angle);
-        const scale = camera.zoom * this.shipScale;
-        ctx.scale(scale, scale * this.stretchFactor);
-
+    drawShip(ctx, camera) {
         // Draw the hull
         ctx.strokeStyle = 'rgb(50, 50, 50)';
         ctx.lineWidth = 0.1;
@@ -2170,15 +2046,6 @@ export class Boxwing extends Ship {
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
-
-        this.drawEngines(ctx, camera, scale);
-        this.drawTurrets(ctx, camera, scale);
-        this.drawLights(ctx, camera, scale);
-
-        ctx.restore();
-
-        // Draw debug information if enabled
-        this.drawDebug(ctx, camera, scale);
     }
 }
 

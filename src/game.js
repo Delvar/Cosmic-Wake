@@ -195,21 +195,21 @@ class GameManager {
         const earth = starSystem.celestialBodies[3];
         this.playerShip = createRandomShip(earth.position.x + 50, earth.position.y, starSystem);
 
-        this.escort01 = new Flivver(earth.position.x - 50, earth.position.y, starSystem);
-        this.escort01.pilot = new EscortAIPilot(this.escort01, this.playerShip);
-        this.escort01.colors.cockpit = this.playerShip.colors.cockpit;
-        this.escort01.colors.wings = this.playerShip.colors.wings;
-        this.escort01.colors.hull = this.playerShip.colors.hull;
-        this.escort01.trail.color = this.playerShip.trail.color;
-        starSystem.addGameObject(this.escort01);
+        // this.escort01 = new Flivver(earth.position.x - 50, earth.position.y, starSystem);
+        // this.escort01.pilot = new EscortAIPilot(this.escort01, this.playerShip);
+        // this.escort01.colors.cockpit = this.playerShip.colors.cockpit;
+        // this.escort01.colors.wings = this.playerShip.colors.wings;
+        // this.escort01.colors.hull = this.playerShip.colors.hull;
+        // this.escort01.trail.color = this.playerShip.trail.color;
+        // starSystem.addGameObject(this.escort01);
 
-        this.escort02 = new Flivver(earth.position.x + 100, earth.position.y, starSystem);
-        this.escort02.pilot = new EscortAIPilot(this.escort02, this.playerShip);
-        this.escort02.colors.cockpit = this.playerShip.colors.cockpit;
-        this.escort02.colors.wings = this.playerShip.colors.wings;
-        this.escort02.colors.hull = this.playerShip.colors.hull;
-        this.escort02.trail.color = this.playerShip.trail.color;
-        starSystem.addGameObject(this.escort02);
+        // this.escort02 = new Flivver(earth.position.x + 100, earth.position.y, starSystem);
+        // this.escort02.pilot = new EscortAIPilot(this.escort02, this.playerShip);
+        // this.escort02.colors.cockpit = this.playerShip.colors.cockpit;
+        // this.escort02.colors.wings = this.playerShip.colors.wings;
+        // this.escort02.colors.hull = this.playerShip.colors.hull;
+        // this.escort02.trail.color = this.playerShip.trail.color;
+        // starSystem.addGameObject(this.escort02);
 
         this.playerPilot = new PlayerPilot(this.playerShip);
         this.playerShip.pilot = this.playerPilot;

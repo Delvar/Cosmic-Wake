@@ -129,7 +129,7 @@ export class Ship extends GameObject {
                 this.trailPosition = engine.y;
             }
         }
-        this.trail = new Trail(500, this.maxVelocity * 0.5, 2, this.colors.wings.toRGBA(0.5));
+        this.trail = new Trail(2, 1, 3, this.colors.wings.toRGBA(0.5));
     }
 
     /**
@@ -280,15 +280,6 @@ export class Ship extends GameObject {
             console.warn(`No handler for state: ${this.state}`);
         }
 
-        if (this.state == 'Landing' || this.sate == 'Landed' || this.state === 'MiningLanding' || this.state === 'Mining') {
-            if (this.trail.currentLength > 1) {
-                this.trail.currentLength -= Math.max(10 * deltaTime, this.trail.currentLength * deltaTime);
-                if (this.trail.currentLength < 1) {
-                    this.trail.currentLength = 0;
-                }
-            }
-        }
-
         this._scratchThrustVector.set(-Math.sin(this.angle), Math.cos(this.angle)).multiplyInPlace(this.trailPosition * this.shipScale).addInPlace(this.position);
         this.trail.update(deltaTime, this._scratchThrustVector, this.angle, this.debug);
 
@@ -333,7 +324,8 @@ export class Ship extends GameObject {
         this.animationTime += deltaTime;
         const t = Math.min(this.animationTime / this.animationDuration, 1);
         this.shipScale = 1 - t;
-
+        this.trail.decayMultiplier = 1 + t * 5;
+        this.trail.maxAge = Math.max(0, 2 - (2 * t));
         if (!this.landingStartPosition || !this.landedPlanet || !this.landedPlanet.position ||
             isNaN(this.landingStartPosition.x) || isNaN(this.landingStartPosition.y) ||
             isNaN(this.landedPlanet.position.x) || isNaN(this.landedPlanet.position.y) ||
@@ -369,6 +361,8 @@ export class Ship extends GameObject {
     updateTakingOff(deltaTime) {
         this.animationTime += deltaTime;
         const t = Math.min(this.animationTime / this.animationDuration, 1);
+        this.trail.decayMultiplier = 6 - t * 5;
+        this.trail.maxAge = Math.max(0, 2 * t);
         this.shipScale = t;
         this._scratchTakeoffOffset.set(Math.sin(this.angle), -Math.cos(this.angle))
             .multiplyInPlace(this.landedPlanet.radius * 1.5);
@@ -523,9 +517,7 @@ export class Ship extends GameObject {
     }
 
     draw(ctx, camera) {
-        if (this.trail.currentLength > 0) {
-            this.trail.draw(ctx, camera, this.position);
-        }
+        this.trail.draw(ctx, camera, this.position);
 
         if (this.state === 'Landed') return;
 
@@ -672,6 +664,8 @@ export class Ship extends GameObject {
 
     drawDebug(ctx, camera, scale) {
         if (!this.debug || !camera.debug) return;
+
+        this.trail.drawDebug(ctx, camera, this.position);
 
         if (this.pilot && this.pilot.autopilot && (this.pilot.autopilot._scratchFuturePosition ||
             (this.pilot.autopilot.subPilot && this.pilot.autopilot.subPilot._scratchFuturePosition))
@@ -821,9 +815,7 @@ export class Flivver extends Ship {
     }
 
     draw(ctx, camera) {
-        if (this.trail.currentLength > 0) {
-            this.trail.draw(ctx, camera, this.position);
-        }
+        this.trail.draw(ctx, camera, this.position);
 
         if (this.state === 'Landed') return;
 
@@ -984,9 +976,7 @@ export class Shuttle extends Ship {
     }
 
     draw(ctx, camera) {
-        if (this.trail.currentLength > 0) {
-            this.trail.draw(ctx, camera, this.position);
-        }
+        this.trail.draw(ctx, camera, this.position);
 
         if (this.state === 'Landed') return;
 
@@ -1117,9 +1107,7 @@ export class HeavyShuttle extends Ship {
     }
 
     draw(ctx, camera) {
-        if (this.trail.currentLength > 0) {
-            this.trail.draw(ctx, camera, this.position);
-        }
+        this.trail.draw(ctx, camera, this.position);
 
         if (this.state === 'Landed') return;
 
@@ -1253,9 +1241,7 @@ export class StarBarge extends Ship {
     }
 
     draw(ctx, camera) {
-        if (this.trail.currentLength > 0) {
-            this.trail.draw(ctx, camera, this.position);
-        }
+        this.trail.draw(ctx, camera, this.position);
 
         if (this.state === 'Landed') return;
 
@@ -1457,9 +1443,7 @@ export class Freighter extends Ship {
     }
 
     draw(ctx, camera) {
-        if (this.trail.currentLength > 0) {
-            this.trail.draw(ctx, camera, this.position);
-        }
+        this.trail.draw(ctx, camera, this.position);
 
         if (this.state === 'Landed') return;
 
@@ -1948,9 +1932,7 @@ export class Arrow extends Ship {
     }
 
     draw(ctx, camera) {
-        if (this.trail.currentLength > 0) {
-            this.trail.draw(ctx, camera, this.position);
-        }
+        this.trail.draw(ctx, camera, this.position);
 
         if (this.state === 'Landed') return;
 
@@ -2078,9 +2060,7 @@ export class Boxwing extends Ship {
     }
 
     draw(ctx, camera) {
-        if (this.trail.currentLength > 0) {
-            this.trail.draw(ctx, camera, this.position);
-        }
+        this.trail.draw(ctx, camera, this.position);
 
         if (this.state === 'Landed') return;
 

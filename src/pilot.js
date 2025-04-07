@@ -141,7 +141,7 @@ export class PlayerPilot extends Pilot {
             if (this.ship.state === 'Flying' && this.ship.target && this.ship.target instanceof GameObject) {
                 const ship = this.ship;
                 const target = this.ship.target;
-                const finalRadius = target instanceof Ship ? Math.max(target.boundingBox.x, target.boundingBox.y) : target.radius;
+                const finalRadius = target.radius;
                 const arrivalSpeedMin = Ship.LANDING_SPEED * 0.5;
                 const arrivalSpeedMax = Ship.LANDING_SPEED;
                 const velocityTolerance = arrivalSpeedMin;

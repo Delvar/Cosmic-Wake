@@ -200,15 +200,11 @@ export class TargetCamera extends Camera {
      * @param {GameObject} target - The target GameObject to follow, or null to do nothing.
      */
     updateTarget(target) {
-        if (!target) return;
+        if (!target || !target.position) return;
         this.position.set(target.position); // Reuse position vector
         let size = 10;
         // Compute target size and check if it has changed
-        if (target instanceof Ship) {
-            size = Math.max(target.boundingBox.width, target.boundingBox.height) * 0.5;
-        } else {
-            size = target.radius || target.size;
-        }
+        size = target.radius;
 
         if (size !== this.lastTargetSize) {
             // Adjust zoom calculation to ensure the target fits comfortably on screen

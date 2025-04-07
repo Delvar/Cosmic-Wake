@@ -59,14 +59,15 @@
     - Thrusters: rgb(255, 236, 39)<br>
     - Engine Points: rgb(255, 236, 39) (circle center: spawn point, radius: thrust strength)<br>
     - Turret Points: rgb(255, 119, 168) (circle center: spawn point, radius: range)<br>
-    - Light Points: rgb(255, 255, 255) (circle center: spawn point, radius: size)</p>
-  <p>Paste your SVG code below and click "Convert" to generate the canvas draw function.</p>
+    - Light Points: rgb(255, 255, 255) (circle center: spawn point, radius: size)<br>
+    - Detail Lines: No fill or transparent (stroked outlines or open lines)</p>
+  <p>Paste your SVG code below and click "Convert" to generate the canvas draw functions.</p>
   <form>
     <textarea id="svgInput" placeholder="Paste your SVG code here..."></textarea>
     <button type="button" onclick="convertSVG()">Convert</button>
   </form>
   <h2>Output</h2>
-  <pre id="output">Click "Convert" to see the generated draw function.</pre>
+  <pre id="output">Click "Convert" to see the generated draw functions.</pre>
   <button onclick="copyOutput()">Copy All</button>
 
   <script>
@@ -80,7 +81,7 @@
       if (!transform) return matrices;
 
       const transformCommands = transform.match(/(translate|matrix|scale|rotate)\([^)]+\)/g) || [];
-      transformCommands.reverse(); // SVG applies transforms right-to-left
+      transformCommands.reverse();
       transformCommands.forEach(cmd => {
         const values = cmd.match(/[\d.-]+/g)?.map(Number) || [];
         if (cmd.startsWith('translate')) {
@@ -160,7 +161,6 @@
     function getManualBoundingBox(paths, circles) {
       let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
 
-      // Process paths
       paths.forEach(path => {
         const transformMatrices = parseTransform(path.transform);
         const tokens = path.d.replace(/([A-Za-z])/g, ' $1 ').trim().split(/\s+/);
@@ -194,7 +194,6 @@
         }
       });
 
-      // Process circles
       circles.forEach(circle => {
         const transformMatrices = parseTransform(circle.transform);
         const cx = parseFloat(circle.cx);
@@ -209,7 +208,7 @@
 
       if (minX === Infinity) {
         console.warn('Bounding box calculation failed, using SVG defaults');
-        return { minX: 0, maxX: 720, minY: 0, maxY: 1237.5 }; // Use SVG dimensions
+        return { minX: 0, maxX: 720, minY: 0, maxY: 1237.5 };
       }
       return { minX, maxX, minY, maxY };
     }
@@ -229,11 +228,9 @@
           throw new Error('Input is not a valid SVG document');
         }
 
-        // Extract paths
         let paths = Array.from(svgElement.querySelectorAll('g.u.current path'));
         if (paths.length === 0) paths = Array.from(svgElement.querySelectorAll('path'));
 
-        // Extract circles
         let circles = Array.from(svgElement.querySelectorAll('g.u.current circle'));
         if (circles.length === 0) circles = Array.from(svgElement.querySelectorAll('circle'));
 
@@ -241,7 +238,7 @@
 
         const pathData = paths.map(path => {
           const d = path.getAttribute('d') || '';
-          const fill = path.style.fill || 'none';
+          const fill = path.style.fill || path.getAttribute('fill') || 'none';
           let transform = path.getAttribute('transform') || '';
           let parent = path.parentElement;
           while (parent && parent.tagName !== 'svg') {
@@ -257,7 +254,7 @@
           const cx = circle.getAttribute('cx') || '0';
           const cy = circle.getAttribute('cy') || '0';
           const r = circle.getAttribute('r') || '1';
-          const fill = circle.style.fill || 'none';
+          const fill = circle.style.fill || circle.getAttribute('fill') || 'none';
           let transform = circle.getAttribute('transform') || '';
           let parent = circle.parentElement;
           while (parent && parent.tagName !== 'svg') {
@@ -276,131 +273,128 @@
         console.log(`Center: (${centerX}, ${centerY})`);
         const scaleFactor = 1 / 15;
 
-        // Calculate bounding box dimensions (unscaled)
         const width = (maxX - minX) * scaleFactor;
         const height = (maxY - minY) * scaleFactor;
+        const radius = Math.max(width, height);
 
         const hullPaths = pathData.filter(p => p.fill === 'rgb(194, 195, 199)');
         const cockpitPaths = pathData.filter(p => p.fill === 'rgb(41, 173, 255)');
         const wingPaths = pathData.filter(p => p.fill === 'rgb(255, 163, 0)');
-        const thrusterPaths = pathData.filter(p => p.fill === 'rgb(255, 236, 39)');
+        const detailLines = pathData.filter(p => p.fill === 'none' || p.fill === 'rgba(0, 0, 0, 0)');
         const enginePoints = circleData.filter(c => c.fill === 'rgb(255, 236, 39)');
         const turretPoints = circleData.filter(c => c.fill === 'rgb(255, 119, 168)');
         const lightPoints = circleData.filter(c => c.fill === 'rgb(255, 255, 255)');
 
-        let drawFunction = `draw(ctx, camera) {\n`;
-        drawFunction += `  if (this.trail.currentLength > 0) {\n`;
-        drawFunction += `    this.trail.draw(ctx, camera, this.position);\n`;
-        drawFunction += `  }\n\n`;
-        drawFunction += `  if (this.state === 'Landed') return;\n\n`;
-        drawFunction += `  ctx.save();\n`;
-        drawFunction += `  camera.worldToScreen(this.position, this._scratchScreenPos);\n`;
-        drawFunction += `  ctx.translate(this._scratchScreenPos.x, this._scratchScreenPos.y);\n`;
-        drawFunction += `  ctx.rotate(this.angle);\n`;
-        drawFunction += `  const scale = camera.zoom * this.shipScale;\n`;
-        drawFunction += `  ctx.scale(scale, scale * this.stretchFactor);\n\n`;
+        let outputCode = '';
 
-        // Add feature points and bounding box
-        drawFunction += `  // Feature points for dynamic elements\n`;
-        drawFunction += `  this.featurePoints = {\n`;
-        drawFunction += `    engines: [\n`;
+        outputCode += `    /**\n`;
+        outputCode += `     * Sets up the bounding box\n`;
+        outputCode += `     */\n`;
+        outputCode += `    setupBoundingBox() {\n`;
+        outputCode += `        // Bounding box: width = ${(maxX - minX).toFixed(1)} (from ${minX.toFixed(1)} to ${maxX.toFixed(1)}), height = ${(maxY - minY).toFixed(1)} (from ${minY.toFixed(1)} to ${maxY.toFixed(1)})\n`;
+        outputCode += `        this.boundingBox.set(${width.toFixed(2)}, ${height.toFixed(2)});\n`;
+        outputCode += `        this.radius = ${radius.toFixed(2)};\n`;
+        outputCode += `    }\n\n`;
+
+        outputCode += `    /**\n`;
+        outputCode += `     * Sets up the engine, turret and light positions\n`;
+        outputCode += `     */\n`;
+        outputCode += `    setupFeaturePoints() {\n`;
+        outputCode += `        this.featurePoints = {\n`;
+        outputCode += `            engines: [\n`;
         enginePoints.forEach(point => {
           const transformMatrices = parseTransform(point.transform);
           const [tx, ty] = applyTransform(parseFloat(point.cx), parseFloat(point.cy), transformMatrices);
           const cx = (tx - centerX) * scaleFactor;
           const cy = (ty - centerY) * scaleFactor;
           const r = parseFloat(point.r) * scaleFactor;
-          drawFunction += `      { x: ${cx.toFixed(2)}, y: ${cy.toFixed(2)}, radius: ${r.toFixed(2)} },\n`;
+          outputCode += `                { x: ${cx.toFixed(2)}, y: ${cy.toFixed(2)}, radius: ${r.toFixed(2)} },\n`;
         });
-        drawFunction += `    ],\n`;
-        drawFunction += `    turrets: [\n`;
+        outputCode += `            ],\n`;
+        outputCode += `            turrets: [\n`;
         turretPoints.forEach(point => {
           const transformMatrices = parseTransform(point.transform);
           const [tx, ty] = applyTransform(parseFloat(point.cx), parseFloat(point.cy), transformMatrices);
           const cx = (tx - centerX) * scaleFactor;
           const cy = (ty - centerY) * scaleFactor;
           const r = parseFloat(point.r) * scaleFactor;
-          drawFunction += `      { x: ${cx.toFixed(2)}, y: ${cy.toFixed(2)}, radius: ${r.toFixed(2)} },\n`;
+          outputCode += `                { x: ${cx.toFixed(2)}, y: ${cy.toFixed(2)}, radius: ${r.toFixed(2)} },\n`;
         });
-        drawFunction += `    ],\n`;
-        drawFunction += `    lights: [\n`;
+        outputCode += `            ],\n`;
+        outputCode += `            lights: [\n`;
         lightPoints.forEach(point => {
           const transformMatrices = parseTransform(point.transform);
           const [tx, ty] = applyTransform(parseFloat(point.cx), parseFloat(point.cy), transformMatrices);
           const cx = (tx - centerX) * scaleFactor;
           const cy = (ty - centerY) * scaleFactor;
           const r = parseFloat(point.r) * scaleFactor;
-          drawFunction += `      { x: ${cx.toFixed(2)}, y: ${cy.toFixed(2)}, radius: ${r.toFixed(2)} },\n`;
+          outputCode += `                { x: ${cx.toFixed(2)}, y: ${cy.toFixed(2)}, radius: ${r.toFixed(2)} },\n`;
         });
-        drawFunction += `    ]\n`;
-        drawFunction += `  };\n\n`;
-        drawFunction += `  // Bounding box: width = ${(maxX - minX).toFixed(1)} (from ${minX.toFixed(1)} to ${maxX.toFixed(1)}), height = ${(maxY - minY).toFixed(1)} (from ${minY.toFixed(1)} to ${maxY.toFixed(1)})\n`;
-        drawFunction += `  this.boundingBox.set(${width.toFixed(2)}, ${height.toFixed(2)});\n\n`;
+        outputCode += `            ]\n`;
+        outputCode += `        };\n`;
+        outputCode += `    }\n\n`;
 
-        drawFunction += `  // Draw the hull\n`;
-        drawFunction += `  ctx.strokeStyle = 'rgb(50, 50, 50)';\n`;
-        drawFunction += `  ctx.lineWidth = 0.1;\n`;
-        drawFunction += `  ctx.fillStyle = this.colors.hull.toRGB();\n`;
-        drawFunction += `  ctx.beginPath();\n`;
+        outputCode += `    /**\n`;
+        outputCode += `     * Draws the ship's hull, wings, cockpit, and detail lines\n`;
+        outputCode += `     */\n`;
+        outputCode += `    drawShip(ctx, camera) {\n`;
+
+        outputCode += `        // Set default stroke style and line width\n`;
+        outputCode += `        ctx.strokeStyle = 'rgb(50, 50, 50)';\n`;
+        outputCode += `        ctx.lineWidth = 0.1;\n\n`;
+
+        outputCode += `        // Draw the hull\n`;
+        outputCode += `        ctx.fillStyle = this.colors.hull.toRGB();\n`;
+        outputCode += `        ctx.beginPath();\n`;
         hullPaths.forEach(path => {
           const transformMatrices = parseTransform(path.transform);
           const commands = pathToCanvasCommands(path.d, transformMatrices, centerX, centerY, scaleFactor);
-          commands.forEach(cmd => drawFunction += `    ${cmd};\n`);
+          commands.forEach(cmd => outputCode += `        ${cmd};\n`);
         });
-        drawFunction += `  ctx.fill();\n`;
-        drawFunction += `  ctx.stroke();\n\n`;
+        outputCode += `        ctx.fill();\n`;
+        outputCode += `        ctx.stroke();\n\n`;
 
         if (cockpitPaths.length > 0) {
-          drawFunction += `  // Draw the cockpit\n`;
-          drawFunction += `  ctx.fillStyle = this.colors.cockpit.toRGB();\n`;
-          drawFunction += `  ctx.beginPath();\n`;
+          outputCode += `        // Draw the cockpit\n`;
+          outputCode += `        ctx.fillStyle = this.colors.cockpit.toRGB();\n`;
+          outputCode += `        ctx.beginPath();\n`;
           cockpitPaths.forEach(path => {
             const transformMatrices = parseTransform(path.transform);
             const commands = pathToCanvasCommands(path.d, transformMatrices, centerX, centerY, scaleFactor);
-            commands.forEach(cmd => drawFunction += `    ${cmd};\n`);
+            commands.forEach(cmd => outputCode += `        ${cmd};\n`);
           });
-          drawFunction += `  ctx.fill();\n`;
-          drawFunction += `  ctx.stroke();\n\n`;
+          outputCode += `        ctx.fill();\n`;
+          outputCode += `        ctx.stroke();\n\n`;
         }
 
         if (wingPaths.length > 0) {
-          drawFunction += `  // Draw the wings and fins\n`;
-          drawFunction += `  ctx.fillStyle = this.colors.wings.toRGB();\n`;
-          drawFunction += `  ctx.beginPath();\n`;
+          outputCode += `        // Draw the wings and fins\n`;
+          outputCode += `        ctx.fillStyle = this.colors.wings.toRGB();\n`;
+          outputCode += `        ctx.beginPath();\n`;
           wingPaths.forEach(path => {
             const transformMatrices = parseTransform(path.transform);
             const commands = pathToCanvasCommands(path.d, transformMatrices, centerX, centerY, scaleFactor);
-            commands.forEach(cmd => drawFunction += `    ${cmd};\n`);
+            commands.forEach(cmd => outputCode += `        ${cmd};\n`);
           });
-          drawFunction += `  ctx.fill();\n`;
-          drawFunction += `  ctx.stroke();\n\n`;
+          outputCode += `        ctx.fill();\n`;
+          outputCode += `        ctx.stroke();\n\n`;
         }
 
-        if (thrusterPaths.length > 0) {
-          drawFunction += `  // Draw thrust effect if applicable\n`;
-          drawFunction += `  if ((this.isThrusting && this.state === 'Flying') || this.state === 'Landing' || this.state === 'TakingOff') {\n`;
-          drawFunction += `    ctx.fillStyle = new Colour(1, 1, 0).toRGB();\n`;
-          thrusterPaths.forEach(path => {
+        if (detailLines.length > 0) {
+          outputCode += `        // Draw detail lines\n`;
+          detailLines.forEach(path => {
             const transformMatrices = parseTransform(path.transform);
             const commands = pathToCanvasCommands(path.d, transformMatrices, centerX, centerY, scaleFactor);
-            drawFunction += `    ctx.beginPath();\n`;
-            commands.forEach(cmd => drawFunction += `      ${cmd};\n`);
-            drawFunction += `    ctx.fill();\n`;
+            outputCode += `        ctx.beginPath();\n`;
+            commands.forEach(cmd => outputCode += `        ${cmd};\n`);
+            outputCode += `        ctx.stroke();\n`;
           });
-          drawFunction += `  }\n\n`;
+          outputCode += `\n`;
         }
 
-        // Add custom drawing calls before restore
-        drawFunction += `  this.drawEngines(ctx, camera, scale);\n`;
-        drawFunction += `  this.drawTurrets(ctx, camera, scale);\n`;
-        drawFunction += `  this.drawLights(ctx, camera, scale);\n\n`;
+        outputCode += `    }\n`;
 
-        drawFunction += `  ctx.restore();\n\n`;
-        drawFunction += `  // Draw debug information if enabled\n`;
-        drawFunction += `  this.drawDebug(ctx, camera, scale);\n`;
-        drawFunction += `}\n`;
-
-        outputDiv.textContent = drawFunction;
+        outputDiv.textContent = outputCode;
       } catch (error) {
         outputDiv.textContent = `Error: ${error.message}`;
         console.error(error);

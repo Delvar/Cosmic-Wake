@@ -3,7 +3,7 @@
 import { Vector2D } from './vector2d.js';
 import { Colour } from './colour.js';
 import { Camera, TargetCamera } from './camera.js';
-import { createRandomShip, Ship, Flivver, Shuttle, HeavyShuttle, StarBarge, Freighter, Arrow, Boxwing } from './ship.js';
+import { createRandomShip, Ship, Flivver, Shuttle, HeavyShuttle, StarBarge, Freighter, Arrow, Boxwing, Interceptor } from './ship.js';
 import { JumpGate } from './celestialBody.js';
 import { StarField } from './starField.js';
 import { HeadsUpDisplay } from './headsUpDisplay.js';
@@ -286,7 +286,7 @@ class GameManager {
                 }
                 if (!(spawnPlanet instanceof JumpGate)) {
                     const aiShip = createRandomShip(spawnPlanet.position.x, spawnPlanet.position.y, system);
-                    if (aiShip instanceof Flivver || aiShip instanceof Shuttle || aiShip instanceof Arrow) {
+                    if (aiShip instanceof Flivver || aiShip instanceof Arrow || aiShip instanceof Interceptor) {
                         if (Math.random() > 0.5) {
                             aiShip.pilot = new AIPilot(aiShip, spawnPlanet);
                         } else {

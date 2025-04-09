@@ -4,10 +4,11 @@ import { Vector2D } from './vector2d.js';
 import { Trail } from './trail.js';
 import { Colour } from './colour.js';
 import { GameObject } from './gameObject.js';
-import { JumpGate } from './celestialBody.js';
+import { CelestialBody, JumpGate } from './celestialBody.js';
 import { TWO_PI, normalizeAngle, randomBetween } from './utils.js';
 import { AIPilot } from './pilot.js';
 import { FlyToTargetAutoPilot } from './autopilot.js';
+import { Asteroid } from './asteroidBelt.js';
 
 function generateShipName() {
     const prefixes = [
@@ -65,7 +66,7 @@ export class Ship extends GameObject {
         };
 
         this.target = null;
-        this.landedPlanet = null;
+        this.landedObject = null;
         this.miningAsteroid = null;
         this.state = 'Flying';
         this.stateHandlers = {
@@ -75,24 +76,21 @@ export class Ship extends GameObject {
             'TakingOff': this.updateTakingOff.bind(this),
             'JumpingOut': this.updateJumpingOut.bind(this),
             'JumpingIn': this.updateJumpingIn.bind(this),
-            'MiningLanding': this.updateMiningLanding.bind(this),
-            'Mining': this.updateMining.bind(this),
-            'MiningTakeoff': this.updateMiningTakeoff.bind(this)
+            'MiningLanding': () => { throw new Error('MiningLanding has been removed'); },//this.updateMiningLanding.bind(this),
+            'Mining': () => { throw new Error('MiningLanding has been removed'); },//this.updateMining.bind(this),
+            'MiningTakeoff': () => { throw new Error('MiningLanding has been removed'); },//this.updateMiningTakeoff.bind(this)
         };
         this.shipScale = 1;
         this.stretchFactor = 1;
         this.animationTime = 0;
         this.animationDuration = 2;
-        this.miningAnimationDuration = 2;
         this.landingStartPosition = new Vector2D(0, 0);
+        this.takeoffEndPosition = new Vector2D(0, 0);
+        this.startAngle = null;
         this.jumpGate = null;
         this.jumpStartPosition = new Vector2D(0, 0);
         this.jumpEndPosition = new Vector2D(0, 0);
         this.jumpStartAngle = null;
-        this.velocityError = new Vector2D(0, 0);
-        this.decelerationDistance = 0;
-        this.farApproachDistance = 0;
-        this.closeApproachDistance = 0;
         this.age = 0;
         this.thurstTime = 0;
         this.trailPosition = 0;
@@ -111,7 +109,7 @@ export class Ship extends GameObject {
         this._scratchVelocityEnd = new Vector2D(0, 0);
         this._scratchStoppingPoint = new Vector2D(0, 0);
         this._scratchVelocityDelta = new Vector2D(0, 0);
-        this._scratchDistanceToPlanet = new Vector2D(0, 0);
+        this._scratchDistanceToTarget = new Vector2D(0, 0);
         this._scratchTemp = new Vector2D(0, 0);
     }
 
@@ -157,9 +155,11 @@ export class Ship extends GameObject {
      */
     despawn() {
         super.despawn();
-        if (this.landedPlanet) {
-            this.landedPlanet.removeLandedShip(this);
-            this.landedPlanet = null;
+        if (this.landedObject) {
+            if (this.landedObject instanceof CelestialBody) {
+                this.landedObject.removeLandedShip(this);
+            }
+            this.landedObject = null;
         }
     }
 
@@ -214,41 +214,30 @@ export class Ship extends GameObject {
         this.isBraking = braking;
     }
 
-    canLand(planet) {
-        if (!planet || !planet.position || this.state !== 'Flying') return false;
-        this._scratchDistanceToPlanet.set(this.position).subtractInPlace(planet.position);
-        const distanceToPlanetCenter = this._scratchDistanceToPlanet.magnitude();
-        const currentSpeed = this.velocity.magnitude();
-        return distanceToPlanetCenter <= planet.radius && currentSpeed <= Ship.LANDING_SPEED;
-    }
-
-    canMine(asteroid) {
-        if (!asteroid || !asteroid.position || this.state !== 'Flying') return false;
-        this._scratchDistanceToPlanet.set(this.position).subtractInPlace(asteroid.position);
-        const distanceToAsteroidCenter = this._scratchDistanceToPlanet.magnitude();
-        const currentSpeed = this.velocity.magnitude();
-        return distanceToAsteroidCenter <= asteroid.radius + 50 && currentSpeed <= Ship.LANDING_SPEED;
-    }
-
-    initiateLanding(planet) {
-        if (this.canLand(planet)) {
-            this.setState('Landing');
-            this.landedPlanet = planet;
-            this.landingStartPosition.set(this.position);
-            this.velocity.set(0, 0);
-            this.isThrusting = false;
-            this.isBraking = false;
-            return true;
+    canLand(target) {
+        if (!target || !target.position || this.state !== 'Flying') return false;
+        this._scratchDistanceToTarget.set(this.position).subtractInPlace(target.position);
+        const distanceToTargetCenter = this._scratchDistanceToTarget.magnitude();
+        this._scratchVelocityDelta.set(this.velocity).subtractInPlace(target.velocity);
+        const relativeSpeed = this._scratchVelocityDelta.magnitude();
+        if (target instanceof CelestialBody) {
+            return distanceToTargetCenter <= target.radius + 25 && relativeSpeed <= Ship.LANDING_SPEED * 1.1;
+        } else if (target instanceof Asteroid) {
+            return distanceToTargetCenter <= target.radius + 25 && relativeSpeed <= Ship.LANDING_SPEED * 1.1;
         }
         return false;
     }
 
-    initiateMining(asteroid) {
-        if (this.canMine(asteroid)) {
-            this.setState('MiningLanding');
-            this.miningAsteroid = asteroid;
+    initiateLanding(target) {
+        if (this.canLand(target)) {
+            this.setState('Landing');
+            this.landedObject = target;
             this.landingStartPosition.set(this.position);
-            this.velocity.set(this.miningAsteroid.velocity);
+            if (target instanceof CelestialBody) {
+                this.velocity.set(0, 0);
+            } else if (target instanceof Asteroid) {
+                this.velocity.set(target.velocity);
+            }
             this.isThrusting = false;
             this.isBraking = false;
             return true;
@@ -257,22 +246,31 @@ export class Ship extends GameObject {
     }
 
     initiateTakeoff() {
-        if (this.state === 'Landed' && this.landedPlanet) {
+        if (this.state === 'Landed' && this.landedObject) {
             this.setState('TakingOff');
-            this.angle = this.targetAngle;
-            this.landedPlanet.removeLandedShip(this);
-            return true;
-        } else if (this.state === 'Mining' && this.miningAsteroid) {
-            this.setState('MiningTakeoff');
+
+            if (this.target && this.target != this.landedObject) {
+                this._scratchTemp.set(this.target.position).subtractInPlace(this.position).normalizeInPlace();
+                this.targetAngle = Math.atan2(this._scratchTemp.x, -this._scratchTemp.y);
+            } else {
+                this._scratchTemp.set(Math.sin(this.angle), -Math.cos(this.angle));
+                this.targetAngle = this.angle;
+            }
+            this.targetAngle = normalizeAngle(this.targetAngle);
+            this._scratchTakeoffOffset.set(this._scratchTemp).multiplyInPlace(this.landedObject.radius * 1.5);
+            this.takeoffEndPosition.set(this.landedObject.position).addInPlace(this._scratchTakeoffOffset);
+            this.startAngle = this.angle;
+
+            if (this.landedObject instanceof CelestialBody) {
+                this.landedObject.removeLandedShip(this);
+            }
             return true;
         }
         return false;
     }
 
-
     initiateHyperjump() {
         const currentTime = performance.now();
-        //if (!this.hyperdriveReady || currentTime - this.lastJumpTime < this.hyperdriveCooldown) return false;
         const gate = this.starSystem.celestialBodies.find(body =>
             body instanceof JumpGate && body.overlapsShip(this.position)
         );
@@ -342,58 +340,61 @@ export class Ship extends GameObject {
     updateLanding(deltaTime) {
         this.animationTime += deltaTime;
         const t = Math.min(this.animationTime / this.animationDuration, 1);
-        this.shipScale = 1 - t;
-        this.trail.decayMultiplier = 1 + t * 5;
-        this.trail.maxAge = Math.max(0, 2 - (2 * t));
-        if (!this.landingStartPosition || !this.landedPlanet || !this.landedPlanet.position ||
-            isNaN(this.landingStartPosition.x) || isNaN(this.landingStartPosition.y) ||
-            isNaN(this.landedPlanet.position.x) || isNaN(this.landedPlanet.position.y) ||
-            isNaN(this.position.x) || isNaN(this.position.y)) {
-            console.error('Invalid landing parameters detected in updateLanding:', {
-                landingStartPosition: this.landingStartPosition,
-                landedPlanetPosition: this.landedPlanet?.position,
-                shipPosition: this.position
-            });
-            this.position.set(this.landedPlanet?.position || new Vector2D(0, 0));
-            this.setState('Landed');
-            this.shipScale = 0;
-            if (this.landedPlanet) this.landedPlanet.addLandedShip(this);
-            return;
-        }
 
-        this.position.lerpInPlace(this.landingStartPosition, this.landedPlanet.position, t);
+        this.position.lerpInPlace(this.landingStartPosition, this.landedObject.position, t);
+
+        if (this.landedObject instanceof CelestialBody) {
+            this.shipScale = 1 - t;
+        } else if (this.landedObject instanceof Asteroid) {
+            this.shipScale = 1 - (t * 0.2); // Scale down to 0.8
+            this.landingStartPosition.addInPlace(this._scratchTemp.set(this.landedObject.velocity).multiplyInPlace(deltaTime));
+            const currentAngularVelocity = t * this.landedObject.spinSpeed;
+            this.angle += currentAngularVelocity * deltaTime;
+            this.angle = normalizeAngle(this.angle);
+        }
 
         if (t >= 1) {
             this.setState('Landed');
-            this.shipScale = 0;
-            this.position.set(this.landedPlanet.position);
-            this.landedPlanet.addLandedShip(this);
+            this.position.set(this.landedObject.position);
+            this.velocity.set(this.landedObject.velocity);
+            if (this.landedObject instanceof CelestialBody) {
+                this.shipScale = 0;
+                this.landedObject.addLandedShip(this);
+            } else if (this.landedObject instanceof Asteroid) {
+                this.shipScale = 0.8;
+            }
         }
     }
 
     updateLanded(deltaTime) {
-        if (this.landedPlanet && this.landedPlanet.position) {
-            this.position.set(this.landedPlanet.position);
+        if (this.landedObject instanceof Asteroid) {
+            this.position.set(this.landedObject.position);
+            this.velocity.set(this.landedObject.velocity);
+            this.angle += this.landedObject.spinSpeed * deltaTime;
+            this.angle = normalizeAngle(this.angle);
         }
     }
 
     updateTakingOff(deltaTime) {
         this.animationTime += deltaTime;
         const t = Math.min(this.animationTime / this.animationDuration, 1);
-        this.trail.decayMultiplier = 6 - t * 5;
-        this.trail.maxAge = Math.max(0, 2 * t);
-        this.shipScale = t;
-        this._scratchTakeoffOffset.set(Math.sin(this.angle), -Math.cos(this.angle))
-            .multiplyInPlace(this.landedPlanet.radius * 1.5);
-        this._scratchVelocityDelta.set(this._scratchTakeoffOffset).multiplyInPlace(t);
-        this.position.set(this.landedPlanet.position)
-            .addInPlace(this._scratchVelocityDelta);
+        this.position.lerpInPlace(this.landedObject.position, this.takeoffEndPosition, t);
+        this.angle = this.startAngle + (this.targetAngle - this.startAngle) * t;
+
+        if (this.landedObject instanceof CelestialBody) {
+            this.shipScale = t;
+        } else if (this.landedObject instanceof Asteroid) {
+            this.shipScale = 0.8 + (t * 0.2); // Scale up from 0.8
+            this.takeoffEndPosition.addInPlace(this._scratchTemp.set(this.landedObject.velocity).multiplyInPlace(deltaTime));
+        }
 
         if (t >= 1) {
             this.setState('Flying');
+            this.setTargetAngle(this.angle);
             this.shipScale = 1;
-            this.velocity.set(this._scratchTakeoffOffset).divideInPlace(this.animationDuration);
-            this.landedPlanet = null;
+            this._scratchVelocityDelta.set(this.takeoffEndPosition).subtractInPlace(this.landedObject.position).divideInPlace(this.animationDuration);
+            this.velocity.set(this.landedObject.velocity).addInPlace(this._scratchVelocityDelta);
+            this.landedObject = null;
         }
     }
 
@@ -492,55 +493,14 @@ export class Ship extends GameObject {
         }
     }
 
-    updateMiningLanding(deltaTime) {
-        this.animationTime += deltaTime;
-        const t = Math.min(this.animationTime / this.miningAnimationDuration, 1);
-        this.shipScale = 1 - (t * 0.2); // Scale down to 0.8 (80% of original size)
-        this.position.lerpInPlace(this.landingStartPosition, this.miningAsteroid.position, t);
-        this.velocity.set(this.miningAsteroid.velocity);
-        this.landingStartPosition.addInPlace(this._scratchTemp.set(this.miningAsteroid.velocity).multiplyInPlace(deltaTime));
-        // Interpolate angular velocity from 0 to asteroid's spinSpeed
-        const currentAngularVelocity = t * this.miningAsteroid.spinSpeed;
-        this.angle += currentAngularVelocity * deltaTime;
-        this.angle = normalizeAngle(this.angle); // Ensure angle stays within [0, 2π]
-
-        if (t >= 1) {
-            this.setState('Mining');
-            this.shipScale = 0.8;
-            this.position.set(this.miningAsteroid.position);
-        }
-    }
-
-    updateMining(deltaTime) {
-        this.position.set(this.miningAsteroid.position); // Lock to asteroid’s position
-        this.velocity.set(this.miningAsteroid.velocity || new Vector2D(0, 0)); // Match velocity if present
-        this.angle += this.miningAsteroid.spinSpeed * deltaTime;
-        this.shipScale = 0.8; // Maintain 80% scale
-    }
-
-    updateMiningTakeoff(deltaTime) {
-        this.animationTime += deltaTime;
-        const t = Math.min(this.animationTime / this.miningAnimationDuration, 1);
-        this.shipScale = 0.8 + (t * 0.2); // Scale back up to 1 (100% of original size)
-
-        // Keep position locked to the asteroid during takeoff animation
-        this.position.set(this.miningAsteroid.position);
-        this.velocity.set(this.miningAsteroid.velocity);
-        this.setTargetAngle(this.angle);
-
-        if (t >= 1) {
-            this.miningAsteroid = null;
-            this.setState('Flying');
-            this.shipScale = 1;
-        }
-    }
-
     draw(ctx, camera) {
         // Check if the trail’s bounding box intersects the camera’s view
         if (this.trail && this.trail.points.count > 0 && camera.isBoxInView(this.trail.boundsMin, this.trail.boundsMax, this.trail.startWidth)) {
             this.trail.draw(ctx, camera, this.position);
         }
-        if (this.state === 'Landed') return;
+        if (this.shipScal == 0) {
+            return;
+        }
         if (camera.isInView(this.position, this.radius)) {
             ctx.save();
             camera.worldToScreen(this.position, this._scratchScreenPos);
@@ -643,7 +603,6 @@ export class Ship extends GameObject {
 
     drawLights(ctx, camera) {
         // Relies on draw to setup scale and rotation
-
         for (let i = 0; i < this.featurePoints.lights.length; i++) {
             const light = this.featurePoints.lights[i];
             const sinAge = Math.sin(this.age * 5);
@@ -692,14 +651,13 @@ export class Ship extends GameObject {
             ctx.closePath();
             ctx.fill();
         }
-
     }
 
     drawDebug(ctx, camera, scale) {
         if (!this.debug || !camera.debug) return;
 
         this.trail.drawDebug(ctx, camera, this.position);
-
+        ctx.lineWidth = 2;
         if (this.pilot && this.pilot.autopilot && (this.pilot.autopilot._scratchFuturePosition ||
             (this.pilot.autopilot.subPilot && this.pilot.autopilot.subPilot._scratchFuturePosition))
         ) {
@@ -711,33 +669,56 @@ export class Ship extends GameObject {
             ctx.strokeStyle = 'rgb(255,0,255)';
 
             ctx.beginPath();
-            //ctx.moveTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
+            ctx.moveTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
             ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, 5 * scale, 0, TWO_PI);
             ctx.fill();
             ctx.closePath();
 
-            ctx.beginPath();
-            ctx.moveTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
-            camera.worldToScreen(this.position, this._scratchScreenPos);
-            ctx.lineTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
-            ctx.closePath();
-            ctx.stroke();
+            // ctx.beginPath();
+            // ctx.moveTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
+            // camera.worldToScreen(this.position, this._scratchScreenPos);
+            // ctx.lineTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
+            // ctx.closePath();
+            // ctx.stroke();
 
             ctx.beginPath();
             camera.worldToScreen(autopilot.target.position, this._scratchScreenPos);
+            ctx.moveTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
             ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, autopilot.finalRadius * scale, 0, TWO_PI);
-            ctx.closePath();
+            //ctx.closePath();
+            ctx.moveTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
             ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, autopilot.midApproachDistance * scale, 0, TWO_PI);
-            ctx.closePath();
+            //ctx.closePath();
+            ctx.moveTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
             ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, autopilot.farApproachDistance * scale, 0, TWO_PI);
             ctx.closePath();
-            ctx.fill();
+            //ctx.fill();
             ctx.stroke();
             ctx.restore();
         }
 
         this._scratchScreenPos.set(this.position);
         camera.worldToScreen(this._scratchScreenPos, this._scratchScreenPos);
+
+        let velocityError = null;
+        if (this.pilot && this.pilot.autopilot && this.pilot.autopilot.subPilot && this.pilot.autopilot.subPilot.active && this.pilot.autopilot.subPilot._scratchVelocityError) {
+            velocityError = this.pilot.autopilot.subPilot._scratchVelocityError;
+        } else if (this.pilot && this.pilot.autopilot && this.pilot.autopilot.active && this.pilot.autopilot._scratchVelocityError) {
+            velocityError = this.pilot.autopilot._scratchVelocityError;
+        } else if (this.pilot && this.pilot._scratchVelocityError) {
+            velocityError = this.pilot._scratchVelocityError;
+        }
+
+        if (velocityError) {
+            this._scratchVelocityEnd.set(velocityError)
+                .addInPlace(this.position);
+            camera.worldToScreen(this._scratchVelocityEnd, this._scratchVelocityEnd);
+            ctx.strokeStyle = 'cyan';
+            ctx.beginPath();
+            ctx.moveTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
+            ctx.lineTo(this._scratchVelocityEnd.x, this._scratchVelocityEnd.y);
+            ctx.stroke();
+        }
 
         this._scratchVelocityEnd.set(this.velocity)
             .multiplyInPlace(1)
@@ -808,18 +789,9 @@ export class Ship extends GameObject {
                 }
             }
         }
-
-        if (this.pilot) {
-            this._scratchRadialIn.set(this.position).addInPlace(this.velocityError);
-            camera.worldToScreen(this._scratchRadialIn, this._scratchRadialIn);
-            ctx.strokeStyle = 'green';
-            ctx.beginPath();
-            ctx.moveTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
-            ctx.lineTo(this._scratchRadialIn.x, this._scratchRadialIn.y);
-            ctx.stroke();
-        }
     }
 }
+
 export class Flivver extends Ship {
     constructor(x, y, starSystem) {
         super(x, y, starSystem);
@@ -2328,7 +2300,7 @@ export class Interceptor extends Ship {
 // Factory function to create a random ship type
 export function createRandomShip(x, y, starSystem) {
     const shipClasses = [Flivver, Shuttle, HeavyShuttle, StarBarge, Freighter, Arrow, Boxwing, Interceptor];
-    //const shipClasses = [Interceptor];
+    //const shipClasses = [Boxwing];
     const RandomShipClass = shipClasses[Math.floor(Math.random() * shipClasses.length)];
     return new RandomShipClass(x, y, starSystem);
 }

@@ -1,7 +1,7 @@
 // pilot.js
 
 import { Vector2D } from './vector2d.js';
-import { JumpGate } from './celestialBody.js';
+import { CelestialBody, JumpGate } from './celestialBody.js';
 import { remapClamp, randomBetween, normalizeAngle } from './utils.js';
 import { Ship } from './ship.js';
 import { TraverseJumpGateAutoPilot, FlyToTargetAutoPilot, LandOnPlanetAutoPilot, FollowShipAutoPilot, EscortAutoPilot, LandOnAsteroidAutoPilot, ApproachTargetAutoPilot } from './autopilot.js';
@@ -47,97 +47,104 @@ export class PlayerPilot extends Pilot {
     }
 
     update(deltaTime, gameManager) {
-        const keys = gameManager.keys;
-        const lastKeys = gameManager.lastKeys;
+        // Was this key presed in this frame?
+        const pressed = (key) => gameManager.keys[key] && !gameManager.lastKeys[key];
+        // Is thgis key held down?
+        const held = (key) => gameManager.keys[key];
 
-        // Handle takeoff from Mining state
-        if (this.ship.state === 'Mining') {
-            // Any control input triggers takeoff
-            if (keys['ArrowLeft'] || keys['ArrowRight'] || keys['ArrowUp'] || keys['ArrowDown'] ||
-                keys['l'] || keys['j'] || keys['f'] || keys['m'] || keys['t'] || keys['T']) {
-                this.ship.initiateTakeoff();
-            }
-            return;
-        }
-
-        // Disable autopilot if manual controls are used
-        if (keys['ArrowLeft'] || keys['ArrowRight'] || keys['ArrowUp'] || keys['ArrowDown']) {
+        //If manual controls are used
+        if (pressed('ArrowLeft') || pressed('ArrowRight') || pressed('ArrowUp') || pressed('ArrowDown') || pressed('l')
+        ) {
+            // Disable autopilot
             if (this.autopilot?.active) {
                 this.autopilot.stop();
                 this.autopilot = null;
             }
-        }
-
-        // Manual rotation and movement
-        if (keys['ArrowLeft']) {
-            this.ship.setTargetAngle(this.ship.angle - this.ship.rotationSpeed * deltaTime);
-        }
-        if (keys['ArrowRight']) {
-            this.ship.setTargetAngle(this.ship.angle + this.ship.rotationSpeed * deltaTime);
-        }
-        this.ship.applyThrust(keys['ArrowUp']);
-        this.ship.applyBrakes(keys['ArrowDown']);
-
-        // Landing on a targeted planet ('l' key)
-        if (keys['l'] && !lastKeys['l']) {
-            if (this.ship.state === 'Flying' && this.ship.target) {
-                if (!(this.ship.target instanceof JumpGate)) {
-                    if (this.ship.canLand(this.ship.target)) {
-                        this.ship.initiateLanding(this.ship.target);
-                    } else {
-                        this.autopilot = new LandOnPlanetAutoPilot(this.ship, this.ship.target);
-                        this.autopilot.start();
-                    }
-                }
-            } else if (this.ship.state === 'Landed') {
-                if (this.ship.target) {
-                    this._scratchDirectionToTarget.set(this.ship.target.position)
-                        .subtractInPlace(this.ship.position);
-                    this.ship.setTargetAngle(Math.atan2(this._scratchDirectionToTarget.x, -this._scratchDirectionToTarget.y));
-                }
+            // Handle takeoff when pressing a key
+            if (this.ship.state === 'Landed') {
                 this.ship.initiateTakeoff();
             }
         }
 
-        // Mining a targeted asteroid ('m' key)
-        if (keys['m'] && !lastKeys['m']) {
-            if (this.ship.state === 'Flying' && this.ship.target) {
-                if (this.ship.target instanceof Asteroid) {
-                    if (this.ship.canMine(this.ship.target)) {
-                        this.ship.initiateMining(this.ship.target);
-                    } else {
-                        this.autopilot = new LandOnAsteroidAutoPilot(this.ship, this.ship.target);
-                        this.autopilot.start();
+        // Manual rotation and movement
+        if (held('ArrowLeft')) {
+            this.ship.setTargetAngle(this.ship.angle - this.ship.rotationSpeed * deltaTime);
+        }
+        if (held('ArrowRight')) {
+            this.ship.setTargetAngle(this.ship.angle + this.ship.rotationSpeed * deltaTime);
+        }
+        this.ship.applyThrust(held('ArrowUp'));
+        this.ship.applyBrakes(held('ArrowDown'));
+
+        // Landing on a targeted planet ('l' key)
+        if (pressed('l')) {
+            if (this.ship.state === 'Flying') {
+                if (this.ship.target) {
+                    if (this.ship.target instanceof JumpGate) {
+                        if (this.ship.target.overlapsShip(this.ship.position)) {
+                            this.ship.initiateHyperjump();
+                        } else {
+                            this.autopilot = new TraverseJumpGateAutoPilot(this.ship, this.ship.target);
+                            this.autopilot.start();
+                        }
+                    } else if (this.ship.target instanceof CelestialBody) {
+                        if (this.ship.canLand(this.ship.target)) {
+                            this.ship.initiateLanding(this.ship.target);
+                        } else {
+                            this.autopilot = new LandOnPlanetAutoPilot(this.ship, this.ship.target);
+                            this.autopilot.start();
+                        }
+                    } else if (this.ship.target instanceof Asteroid) {
+                        if (this.ship.canLand(this.ship.target)) {
+                            this.ship.initiateLanding(this.ship.target);
+                        } else {
+                            this.autopilot = new LandOnAsteroidAutoPilot(this.ship, this.ship.target);
+                            this.autopilot.start();
+                        }
                     }
                 }
             }
         }
+
+        // Mining a targeted asteroid ('m' key)
+        // if (pressed('m')) {
+        //     if (this.ship.state === 'Flying' && this.ship.target) {
+        //         if (this.ship.target instanceof Asteroid) {
+        //             if (this.ship.canMine(this.ship.target)) {
+        //                 this.ship.initiateMining(this.ship.target);
+        //             } else {
+        //                 this.autopilot = new LandOnAsteroidAutoPilot(this.ship, this.ship.target);
+        //                 this.autopilot.start();
+        //             }
+        //         }
+        //     }
+        // }
 
         // Hyperjump ('j' key)
-        if (keys['j'] && !lastKeys['j']) {
-            if (this.ship.state === 'Flying' && this.ship.target) {
-                if (this.ship.target instanceof JumpGate) {
-                    this._scratchDistanceToTarget.set(this.ship.position)
-                        .subtractInPlace(this.ship.target.position);
-                    if (this.ship.target.overlapsShip(this.ship.position)) {
-                        this.ship.initiateHyperjump();
-                    } else {
-                        this.autopilot = new TraverseJumpGateAutoPilot(this.ship, this.ship.target);
-                        this.autopilot.start();
-                    }
-                }
-            }
-        }
+        // if (pressed('j')) {
+        //     if (this.ship.state === 'Flying' && this.ship.target) {
+        //         if (this.ship.target instanceof JumpGate) {
+        //             this._scratchDistanceToTarget.set(this.ship.position)
+        //                 .subtractInPlace(this.ship.target.position);
+        //             if (this.ship.target.overlapsShip(this.ship.position)) {
+        //                 this.ship.initiateHyperjump();
+        //             } else {
+        //                 this.autopilot = new TraverseJumpGateAutoPilot(this.ship, this.ship.target);
+        //                 this.autopilot.start();
+        //             }
+        //         }
+        //     }
+        // }
 
         // Escort a targeted ship ('f' key)
-        if (keys['f'] && !lastKeys['f']) {
+        if (pressed('f')) {
             if (this.ship.state === 'Flying' && this.ship.target && this.ship.target instanceof Ship) {
                 this.autopilot = new EscortAutoPilot(this.ship, this.ship.target);
                 this.autopilot.start();
             }
         }
 
-        if (keys['F'] && !lastKeys['F']) {
+        if (pressed('F')) {
             if (this.ship.state === 'Flying' && this.ship.target && this.ship.target instanceof GameObject) {
                 const ship = this.ship;
                 const target = this.ship.target;
@@ -176,7 +183,7 @@ export class PlayerPilot extends Pilot {
         }
 
         // Target selection ('t' and 'T' keys)
-        if (keys['t'] && !lastKeys['t']) {
+        if (pressed('t')) {
             const targets = this.listTargetableObjects();
             if (targets.length > 0) {
                 const currentIndex = targets.indexOf(this.ship.target);
@@ -184,7 +191,7 @@ export class PlayerPilot extends Pilot {
                 this.ship.setTarget(targets[nextIndex]);
             }
         }
-        if (keys['T'] && !lastKeys['T']) {
+        if (pressed('T')) {
             const targets = this.listTargetableObjects();
             if (targets.length > 0) {
                 const currentIndex = targets.indexOf(this.ship.target);
@@ -717,7 +724,7 @@ export class InterdictionAIPilot extends Pilot {
             // Calculate velocity error
             this._scratchVelocityDifference.set(this._scratchDesiredVelocity)
                 .subtractInPlace(this.ship.velocity);
-            this.ship.velocityError.set(this._scratchVelocityDifference);
+
             const velocityErrorMagnitude = this._scratchVelocityDifference.magnitude();
 
             let desiredAngle = this.ship.angle;
@@ -924,6 +931,25 @@ export class MiningAIPilot extends Pilot {
     }
 
     /**
+     * Finds the nearest asteroid in the current system that the ship can mine.
+     * @returns {Asteroid|null} The nearest asteroid, or null if none found.
+     */
+    findRandomAsteroid() {
+        let selectedAsteroid = null;
+        const asteroidBelt = this.ship.starSystem.asteroidBelt;
+        if (!asteroidBelt) {
+            return null;
+        }
+        while (!selectedAsteroid) {
+            selectedAsteroid = asteroidBelt.interactiveAsteroids[Math.floor(Math.random() * asteroidBelt.interactiveAsteroids.length)];
+            if (selectedAsteroid.isDespawned()) {
+                selectedAsteroid = null;
+            }
+        }
+        return selectedAsteroid;
+    }
+
+    /**
      * Updates the AI pilot's behavior based on the current state.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
      * @param {Object} gameManager - The game manager instance.
@@ -959,9 +985,9 @@ export class MiningAIPilot extends Pilot {
      * @param {Object} gameManager - The game manager instance.
      */
     updateIdle(deltaTime, gameManager) {
-        if (this.ship.state === 'Landed') {
+        if (this.ship.state === 'Landed' && this.ship.landedObject instanceof CelestialBody) {
             // If on the home planet, wait before taking off
-            if (this.ship.landedPlanet === this.homePlanet) {
+            if (this.ship.landedObject === this.homePlanet) {
                 this.waitTime = randomBetween(this.waitTimeMin, this.waitTimeMax);
                 this.state = 'WaitingOnHomePlanet';
             } else {
@@ -970,8 +996,6 @@ export class MiningAIPilot extends Pilot {
                 this.state = 'TakingOffFromHomePlanet';
             }
         } else if (this.ship.state === 'Flying') {
-            // Find the nearest asteroid and start flying to it
-            this.targetAsteroid = this.findNearestAsteroid();
             if (this.targetAsteroid) {
                 this.autopilot = new LandOnAsteroidAutoPilot(this.ship, this.targetAsteroid);
                 this.autopilot.start();
@@ -985,7 +1009,8 @@ export class MiningAIPilot extends Pilot {
         } else if (this.ship.state === 'TakingOff') {
             // Already in TakingOff state; wait for it to complete
         } else {
-            console.warn(`Invalid ship state '${this.ship.state}' in MiningAIPilot updateIdle`);
+            console.warn(`Invalid ship state '${this.ship.state}' in MiningAIPilot updateIdle`, this.ship.landedObject);
+            throw new Error('dead');
         }
     }
 
@@ -1019,7 +1044,7 @@ export class MiningAIPilot extends Pilot {
                 this.targetAsteroid = null;
                 this.state = 'Idle';
             } else {
-                if (this.ship.state === 'Mining') {
+                if (this.ship.state === 'Landed' && this.ship.landedObject instanceof Asteroid) {
                     this.autopilot = null;
                     this.waitTime = this.miningTime;
                     this.state = 'Mining';
@@ -1086,7 +1111,7 @@ export class MiningAIPilot extends Pilot {
                 this.autopilot = null;
                 this.state = 'Idle';
             } else {
-                if (this.ship.state === 'Landed') {
+                if (this.ship.state === 'Landed' && this.ship.landedObject instanceof CelestialBody) {
                     this.autopilot = null;
                     this.waitTime = randomBetween(this.waitTimeMin, this.waitTimeMax);
                     this.state = 'WaitingOnHomePlanet';
@@ -1148,9 +1173,8 @@ export class MiningAIPilot extends Pilot {
     updateWaitingOnHomePlanet(deltaTime, gameManager) {
         this.waitTime -= deltaTime;
         if (this.waitTime <= 0) {
-            this._scratchDirectionToTarget.set(this.homePlanet.position)
-                .subtractInPlace(this.ship.position);
-            this.ship.setTargetAngle(Math.atan2(this._scratchDirectionToTarget.x, -this._scratchDirectionToTarget.y));
+            this.targetAsteroid = this.findRandomAsteroid();
+            this.ship.target = this.targetAsteroid;
             this.ship.initiateTakeoff();
             this.state = 'TakingOffFromHomePlanet';
         }

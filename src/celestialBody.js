@@ -3,7 +3,7 @@
 import { Vector2D } from './vector2d.js';
 import { Colour } from './colour.js';
 import { GameObject } from './gameObject.js';
-import { TWO_PI } from './utils.js';
+import { TWO_PI, removeObjectFromArrayInPlace } from './utils.js';
 
 /**
  * Defines the types and colors for celestial bodies in the game.
@@ -139,10 +139,7 @@ export class CelestialBody extends GameObject {
      * @param {Ship} ship - The ship to remove.
      */
     removeLandedShip(ship) {
-        const index = this.landedShips.indexOf(ship);
-        if (index !== -1) {
-            this.landedShips.splice(index, 1);
-        }
+        removeObjectFromArrayInPlace(ship, this.landedShips);
     }
 }
 

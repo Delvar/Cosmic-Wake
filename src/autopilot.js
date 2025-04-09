@@ -190,7 +190,6 @@ export class FlyToTargetAutoPilot extends AutoPilot {
             }
 
             this._scratchVelocityError.set(this._scratchDesiredVelocity).subtractInPlace(this.ship.velocity);
-            this.ship.velocityError.set(this._scratchVelocityError);
             const velocityErrorMagnitude = this._scratchVelocityError.magnitude();
 
             if (velocityErrorMagnitude > 5) {
@@ -244,7 +243,6 @@ export class FlyToTargetAutoPilot extends AutoPilot {
             }
 
             this._scratchVelocityError.set(this._scratchDesiredVelocity).subtractInPlace(this.ship.velocity);
-            this.ship.velocityError.set(this._scratchVelocityError);
             const velocityErrorMagnitude = this._scratchVelocityError.magnitude();
 
             if (velocityErrorMagnitude > 5) {
@@ -275,7 +273,6 @@ export class FlyToTargetAutoPilot extends AutoPilot {
             }
 
             this._scratchVelocityError.set(this._scratchDesiredVelocity).subtractInPlace(this.ship.velocity);
-            this.ship.velocityError.set(this._scratchVelocityError);
             const velocityErrorMagnitude = this._scratchVelocityError.magnitude();
 
             if (velocityErrorMagnitude > 1) {
@@ -318,6 +315,7 @@ export class LandOnPlanetAutoPilot extends AutoPilot {
         this.subPilot = null;
         // Pre-allocated scratch vectors for allocation-free updates
         this._scratchDistanceToTarget = new Vector2D(0, 0);
+        this._scratchVelocityError = new Vector2D();
         this._scratchTemp = new Vector2D(0, 0);
     }
 
@@ -374,17 +372,14 @@ export class LandOnPlanetAutoPilot extends AutoPilot {
                     // TODO: Replace this hack with better approach tuning
                     this.ship.velocity.multiplyInPlace(1 - (0.5 * deltaTime));
                     this.ship.position.addInPlace(this._scratchTemp.set(this._scratchDistanceToTarget).multiplyInPlace(-0.5 * deltaTime));
-                    this.ship.velocityError.set(-this.ship.velocity.x, -this.ship.velocity.y);
-                    const desiredAngle = Math.atan2(this.ship.velocityError.x, -this.ship.velocityError.y);
+                    this._scratchVelocityError.set(-this.ship.velocity.x, -this.ship.velocity.y);
+                    const desiredAngle = Math.atan2(this._scratchVelocityError.x, -this._scratchVelocityError.y);
                     const angleToDesired = normalizeAngle(desiredAngle - this.ship.angle);
                     this.ship.setTargetAngle(this.ship.angle + angleToDesired);
                     this.ship.applyThrust(Math.abs(angleToDesired) < Math.PI / 12);
                 }
             } else {
                 // Overshot the planet; restart sub-pilot to re-approach
-                if (this.ship.debug) {
-                    console.log(`Overshot ${this.target.name || 'planet'}; restarting fly-to phase`);
-                }
                 this.subPilot = new FlyToTargetAutoPilot(this.ship, this.target, this.target.radius, Ship.LANDING_SPEED * 0.9, Ship.LANDING_SPEED * 2);
                 this.subPilot.start();
             }
@@ -497,8 +492,8 @@ export class TraverseJumpGateAutoPilot extends AutoPilot {
                     // TODO: Replace this hack with better alignment logic
                     this.ship.velocity.multiplyInPlace(1 - (0.5 * deltaTime));
                     this.ship.position.addInPlace(this._scratchTemp.set(this._scratchDistanceToTarget).multiplyInPlace(-0.5 * deltaTime));
-                    this.ship.velocityError.set(-this.ship.velocity.x, -this.ship.velocity.y);
-                    const desiredAngle = Math.atan2(this.ship.velocityError.x, -this.ship.velocityError.y);
+                    this._scratchVelocityError.set(-this.ship.velocity.x, -this.ship.velocity.y);
+                    const desiredAngle = Math.atan2(this._scratchVelocityError.x, -this._scratchVelocityError.y);
                     const angleToDesired = normalizeAngle(desiredAngle - this.ship.angle);
                     this.ship.setTargetAngle(this.ship.angle + angleToDesired);
                     this.ship.applyThrust(Math.abs(angleToDesired) < Math.PI / 12);
@@ -643,7 +638,6 @@ export class FollowShipAutoPilot extends AutoPilot {
 
             this._scratchVelocityError.set(this._scratchDesiredVelocity)
                 .subtractInPlace(this.ship.velocity);
-            this.ship.velocityError.set(this._scratchVelocityError);
             const velocityErrorMagnitude = this._scratchVelocityError.magnitude();
 
             if (velocityErrorMagnitude > 5) {
@@ -682,7 +676,6 @@ export class FollowShipAutoPilot extends AutoPilot {
 
             this._scratchVelocityError.set(this._scratchDesiredVelocity)
                 .subtractInPlace(this.ship.velocity);
-            this.ship.velocityError.set(this._scratchVelocityError);
             const velocityErrorMagnitude = this._scratchVelocityError.magnitude();
 
             if (velocityErrorMagnitude > 5) {
@@ -711,7 +704,6 @@ export class FollowShipAutoPilot extends AutoPilot {
             this._scratchDesiredVelocity.set(this.target.velocity);
             this._scratchVelocityError.set(this._scratchDesiredVelocity)
                 .subtractInPlace(this.ship.velocity);
-            this.ship.velocityError.set(this._scratchVelocityError);
             const velocityErrorMagnitude = this._scratchVelocityError.magnitude();
 
             if (velocityErrorMagnitude > 5) {
@@ -893,7 +885,7 @@ export class EscortAutoPilot extends AutoPilot {
         // React to escorted ship landing
         if (this.target.state === 'Landed' || this.target.state === 'Landing') {
             this.subAutopilot.stop();
-            this.subAutopilot = new LandOnPlanetAutoPilot(this.ship, this.target.landedPlanet);
+            this.subAutopilot = new LandOnPlanetAutoPilot(this.ship, this.target.landedObject);
             this.subAutopilot.start();
             this.state = 'Landing';
             return;
@@ -1063,6 +1055,7 @@ export class LandOnAsteroidAutoPilot extends AutoPilot {
         // Pre-allocated scratch vectors for allocation-free updates
         this._scratchDistanceToTarget = new Vector2D(0, 0);
         this._scratchTemp = new Vector2D(0, 0);
+        this._scratchVelocityError = new Vector2D(0, 0);
     }
 
     /**
@@ -1084,9 +1077,9 @@ export class LandOnAsteroidAutoPilot extends AutoPilot {
         this.subPilot = new ApproachTargetAutoPilot(
             this.ship,
             this.target,
-            this.target.radius + 50,  // finalRadius
-            Ship.LANDING_SPEED,      // arrivalSpeedMin
-            Ship.LANDING_SPEED * 2,  // arrivalSpeedMax
+            this.target.radius,  // finalRadius
+            Ship.LANDING_SPEED * 0.9,      // arrivalSpeedMin
+            Ship.LANDING_SPEED * 4,  // arrivalSpeedMax
             2,                       // velocityTolerance
             Math.PI / 6,             // thrustAngleLimit
             Ship.LANDING_SPEED,      // upperVelocityErrorThreshold
@@ -1120,19 +1113,21 @@ export class LandOnAsteroidAutoPilot extends AutoPilot {
             this._scratchDistanceToTarget.set(this.ship.position).subtractInPlace(this.target.position);
             const distanceToAsteroidCenter = this._scratchDistanceToTarget.magnitude();
 
-            if (distanceToAsteroidCenter <= this.target.radius + 50) {
-                if (this.ship.canMine(this.target)) {
+            if (distanceToAsteroidCenter <= this.target.radius) {
+                if (this.ship.canLand(this.target)) {
                     // Initiate mining if conditions are met
-                    this.ship.initiateMining(this.target);
+                    this.ship.initiateLanding(this.target);
                 } else {
                     // Slow down if not ready to mine (e.g., speed too high)
-                    this.ship.velocity.multiplyInPlace(1 - (0.5 * deltaTime));
-                    this.ship.position.addInPlace(this._scratchTemp.set(this._scratchDistanceToTarget).multiplyInPlace(-0.5 * deltaTime));
-                    this.ship.velocityError.set(-this.ship.velocity.x, -this.ship.velocity.y);
-                    const desiredAngle = Math.atan2(this.ship.velocityError.x, -this.ship.velocityError.y);
+                    this._scratchVelocityError.set(this.target.velocity).subtractInPlace(this.ship.velocity);
+                    const desiredAngle = Math.atan2(this._scratchVelocityError.x, -this._scratchVelocityError.y);
                     const angleToDesired = normalizeAngle(desiredAngle - this.ship.angle);
                     this.ship.setTargetAngle(this.ship.angle + angleToDesired);
-                    this.ship.applyThrust(Math.abs(angleToDesired) < Math.PI / 12);
+                    const velocityErrorMagnitude = this._scratchVelocityError.magnitude();
+                    if (velocityErrorMagnitude > 1) {
+                        this.ship.applyThrust(Math.abs(angleToDesired) < Math.PI / 12);
+                    }
+                    //this.ship.velocity.addInPlace(this._scratchVelocityError.multiplyInPlace(deltaTime));
                 }
             } else {
                 // Overshot the asteroid; restart sub-pilot to re-approach
@@ -1142,9 +1137,9 @@ export class LandOnAsteroidAutoPilot extends AutoPilot {
                 this.subPilot = new ApproachTargetAutoPilot(
                     this.ship,
                     this.target,
-                    this.target.radius + 50,  // finalRadius
-                    Ship.LANDING_SPEED,      // arrivalSpeedMin
-                    Ship.LANDING_SPEED * 2,  // arrivalSpeedMax
+                    this.target.radius,  // finalRadius
+                    Ship.LANDING_SPEED * 0.9,      // arrivalSpeedMin
+                    Ship.LANDING_SPEED * 4,  // arrivalSpeedMax
                     2,                       // velocityTolerance
                     Math.PI / 6,             // thrustAngleLimit
                     Ship.LANDING_SPEED,      // upperVelocityErrorThreshold
@@ -1153,9 +1148,9 @@ export class LandOnAsteroidAutoPilot extends AutoPilot {
                 );
                 this.subPilot.start();
             }
-        } else if (this.ship.state === 'MiningLanding') {
+        } else if (this.ship.state === 'Landing') {
             // Wait for landing animation to complete
-        } else if (this.ship.state === 'Mining') {
+        } else if (this.ship.state === 'Landed') {
             // Mining started successfully; mark as complete
             this.completed = true;
             this.stop();
@@ -1182,7 +1177,7 @@ export class LandOnAsteroidAutoPilot extends AutoPilot {
         if (this.subPilot && this.subPilot.active) {
             return this.subPilot.getStatus();
         }
-        if (this.ship.state === 'MiningLanding') {
+        if (this.ship.state === 'Landing') {
             return `Autopilot: Landing on ${this.target.name || 'asteroid'} (Animating)`;
         }
         return `Autopilot: Mining ${this.target.name || 'asteroid'}`;
@@ -1320,7 +1315,6 @@ export class ApproachTargetAutoPilot extends AutoPilot {
 
         // Calculate velocity error for thrust control
         this._scratchVelocityError.set(this._scratchDesiredVelocity).subtractInPlace(this.ship.velocity);
-        this.ship.velocityError.set(this._scratchVelocityError);
         const velocityErrorMagnitude = this._scratchVelocityError.magnitude();
 
         // Determine thrust and angle with hysteresis

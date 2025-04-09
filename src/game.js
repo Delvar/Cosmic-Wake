@@ -60,7 +60,7 @@ class Game {
      */
     start() {
         const gameLoop = (currentTime) => {
-            const deltaTime = currentTime - this.lastTime;
+            const deltaTime = (currentTime - this.lastTime);
             this.lastTime = currentTime;
             this.update(deltaTime);
             this.render(deltaTime);
@@ -306,13 +306,18 @@ class GameManager {
                         escort01.colors.wings = aiShip.colors.wings;
                         escort01.colors.hull = aiShip.colors.hull;
                         escort01.trail.color = aiShip.trail.color;
+                        escort01.setState('Landed');
+                        escort01.shipScale = 0;
+                        escort01.velocity.set(0, 0);
+                        escort01.landedObject = spawnPlanet;
+                        spawnPlanet.addLandedShip(escort01);
                         system.addGameObject(escort01);
                     }
 
                     aiShip.setState('Landed');
                     aiShip.shipScale = 0;
                     aiShip.velocity.set(0, 0);
-                    aiShip.landedPlanet = spawnPlanet;
+                    aiShip.landedObject = spawnPlanet;
                     spawnPlanet.addLandedShip(aiShip);
                     system.addGameObject(aiShip);
                 }

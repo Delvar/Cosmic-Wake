@@ -325,12 +325,12 @@ export class Trail {
      * Draws the trail as a filled polygon on the canvas.
      * @param {CanvasRenderingContext2D} ctx - The 2D canvas rendering context.
      * @param {Object} camera - Camera object with worldToScreen and worldToSize methods.
-     * @param {Vector2D} shipPosition - The current position of the ship.
+     * @param {Number} shipScale - The current scale of the ship.
      */
-    draw(ctx, camera, shipPosition) {
+    draw(ctx, camera, shipScale) {
         if (this.points.count < 2) return;
 
-        const startWidthInScreen = camera.worldToSize(this.startWidth);
+        const startWidthInScreen = camera.worldToSize(this.startWidth * shipScale);
         ctx.save();
         ctx.fillStyle = this.color;
         ctx.beginPath();

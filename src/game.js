@@ -105,6 +105,9 @@ class Game {
         this.ctx.fillStyle = 'black';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         this.starField.draw(this.ctx, this.camera);
+        if (!this.manager.cameraTarget || this.manager.cameraTarget.despawned) {
+            this.manager.cameraTarget = this.manager.playerShip;
+        }
         const starSystem = this.manager.cameraTarget.starSystem;
         if (starSystem.asteroidBelt) starSystem.asteroidBelt.draw(this.ctx, this.camera);
         starSystem.celestialBodies.forEach(body => body.draw(this.ctx, this.camera));

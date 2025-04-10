@@ -75,10 +75,7 @@ export class Ship extends GameObject {
             'Landed': this.updateLanded.bind(this),
             'TakingOff': this.updateTakingOff.bind(this),
             'JumpingOut': this.updateJumpingOut.bind(this),
-            'JumpingIn': this.updateJumpingIn.bind(this),
-            'MiningLanding': () => { throw new Error('MiningLanding has been removed'); },//this.updateMiningLanding.bind(this),
-            'Mining': () => { throw new Error('MiningLanding has been removed'); },//this.updateMining.bind(this),
-            'MiningTakeoff': () => { throw new Error('MiningLanding has been removed'); },//this.updateMiningTakeoff.bind(this)
+            'JumpingIn': this.updateJumpingIn.bind(this)
         };
         this.shipScale = 1;
         this.stretchFactor = 1;
@@ -240,6 +237,7 @@ export class Ship extends GameObject {
             }
             this.isThrusting = false;
             this.isBraking = false;
+            this.trail.decayMultiplier = 2;
             return true;
         }
         return false;
@@ -264,6 +262,7 @@ export class Ship extends GameObject {
             if (this.landedObject instanceof CelestialBody) {
                 this.landedObject.removeLandedShip(this);
             }
+            this.trail.decayMultiplier = 1;
             return true;
         }
         return false;
@@ -286,6 +285,8 @@ export class Ship extends GameObject {
     }
 
     update(deltaTime) {
+        if (this.despawned) return;
+
         this.age += deltaTime;
         if (isNaN(this.position.x) && this.debug) {
             console.log('Position became NaN');
@@ -318,7 +319,6 @@ export class Ship extends GameObject {
             // 0 radians = up (-Y), π/2 = right (+X)
             this._scratchThrustVector.set(Math.sin(this.angle), -Math.cos(this.angle))
                 .multiplyInPlace(this.thrust * deltaTime);
-
             this.velocity.addInPlace(this._scratchThrustVector);
         } else if (this.isBraking) {
             const velAngle = Math.atan2(-this.velocity.x, this.velocity.y);
@@ -341,7 +341,14 @@ export class Ship extends GameObject {
         this.animationTime += deltaTime;
         const t = Math.min(this.animationTime / this.animationDuration, 1);
 
-        this.position.lerpInPlace(this.landingStartPosition, this.landedObject.position, t);
+        if (!this.landedObject) {
+            console.log('!this.landedObject', this, this.ship);
+        }
+
+        this.position.lerpInPlace(
+            this.landingStartPosition,
+            this.landedObject.position,
+            t);
 
         if (this.landedObject instanceof CelestialBody) {
             this.shipScale = 1 - t;
@@ -495,8 +502,8 @@ export class Ship extends GameObject {
 
     draw(ctx, camera) {
         // Check if the trail’s bounding box intersects the camera’s view
-        if (this.trail && this.trail.points.count > 0 && camera.isBoxInView(this.trail.boundsMin, this.trail.boundsMax, this.trail.startWidth)) {
-            this.trail.draw(ctx, camera, this.position);
+        if (this.trail && this.shipScale > 0 && camera.isBoxInView(this.trail.boundsMin, this.trail.boundsMax, this.trail.startWidth)) {
+            this.trail.draw(ctx, camera, this.shipScale);
         }
         if (this.shipScal == 0) {
             return;

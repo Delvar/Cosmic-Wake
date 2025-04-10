@@ -21,6 +21,7 @@ export class AutoPilot {
         this.active = false;
         this.completed = false;
         this.error = null;
+        this.subAutopilot = null;
     }
 
     /**
@@ -49,6 +50,10 @@ export class AutoPilot {
      * Stops the autopilot, resetting ship controls and deactivating it.
      */
     stop() {
+        if (this.subAutopilot) {
+            this.subAutopilot.stop();
+            this.subAutopilot = null;
+        }
         this.active = false;
         this.ship.applyThrust(false);
         this.ship.applyBrakes(false);
@@ -325,11 +330,13 @@ export class LandOnPlanetAutoPilot extends AutoPilot {
     start() {
         super.start();
         if (!(this.target && !(this.target instanceof JumpGate))) {
+            console.warn('Target is not a planet', this.target, this, this.ship);
             this.error = 'Target is not a planet';
             this.active = false;
             return;
         }
         if (this.target.starSystem !== this.ship.starSystem) {
+            console.warn('Planet not in same system', this.target, this, this.ship);
             this.error = 'Planet not in same system';
             this.active = false;
             return;
@@ -658,9 +665,6 @@ export class FollowShipAutoPilot extends AutoPilot {
                 }
             }
         } else if (distanceToTarget > this.followRadius) {
-            if (this.ship.debug) {
-                console.log("distanceToTarget > this.followRadius");
-            }
             // Approach distance: gradually match the target's velocity
             const distanceRange = this.closeApproachDistance - this.followRadius;
             const distanceProgress = (distanceToTarget - this.followRadius) / distanceRange; // 1 at closeApproachDistance, 0 at followRadius
@@ -756,7 +760,6 @@ export class EscortAutoPilot extends AutoPilot {
         this.followDistance = followDistance;
         this.state = 'Idle';
         this.waitTime = 0;
-        this.subAutopilot = null;
 
         // Pre-allocated scratch vectors for allocation-free updates
         this._scratchDirectionToTarget = new Vector2D(0, 0);
@@ -819,6 +822,7 @@ export class EscortAutoPilot extends AutoPilot {
         if (!this.target || this.target.isDespawned()) {
             this.stop();
             this.error = 'Escorted ship despawned';
+            console.warn('Escorted ship despawned');
             return;
         }
 
@@ -839,8 +843,6 @@ export class EscortAutoPilot extends AutoPilot {
         if (this.ship.state === 'Landed') {
             // Take off if escorted ship is moving
             if (this.target.state === 'TakingOff' || this.target.state === 'Flying') {
-                this._scratchDirectionToTarget.set(this.target.position).subtractInPlace(this.ship.position);
-                this.ship.setTargetAngle(Math.atan2(this._scratchDirectionToTarget.x, -this._scratchDirectionToTarget.y));
                 this.ship.initiateTakeoff();
                 this.state = 'TakingOff';
             }
@@ -849,6 +851,8 @@ export class EscortAutoPilot extends AutoPilot {
             this.subAutopilot = new FollowShipAutoPilot(this.ship, this.target, this.followDistance, 100);
             this.subAutopilot.start();
             this.state = 'Following';
+        } else if (this.ship.state === 'TakingOff' || this.ship.state === 'Landing') {
+            // Wait for animation to compelte
         } else {
             console.warn(`Invalid ship state '${this.ship.state}' in EscortAutoPilot updateIdle`);
         }
@@ -943,10 +947,7 @@ export class EscortAutoPilot extends AutoPilot {
         if (this.target.state === 'TakingOff' || this.target.state === 'Flying') {
             this.subAutopilot.stop();
             this.subAutopilot = null;
-            this._scratchDirectionToTarget.set(this.target.position).subtractInPlace(this.ship.position);
-            this.ship.setTargetAngle(Math.atan2(this._scratchDirectionToTarget.x, -this._scratchDirectionToTarget.y));
-            this.ship.initiateTakeoff();
-            this.state = 'TakingOff';
+            this.state = 'Idle';
             return;
         }
 
@@ -1051,7 +1052,6 @@ export class LandOnAsteroidAutoPilot extends AutoPilot {
      */
     constructor(ship, asteroid) {
         super(ship, asteroid);
-        this.subPilot = null;
         // Pre-allocated scratch vectors for allocation-free updates
         this._scratchDistanceToTarget = new Vector2D(0, 0);
         this._scratchTemp = new Vector2D(0, 0);

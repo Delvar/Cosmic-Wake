@@ -304,7 +304,7 @@ export class AIPilot extends Pilot {
 
         if (this.autopilot.isComplete()) {
             if (this.autopilot.error) {
-                console.warn(`Autopilot failed: ${this.autopilot.error}`);
+                //console.warn(`Autopilot failed: ${this.autopilot.error}`);
                 this.target = this.pickDestination(this.ship.starSystem, this.spawnPlanet);
                 this.autopilot = null;
                 this.state = 'Idle';
@@ -335,9 +335,6 @@ export class AIPilot extends Pilot {
                 console.warn('No target found!');
                 return;
             }
-            this._scratchDirectionToTarget.set(this.target.position)
-                .subtractInPlace(this.ship.position);
-            this.ship.setTargetAngle(Math.atan2(this._scratchDirectionToTarget.x, -this._scratchDirectionToTarget.y));
             this.ship.initiateTakeoff();
             this.state = 'TakingOff';
         }
@@ -360,7 +357,7 @@ export class AIPilot extends Pilot {
 
         if (this.autopilot.isComplete()) {
             if (this.autopilot.error) {
-                console.warn(`Autopilot failed: ${this.autopilot.error}`);
+                //console.warn(`Autopilot failed: ${this.autopilot.error}`);
                 this.target = this.pickDestination(this.ship.starSystem, null);
                 this.autopilot = null;
                 this.state = 'Idle';
@@ -654,7 +651,7 @@ export class InterdictionAIPilot extends Pilot {
 
         if (this.autopilot.isComplete()) {
             if (this.autopilot.error) {
-                console.warn(`Autopilot failed: ${this.autopilot.error}`);
+                //console.warn(`Autopilot failed: ${this.autopilot.error}`);
                 this.autopilot = null;
                 this.target = null;
                 this.state = 'Idle';
@@ -686,7 +683,7 @@ export class InterdictionAIPilot extends Pilot {
 
         if (this.autopilot.isComplete()) {
             if (this.autopilot.error) {
-                console.warn(`Autopilot failed: ${this.autopilot.error}`);
+                //console.warn(`Autopilot failed: ${this.autopilot.error}`);
                 this.autopilot = null;
                 this.target = null;
                 this.state = 'Idle';
@@ -801,11 +798,71 @@ export class EscortAIPilot extends Pilot {
      */
     constructor(ship, escortedShip) {
         super(ship);
+        this.state = 'Following';
         this.escortedShip = escortedShip;
         this.autopilot = null;
 
         // Constants for behavior tuning
         this.followDistance = 250; // Distance to maintain while following
+
+        // State handlers for autopilot behavior
+        this.stateHandlers = {
+            Idle: this.updateIdle.bind(this),
+            Following: this.updateFollowing.bind(this),
+            Despawn: this.updateDespawn.bind(this)
+        };
+    }
+
+    /**
+     * Finds a planet in the current system to land on
+     * @returns {CelestialBody|null} The jump gate leading to the target system, or null if none found.
+     */
+    findPlanet() {
+        const celestialBodies = this.ship.starSystem.celestialBodies;
+        let planet = null;
+        while (!planet) {
+            planet = celestialBodies[Math.floor(Math.random() * celestialBodies.length)];
+            if (planet instanceof JumpGate) {
+                planet = null;
+            }
+        }
+        return planet;
+    }
+
+    /**
+     * Updates the autopilot's behavior based on the current state.
+     * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     */
+    update(deltaTime) {
+        if ((!this.escortedShip || this.escortedShip.isDespawned()) && this.state !== 'Despawn') {
+            if (this.ship.state === 'Landed') {
+                this.ship.despawn();
+                this.autopilot.stop();
+                this.autopilot = null;
+                return;
+            }
+            this.escortedShip = null;
+            this.autopilot.stop();
+            const planet = this.findPlanet();
+            this.autopilot = new LandOnPlanetAutoPilot(this.ship, planet);
+            this.autopilot.start();
+            this.state = 'Despawn';
+        }
+
+        const handler = this.stateHandlers[this.state];
+        if (handler) {
+            handler(deltaTime);
+        } else {
+            console.warn(`No handler for state: ${this.state}`);
+            this.state = 'Idle';
+        }
+    }
+    /**
+     * Handles the Idle state: warn as this shoudlnt happen in good operation.
+     * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     */
+    updateIdle(deltaTime) {
+        console.warn('Escore ship gone Idle', this.ship, this);
     }
 
     /**
@@ -813,13 +870,7 @@ export class EscortAIPilot extends Pilot {
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
      * @param {Object} gameManager - The game manager instance.
      */
-    update(deltaTime, gameManager) {
-        // Check if the escorted ship has despawned
-        if (!this.escortedShip || this.escortedShip.isDespawned()) {
-            this.ship.despawn();
-            return;
-        }
-
+    updateFollowing(deltaTime, gameManager) {
         // Set the escorted ship as the target for HUD purposes
         this.ship.setTarget(this.escortedShip);
 
@@ -838,6 +889,49 @@ export class EscortAIPilot extends Pilot {
                 }
                 this.autopilot = null;
             }
+        }
+    }
+
+    /**
+     * Handles the Despawn state: flies to a planet, lands and despawns
+     * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     */
+    updateDespawn(deltaTime) {
+        if (!this.autopilot) {
+            console.warn('Autopilot not set during Despawn state');
+            this.state = 'Idle';
+            return;
+        }
+
+        if (this.ship.state === 'Landed') {
+            this.ship.despawn();
+            this.autopilot.stop();
+            this.autopilot = null;
+            return;
+        }
+
+        // Continue landing process
+        this.autopilot.update(deltaTime);
+        if (this.autopilot.isComplete()) {
+            if (this.autopilot.error) {
+                console.warn(`Landing failed: ${this.autopilot.error}`);
+                this.autopilot.stop();
+                this.autopilot = null;
+                this.state = 'Idle';
+            } else if (this.ship.state === 'Landed') {
+                this.ship.despawn();
+                this.autopilot.stop();
+                this.autopilot = null;
+            } else {
+                console.warn('Landing completed but ship not landed; resetting');
+                this.autopilot.stop();
+                this.autopilot = null;
+                this.state = 'Idle';
+            }
+        } else if (!this.autopilot.active) {
+            console.warn('Autopilot inactive but not complete during Landing state');
+            this.autopilot = null;
+            this.state = 'Idle';
         }
     }
 

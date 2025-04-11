@@ -2,7 +2,7 @@
 
 import { Vector2D } from './vector2d.js';
 import { TWO_PI, remapRange01 } from './utils.js';
-import { GameObject } from './gameObject.js';
+import { GameObject, isValidTarget } from './gameObject.js';
 import { removeObjectFromArrayInPlace } from './utils.js';
 
 /**
@@ -41,19 +41,19 @@ class AsteroidShape {
 export class AsteroidBelt {
     /**
      * Creates a new AsteroidBelt instance.
-     * @param {StarSystem} starSystem - The star system containing this belt.
      * @param {number} innerRadius - Inner radius of the asteroid belt in world units.
      * @param {number} outerRadius - Outer radius of the asteroid belt in world units.
      * @param {number} backgroundCount - Number of background (non-interactive) asteroids.
      * @param {number} interactiveCount - Number of interactive asteroids.
      */
-    constructor(starSystem, innerRadius, outerRadius, backgroundCount, interactiveCount) {
-        this.starSystem = starSystem;
+    constructor(innerRadius, outerRadius, backgroundCount, interactiveCount) {
+        this.starSystem = null;
         this.innerRadius = innerRadius;
         this.outerRadius = outerRadius;
         this.backgroundCount = backgroundCount;
         this.interactiveCount = interactiveCount;
         this.interactiveAsteroids = [];
+        this.backgroundAsteroids = [];
 
         // Precompute asteroid shapes (tunable number of shapes)
         this.shapeCount = 20;
@@ -63,10 +63,20 @@ export class AsteroidBelt {
             this.shapes[i] = new AsteroidShape(numPoints);
         }
 
+        // Temporary scratch values to avoid allocations
+        this._scratchWorldPos = new Vector2D();
+        this._scratchScreenPos = new Vector2D();
+        this.elapsedTime = 0;
+    }
+
+    init() {
+        if (!this.starSystem) {
+            console.warn('no star system on asteroiid belt init', this);
+        }
         // Background asteroids stored in a Float32Array
         // Each asteroid: [shapeIndex, size, spinSpeed, orbitalDistance, orbitalSpeed, orbitalOffset]
-        this.backgroundAsteroids = new Float32Array(backgroundCount * 6);
-        for (let i = 0; i < backgroundCount; i++) {
+        this.backgroundAsteroids = new Float32Array(this.backgroundCount * 6);
+        for (let i = 0; i < this.backgroundCount; i++) {
             const idx = i * 6;
             const radius = remapRange01(Math.random(), this.innerRadius, this.outerRadius);
             const size = remapRange01(Math.random(), 2, 20);
@@ -81,14 +91,9 @@ export class AsteroidBelt {
         }
 
         // Generate interactive asteroids
-        for (let i = 0; i < interactiveCount; i++) {
+        for (let i = 0; i < this.interactiveCount; i++) {
             this.interactiveAsteroids.push(new Asteroid(this));
         }
-
-        // Temporary scratch values to avoid allocations
-        this._scratchWorldPos = new Vector2D();
-        this._scratchScreenPos = new Vector2D();
-        this.elapsedTime = 0;
     }
 
     /**
@@ -120,6 +125,33 @@ export class AsteroidBelt {
         interactiveAsteroid.starSystem = this.starSystem;
         interactiveAsteroid.belt = this;
         return true;
+    }
+
+    /**
+     * @param {Ship} [ship=null] the ship looking for a target
+     * @param {GameObject} [exclude =null] exclude this other GameObject
+     * @return {Asteroid|null} The selected body, or null if none available.
+     */
+    getRandomAsteroid(ship = null, exclude = null) {
+        const arr1 = this.interactiveAsteroids;
+        const length1 = arr1 ? arr1.length : 0;
+        const totalLength = length1;
+        if (totalLength == 0) {
+            return null;
+        }
+        let attempts = totalLength;
+        let item = null;
+        while (attempts > 0) {
+            const randomIndex = Math.floor(Math.random() * totalLength);
+            item = arr1[randomIndex];
+            if (ship && item !== exclude && isValidTarget(ship, item)) {
+                return item;
+            } else if (!item.isDespawned() && item !== exclude) {
+                return item;
+            }
+            attempts--;
+        }
+        return null;
     }
 
     /**

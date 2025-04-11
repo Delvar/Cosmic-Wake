@@ -5,7 +5,7 @@ import { Ship } from './ship.js';
 import { JumpGate } from './celestialBody.js';
 import { AIPilot } from './pilot.js';
 import { Asteroid } from './asteroidBelt.js';
-import { TWO_PI } from './utils.js';
+import { TWO_PI, remapClamp } from './utils.js';
 import { isValidTarget } from './gameObject.js';
 
 /**
@@ -24,6 +24,7 @@ export class HeadsUpDisplay {
         this.ringRadius = Math.min(width, height) / 3;        // Ring for planets (light blue)
         this.shipRingRadius = Math.min(width, height) / 5.5;  // Ring for ships/asteroids (grey)
         this.gateRingRadius = Math.min(width, height) / 2.5;  // Ring for jump gates (green)
+        this.maxRadius = 5000; // Maximum distance for arrow visibility
 
         // Temporary scratch values to avoid allocations
         this._scratchCenter = new Vector2D(0, 0); // For screen center in draw
@@ -46,6 +47,58 @@ export class HeadsUpDisplay {
         this.ringRadius = Math.min(width, height) / 3;
         this.shipRingRadius = Math.min(width, height) / 5.5;
         this.gateRingRadius = Math.min(width, height) / 2.5;
+    }
+
+    /**
+     * Draws HUD elements like rings, arrows, and labels on the canvas.
+     * @param {CanvasRenderingContext2D} ctx - The canvas rendering context.
+     * @param {Camera} camera - The camera object for coordinate transformations.
+     */
+    drawLabelsAndArrows(ctx, camera, body, target) {
+        camera.worldToCamera(body.position, this._scratchCameraPos);
+        const distSquared = this._scratchCameraPos.x * this._scratchCameraPos.x + this._scratchCameraPos.y * this._scratchCameraPos.y;
+        camera.worldToScreen(body.position, this._scratchScreenPos);
+        const isGate = body instanceof JumpGate;
+        const radius = isGate ? this.gateRingRadius : this.ringRadius;
+
+        // Label for bodies inside their ring (unchanged)
+        if (distSquared < radius * radius && body.name) {
+            ctx.save();
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = 'white';
+            ctx.font = `${camera.worldToSize(16)}px Arial`;
+            ctx.textAlign = 'center';
+            const scaledRadius = camera.worldToSize(body.radius);
+            ctx.fillText(body.name, this._scratchScreenPos.x, this._scratchScreenPos.y + scaledRadius + camera.worldToSize(20));
+            ctx.restore();
+        }
+
+        // Arrow for bodies outside their ring but within maxRadius
+        if ((distSquared > radius * radius) && (distSquared < this.maxRadius * this.maxRadius) && body !== target) {
+            const angle = Math.atan2(this._scratchCameraPos.x, -this._scratchCameraPos.y);
+            const arrowX = this._scratchCenter.x + Math.sin(angle) * radius;
+            const arrowY = this._scratchCenter.y - Math.cos(angle) * radius;
+            const ringDist = Math.sqrt(distSquared) - radius;
+            const opacity = remapClamp(ringDist, this.maxRadius, 0, 0.2, 1);
+            ctx.save();
+            ctx.translate(arrowX, arrowY);
+            ctx.rotate(angle);
+            ctx.globalAlpha = opacity;
+            ctx.beginPath();
+            ctx.moveTo(0, -10);  // Tip up
+            ctx.lineTo(5, 0);    // Bottom right
+            ctx.lineTo(-5, 0);   // Bottom left
+            ctx.closePath();
+            if (isGate) {
+                ctx.fillStyle = 'rgba(0, 255, 0, 1)';
+            } else if (body.type.type === 'star') {
+                ctx.fillStyle = 'rgba(255, 255, 0, 1)';
+            } else {
+                ctx.fillStyle = 'rgba(0, 255, 255, 1)';
+            }
+            ctx.fill();
+            ctx.restore();
+        }
     }
 
     /**
@@ -89,11 +142,6 @@ export class HeadsUpDisplay {
         ctx.lineWidth = 2;
         ctx.stroke();
         ctx.closePath();
-
-        // Utility to remap and clamp values for opacity calculations
-        const remapClamp = (val, inMin, inMax, outMin, outMax) =>
-            Math.min(Math.max((outMax - outMin) * (val - inMin) / (inMax - inMin) + outMin, outMin), outMax);
-        const maxRadius = 5000; // Maximum distance for arrow visibility
 
         // Determine the current target
         let target = null;
@@ -143,63 +191,27 @@ export class HeadsUpDisplay {
         }
 
         // Draw labels and arrows for celestial bodies
-        this.gameManager.cameraTarget.starSystem.celestialBodies.forEach(body => {
-            camera.worldToCamera(body.position, this._scratchCameraPos);
-            const distSquared = this._scratchCameraPos.x * this._scratchCameraPos.x + this._scratchCameraPos.y * this._scratchCameraPos.y;
-            camera.worldToScreen(body.position, this._scratchScreenPos);
-            const isGate = body instanceof JumpGate;
-            const radius = isGate ? this.gateRingRadius : this.ringRadius;
-
-            // Label for bodies inside their ring (unchanged)
-            if (distSquared < radius * radius && body.name) {
-                ctx.save();
-                ctx.globalAlpha = 1;
-                ctx.fillStyle = 'white';
-                ctx.font = `${camera.worldToSize(16)}px Arial`;
-                ctx.textAlign = 'center';
-                const scaledRadius = camera.worldToSize(body.radius);
-                ctx.fillText(body.name, this._scratchScreenPos.x, this._scratchScreenPos.y + scaledRadius + camera.worldToSize(20));
-                ctx.restore();
-            }
-
-            // Arrow for bodies outside their ring but within maxRadius
-            if ((distSquared > radius * radius) && (distSquared < maxRadius * maxRadius) && body !== target) {
-                const angle = Math.atan2(this._scratchCameraPos.x, -this._scratchCameraPos.y);
-                const arrowX = this._scratchCenter.x + Math.sin(angle) * radius;
-                const arrowY = this._scratchCenter.y - Math.cos(angle) * radius;
-                const ringDist = Math.sqrt(distSquared) - radius;
-                const opacity = remapClamp(ringDist, maxRadius, 0, 0.2, 1);
-                ctx.save();
-                ctx.translate(arrowX, arrowY);
-                ctx.rotate(angle);
-                ctx.globalAlpha = opacity;
-                ctx.beginPath();
-                ctx.moveTo(0, -10);  // Tip up
-                ctx.lineTo(5, 0);    // Bottom right
-                ctx.lineTo(-5, 0);   // Bottom left
-                ctx.closePath();
-                if (isGate) {
-                    ctx.fillStyle = 'rgba(0, 255, 0, 1)';
-                } else if (body.type.type === 'star') {
-                    ctx.fillStyle = 'rgba(255, 255, 0, 1)';
-                } else {
-                    ctx.fillStyle = 'rgba(0, 255, 255, 1)';
-                }
-                ctx.fill();
-                ctx.restore();
-            }
-        });
+        for (let i = 0; i < this.gameManager.cameraTarget.starSystem.planets; i++) {
+            this.drawLabelsAndArrows(ctx, camera, this.gameManager.cameraTarget.starSystem.planets[i], target);
+        }
+        for (let i = 0; i < this.gameManager.cameraTarget.starSystem.jumpGates; i++) {
+            this.drawLabelsAndArrows(ctx, camera, this.gameManager.cameraTarget.starSystem.jumpGates[i], target);
+        }
+        for (let i = 0; i < this.gameManager.cameraTarget.starSystem.stars; i++) {
+            this.drawLabelsAndArrows(ctx, camera, this.gameManager.cameraTarget.starSystem.stars[i], target);
+        }
 
         // Draw arrows for ships outside their ring
-        this.gameManager.cameraTarget.starSystem.ships.forEach(ship => {
+        for (let i = 0; i < this.gameManager.cameraTarget.starSystem.ships; i++) {
+            const ship = this.gameManager.cameraTarget.starSystem.ships[i];
             camera.worldToCamera(ship.position, this._scratchCameraPos);
             const distSquared = this._scratchCameraPos.x * this._scratchCameraPos.x + this._scratchCameraPos.y * this._scratchCameraPos.y;
-            if ((distSquared > this.shipRingRadius * this.shipRingRadius) && (distSquared < maxRadius * maxRadius) && ship !== target) {
+            if ((distSquared > this.shipRingRadius * this.shipRingRadius) && (distSquared < this.maxRadius * maxRadius) && ship !== target) {
                 const angle = Math.atan2(this._scratchCameraPos.x, -this._scratchCameraPos.y);
                 const arrowX = this._scratchCenter.x + Math.sin(angle) * this.shipRingRadius;
                 const arrowY = this._scratchCenter.y - Math.cos(angle) * this.shipRingRadius;
                 const ringDist = Math.sqrt(distSquared) - this.shipRingRadius;
-                const opacity = remapClamp(ringDist, maxRadius, 0, 0.2, 1);
+                const opacity = remapClamp(ringDist, this.maxRadius, 0, 0.2, 1);
                 ctx.save();
                 ctx.translate(arrowX, arrowY);
                 ctx.rotate(angle);
@@ -213,7 +225,7 @@ export class HeadsUpDisplay {
                 ctx.fill();
                 ctx.restore();
             }
-        });
+        }
 
         // Draw rectangle around the target
         if (target) {

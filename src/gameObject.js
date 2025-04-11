@@ -10,6 +10,7 @@ import { Vector2D } from './vector2d.js';
  * @returns {boolean} True if the target is valid, false otherwise.
  */
 export function isValidTarget(source, target) {
+    if (source === target) return false;
     if (!source || !target) return false;
     if (!(source instanceof GameObject) || !(target instanceof GameObject)) return false;
     if (source.isDespawned() || target.isDespawned()) return false;

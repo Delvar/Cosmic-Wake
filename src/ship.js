@@ -270,7 +270,8 @@ export class Ship extends GameObject {
 
     initiateHyperjump() {
         const currentTime = performance.now();
-        const gate = this.starSystem.celestialBodies.find(body =>
+        //FIXME: is there a better way to do this?
+        const gate = this.starSystem.jumpGates.find(body =>
             body instanceof JumpGate && body.overlapsShip(this.position)
         );
         if (!gate) return false;

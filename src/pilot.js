@@ -1,66 +1,163 @@
 // pilot.js
 
 import { Vector2D } from './vector2d.js';
-import { CelestialBody, JumpGate } from './celestialBody.js';
+import { CelestialBody, JumpGate, Star, Planet } from './celestialBody.js';
 import { remapClamp, randomBetween, normalizeAngle } from './utils.js';
 import { Ship } from './ship.js';
 import { TraverseJumpGateAutoPilot, FlyToTargetAutoPilot, LandOnPlanetAutoPilot, FollowShipAutoPilot, EscortAutoPilot, LandOnAsteroidAutoPilot, ApproachTargetAutoPilot } from './autopilot.js';
 import { Asteroid } from './asteroidBelt.js';
-import { GameObject } from './gameObject.js';
+import { GameObject, isValidTarget } from './gameObject.js';
 
+/**
+ * Base class for AI and player pilots, providing a common interface for ship control.
+ * @abstract
+ */
 export class Pilot {
+    /**
+     * Creates a new Pilot instance.
+     * @param {Ship} ship - The ship this pilot controls.
+     */
     constructor(ship) {
         this.ship = ship;
     }
 
+    /**
+     * Updates the pilot's behavior based on the current game state.
+     * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @param {Object} gameManager - The game manager instance providing input and context.
+     * @throws {Error} Must be implemented by subclasses.
+     */
     update(deltaTime, gameManager) {
         throw new Error("update() must be implemented by subclass");
     }
 
+    /**
+     * Attempts to initiate a hyperjump to another star system.
+     * @param {Object} gameManager - The game manager instance.
+     * @returns {boolean} True if hyperjump is initiated, false otherwise.
+     * @throws {Error} Must be implemented by subclasses.
+     */
     tryHyperjump(gameManager) {
         throw new Error("tryHyperjump() must be implemented by subclass");
     }
 
+    /**
+     * Returns a string describing the pilot's current state for HUD display.
+     * @returns {string} The current state description.
+     * @throws {Error} Must be implemented by subclasses.
+     */
     getState() {
         throw new Error("getState() must be implemented by subclass");
     }
 }
 
+/**
+ * A pilot controlled by a human player via browser input.
+ * @extends Pilot
+ */
 export class PlayerPilot extends Pilot {
+    /**
+     * Creates a new PlayerPilot instance.
+     * @param {Ship} ship - The ship controlled by the player.
+     */
     constructor(ship) {
         super(ship);
-        this.autopilot = null;
+        this.autopilot = null; // Active autopilot instance, if any
 
-        // Scratch vectors to eliminate allocations in update
+        // Scratch vectors to avoid allocations during updates
         this._scratchDirectionToTarget = new Vector2D();
         this._scratchDistanceToTarget = new Vector2D();
     }
 
-    listTargetableObjects() {
-        //FIXME: remove filters and remove array fill allocations
+    /**
+     * Selects the next or previous valid target in the star system without allocations.
+     * Cycles through stars, planets, jump gates, ships, and asteroids in order.
+     * @param {number} [direction=1] - 1 to move forward, -1 to move backward through the target list.
+     * @returns {GameObject|null} The selected target, or null if no valid targets exist.
+     */
+    targetNext(direction = 1) {
         const starSystem = this.ship.starSystem;
-        const planets = starSystem.celestialBodies.filter(body => !(body instanceof JumpGate) && !body.isDespawned());
-        const gates = starSystem.celestialBodies.filter(body => body instanceof JumpGate && !body.isDespawned());
-        const ships = starSystem.ships.filter(ship => ship !== this.ship && !ship.isDespawned());
-        const asteroids = starSystem.asteroidBelt ? starSystem.asteroidBelt.interactiveAsteroids.filter(a => !a.isDespawned()) : [];
-        return [...planets, ...gates, ...ships, ...asteroids];
+        const arr1 = starSystem.stars || [];
+        const length1 = arr1.length;
+        const arr2 = starSystem.planets || [];
+        const length2 = arr2.length;
+        const arr3 = starSystem.jumpGates || [];
+        const length3 = arr3.length;
+        const arr4 = starSystem.ships || [];
+        const length4 = arr4.length;
+        const arr5 = starSystem.asteroidBelt?.interactiveAsteroids || [];
+        const length5 = arr5.length;
+        const totalLength = length1 + length2 + length3 + length4 + length5;
+
+        if (totalLength === 0) return null;
+
+        const target = this.ship.target;
+        let currentIndex = -1;
+
+        // Determine the current target's index across all arrays
+        if (target) {
+            if (target instanceof Star) {
+                currentIndex = arr1.indexOf(target);
+            } else if (target instanceof Planet) {
+                currentIndex = length1 + arr2.indexOf(target);
+            } else if (target instanceof JumpGate) {
+                currentIndex = length1 + length2 + arr3.indexOf(target);
+            } else if (target instanceof Ship) {
+                currentIndex = length1 + length2 + length3 + arr4.indexOf(target);
+            } else if (target instanceof Asteroid) {
+                currentIndex = length1 + length2 + length3 + length4 + arr5.indexOf(target);
+            }
+        }
+
+        // Move to the next/previous index and wrap around if needed
+        currentIndex += direction;
+        currentIndex = (totalLength + (currentIndex % totalLength)) % totalLength;
+
+        let attempts = totalLength;
+        let item = null;
+
+        // Find the next valid target, skipping invalid ones
+        while (attempts > 0) {
+            if (currentIndex < length1) {
+                item = arr1[currentIndex];
+            } else if (currentIndex < length1 + length2) {
+                item = arr2[currentIndex - length1];
+            } else if (currentIndex < length1 + length2 + length3) {
+                item = arr3[currentIndex - length1 - length2];
+            } else if (currentIndex < length1 + length2 + length3 + length4) {
+                item = arr4[currentIndex - length1 - length2 - length3];
+            } else {
+                item = arr5[currentIndex - length1 - length2 - length3 - length4];
+            }
+
+            if (isValidTarget(this.ship, item)) {
+                return item;
+            }
+
+            attempts--;
+            currentIndex += direction;
+            currentIndex = (totalLength + (currentIndex % totalLength)) % totalLength;
+        }
+
+        return null;
     }
 
+    /**
+     * Updates the player's ship based on keyboard input and autopilot state.
+     * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @param {Object} gameManager - The game manager with keys and lastKeys properties.
+     */
     update(deltaTime, gameManager) {
-        // Was this key presed in this frame?
+        // Helper functions for key states
         const pressed = (key) => gameManager.keys[key] && !gameManager.lastKeys[key];
-        // Is thgis key held down?
         const held = (key) => gameManager.keys[key];
 
-        //If manual controls are used
-        if (pressed('ArrowLeft') || pressed('ArrowRight') || pressed('ArrowUp') || pressed('ArrowDown') || pressed('l')
-        ) {
-            // Disable autopilot
+        // Disable autopilot and handle takeoff if manual controls are used
+        if (pressed('ArrowLeft') || pressed('ArrowRight') || pressed('ArrowUp') || pressed('ArrowDown') || pressed('l')) {
             if (this.autopilot?.active) {
                 this.autopilot.stop();
                 this.autopilot = null;
             }
-            // Handle takeoff when pressing a key
             if (this.ship.state === 'Landed') {
                 this.ship.initiateTakeoff();
             }
@@ -76,99 +173,63 @@ export class PlayerPilot extends Pilot {
         this.ship.applyThrust(held('ArrowUp'));
         this.ship.applyBrakes(held('ArrowDown'));
 
-        // Landing on a targeted planet ('l' key)
-        if (pressed('l')) {
-            if (this.ship.state === 'Flying') {
-                if (this.ship.target) {
-                    if (this.ship.target instanceof JumpGate) {
-                        if (this.ship.target.overlapsShip(this.ship.position)) {
-                            this.ship.initiateHyperjump();
-                        } else {
-                            this.autopilot = new TraverseJumpGateAutoPilot(this.ship, this.ship.target);
-                            this.autopilot.start();
-                        }
-                    } else if (this.ship.target instanceof CelestialBody) {
-                        if (this.ship.canLand(this.ship.target)) {
-                            this.ship.initiateLanding(this.ship.target);
-                        } else {
-                            this.autopilot = new LandOnPlanetAutoPilot(this.ship, this.ship.target);
-                            this.autopilot.start();
-                        }
-                    } else if (this.ship.target instanceof Asteroid) {
-                        if (this.ship.canLand(this.ship.target)) {
-                            this.ship.initiateLanding(this.ship.target);
-                        } else {
-                            this.autopilot = new LandOnAsteroidAutoPilot(this.ship, this.ship.target);
-                            this.autopilot.start();
-                        }
-                    }
+        // Interact with target ('l' key)
+        if (pressed('l') && this.ship.state === 'Flying' && this.ship.target) {
+            if (this.ship.target instanceof JumpGate) {
+                if (this.ship.target.overlapsShip(this.ship.position)) {
+                    this.ship.initiateHyperjump();
+                } else {
+                    this.autopilot = new TraverseJumpGateAutoPilot(this.ship, this.ship.target);
+                    this.autopilot.start();
+                }
+            } else if (this.ship.target instanceof CelestialBody) {
+                if (this.ship.canLand(this.ship.target)) {
+                    this.ship.initiateLanding(this.ship.target);
+                } else {
+                    this.autopilot = new LandOnPlanetAutoPilot(this.ship, this.ship.target);
+                    this.autopilot.start();
+                }
+            } else if (this.ship.target instanceof Asteroid) {
+                if (this.ship.canLand(this.ship.target)) {
+                    this.ship.initiateLanding(this.ship.target);
+                } else {
+                    this.autopilot = new LandOnAsteroidAutoPilot(this.ship, this.ship.target);
+                    this.autopilot.start();
                 }
             }
         }
 
-        // Mining a targeted asteroid ('m' key)
-        // if (pressed('m')) {
-        //     if (this.ship.state === 'Flying' && this.ship.target) {
-        //         if (this.ship.target instanceof Asteroid) {
-        //             if (this.ship.canMine(this.ship.target)) {
-        //                 this.ship.initiateMining(this.ship.target);
-        //             } else {
-        //                 this.autopilot = new LandOnAsteroidAutoPilot(this.ship, this.ship.target);
-        //                 this.autopilot.start();
-        //             }
-        //         }
-        //     }
-        // }
-
-        // Hyperjump ('j' key)
-        // if (pressed('j')) {
-        //     if (this.ship.state === 'Flying' && this.ship.target) {
-        //         if (this.ship.target instanceof JumpGate) {
-        //             this._scratchDistanceToTarget.set(this.ship.position)
-        //                 .subtractInPlace(this.ship.target.position);
-        //             if (this.ship.target.overlapsShip(this.ship.position)) {
-        //                 this.ship.initiateHyperjump();
-        //             } else {
-        //                 this.autopilot = new TraverseJumpGateAutoPilot(this.ship, this.ship.target);
-        //                 this.autopilot.start();
-        //             }
-        //         }
-        //     }
-        // }
-
         // Escort a targeted ship ('f' key)
-        if (pressed('f')) {
-            if (this.ship.state === 'Flying' && this.ship.target && this.ship.target instanceof Ship) {
-                this.autopilot = new EscortAutoPilot(this.ship, this.ship.target);
-                this.autopilot.start();
-            }
+        if (pressed('f') && this.ship.state === 'Flying' && this.ship.target instanceof Ship) {
+            this.autopilot = new EscortAutoPilot(this.ship, this.ship.target);
+            this.autopilot.start();
         }
 
-        if (pressed('F')) {
-            if (this.ship.state === 'Flying' && this.ship.target && this.ship.target instanceof GameObject) {
-                const ship = this.ship;
-                const target = this.ship.target;
-                const finalRadius = target.radius;
-                const arrivalSpeedMin = Ship.LANDING_SPEED * 0.5;
-                const arrivalSpeedMax = Ship.LANDING_SPEED;
-                const velocityTolerance = arrivalSpeedMin;
-                const thrustAngleLimit = Math.PI / 12;
-                const upperVelocityErrorThreshold = arrivalSpeedMin;
-                const lowerVelocityErrorThreshold = 1;
-                const maxTimeToIntercept = 2;
-                this.autopilot = new ApproachTargetAutoPilot(
-                    ship,
-                    target,
-                    finalRadius,
-                    arrivalSpeedMin,
-                    arrivalSpeedMax,
-                    velocityTolerance,
-                    thrustAngleLimit,
-                    upperVelocityErrorThreshold,
-                    lowerVelocityErrorThreshold,
-                    maxTimeToIntercept);
-                this.autopilot.start();
-            }
+        // Approach a target with custom parameters ('F' key)
+        if (pressed('F') && this.ship.state === 'Flying' && this.ship.target instanceof GameObject) {
+            const ship = this.ship;
+            const target = this.ship.target;
+            const finalRadius = target.radius;
+            const arrivalSpeedMin = Ship.LANDING_SPEED * 0.5;
+            const arrivalSpeedMax = Ship.LANDING_SPEED;
+            const velocityTolerance = arrivalSpeedMin;
+            const thrustAngleLimit = Math.PI / 12;
+            const upperVelocityErrorThreshold = arrivalSpeedMin;
+            const lowerVelocityErrorThreshold = 1;
+            const maxTimeToIntercept = 2;
+            this.autopilot = new ApproachTargetAutoPilot(
+                ship,
+                target,
+                finalRadius,
+                arrivalSpeedMin,
+                arrivalSpeedMax,
+                velocityTolerance,
+                thrustAngleLimit,
+                upperVelocityErrorThreshold,
+                lowerVelocityErrorThreshold,
+                maxTimeToIntercept
+            );
+            this.autopilot.start();
         }
 
         // Update autopilot if active
@@ -182,25 +243,19 @@ export class PlayerPilot extends Pilot {
             }
         }
 
-        // Target selection ('t' and 'T' keys)
+        // Target selection ('t' for next, 'T' for previous)
         if (pressed('t')) {
-            const targets = this.listTargetableObjects();
-            if (targets.length > 0) {
-                const currentIndex = targets.indexOf(this.ship.target);
-                const nextIndex = (currentIndex + 1) % targets.length;
-                this.ship.setTarget(targets[nextIndex]);
-            }
+            this.ship.setTarget(this.targetNext(1));
         }
         if (pressed('T')) {
-            const targets = this.listTargetableObjects();
-            if (targets.length > 0) {
-                const currentIndex = targets.indexOf(this.ship.target);
-                const prevIndex = (currentIndex - 1 + targets.length) % targets.length;
-                this.ship.setTarget(targets[prevIndex]);
-            }
+            this.ship.setTarget(this.targetNext(-1));
         }
     }
 
+    /**
+     * Returns the current state of the player pilot for HUD display.
+     * @returns {string} A descriptive status string.
+     */
     getState() {
         if (this.autopilot?.active) {
             return this.autopilot.getStatus();
@@ -209,7 +264,16 @@ export class PlayerPilot extends Pilot {
     }
 }
 
+/**
+ * A basic AI pilot that travels between planets and jump gates within a star system.
+ * @extends Pilot
+ */
 export class AIPilot extends Pilot {
+    /**
+     * Creates a new AIPilot instance.
+     * @param {Ship} ship - The ship to control.
+     * @param {Planet} spawnPlanet - The planet where the ship starts.
+     */
     constructor(ship, spawnPlanet) {
         super(ship);
         this.spawnPlanet = spawnPlanet;
@@ -226,24 +290,18 @@ export class AIPilot extends Pilot {
             'TraversingJumpGate': this.updateTraversingJumpGate.bind(this)
         };
 
-        // Scratch vector to eliminate allocations in update
-        this._scratchDirectionToTarget = new Vector2D(); // For direction calculations in updateLanded
+        // Scratch vector for direction calculations
+        this._scratchDirectionToTarget = new Vector2D();
     }
 
+    /**
+     * Picks a random destination (planet or jump gate) in the star system, excluding a specified body.
+     * @param {Object} starSystem - The star system containing potential destinations.
+     * @param {CelestialBody} excludeBody - The body to exclude from selection.
+     * @returns {CelestialBody|JumpGate} The chosen destination.
+     */
     pickDestination(starSystem, excludeBody) {
-        const destinations = starSystem.celestialBodies;
-        let index = Math.floor(Math.random() * destinations.length);
-        let destination = destinations[index];
-        let attempt = 0;
-        while (destination == excludeBody || destination.type.type == 'star') {
-            index = (++index) % destinations.length;
-            destination = destinations[index];
-            attempt++;
-            if (attempt > destinations.length) {
-                destination = null;
-                break;
-            }
-        }
+        const destination = starSystem.getRandomJumpGatePlanet(this.ship, excludeBody);
         if (!destination) {
             console.warn('No valid destinations found; defaulting to spawn planet');
             return excludeBody;
@@ -251,8 +309,13 @@ export class AIPilot extends Pilot {
         return destination;
     }
 
+    /**
+     * Updates the AI pilot's behavior based on the current state.
+     * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @param {Object} gameManager - The game manager instance.
+     */
     update(deltaTime, gameManager) {
-        if (this.ship && this.ship.starSystem && this.target && this.target.starSystem && this.ship.starSystem === this.target.starSystem) {
+        if (this.ship && this.target && this.ship.starSystem === this.target.starSystem) {
             this.ship.setTarget(this.target);
         }
 
@@ -265,34 +328,46 @@ export class AIPilot extends Pilot {
         }
     }
 
+    /**
+     * Handles the Idle state: initiates travel to a new target.
+     * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @param {Object} gameManager - The game manager instance.
+     */
     updateIdle(deltaTime, gameManager) {
         if (!this.target) {
             this.target = this.pickDestination(this.ship.starSystem, this.spawnPlanet);
-        } else if (this.target instanceof JumpGate) {
+        }
+
+        if (this.target instanceof JumpGate) {
             this.autopilot = new TraverseJumpGateAutoPilot(this.ship, this.target);
             this.autopilot.start();
-            if (this.ship.state == 'Landed') {
+            if (this.ship.state === 'Landed') {
                 this.ship.initiateTakeoff();
                 this.state = 'TakingOff';
-            } else if (this.ship.state == 'Flying') {
+            } else if (this.ship.state === 'Flying') {
                 this.state = 'TraversingJumpGate';
             } else {
-                console.warn(`invalid ship state! '${this.ship.state}' in AIPilot updateIdle`);
+                console.warn(`Invalid ship state '${this.ship.state}' in AIPilot updateIdle`);
             }
         } else {
             this.autopilot = new LandOnPlanetAutoPilot(this.ship, this.target);
             this.autopilot.start();
-            if (this.ship.state == 'Landed') {
+            if (this.ship.state === 'Landed') {
                 this.ship.initiateTakeoff();
                 this.state = 'TakingOff';
-            } else if (this.ship.state == 'Flying') {
+            } else if (this.ship.state === 'Flying') {
                 this.state = 'FlyingToPlanet';
             } else {
-                console.warn(`invalid ship state! '${this.ship.state}' in AIPilot updateIdle`);
+                console.warn(`Invalid ship state '${this.ship.state}' in AIPilot updateIdle`);
             }
         }
     }
 
+    /**
+     * Handles the FlyingToPlanet state: manages autopilot to reach a planet.
+     * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @param {Object} gameManager - The game manager instance.
+     */
     updateFlyingToPlanet(deltaTime, gameManager) {
         if (!this.autopilot) {
             console.warn('Autopilot is not set during FlyingToPlanet state');
@@ -304,20 +379,17 @@ export class AIPilot extends Pilot {
 
         if (this.autopilot.isComplete()) {
             if (this.autopilot.error) {
-                //console.warn(`Autopilot failed: ${this.autopilot.error}`);
                 this.target = this.pickDestination(this.ship.starSystem, this.spawnPlanet);
                 this.autopilot = null;
                 this.state = 'Idle';
+            } else if (this.ship.state === 'Landed') {
+                this.state = 'Landed';
+                this.waitTime = Math.random() * 5 + 2; // Wait 2-7 seconds
+                this.autopilot = null;
             } else {
-                if (this.ship.state === 'Landed') {
-                    this.state = 'Landed';
-                    this.waitTime = Math.random() * 5 + 2;
-                    this.autopilot = null;
-                } else {
-                    console.warn('Autopilot completed but ship is not landed; resetting');
-                    this.autopilot = null;
-                    this.state = 'Idle';
-                }
+                console.warn('Autopilot completed but ship is not landed; resetting');
+                this.autopilot = null;
+                this.state = 'Idle';
             }
         } else if (!this.autopilot.active) {
             console.warn('Autopilot is inactive but not complete during FlyingToPlanet state');
@@ -326,6 +398,11 @@ export class AIPilot extends Pilot {
         }
     }
 
+    /**
+     * Handles the Landed state: waits on a planet before taking off.
+     * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @param {Object} gameManager - The game manager instance.
+     */
     updateLanded(deltaTime, gameManager) {
         this.waitTime -= deltaTime;
         if (this.waitTime <= 0) {
@@ -340,12 +417,22 @@ export class AIPilot extends Pilot {
         }
     }
 
+    /**
+     * Handles the TakingOff state: waits for takeoff to complete.
+     * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @param {Object} gameManager - The game manager instance.
+     */
     updateTakingOff(deltaTime, gameManager) {
         if (this.ship.state === 'Flying') {
             this.state = 'Idle';
         }
     }
 
+    /**
+     * Handles the TraversingJumpGate state: manages autopilot to use a jump gate.
+     * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @param {Object} gameManager - The game manager instance.
+     */
     updateTraversingJumpGate(deltaTime, gameManager) {
         if (!this.autopilot) {
             console.warn('Autopilot is not set during TraversingJumpGate state');
@@ -357,20 +444,17 @@ export class AIPilot extends Pilot {
 
         if (this.autopilot.isComplete()) {
             if (this.autopilot.error) {
-                //console.warn(`Autopilot failed: ${this.autopilot.error}`);
                 this.target = this.pickDestination(this.ship.starSystem, null);
                 this.autopilot = null;
                 this.state = 'Idle';
+            } else if (this.ship.state === 'Flying' && this.ship.starSystem === this.target.lane.target) {
+                this.target = this.pickDestination(this.ship.starSystem, this.target.lane.targetGate);
+                this.autopilot = null;
+                this.state = 'Idle';
             } else {
-                if (this.ship.state === 'Flying' && this.ship.starSystem === this.target.lane.target) {
-                    this.target = this.pickDestination(this.ship.starSystem, this.target.lane.targetGate);
-                    this.autopilot = null;
-                    this.state = 'Idle';
-                } else {
-                    console.warn('Autopilot completed but jump not finished; resetting');
-                    this.autopilot = null;
-                    this.state = 'Idle';
-                }
+                console.warn('Autopilot completed but jump not finished; resetting');
+                this.autopilot = null;
+                this.state = 'Idle';
             }
         } else if (!this.autopilot.active) {
             console.warn('Autopilot is inactive but not complete during TraversingJumpGate state');
@@ -379,10 +463,18 @@ export class AIPilot extends Pilot {
         }
     }
 
+    /**
+     * Placeholder for hyperjump attempts; not implemented for basic AI.
+     * @returns {boolean} Always false.
+     */
     tryHyperjump(gameManager) {
         return false;
     }
 
+    /**
+     * Returns the current state of the AI pilot for HUD display.
+     * @returns {string} A descriptive status string.
+     */
     getState() {
         if ((this.state === 'FlyingToPlanet' || this.state === 'TraversingJumpGate') && this.autopilot?.active) {
             return this.autopilot.getStatus();
@@ -393,8 +485,8 @@ export class AIPilot extends Pilot {
 
 /**
  * An AI pilot that performs interdiction tasks within a star system.
- * Follows a target ship, visits planets and asteroids without landing,
- * flies to random points, and waits periodically, but never leaves the system.
+ * Follows ships, visits celestial bodies without landing, flies to random points, and waits.
+ * Does not leave the system via jump gates.
  * @extends Pilot
  */
 export class InterdictionAIPilot extends Pilot {
@@ -413,7 +505,6 @@ export class InterdictionAIPilot extends Pilot {
         this.isFollowingInRange = false;
         this.autopilot = null;
 
-        // State handlers for the AI's behavior
         this.stateHandlers = {
             'Idle': this.updateIdle.bind(this),
             'FollowingShip': this.updateFollowingShip.bind(this),
@@ -423,66 +514,45 @@ export class InterdictionAIPilot extends Pilot {
             'TakingOff': this.updateTakingOff.bind(this)
         };
 
-        // Scratch vectors to eliminate allocations in update
+        // Scratch vectors to avoid allocations
         this._scratchDirectionToTarget = new Vector2D();
         this._scratchRandomPoint = new Vector2D();
         this._scratchDistanceToTarget = new Vector2D();
         this._scratchVelocityDifference = new Vector2D();
-        this._scratchDesiredVelocity = new Vector2D(); // For slowing down in Waiting state
+        this._scratchDesiredVelocity = new Vector2D();
 
-        // Constants for behavior tuning
-        this.followDistance = 250; // Reduced from 500
-        this.visitDistance = 200;
-        this.waitTimeMin = 2;
-        this.waitTimeMax = 5;
-        this.followDuration = 10;
-        this.velocityMatchThreshold = 50; // Increased from 10
-        this.systemBounds = 10000;
+        // Behavior constants
+        this.followDistance = 250; // Distance to maintain while following
+        this.visitDistance = 200; // Distance to approach celestial bodies
+        this.waitTimeMin = 2; // Minimum wait time in seconds
+        this.waitTimeMax = 5; // Maximum wait time in seconds
+        this.followDuration = 10; // Time to follow a ship in seconds
+        this.velocityMatchThreshold = 50; // Max velocity difference to consider "matched"
+        this.systemBounds = 10000; // Bounds for random point generation
     }
 
     /**
-     * Picks a random ship in the system to follow, excluding itself.
+     * Picks a random ship to follow, excluding itself and landed ships.
      * @returns {Ship|null} The selected ship, or null if none available.
      */
     pickShipToFollow() {
         const ships = this.ship.starSystem.ships;
-        let validShips = [];
-        for (let i = 0; i < ships.length; i++) {
-            const otherShip = ships[i];
-            if (otherShip !== this.ship && !otherShip.isDespawned() && otherShip.state !== 'Landed') {
-                validShips.push(otherShip);
-            }
-        }
+        const validShips = ships.filter(ship => ship !== this.ship && !ship.isDespawned() && ship.state !== 'Landed');
         if (validShips.length === 0) return null;
-        const index = Math.floor(Math.random() * validShips.length);
-        return validShips[index];
+        return validShips[Math.floor(Math.random() * validShips.length)];
     }
 
     /**
      * Picks a random celestial body (planet or asteroid) to visit, excluding jump gates and stars.
-     * @returns {GameObject|null} The selected body, or null if none available.
+     * @returns {Planet|Asteroid|null} The selected body, or null if none available.
      */
     pickBodyToVisit() {
-        const bodies = this.ship.starSystem.celestialBodies;
-        let validBodies = [];
-        for (let i = 0; i < bodies.length; i++) {
-            const body = bodies[i];
-            if (!(body instanceof JumpGate) && body.type.type !== 'star' && !body.isDespawned()) {
-                validBodies.push(body);
-            }
-        }
-        const asteroids = this.ship.starSystem.asteroidBelt
-            ? this.ship.starSystem.asteroidBelt.interactiveAsteroids.filter(a => !a.isDespawned())
-            : [];
-        validBodies = validBodies.concat(asteroids);
-        if (validBodies.length === 0) return null;
-        const index = Math.floor(Math.random() * validBodies.length);
-        return validBodies[index];
+        return this.ship.starSystem.getRandomPlanetAsteroid(this.ship);
     }
 
     /**
      * Generates a random point within the system bounds.
-     * @returns {Vector2D} A Vector2D representing the random point.
+     * @returns {Vector2D} The random point coordinates.
      */
     pickRandomPoint() {
         const x = randomBetween(-this.systemBounds, this.systemBounds);
@@ -512,70 +582,58 @@ export class InterdictionAIPilot extends Pilot {
     }
 
     /**
-     * Handles the Idle state: decides the next task (follow, visit, or fly to random point).
+     * Handles the Idle state: randomly chooses to follow a ship, visit a body, or fly to a point.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
      * @param {Object} gameManager - The game manager instance.
      */
     updateIdle(deltaTime, gameManager) {
         const taskRoll = Math.random();
-        if (taskRoll < 0.4) {
+        if (taskRoll < 0.4) { // 40% chance to follow a ship
             this.target = this.pickShipToFollow();
             if (this.target) {
                 this.autopilot = new FollowShipAutoPilot(this.ship, this.target, this.followDistance, 100);
                 this.autopilot.start();
                 this.followTime = this.followDuration;
                 this.isFollowingInRange = false;
-                if (this.ship.state === 'Landed') {
-                    this.ship.initiateTakeoff();
-                    this.state = 'TakingOff';
-                } else if (this.ship.state === 'Flying') {
-                    this.state = 'FollowingShip';
-                } else if (this.ship.state === 'TakingOff') {
-                    // Already in TakingOff state; wait for it to complete
-                } else {
-                    console.warn(`Invalid ship state '${this.ship.state}' in InterdictionAIPilot updateIdle`);
-                }
+                this.transitionFromIdle('FollowingShip');
             } else {
-                this.updateIdle(deltaTime, gameManager);
+                this.updateIdle(deltaTime, gameManager); // Retry if no valid target
             }
-        } else if (taskRoll < 0.7) {
+        } else if (taskRoll < 0.7) { // 30% chance to visit a body
             this.target = this.pickBodyToVisit();
             if (this.target) {
                 const arrivalDistance = this.target.radius ? this.target.radius + this.visitDistance : this.visitDistance;
                 this.autopilot = new FlyToTargetAutoPilot(this.ship, this.target, arrivalDistance, 50, 100);
                 this.autopilot.start();
-                if (this.ship.state === 'Landed') {
-                    this.ship.initiateTakeoff();
-                    this.state = 'TakingOff';
-                } else if (this.ship.state === 'Flying') {
-                    this.state = 'VisitingBody';
-                } else if (this.ship.state === 'TakingOff') {
-                    // Already in TakingOff state; wait for it to complete
-                } else {
-                    console.warn(`Invalid ship state '${this.ship.state}' in InterdictionAIPilot updateIdle`);
-                }
+                this.transitionFromIdle('VisitingBody');
             } else {
-                this.updateIdle(deltaTime, gameManager);
+                this.updateIdle(deltaTime, gameManager); // Retry if no valid target
             }
-        } else {
+        } else { // 30% chance to fly to a random point
             this.target = this.pickRandomPoint();
             this.autopilot = new FlyToTargetAutoPilot(this.ship, { position: this.target }, 100, 50, 100);
             this.autopilot.start();
-            if (this.ship.state === 'Landed') {
-                this.ship.initiateTakeoff();
-                this.state = 'TakingOff';
-            } else if (this.ship.state === 'Flying') {
-                this.state = 'FlyingToRandomPoint';
-            } else if (this.ship.state === 'TakingOff') {
-                // Already in TakingOff state; wait for it to complete
-            } else {
-                console.warn(`Invalid ship state '${this.ship.state}' in InterdictionAIPilot updateIdle`);
-            }
+            this.transitionFromIdle('FlyingToRandomPoint');
         }
     }
 
     /**
-     * Handles the FollowingShip state: follows the target ship using an autopilot.
+     * Transitions from Idle state based on the ship's current state.
+     * @param {string} nextState - The state to transition to.
+     */
+    transitionFromIdle(nextState) {
+        if (this.ship.state === 'Landed') {
+            this.ship.initiateTakeoff();
+            this.state = 'TakingOff';
+        } else if (this.ship.state === 'Flying') {
+            this.state = nextState;
+        } else if (this.ship.state !== 'TakingOff') {
+            console.warn(`Invalid ship state '${this.ship.state}' in InterdictionAIPilot updateIdle`);
+        }
+    }
+
+    /**
+     * Handles the FollowingShip state: follows a target ship until time runs out or target is lost.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
      * @param {Object} gameManager - The game manager instance.
      */
@@ -586,7 +644,6 @@ export class InterdictionAIPilot extends Pilot {
             return;
         }
 
-        // Check if target is still valid
         if (!this.target || this.target.isDespawned() || this.target.state === 'Landed' || this.target.starSystem !== this.ship.starSystem) {
             this.autopilot.stop();
             this.autopilot = null;
@@ -599,12 +656,10 @@ export class InterdictionAIPilot extends Pilot {
 
         this.autopilot.update(deltaTime);
 
-        // Check if we're within range and velocity-matched
-        this._scratchDistanceToTarget.set(this.target.position)
-            .subtractInPlace(this.ship.position);
+        // Check distance and velocity match
+        this._scratchDistanceToTarget.set(this.target.position).subtractInPlace(this.ship.position);
         const distanceToTarget = this._scratchDistanceToTarget.magnitude();
-        this._scratchVelocityDifference.set(this.ship.velocity)
-            .subtractInPlace(this.target.velocity);
+        this._scratchVelocityDifference.set(this.ship.velocity).subtractInPlace(this.target.velocity);
         const velocityDifference = this._scratchVelocityDifference.magnitude();
 
         const isInRange = distanceToTarget <= this.followDistance;
@@ -628,7 +683,7 @@ export class InterdictionAIPilot extends Pilot {
     }
 
     /**
-     * Handles the VisitingBody state: flies near a celestial body using an autopilot.
+     * Handles the VisitingBody state: flies near a celestial body.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
      * @param {Object} gameManager - The game manager instance.
      */
@@ -650,16 +705,9 @@ export class InterdictionAIPilot extends Pilot {
         this.autopilot.update(deltaTime);
 
         if (this.autopilot.isComplete()) {
-            if (this.autopilot.error) {
-                //console.warn(`Autopilot failed: ${this.autopilot.error}`);
-                this.autopilot = null;
-                this.target = null;
-                this.state = 'Idle';
-            } else {
-                this.autopilot = null;
-                this.waitTime = randomBetween(this.waitTimeMin, this.waitTimeMax);
-                this.state = 'Waiting';
-            }
+            this.autopilot = null;
+            this.waitTime = randomBetween(this.waitTimeMin, this.waitTimeMax);
+            this.state = 'Waiting';
         } else if (!this.autopilot.active) {
             console.warn('Autopilot is inactive but not complete during VisitingBody state');
             this.autopilot = null;
@@ -668,7 +716,7 @@ export class InterdictionAIPilot extends Pilot {
     }
 
     /**
-     * Handles the FlyingToRandomPoint state: flies to a random point using an autopilot.
+     * Handles the FlyingToRandomPoint state: flies to a random point in the system.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
      * @param {Object} gameManager - The game manager instance.
      */
@@ -682,16 +730,9 @@ export class InterdictionAIPilot extends Pilot {
         this.autopilot.update(deltaTime);
 
         if (this.autopilot.isComplete()) {
-            if (this.autopilot.error) {
-                //console.warn(`Autopilot failed: ${this.autopilot.error}`);
-                this.autopilot = null;
-                this.target = null;
-                this.state = 'Idle';
-            } else {
-                this.autopilot = null;
-                this.waitTime = randomBetween(this.waitTimeMin, this.waitTimeMax);
-                this.state = 'Waiting';
-            }
+            this.autopilot = null;
+            this.waitTime = randomBetween(this.waitTimeMin, this.waitTimeMax);
+            this.state = 'Waiting';
         } else if (!this.autopilot.active) {
             console.warn('Autopilot is inactive but not complete during FlyingToRandomPoint state');
             this.autopilot = null;
@@ -700,28 +741,23 @@ export class InterdictionAIPilot extends Pilot {
     }
 
     /**
-     * Handles the Waiting state: slows the ship to landing speed and pauses for a set duration before returning to Idle.
+     * Handles the Waiting state: slows the ship to landing speed and waits.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
      * @param {Object} gameManager - The game manager instance.
      */
     updateWaiting(deltaTime, gameManager) {
-        // Slow the ship to landing speed
         const currentSpeed = this.ship.velocity.magnitude();
-        const landingSpeed = this.ship.landingSpeed || 10; // Fallback to 10 if landingSpeed is not defined
+        const landingSpeed = Ship.LANDING_SPEED || 10;
+
         if (currentSpeed > landingSpeed) {
-            // Calculate desired velocity in the current direction, scaled to landing speed
             this._scratchDesiredVelocity.set(this.ship.velocity);
             if (currentSpeed > 0) {
-                this._scratchDesiredVelocity.normalizeInPlace()
-                    .multiplyInPlace(landingSpeed);
+                this._scratchDesiredVelocity.normalizeInPlace().multiplyInPlace(landingSpeed);
             } else {
                 this._scratchDesiredVelocity.set(0, 0);
             }
 
-            // Calculate velocity error
-            this._scratchVelocityDifference.set(this._scratchDesiredVelocity)
-                .subtractInPlace(this.ship.velocity);
-
+            this._scratchVelocityDifference.set(this._scratchDesiredVelocity).subtractInPlace(this.ship.velocity);
             const velocityErrorMagnitude = this._scratchVelocityDifference.magnitude();
 
             let desiredAngle = this.ship.angle;
@@ -740,7 +776,6 @@ export class InterdictionAIPilot extends Pilot {
             this.ship.applyThrust(shouldThrust);
         }
 
-        // Update wait timer
         this.waitTime -= deltaTime;
         if (this.waitTime <= 0) {
             this.target = null;
@@ -749,7 +784,7 @@ export class InterdictionAIPilot extends Pilot {
     }
 
     /**
-     * Handles the TakingOff state: waits for the ship to finish taking off.
+     * Handles the TakingOff state: waits for takeoff to complete.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
      * @param {Object} gameManager - The game manager instance.
      */
@@ -786,8 +821,7 @@ export class InterdictionAIPilot extends Pilot {
 }
 
 /**
- * An AI pilot that escorts a designated ship using the EscortAutoPilot.
- * Despawns if the escorted ship despawns.
+ * An AI pilot that escorts a designated ship and despawns if the escorted ship is lost.
  * @extends Pilot
  */
 export class EscortAIPilot extends Pilot {
@@ -802,47 +836,37 @@ export class EscortAIPilot extends Pilot {
         this.escortedShip = escortedShip;
         this.autopilot = null;
 
-        // Constants for behavior tuning
-        this.followDistance = 250; // Distance to maintain while following
+        this.followDistance = 250; // Distance to maintain while escorting
 
-        // State handlers for autopilot behavior
         this.stateHandlers = {
-            Idle: this.updateIdle.bind(this),
-            Following: this.updateFollowing.bind(this),
-            Despawn: this.updateDespawn.bind(this)
+            'Idle': this.updateIdle.bind(this),
+            'Following': this.updateFollowing.bind(this),
+            'Despawn': this.updateDespawn.bind(this)
         };
     }
 
     /**
-     * Finds a planet in the current system to land on
-     * @returns {CelestialBody|null} The jump gate leading to the target system, or null if none found.
+     * Finds a random planet in the current system to land on for despawning.
+     * @returns {Planet|null} A random planet, or null if none found.
      */
     findPlanet() {
-        const celestialBodies = this.ship.starSystem.celestialBodies;
-        let planet = null;
-        while (!planet) {
-            planet = celestialBodies[Math.floor(Math.random() * celestialBodies.length)];
-            if (planet instanceof JumpGate) {
-                planet = null;
-            }
-        }
-        return planet;
+        return this.ship.starSystem.getRandomPlanet(this.ship);
     }
 
     /**
-     * Updates the autopilot's behavior based on the current state.
+     * Updates the AI pilot's behavior based on the current state.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
      */
     update(deltaTime) {
         if ((!this.escortedShip || this.escortedShip.isDespawned()) && this.state !== 'Despawn') {
             if (this.ship.state === 'Landed') {
                 this.ship.despawn();
-                this.autopilot.stop();
+                this.autopilot?.stop();
                 this.autopilot = null;
                 return;
             }
             this.escortedShip = null;
-            this.autopilot.stop();
+            this.autopilot?.stop();
             const planet = this.findPlanet();
             this.autopilot = new LandOnPlanetAutoPilot(this.ship, planet);
             this.autopilot.start();
@@ -857,30 +881,27 @@ export class EscortAIPilot extends Pilot {
             this.state = 'Idle';
         }
     }
+
     /**
-     * Handles the Idle state: warn as this shoudlnt happen in good operation.
+     * Handles the Idle state: indicates an unexpected state.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
      */
     updateIdle(deltaTime) {
-        console.warn('Escore ship gone Idle', this.ship, this);
+        console.warn('Escort ship gone Idle', this.ship, this);
     }
 
     /**
-     * Updates the AI pilot's behavior.
+     * Handles the Following state: escorts the designated ship.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
-     * @param {Object} gameManager - The game manager instance.
      */
-    updateFollowing(deltaTime, gameManager) {
-        // Set the escorted ship as the target for HUD purposes
+    updateFollowing(deltaTime) {
         this.ship.setTarget(this.escortedShip);
 
-        // Start the autopilot if not already active
         if (!this.autopilot || !this.autopilot.active) {
             this.autopilot = new EscortAutoPilot(this.ship, this.escortedShip, this.followDistance);
             this.autopilot.start();
         }
 
-        // Update the autopilot
         if (this.autopilot?.active) {
             this.autopilot.update(deltaTime);
             if (this.autopilot.isComplete()) {
@@ -893,7 +914,7 @@ export class EscortAIPilot extends Pilot {
     }
 
     /**
-     * Handles the Despawn state: flies to a planet, lands and despawns
+     * Handles the Despawn state: lands on a planet and despawns the ship.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
      */
     updateDespawn(deltaTime) {
@@ -910,7 +931,6 @@ export class EscortAIPilot extends Pilot {
             return;
         }
 
-        // Continue landing process
         this.autopilot.update(deltaTime);
         if (this.autopilot.isComplete()) {
             if (this.autopilot.error) {
@@ -929,24 +949,23 @@ export class EscortAIPilot extends Pilot {
                 this.state = 'Idle';
             }
         } else if (!this.autopilot.active) {
-            console.warn('Autopilot inactive but not complete during Landing state');
+            console.warn('Autopilot inactive but not complete during Despawn state');
             this.autopilot = null;
             this.state = 'Idle';
         }
     }
 
     /**
-     * Attempts to hyperjump if the escorted ship has jumped.
+     * Attempts to hyperjump if the escorted ship has jumped to another system.
+     * @param {Object} gameManager - The game manager instance.
      * @returns {boolean} True if a hyperjump is initiated, false otherwise.
      */
     tryHyperjump(gameManager) {
-        if (this.autopilot?.active) {
-            // Delegate to the autopilot's logic
+        if (this.autopilot?.active && this.escortedShip) {
             const targetSystem = this.escortedShip.starSystem;
-            const gates = this.ship.starSystem.celestialBodies.filter(body => body instanceof JumpGate && !body.isDespawned());
-            for (let i = 0; i < gates.length; i++) {
-                const gate = gates[i];
-                if (gate.lane && gate.lane.target === targetSystem && gate.overlapsShip(this.ship.position)) {
+            const gates = this.ship.starSystem.jumpGates.filter(body => body instanceof JumpGate && !body.isDespawned());
+            for (const gate of gates) {
+                if (gate.lane?.target === targetSystem && gate.overlapsShip(this.ship.position)) {
                     this.ship.initiateHyperjump();
                     return true;
                 }
@@ -968,14 +987,14 @@ export class EscortAIPilot extends Pilot {
 }
 
 /**
- * An AI pilot that mines asteroids, returns to a home planet, and repeats the process in a loop.
+ * An AI pilot that mines asteroids and returns to a home planet in a loop.
  * @extends Pilot
  */
 export class MiningAIPilot extends Pilot {
     /**
      * Creates a new MiningAIPilot instance.
      * @param {Ship} ship - The ship to control.
-     * @param {GameObject} homePlanet - The home planet to return to after mining.
+     * @param {Planet} homePlanet - The home planet to return to after mining.
      */
     constructor(ship, homePlanet) {
         super(ship);
@@ -985,7 +1004,6 @@ export class MiningAIPilot extends Pilot {
         this.waitTime = 0;
         this.autopilot = null;
 
-        // State handlers for the AI's behavior
         this.stateHandlers = {
             'Idle': this.updateIdle.bind(this),
             'FlyingToAsteroid': this.updateFlyingToAsteroid.bind(this),
@@ -997,46 +1015,27 @@ export class MiningAIPilot extends Pilot {
             'TakingOffFromHomePlanet': this.updateTakingOffFromHomePlanet.bind(this)
         };
 
-        // Scratch vectors to eliminate allocations in update
+        // Scratch vector for direction calculations
         this._scratchDirectionToTarget = new Vector2D();
 
-        // Constants for behavior tuning
-        this.miningTime = 5; // Time to spend mining on the asteroid (seconds)
-        this.waitTimeMin = 5; // Minimum time to wait on the home planet (seconds)
-        this.waitTimeMax = 10; // Maximum time to wait on the home planet (seconds)
+        // Behavior constants
+        this.miningTime = 5; // Time to spend mining in seconds
+        this.waitTimeMin = 5; // Minimum wait time on home planet in seconds
+        this.waitTimeMax = 10; // Maximum wait time on home planet in seconds
     }
 
     /**
-     * Finds the nearest asteroid in the current system that the ship can mine.
-     * @returns {Asteroid|null} The nearest asteroid, or null if none found.
-     */
-    findNearestAsteroid() {
-        let nearestAsteroid = null;
-        let minDistSquared = Infinity;
-        const asteroids = this.ship.starSystem.asteroidBelt ? this.ship.starSystem.asteroidBelt.interactiveAsteroids.filter(a => !a.isDespawned()) : [];
-        asteroids.forEach(asteroid => {
-            const distSquared = this.ship.position.distanceSquaredTo(asteroid.position);
-            if (distSquared < minDistSquared) {
-                minDistSquared = distSquared;
-                nearestAsteroid = asteroid;
-            }
-        });
-        return nearestAsteroid;
-    }
-
-    /**
-     * Finds the nearest asteroid in the current system that the ship can mine.
-     * @returns {Asteroid|null} The nearest asteroid, or null if none found.
+     * Finds a random asteroid in the current system to mine.
+     * @returns {Asteroid|null} A random asteroid, or null if none found.
      */
     findRandomAsteroid() {
-        let selectedAsteroid = null;
         const asteroidBelt = this.ship.starSystem.asteroidBelt;
-        if (!asteroidBelt) {
-            return null;
-        }
+        if (!asteroidBelt) return null;
+
+        let selectedAsteroid = null;
         while (!selectedAsteroid) {
             selectedAsteroid = asteroidBelt.interactiveAsteroids[Math.floor(Math.random() * asteroidBelt.interactiveAsteroids.length)];
-            if (selectedAsteroid.isDespawned()) {
+            if (selectedAsteroid?.isDespawned()) {
                 selectedAsteroid = null;
             }
         }
@@ -1049,16 +1048,14 @@ export class MiningAIPilot extends Pilot {
      * @param {Object} gameManager - The game manager instance.
      */
     update(deltaTime, gameManager) {
-        // Check if the home planet has despawned
         if (!this.homePlanet || this.homePlanet.isDespawned()) {
             this.ship.despawn();
             return;
         }
 
-        // Set the target for HUD purposes
         if (this.targetAsteroid) {
             this.ship.setTarget(this.targetAsteroid);
-        } else if (this.state === 'FlyingToHomePlanet' || this.state === 'LandingOnHomePlanet' || this.state === 'WaitingOnHomePlanet') {
+        } else if (['FlyingToHomePlanet', 'LandingOnHomePlanet', 'WaitingOnHomePlanet'].includes(this.state)) {
             this.ship.setTarget(this.homePlanet);
         } else {
             this.ship.clearTarget();
@@ -1074,18 +1071,16 @@ export class MiningAIPilot extends Pilot {
     }
 
     /**
-     * Handles the Idle state: decides whether to start mining or return to the home planet.
+     * Handles the Idle state: decides to mine an asteroid or return home.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
      * @param {Object} gameManager - The game manager instance.
      */
     updateIdle(deltaTime, gameManager) {
         if (this.ship.state === 'Landed' && this.ship.landedObject instanceof CelestialBody) {
-            // If on the home planet, wait before taking off
             if (this.ship.landedObject === this.homePlanet) {
                 this.waitTime = randomBetween(this.waitTimeMin, this.waitTimeMax);
                 this.state = 'WaitingOnHomePlanet';
             } else {
-                // If landed on another planet, take off
                 this.ship.initiateTakeoff();
                 this.state = 'TakingOffFromHomePlanet';
             }
@@ -1095,21 +1090,17 @@ export class MiningAIPilot extends Pilot {
                 this.autopilot.start();
                 this.state = 'FlyingToAsteroid';
             } else {
-                // No asteroids found; fly to home planet
                 this.autopilot = new LandOnPlanetAutoPilot(this.ship, this.homePlanet);
                 this.autopilot.start();
                 this.state = 'FlyingToHomePlanet';
             }
-        } else if (this.ship.state === 'TakingOff') {
-            // Already in TakingOff state; wait for it to complete
-        } else {
+        } else if (this.ship.state !== 'TakingOff') {
             console.warn(`Invalid ship state '${this.ship.state}' in MiningAIPilot updateIdle`, this.ship.landedObject);
-            throw new Error('dead');
         }
     }
 
     /**
-     * Handles the FlyingToAsteroid state: flies to the target asteroid using an autopilot.
+     * Handles the FlyingToAsteroid state: flies to the target asteroid.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
      * @param {Object} gameManager - The game manager instance.
      */
@@ -1120,7 +1111,6 @@ export class MiningAIPilot extends Pilot {
             return;
         }
 
-        // Check if the asteroid has despawned
         if (!this.targetAsteroid || this.targetAsteroid.isDespawned()) {
             this.autopilot.stop();
             this.autopilot = null;
@@ -1137,17 +1127,15 @@ export class MiningAIPilot extends Pilot {
                 this.autopilot = null;
                 this.targetAsteroid = null;
                 this.state = 'Idle';
+            } else if (this.ship.state === 'Mining') {
+                this.autopilot = null;
+                this.waitTime = this.miningTime;
+                this.state = 'Mining';
             } else {
-                if (this.ship.state === 'Landed' && this.ship.landedObject instanceof Asteroid) {
-                    this.autopilot = null;
-                    this.waitTime = this.miningTime;
-                    this.state = 'Mining';
-                } else {
-                    console.warn('Autopilot completed but ship is not mining; resetting');
-                    this.autopilot = null;
-                    this.targetAsteroid = null;
-                    this.state = 'Idle';
-                }
+                console.warn('Autopilot completed but ship is not mining; resetting');
+                this.autopilot = null;
+                this.targetAsteroid = null;
+                this.state = 'Idle';
             }
         } else if (!this.autopilot.active) {
             console.warn('Autopilot is inactive but not complete during FlyingToAsteroid state');
@@ -1158,7 +1146,7 @@ export class MiningAIPilot extends Pilot {
     }
 
     /**
-     * Handles the Mining state: waits on the asteroid for the mining duration.
+     * Handles the Mining state: waits on the asteroid while "mining".
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
      * @param {Object} gameManager - The game manager instance.
      */
@@ -1171,13 +1159,12 @@ export class MiningAIPilot extends Pilot {
     }
 
     /**
-     * Handles the TakingOffFromAsteroid state: waits for the ship to finish taking off from the asteroid.
+     * Handles the TakingOffFromAsteroid state: waits for takeoff from the asteroid.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
      * @param {Object} gameManager - The game manager instance.
      */
     updateTakingOffFromAsteroid(deltaTime, gameManager) {
         if (this.ship.state === 'Flying') {
-            // Start flying back to the home planet
             this.autopilot = new LandOnPlanetAutoPilot(this.ship, this.homePlanet);
             this.autopilot.start();
             this.state = 'FlyingToHomePlanet';
@@ -1186,7 +1173,7 @@ export class MiningAIPilot extends Pilot {
     }
 
     /**
-     * Handles the FlyingToHomePlanet state: flies back to the home planet using an autopilot.
+     * Handles the FlyingToHomePlanet state: flies back to the home planet.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
      * @param {Object} gameManager - The game manager instance.
      */
@@ -1204,16 +1191,14 @@ export class MiningAIPilot extends Pilot {
                 console.warn(`Autopilot failed: ${this.autopilot.error}`);
                 this.autopilot = null;
                 this.state = 'Idle';
+            } else if (this.ship.state === 'Landed' && this.ship.landedObject === this.homePlanet) {
+                this.autopilot = null;
+                this.waitTime = randomBetween(this.waitTimeMin, this.waitTimeMax);
+                this.state = 'WaitingOnHomePlanet';
             } else {
-                if (this.ship.state === 'Landed' && this.ship.landedObject instanceof CelestialBody) {
-                    this.autopilot = null;
-                    this.waitTime = randomBetween(this.waitTimeMin, this.waitTimeMax);
-                    this.state = 'WaitingOnHomePlanet';
-                } else {
-                    console.warn('Autopilot completed but ship is not landed; resetting');
-                    this.autopilot = null;
-                    this.state = 'Idle';
-                }
+                console.warn('Autopilot completed but ship is not landed; resetting');
+                this.autopilot = null;
+                this.state = 'Idle';
             }
         } else if (!this.autopilot.active) {
             console.warn('Autopilot is inactive but not complete during FlyingToHomePlanet state');
@@ -1223,7 +1208,7 @@ export class MiningAIPilot extends Pilot {
     }
 
     /**
-     * Handles the LandingOnHomePlanet state: waits for the ship to finish landing on the home planet.
+     * Handles the LandingOnHomePlanet state: waits for landing on the home planet.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
      * @param {Object} gameManager - The game manager instance.
      */
@@ -1241,16 +1226,14 @@ export class MiningAIPilot extends Pilot {
                 console.warn(`Autopilot failed: ${this.autopilot.error}`);
                 this.autopilot = null;
                 this.state = 'Idle';
+            } else if (this.ship.state === 'Landed') {
+                this.autopilot = null;
+                this.waitTime = randomBetween(this.waitTimeMin, this.waitTimeMax);
+                this.state = 'WaitingOnHomePlanet';
             } else {
-                if (this.ship.state === 'Landed') {
-                    this.autopilot = null;
-                    this.waitTime = randomBetween(this.waitTimeMin, this.waitTimeMax);
-                    this.state = 'WaitingOnHomePlanet';
-                } else {
-                    console.warn('Autopilot completed but ship is not landed; resetting');
-                    this.autopilot = null;
-                    this.state = 'Idle';
-                }
+                console.warn('Autopilot completed but ship is not landed; resetting');
+                this.autopilot = null;
+                this.state = 'Idle';
             }
         } else if (!this.autopilot.active) {
             console.warn('Autopilot is inactive but not complete during LandingOnHomePlanet state');
@@ -1260,7 +1243,7 @@ export class MiningAIPilot extends Pilot {
     }
 
     /**
-     * Handles the WaitingOnHomePlanet state: waits on the home planet before taking off.
+     * Handles the WaitingOnHomePlanet state: waits before taking off to mine again.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
      * @param {Object} gameManager - The game manager instance.
      */
@@ -1275,13 +1258,13 @@ export class MiningAIPilot extends Pilot {
     }
 
     /**
-     * Handles the TakingOffFromHomePlanet state: waits for the ship to finish taking off from the home planet.
+     * Handles the TakingOffFromHomePlanet state: waits for takeoff from the home planet.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
      * @param {Object} gameManager - The game manager instance.
      */
     updateTakingOffFromHomePlanet(deltaTime, gameManager) {
         if (this.ship.state === 'Flying') {
-            this.state = 'Idle'; // Will find a new asteroid in the next update
+            this.state = 'Idle';
         }
     }
 

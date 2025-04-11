@@ -52,7 +52,11 @@ export class StarSystem {
         if (asteroidBelt) {
             asteroidBelt.starSystem = this;
             asteroidBelt.init();
+            this.asteroids = asteroidBelt.interactiveAsteroids;
+        } else {
+            this.asteroids = [];
         }
+
     }
 
     /**
@@ -269,7 +273,25 @@ export class StarSystem {
      * @return {Asteroid|null} The selected body, or null if none available.
      */
     getRandomAsteroid(ship = null, exclude = null) {
-        return this.asteroidBelt.getRandomAsteroid(ship, exclude);
+        const arr1 = this.asteroids;
+        const length1 = arr1 ? arr1.length : 0;
+        const totalLength = length1;
+        if (totalLength == 0) {
+            return null;
+        }
+        let attempts = totalLength;
+        let item = null;
+        while (attempts > 0) {
+            const randomIndex = Math.floor(Math.random() * totalLength);
+            item = arr1[randomIndex];
+            if (ship && item !== exclude && isValidTarget(ship, item)) {
+                return item;
+            } else if (!item.isDespawned() && item !== exclude) {
+                return item;
+            }
+            attempts--;
+        }
+        return null;
     }
 
     /**
@@ -313,7 +335,7 @@ export class StarSystem {
     getRandomPlanetAsteroid(ship = null, exclude = null) {
         const arr1 = this.planets;
         const length1 = arr1 ? arr1.length : 0;
-        const arr2 = this.asteroidBelt?.interactiveAsteroids;
+        const arr2 = this.asteroids;
         const length2 = arr2 ? arr2.length : 0;
         const totalLength = length1 + length2;
         if (totalLength == 0) {
@@ -348,7 +370,7 @@ export class StarSystem {
         const length1 = arr1 ? arr1.length : 0;
         const arr2 = this.jumpGates;
         const length2 = arr2 ? arr2.length : 0;
-        const arr3 = this.asteroidBelt?.interactiveAsteroids;
+        const arr3 = this.asteroids;
         const length3 = arr3 ? arr3.length : 0;
         const totalLength = length1 + length2 + length3;
         if (totalLength == 0) {

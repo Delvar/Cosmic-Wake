@@ -77,15 +77,15 @@ export class PlayerPilot extends Pilot {
      */
     targetNext(direction = 1) {
         const starSystem = this.ship.starSystem;
-        const arr1 = starSystem.stars || [];
+        const arr1 = starSystem.stars;
         const length1 = arr1.length;
-        const arr2 = starSystem.planets || [];
+        const arr2 = starSystem.planets;
         const length2 = arr2.length;
-        const arr3 = starSystem.jumpGates || [];
+        const arr3 = starSystem.jumpGates;
         const length3 = arr3.length;
-        const arr4 = starSystem.ships || [];
+        const arr4 = starSystem.ships;
         const length4 = arr4.length;
-        const arr5 = starSystem.asteroidBelt?.interactiveAsteroids || [];
+        const arr5 = starSystem.asteroids;
         const length5 = arr5.length;
         const totalLength = length1 + length2 + length3 + length4 + length5;
 
@@ -1029,17 +1029,7 @@ export class MiningAIPilot extends Pilot {
      * @returns {Asteroid|null} A random asteroid, or null if none found.
      */
     findRandomAsteroid() {
-        const asteroidBelt = this.ship.starSystem.asteroidBelt;
-        if (!asteroidBelt) return null;
-
-        let selectedAsteroid = null;
-        while (!selectedAsteroid) {
-            selectedAsteroid = asteroidBelt.interactiveAsteroids[Math.floor(Math.random() * asteroidBelt.interactiveAsteroids.length)];
-            if (selectedAsteroid?.isDespawned()) {
-                selectedAsteroid = null;
-            }
-        }
-        return selectedAsteroid;
+        return this.ship.starSystem.getRandomAsteroid(this.ship);
     }
 
     /**
@@ -1076,7 +1066,7 @@ export class MiningAIPilot extends Pilot {
      * @param {Object} gameManager - The game manager instance.
      */
     updateIdle(deltaTime, gameManager) {
-        if (this.ship.state === 'Landed' && this.ship.landedObject instanceof CelestialBody) {
+        if (this.ship.state === 'Landed') {
             if (this.ship.landedObject === this.homePlanet) {
                 this.waitTime = randomBetween(this.waitTimeMin, this.waitTimeMax);
                 this.state = 'WaitingOnHomePlanet';
@@ -1094,7 +1084,9 @@ export class MiningAIPilot extends Pilot {
                 this.autopilot.start();
                 this.state = 'FlyingToHomePlanet';
             }
-        } else if (this.ship.state !== 'TakingOff') {
+        } else if (this.ship.state === 'TakingOff' || this.ship.state === 'Landing') {
+            //wait for the animation to compelte
+        } else {
             console.warn(`Invalid ship state '${this.ship.state}' in MiningAIPilot updateIdle`, this.ship.landedObject);
         }
     }
@@ -1127,7 +1119,7 @@ export class MiningAIPilot extends Pilot {
                 this.autopilot = null;
                 this.targetAsteroid = null;
                 this.state = 'Idle';
-            } else if (this.ship.state === 'Mining') {
+            } else if (this.ship.state === 'Landed' && this.ship.landedObject instanceof Asteroid) {
                 this.autopilot = null;
                 this.waitTime = this.miningTime;
                 this.state = 'Mining';

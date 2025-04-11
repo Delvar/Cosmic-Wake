@@ -786,7 +786,7 @@ export class EscortAutoPilot extends AutoPilot {
      * @returns {JumpGate|null} The jump gate leading to the target system, or null if none found.
      */
     findJumpGateToSystem(targetSystem) {
-        const gates = this.ship.starSystem.celestialBodies.filter(body => body instanceof JumpGate && !body.isDespawned());
+        const gates = this.ship.starSystem.jumpGates.filter(body => body instanceof JumpGate && !body.isDespawned());
         for (let i = 0; i < gates.length; i++) {
             const gate = gates[i];
             if (gate.lane && gate.lane.target === targetSystem) return gate;

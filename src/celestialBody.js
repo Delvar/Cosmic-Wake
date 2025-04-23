@@ -242,19 +242,19 @@ export class Planet extends CelestialBody {
  */
 export class Star extends CelestialBody {
     /**
-     * Creates a new Planet instance.
      * @param {number} distance - The distance from the parent body or origin in world units.
      * @param {number} radius - The radius of the celestial body in world units.
      * @param {Colour} color - The color of the celestial body.
      * @param {CelestialBody} [parent=null] - The parent celestial body (e.g., a planet for a moon).
      * @param {number} [angle=0] - The initial angle relative to the parent in radians.
+     * @param {Object} [type=celestialTypes['star']] - The type of celestial body from celestialTypes.
      * @param {Object} [subtype=null] - The subtype of the celestial body (e.g., for planets).
      * @param {string} [name=''] - The name of the celestial body.
      * @param {StarSystem} [starSystem=null] - The star system the body belongs to.
      * @param {PlanetaryRing} [ring=null] - An optional ring around the body.
      */
-    constructor(distance, radius, color, parent = null, angle = 0, name = '', starSystem = null, ring = null) {
-        super(distance, radius, color, parent, angle, celestialTypes['star'], null, name, starSystem, ring);
+    constructor(distance, radius, color, parent = null, angle = 0, type = celestialTypes['star'], subtype = null, name = 'Unknown Star', starSystem = null, ring = null) {
+        super(distance, radius, color, parent, angle, type, subtype, name, starSystem, ring);
     }
 }
 
@@ -298,16 +298,5 @@ export class JumpGate extends CelestialBody {
         ctx.stroke();
         ctx.closePath();
         ctx.restore();
-    }
-
-    /**
-     * Checks if the ship is within the jump gate's radius.
-     * @param {Vector2D} shipPosition - The position of the ship in world coordinates.
-     * @returns {boolean} True if the ship overlaps with the jump gate, false otherwise.
-     */
-    overlapsShip(shipPosition) {
-        const dx = this.position.x - shipPosition.x;
-        const dy = this.position.y - shipPosition.y;
-        return (dx * dx + dy * dy) < (this.radius * this.radius);
     }
 }

@@ -13,7 +13,9 @@ import { TWO_PI } from './utils.js';
 export function createGalaxy() {
     const randomAngle = () => Math.random() * TWO_PI;
     const subtypes = celestialTypes['planet'].subtypes;
-    let stars = [new Star(0, 100, new Colour(1, 1, 0), null, 0, null, 'Sun')];
+
+    let stars = [new Star(0, 100, new Colour(1, 1, 0), null, 0, celestialTypes['star'], null, 'Sun', null, null)];
+
     /* distance, radius, color, parent = null, angle = 0, type = celestialTypes['planet'], subtype = null, name = '', starSystem = null, ring = null */
     let planets = [
         new Planet(800, 20, new Colour(0.55, 0.27, 0.07), stars[0], randomAngle(), celestialTypes['planet'], subtypes['Iron'], 'Mercury', null, null),
@@ -45,8 +47,8 @@ export function createGalaxy() {
     );
 
     stars = [
-        new Star(0, 80, new Colour(1, 0.8, 0), null, 0, 'Alpha Centauri A', null),
-        new Star(200, 70, new Colour(0.9, 0.6, 0), null, randomAngle(), 'Alpha Centauri B', null)
+        new Star(0, 100, new Colour(1, 0.8, 0), null, 0, celestialTypes['star'], null, 'Alpha Centauri A', null, null),
+        new Star(200, 70, new Colour(0.9, 0.6, 0), null, randomAngle(), celestialTypes['star'], null, 'Alpha Centauri B', null, null)
     ];
     /* distance, radius, color, parent = null, angle = 0, type = celestialTypes['planet'], subtype = null, name = '', starSystem = null, ring = null */
     planets = [
@@ -64,7 +66,7 @@ export function createGalaxy() {
     );
 
     stars = [
-        new Star(0, 60, new Colour(0.8, 0.2, 0), null, 0, celestialTypes['star'], null, 'Proxima Centauri', null)
+        new Star(0, 60, new Colour(0.8, 0.2, 0), null, 0, celestialTypes['star'], null, 'Proxima Centauri', null, null)
     ];
     /* distance, radius, color, parent = null, angle = 0, type = celestialTypes['planet'], subtype = null, name = '', starSystem = null, ring = null */
     planets = [

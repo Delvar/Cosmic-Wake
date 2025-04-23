@@ -32,16 +32,6 @@ export class Pilot {
     }
 
     /**
-     * Attempts to initiate a hyperjump to another star system.
-     * @param {Object} gameManager - The game manager instance.
-     * @returns {boolean} True if hyperjump is initiated, false otherwise.
-     * @throws {Error} Must be implemented by subclasses.
-     */
-    tryHyperjump(gameManager) {
-        throw new Error("tryHyperjump() must be implemented by subclass");
-    }
-
-    /**
      * Returns a string describing the pilot's current state for HUD display.
      * @returns {string} The current state description.
      * @throws {Error} Must be implemented by subclasses.
@@ -176,8 +166,8 @@ export class PlayerPilot extends Pilot {
         // Interact with target ('l' key)
         if (pressed('l') && this.ship.state === 'Flying' && this.ship.target) {
             if (this.ship.target instanceof JumpGate) {
-                if (this.ship.target.overlapsShip(this.ship.position)) {
-                    this.ship.initiateHyperjump();
+                if (this.ship.target.overlapsPoint(this.ship.position)) {
+                    this.ship.initiateHyperjump(this.ship.target);
                 } else {
                     this.autopilot = new TraverseJumpGateAutoPilot(this.ship, this.ship.target);
                     this.autopilot.start();
@@ -464,14 +454,6 @@ export class AIPilot extends Pilot {
     }
 
     /**
-     * Placeholder for hyperjump attempts; not implemented for basic AI.
-     * @returns {boolean} Always false.
-     */
-    tryHyperjump(gameManager) {
-        return false;
-    }
-
-    /**
      * Returns the current state of the AI pilot for HUD display.
      * @returns {string} A descriptive status string.
      */
@@ -532,14 +514,24 @@ export class InterdictionAIPilot extends Pilot {
     }
 
     /**
+     * Checks if a target is still valid (not despawned and exists in the galaxy).
+     * @param {GameObject} source - The source game object to validate.
+     * @param {GameObject} target - The target game object to validate.
+     * @returns {boolean} True if the target is valid, false otherwise.
+     */
+    isValidTarget(source, target) {
+        if (!(target instanceof Ship)) return false;
+        if (!isValidTarget(source, target)) return false;
+        if (target.state === 'Landed') return false;
+        return true;
+    }
+
+    /**
      * Picks a random ship to follow, excluding itself and landed ships.
      * @returns {Ship|null} The selected ship, or null if none available.
      */
     pickShipToFollow() {
-        const ships = this.ship.starSystem.ships;
-        const validShips = ships.filter(ship => ship !== this.ship && !ship.isDespawned() && ship.state !== 'Landed');
-        if (validShips.length === 0) return null;
-        return validShips[Math.floor(Math.random() * validShips.length)];
+        return this.ship.starSystem.getRandomShip(this.ship, null, this.isValidTarget);
     }
 
     /**
@@ -795,14 +787,6 @@ export class InterdictionAIPilot extends Pilot {
     }
 
     /**
-     * Placeholder for hyperjump attempts; interdiction ships do not jump.
-     * @returns {boolean} Always false.
-     */
-    tryHyperjump(gameManager) {
-        return false;
-    }
-
-    /**
      * Returns the current state of the AI pilot for HUD display.
      * @returns {string} A descriptive status string.
      */
@@ -953,25 +937,6 @@ export class EscortAIPilot extends Pilot {
             this.autopilot = null;
             this.state = 'Idle';
         }
-    }
-
-    /**
-     * Attempts to hyperjump if the escorted ship has jumped to another system.
-     * @param {Object} gameManager - The game manager instance.
-     * @returns {boolean} True if a hyperjump is initiated, false otherwise.
-     */
-    tryHyperjump(gameManager) {
-        if (this.autopilot?.active && this.escortedShip) {
-            const targetSystem = this.escortedShip.starSystem;
-            const gates = this.ship.starSystem.jumpGates.filter(body => body instanceof JumpGate && !body.isDespawned());
-            for (const gate of gates) {
-                if (gate.lane?.target === targetSystem && gate.overlapsShip(this.ship.position)) {
-                    this.ship.initiateHyperjump();
-                    return true;
-                }
-            }
-        }
-        return false;
     }
 
     /**
@@ -1258,14 +1223,6 @@ export class MiningAIPilot extends Pilot {
         if (this.ship.state === 'Flying') {
             this.state = 'Idle';
         }
-    }
-
-    /**
-     * Placeholder for hyperjump attempts; mining ships do not jump.
-     * @returns {boolean} Always false.
-     */
-    tryHyperjump(gameManager) {
-        return false;
     }
 
     /**

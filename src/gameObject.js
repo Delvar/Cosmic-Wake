@@ -56,4 +56,15 @@ export class GameObject {
     isDespawned() {
         return this.despawned;
     }
+
+    /**
+     * Checks if the point is within the GameObject's radius.
+     * @param {Vector2D} point - The position in world coordinates.
+     * @returns {boolean} True if the GameObject overlaps point, false otherwise.
+     */
+    overlapsPoint(point) {
+        const dx = this.position.x - point.x;
+        const dy = this.position.y - point.y;
+        return (dx * dx + dy * dy) < (this.radius * this.radius);
+    }
 }

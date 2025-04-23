@@ -368,20 +368,6 @@ class GameManager {
     }
 
     /**
-     * Cycles to the next asteroid in the current star system's asteroid belt.
-     */
-    cycleNextAsteroid() {
-        if (this.cameraTarget) {
-            this.cameraTarget.debug = false;
-        }
-        const asteroids = this.cameraTarget.starSystem.asteroidBelt ? this.cameraTarget.starSystem.asteroidBelt.interactiveAsteroids : [];
-        if (asteroids.length === 0) return;
-        const currentIndex = asteroids.indexOf(this.cameraTarget);
-        const nextIndex = (currentIndex + 1) % asteroids.length;
-        this.cameraTarget = asteroids[nextIndex];
-    }
-
-    /**
      * Generates a random interval for spawning AI ships.
      * @returns {number} A random interval in milliseconds between 2000 and 10000.
      */
@@ -436,10 +422,6 @@ class GameManager {
             if (e.key === 'Tab') {
                 e.preventDefault();
                 this.cycleNextAIShip();
-            }
-            if (e.key === 'w') {
-                e.preventDefault();
-                this.cycleNextAsteroid();
             }
             if (e.key === 'q') {
                 if (this.cameraTarget) {

@@ -6,6 +6,7 @@
  * The Hyperlane class represents a connection between two star systems.
  */
 
+import { Vector2D } from './vector2d.js';
 import { GameObject, isValidTarget } from './gameObject.js';
 import { CelestialBody, Planet, Star, JumpGate } from './celestialBody.js';
 import { Ship } from './ship.js';
@@ -56,7 +57,6 @@ export class StarSystem {
         } else {
             this.asteroids = [];
         }
-
     }
 
     /**
@@ -160,11 +160,13 @@ export class StarSystem {
     }
 
     /**
+     * Selects a random ship from the available ships, using a provided validation function.
      * @param {Ship} [ship=null] the ship looking for a target
-     * @param {GameObject} [exclude =null] exclude this other GameObject
+     * @param {GameObject} [exclude=null] exclude this other GameObject
+     * @param {function(GameObject, GameObject): boolean} [isValid=isValidTarget] - Validation function to check if a target is valid.
      * @return {Ship|null} The selected ship, or null if none available.
      */
-    getRandomShip(ship = null, exclude = null) {
+    getRandomShip(ship = null, exclude = null, isValid = isValidTarget) {
         const arr1 = this.ships;
         const length1 = arr1 ? arr1.length : 0;
         const totalLength = length1;
@@ -176,7 +178,7 @@ export class StarSystem {
         while (attempts > 0) {
             const randomIndex = Math.floor(Math.random() * totalLength);
             item = arr1[randomIndex];
-            if (ship && item !== exclude && isValidTarget(ship, item)) {
+            if (ship && item !== exclude && isValid(ship, item)) {
                 return item;
             } else if (!item.isDespawned() && item !== exclude) {
                 return item;
@@ -188,7 +190,7 @@ export class StarSystem {
 
     /**
      * @param {Ship} [ship=null] the ship looking for a target
-     * @param {GameObject} [exclude =null] exclude this other GameObject
+     * @param {GameObject} [exclude=null] exclude this other GameObject
      * @return {Planet|null} The selected body, or null if none available.
      */
     getRandomPlanet(ship = null, exclude = null) {
@@ -215,7 +217,7 @@ export class StarSystem {
 
     /**
      * @param {Ship} [ship=null] the ship looking for a target
-     * @param {GameObject} [exclude =null] exclude this other GameObject
+     * @param {GameObject} [exclude=null] exclude this other GameObject
      * @return {Star|null} The selected body, or null if none available.
      */
     getRandomStar(ship = null, exclude = null) {
@@ -242,7 +244,7 @@ export class StarSystem {
 
     /**
      * @param {Ship} [ship=null] the ship looking for a target
-     * @param {GameObject} [exclude =null] exclude this other GameObject
+     * @param {GameObject} [exclude=null] exclude this other GameObject
      * @return {JumpGate|null} The selected body, or null if none available.
      */
     getRandomJumpGate(ship = null, exclude = null) {
@@ -269,7 +271,7 @@ export class StarSystem {
 
     /**
      * @param {Ship} [ship=null] the ship looking for a target
-     * @param {GameObject} [exclude =null] exclude this other GameObject
+     * @param {GameObject} [exclude=null] exclude this other GameObject
      * @return {Asteroid|null} The selected body, or null if none available.
      */
     getRandomAsteroid(ship = null, exclude = null) {
@@ -296,7 +298,7 @@ export class StarSystem {
 
     /**
      * @param {Ship} [ship=null] the ship looking for a target
-     * @param {GameObject} [exclude =null] exclude this other GameObject
+     * @param {GameObject} [exclude=null] exclude this other GameObject
      * @return {JumpGate|Planet|null} The selected body, or null if none available.
      */
     getRandomJumpGatePlanet(ship = null, exclude = null) {
@@ -329,7 +331,7 @@ export class StarSystem {
 
     /**
      * @param {Ship} [ship=null] the ship looking for a target
-     * @param {GameObject} [exclude =null] exclude this other GameObject
+     * @param {GameObject} [exclude=null] exclude this other GameObject
      * @return {Planet|Asteroid|null} The selected body, or null if none available.
      */
     getRandomPlanetAsteroid(ship = null, exclude = null) {
@@ -362,7 +364,7 @@ export class StarSystem {
 
     /**
      * @param {Ship} [ship=null] the ship looking for a target
-     * @param {GameObject} [exclude =null] exclude this other GameObject
+     * @param {GameObject} [exclude=null] exclude this other GameObject
      * @return {JumpGate|Planet|Asteroid|null} The selected body, or null if none available.
      */
     getRandomJumpGatePlanetAsteroid(ship = null, exclude = null) {
@@ -393,6 +395,47 @@ export class StarSystem {
                 return item;
             }
             attempts--;
+        }
+        return null;
+    }
+
+    /**
+     * @param {Ship} ship the ship looking for a target
+     * @param {GameObject} [exclude=null] exclude this other GameObject
+     * @return {JumpGate|null} The selected body, or null if none available.
+     */
+    getClosestJumpGate(ship, exclude = null) {
+        const arr1 = this.jumpGates;
+        const length1 = arr1 ? arr1.length : 0;
+        const totalLength = length1;
+        if (totalLength == 0) {
+            return null;
+        }
+        let item = null;
+        let closestItem = arr1[0];
+        let closestSquaredDistance = closestItem.position.distanceSquaredTo(ship.position);
+        for (let i = 1; i < totalLength; i++) {
+            item = arr1[i];
+            if (item !== exclude && isValidTarget(ship, item)) {
+                const squaredDistance = item.position.distanceSquaredTo(ship.position);
+                if (squaredDistance < closestSquaredDistance) {
+                    closestItem = item;
+                }
+            }
+        }
+        return closestItem;
+    }
+
+    /**
+     * Finds a jump gate in the current system that leads to the target system.
+     * @param {StarSystem} targetSystem - The star system to jump to.
+     * @returns {JumpGate|null} The jump gate leading to the target system, or null if none found.
+     */
+    getJumpGateToSystem(targetSystem) {
+        const gates = this.jumpGates;
+        for (let i = 0; i < gates.length; i++) {
+            const gate = gates[i];
+            if (gate.lane && gate.lane.target === targetSystem) return gate;
         }
         return null;
     }

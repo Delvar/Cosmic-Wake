@@ -491,7 +491,7 @@ export class TraverseJumpGateAutoPilot extends AutoPilot {
         } else if (this.ship.state === 'Flying') {
             // Check if ship is close enough to initiate hyperjump
             this._scratchDistanceToTarget.set(this.ship.position).subtractInPlace(this.target.position);
-            if (this.target.overlapsShip(this.ship.position)) {
+            if (this.target.overlapsPoint(this.ship.position)) {
                 if (this.ship.initiateHyperjump()) {
                     // Hyperjump initiated; wait for animation
                 } else {
@@ -781,20 +781,6 @@ export class EscortAutoPilot extends AutoPilot {
     }
 
     /**
-     * Finds a jump gate in the current system that leads to the target system.
-     * @param {Object} targetSystem - The star system to jump to.
-     * @returns {JumpGate|null} The jump gate leading to the target system, or null if none found.
-     */
-    findJumpGateToSystem(targetSystem) {
-        const gates = this.ship.starSystem.jumpGates.filter(body => body instanceof JumpGate && !body.isDespawned());
-        for (let i = 0; i < gates.length; i++) {
-            const gate = gates[i];
-            if (gate.lane && gate.lane.target === targetSystem) return gate;
-        }
-        return null;
-    }
-
-    /**
      * Starts the autopilot, ensuring the target is a ship in the same star system.
      */
     start() {
@@ -899,7 +885,7 @@ export class EscortAutoPilot extends AutoPilot {
         if (this.target.starSystem !== this.ship.starSystem) {
             this.subAutopilot.stop();
             const targetSystem = this.target.starSystem;
-            const jumpGate = this.findJumpGateToSystem(targetSystem);
+            const jumpGate = this.ship.starSystem.getJumpGateToSystem(targetSystem);
             if (jumpGate) {
                 this.subAutopilot = new TraverseJumpGateAutoPilot(this.ship, jumpGate);
                 this.subAutopilot.start();

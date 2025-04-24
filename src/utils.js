@@ -80,3 +80,29 @@ export function removeObjectFromArrayInPlace(object, array) {
     array.pop();
     return array;
 }
+
+/**
+ * Generates a hash value from grid coordinates and layer index for consistent RNG seeding.
+ * @param {number} i - The x-index of the grid cell.
+ * @param {number} j - The y-index of the grid cell.
+ * @param {number} layer - The layer index (0 to 4).
+ * @returns {number} A unique hash value.
+ */
+export function hash(i, j, layer) {
+    return i * 73856093 + j * 19349663 + layer * 83492791;
+}
+
+/**
+ * A simple seeded random number generator for consistent star properties across frames.
+ */
+export class SimpleRNG {
+    constructor(seed) {
+        this.seed = seed % 2147483647;
+        if (this.seed <= 0) this.seed += 2147483646;
+    }
+
+    next() {
+        this.seed = (this.seed * 16807) % 2147483647;
+        return (this.seed - 1) / 2147483646;
+    }
+}

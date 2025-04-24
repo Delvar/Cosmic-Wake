@@ -1,7 +1,7 @@
 // camera.js
 
 import { Vector2D } from './vector2d.js';
-import { Ship } from './ship.js';
+import { normalizeAngle, TWO_PI } from './utils.js';
 
 /**
  * Represents a camera that handles rendering and coordinate transformations in a 2D space.
@@ -28,12 +28,16 @@ export class Camera {
             left: 0,
             right: 0,
             top: 0,
-            bottom: 0
+            bottom: 0,
+            minAngle: 0, // Cached min angle of camera corners
+            maxAngle: 0  // Cached max angle of camera corners
         };
         this._updateWorldBounds(); // Set initial bounds
 
         // Temporary scratch values to avoid allocations
         this._scratchRelativePosition = new Vector2D(); // For world-to-screen relative position
+        this._scratchMin = new Vector2D(); // For cell visibility
+        this._scratchMax = new Vector2D();
     }
 
     /**
@@ -89,7 +93,39 @@ export class Camera {
         this.worldBounds.right = this.position.x + halfWidth;
         this.worldBounds.top = this.position.y - halfHeight;
         this.worldBounds.bottom = this.position.y + halfHeight;
+
+        // Cache camera corner angles for cell visibility
+        // Compute center angle from camera position
+        const centerAngle = (Math.atan2(this.position.x, -this.position.y));
+        let minDelta = Infinity;
+        let maxDelta = -Infinity;
+
+        // Compute delta angles for each corner relative to center
+        let angle = Math.atan2(this.worldBounds.left, -this.worldBounds.top);
+        let delta = normalizeAngle(angle - centerAngle);
+        minDelta = Math.min(minDelta, delta);
+        maxDelta = Math.max(maxDelta, delta);
+
+        angle = Math.atan2(this.worldBounds.right, -this.worldBounds.top);
+        delta = normalizeAngle(angle - centerAngle);
+        minDelta = Math.min(minDelta, delta);
+        maxDelta = Math.max(maxDelta, delta);
+
+        angle = Math.atan2(this.worldBounds.left, -this.worldBounds.bottom);
+        delta = normalizeAngle(angle - centerAngle);
+        minDelta = Math.min(minDelta, delta);
+        maxDelta = Math.max(maxDelta, delta);
+
+        angle = Math.atan2(this.worldBounds.right, -this.worldBounds.bottom);
+        delta = normalizeAngle(angle - centerAngle);
+        minDelta = Math.min(minDelta, delta);
+        maxDelta = Math.max(maxDelta, delta);
+
+        // Compute final min/max angles by adding center angle back
+        this.worldBounds.minAngle = normalizeAngle(centerAngle + minDelta);
+        this.worldBounds.maxAngle = normalizeAngle(centerAngle + maxDelta);
     }
+
 
     /**
      * Converts a world position to screen coordinates, modifying the provided output vector.
@@ -175,6 +211,20 @@ export class Camera {
             maxY < this.worldBounds.top ||   // Box is completely above the viewport
             minY > this.worldBounds.bottom   // Box is completely below the viewport
         );
+    }
+
+    /**
+     * Checks if a polar cell (defined by angle range) intersects the camera’s view.
+     * Assumes isBeltOffScreen has confirmed radius overlap. Angles normalized to [-π, π] with 0 upward.
+     * @param {number} fromAngle - Start angle of the cell in radians.
+     * @param {number} toAngle - End angle of the cell in radians.
+     * @returns {boolean} True if the cell is in view, false otherwise.
+     */
+    isCellInView(fromAngle, toAngle) {
+        // Compute normalized angle deltas
+        let deltaToMin = normalizeAngle(toAngle - this.worldBounds.minAngle);
+        let deltaFromMax = normalizeAngle(fromAngle - this.worldBounds.maxAngle);
+        return (deltaToMin > 0 && deltaFromMax < 0);
     }
 }
 

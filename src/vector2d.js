@@ -160,6 +160,19 @@ export class Vector2D {
     }
 
     /**
+     * Sets this vector from polar coordinates.
+     * @param {number} radius - The radial distance from origin.
+     * @param {number} angle - The angle in radians.
+     * @returns {Vector2D} This vector, for chaining.
+     */
+    setFromPolar(radius, angle) {
+        // Compute x and y for upward direction
+        this.x = radius * Math.sin(angle);
+        this.y = -radius * Math.cos(angle);
+        return this;
+    }
+
+    /**
      * Adds another vector to this vector in-place.
      * @param {Vector2D} other - The vector to add.
      * @returns {Vector2D} This vector, for chaining.

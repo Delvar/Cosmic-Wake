@@ -30,8 +30,8 @@ export function createGalaxy() {
     );
 
     planets.push(new Planet(1.52 * au, 6792 * planetScale, new Colour(1, 0.27, 0), stars[0], randomAngle(), celestialTypes['planet'], subtypes['Terrestrial'], 'Mars', null, null),
-        new Planet(5.2 * 0.38 * au, 142984 * 0.15 * planetScale, new Colour(0.85, 0.65, 0.13), stars[0], randomAngle(), celestialTypes['planet'], subtypes['Gas Giant'], 'Jupiter', null, null),
-        new Planet(9.54 * 0.31 * au, 120536 * 0.15 * planetScale, new Colour(0.96, 0.64, 0.38), stars[0], randomAngle(), celestialTypes['planet'], subtypes['Gas Giant'], 'Saturn', null,
+        new Planet(5.2 * 0.4 * au, 142984 * 0.15 * planetScale, new Colour(0.85, 0.65, 0.13), stars[0], randomAngle(), celestialTypes['planet'], subtypes['Gas Giant'], 'Jupiter', null, null),
+        new Planet(9.54 * 0.4 * au, 120536 * 0.15 * planetScale, new Colour(0.96, 0.64, 0.38), stars[0], randomAngle(), celestialTypes['planet'], subtypes['Gas Giant'], 'Saturn', null,
             new PlanetaryRing(1.5, 2.5, new Colour(0.96, 0.71, 0.51, 0.75))),
         new Planet(19.2 * 0.25 * au, 51118 * 0.2 * planetScale, new Colour(0.53, 0.81, 0.92), stars[0], randomAngle(), celestialTypes['planet'], subtypes['Ice Giant'], 'Uranus', null,
             new PlanetaryRing(1.8, 2.0, new Colour(0.6, 0.9, 1.0, 0.25))),
@@ -40,7 +40,7 @@ export function createGalaxy() {
 
     const mars = planets[4];
     const jupiter = planets[5];
-    const halfWidth = (jupiter.distance - mars.distance) * 0.25;
+    const halfWidth = (jupiter.distance - mars.distance) * 0.3;
     const middle = (jupiter.distance + mars.distance) * 0.5;
 
     // Define the Sol System
@@ -50,7 +50,7 @@ export function createGalaxy() {
         new Vector2D(0, 0),
         stars,
         planets,
-        new AsteroidBelt(middle - halfWidth, middle + halfWidth, 1000, 20)
+        new AsteroidBelt(middle - halfWidth, middle + halfWidth, 20, 20, 5)
     );
 
     stars = [
@@ -69,7 +69,7 @@ export function createGalaxy() {
         new Vector2D(10000, 5000),
         stars,
         planets,
-        new AsteroidBelt(1800, 2200, 500, 8)
+        new AsteroidBelt(1800, 2200, 20, 20, 5)
     );
 
     stars = [

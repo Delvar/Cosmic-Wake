@@ -102,50 +102,87 @@ class Game {
      * @param {number} deltaTime - Time elapsed since the last render in milliseconds.
      */
     render(deltaTime) {
-        this.ctx.fillStyle = 'black';
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-        this.starField.draw(this.ctx, this.camera);
+        const ctx = this.ctx;
+        ctx.save();
+        ctx.fillStyle = 'black';
+        ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        this.starField.draw(ctx, this.camera);
         if (!this.manager.cameraTarget || this.manager.cameraTarget.despawned) {
             this.manager.cameraTarget = this.manager.playerShip;
         }
         const starSystem = this.manager.cameraTarget.starSystem;
-        if (starSystem.asteroidBelt) starSystem.asteroidBelt.draw(this.ctx, this.camera);
+        if (starSystem.asteroidBelt) starSystem.asteroidBelt.draw(ctx, this.camera);
         for (let i = 0; i < starSystem.stars.length; i++) {
-            starSystem.stars[i].draw(this.ctx, this.camera);
+            starSystem.stars[i].draw(ctx, this.camera);
         }
         for (let i = 0; i < starSystem.planets.length; i++) {
-            starSystem.planets[i].draw(this.ctx, this.camera);
+            starSystem.planets[i].draw(ctx, this.camera);
         }
         for (let i = 0; i < starSystem.jumpGates.length; i++) {
-            starSystem.jumpGates[i].draw(this.ctx, this.camera);
+            starSystem.jumpGates[i].draw(ctx, this.camera);
         }
         for (let i = 0; i < starSystem.ships.length; i++) {
-            starSystem.ships[i].draw(this.ctx, this.camera);
+            starSystem.ships[i].draw(ctx, this.camera);
         }
-        this.hud.draw(this.ctx, this.camera);
+        this.hud.draw(ctx, this.camera);
         this.renderTargetView();
 
-        this.ctx.save();
-        this.ctx.fillStyle = 'white';
-        this.ctx.font = '16px Arial';
-        this.ctx.textAlign = 'left';
-        this.ctx.fillText(`FPS: ${this.fps}`, 10, 20);
+        ctx.save();
+        ctx.fillStyle = 'white';
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'left';
+        ctx.fillText(`FPS: ${this.fps}`, 10, 20);
 
         const maxFrameTime = 50;
         const barWidth = Math.min(deltaTime / maxFrameTime, 1) * 150;
-        this.ctx.fillStyle = deltaTime > 33.33 ? 'red' : deltaTime > 16.67 ? 'yellow' : 'green';
-        this.ctx.fillRect(10, 25, barWidth, 10);
-        this.ctx.restore();
+        ctx.fillStyle = deltaTime > 33.33 ? 'red' : deltaTime > 16.67 ? 'yellow' : 'green';
+        ctx.fillRect(10, 25, barWidth, 10);
+        ctx.restore();
 
         if (this.manager.zoomTextTimer > 0) {
-            this.ctx.save();
-            this.ctx.fillStyle = 'white';
-            this.ctx.font = '20px Arial';
-            this.ctx.textAlign = 'right';
+            ctx.save();
+            ctx.fillStyle = 'white';
+            ctx.font = '20px Arial';
+            ctx.textAlign = 'right';
             const zoomPercent = Math.round(this.camera.zoom * 100);
-            this.ctx.fillText(`${zoomPercent}%`, this.canvasSize.width - 10, 30);
-            this.ctx.restore();
+            ctx.fillText(`${zoomPercent}%`, this.canvasSize.width - 10, 30);
+            ctx.restore();
         }
+
+        // ctx.save();
+        // ctx.fillStyle = 'white';
+        // ctx.strokeStyle = 'white';
+        // const up = new Vector2D(0, -100);
+        // up.addInPlace(this.camera.screenCenter);
+        // ctx.beginPath();
+        // ctx.moveTo(this.camera.screenCenter.x, this.camera.screenCenter.y);
+        // ctx.lineTo(up.x, up.y);
+        // ctx.closePath();
+        // ctx.stroke();
+
+        // ctx.beginPath();
+        // ctx.moveTo(up.x, up.y);
+        // ctx.arc(up.x, up.y, 3, 0, TWO_PI);
+        // ctx.closePath();
+        // ctx.fill();
+
+        // ctx.fillStyle = 'green';
+        // ctx.strokeStyle = 'green';
+        // up.setFromPolar(100,Math.PI/-2);
+        // up.addInPlace(this.camera.screenCenter);
+        // ctx.beginPath();
+        // ctx.moveTo(this.camera.screenCenter.x, this.camera.screenCenter.y);
+        // ctx.lineTo(up.x, up.y);
+        // ctx.closePath();
+        // ctx.stroke();
+
+        // ctx.beginPath();
+        // ctx.moveTo(up.x, up.y);
+        // ctx.arc(up.x, up.y, 3, 0, TWO_PI);
+        // ctx.closePath();
+        // ctx.fill();
+        // ctx.restore();
+        ctx.restore();
     }
 
     /**
@@ -215,8 +252,8 @@ class GameManager {
         this.isFocused = true;
         this.galaxy = createGalaxy();
         const starSystem = this.galaxy[0];
-        const earth = starSystem.planets[2];
-        this.playerShip = createRandomShip(earth.position.x + 50, earth.position.y, starSystem);
+        const earth = starSystem.planets[5];
+        this.playerShip = createRandomShip(earth.position.x + earth.radius * 1.5, earth.position.y, starSystem);
 
         // this.escort01 = new Flivver(earth.position.x - 50, earth.position.y, starSystem);
         // this.escort01.pilot = new EscortAIPilot(this.escort01, this.playerShip);

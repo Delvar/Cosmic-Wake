@@ -52,11 +52,13 @@ export class PlayerPilot extends Pilot {
      */
     constructor(ship) {
         super(ship);
-        this.autopilot = null; // Active autopilot instance, if any
+        /** @type {Object|null} Active autopilot instance, if any. */
+        this.autopilot = null;
 
-        // Scratch vectors to avoid allocations during updates
-        this._scratchDirectionToTarget = new Vector2D();
-        this._scratchDistanceToTarget = new Vector2D();
+        /** @type {Vector2D} Temporary vector for direction to target. */
+        this._scratchDirectionToTarget = new Vector2D(0, 0);
+        /** @type {Vector2D} Temporary vector for distance to target. */
+        this._scratchDistanceToTarget = new Vector2D(0, 0);
     }
 
     /**
@@ -162,6 +164,11 @@ export class PlayerPilot extends Pilot {
         }
         this.ship.applyThrust(held('ArrowUp'));
         this.ship.applyBrakes(held('ArrowDown'));
+
+        // Fire weapon on Spacebar press
+        if (held(' ') && this.ship.state === 'Flying') {
+            this.ship.fire();
+        }
 
         // Interact with target ('l' key)
         if (pressed('l') && this.ship.state === 'Flying' && this.ship.target) {

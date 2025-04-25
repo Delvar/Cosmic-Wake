@@ -3,7 +3,8 @@
 import { Vector2D } from './vector2d.js';
 import { Colour } from './colour.js';
 import { Camera, TargetCamera } from './camera.js';
-import { createRandomShip, Ship, Flivver, Shuttle, HeavyShuttle, StarBarge, Freighter, Arrow, Boxwing, Interceptor } from './ship.js';
+import { Ship } from './ship.js';
+import { createRandomShip, Flivver, Shuttle, HeavyShuttle, StarBarge, Freighter, Arrow, Boxwing, Interceptor } from './shipTypes.js';
 import { JumpGate } from './celestialBody.js';
 import { StarField } from './starField.js';
 import { HeadsUpDisplay } from './headsUpDisplay.js';
@@ -124,6 +125,7 @@ class Game {
         for (let i = 0; i < starSystem.ships.length; i++) {
             starSystem.ships[i].draw(ctx, this.camera);
         }
+        starSystem.projectileManager.draw(ctx, this.camera);
         this.hud.draw(ctx, this.camera);
         this.renderTargetView();
 
@@ -323,6 +325,7 @@ class GameManager {
             if (starSystem.asteroidBelt) {
                 starSystem.asteroidBelt.update(deltaTime);
             }
+            starSystem.projectileManager.update(deltaTime);
         }
         Object.assign(this.lastKeys, this.keys);
     }

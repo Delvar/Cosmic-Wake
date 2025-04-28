@@ -16,7 +16,7 @@ export class Flivver extends Ship {
      */
     setupBoundingBox() {
         this.boundingBox.set(38.00, 31.00);
-        this.radius = 38;
+        this.radius = this.boundingBox.magnitude() * 0.5;
     }
 
     /**
@@ -37,6 +37,30 @@ export class Flivver extends Ship {
                 { x: 18.00, y: 14.50, radius: 1.00 },
             ]
         };
+    }
+
+    /**
+     * Draws the ship's windows/cockpit.
+     * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
+     * @param {Camera} camera - The camera object.
+     */
+    drawWindows(ctx, camera) {
+        // Draw the cockpit
+        ctx.save();
+        this.getWindowColour(ctx);
+        ctx.beginPath();
+        ctx.moveTo(-1.00, 3.50);
+        ctx.lineTo(1.00, 3.50);
+        ctx.lineTo(2.00, 6.50);
+        ctx.lineTo(2.00, 7.50);
+        ctx.lineTo(1.00, 8.50);
+        ctx.lineTo(-1.00, 8.50);
+        ctx.lineTo(-2.00, 7.50);
+        ctx.lineTo(-2.00, 6.50);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
     }
 
     /**
@@ -112,21 +136,6 @@ export class Flivver extends Ship {
         ctx.fill();
         ctx.stroke();
 
-        // Draw the cockpit
-        ctx.fillStyle = this.colors.cockpit.toRGB();
-        ctx.beginPath();
-        ctx.moveTo(-1.00, 3.50);
-        ctx.lineTo(1.00, 3.50);
-        ctx.lineTo(2.00, 6.50);
-        ctx.lineTo(2.00, 7.50);
-        ctx.lineTo(1.00, 8.50);
-        ctx.lineTo(-1.00, 8.50);
-        ctx.lineTo(-2.00, 7.50);
-        ctx.lineTo(-2.00, 6.50);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-
         // Draw the wings and fins
         ctx.fillStyle = this.colors.wings.toRGB();
         ctx.beginPath();
@@ -167,9 +176,8 @@ export class Shuttle extends Ship {
      * Sets up the bounding box
      */
     setupBoundingBox() {
-        // Bounding box: width = 270.0 (from 67.5 to 337.5), height = 405.0 (from 101.3 to 506.3)
         this.boundingBox.set(18.00, 27.00);
-        this.radius = 27;
+        this.radius = this.boundingBox.magnitude() * 0.5;
     }
 
     /**
@@ -191,6 +199,26 @@ export class Shuttle extends Ship {
                 { x: 4.00, y: -7.50, radius: 1.00 },
             ]
         };
+    }
+
+    /**
+     * Draws the ship's windows/cockpit.
+     * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
+     * @param {Camera} camera - The camera object.
+     */
+    drawWindows(ctx, camera) {
+        // Draw the cockpit
+        ctx.save();
+        this.getWindowColour(ctx);
+        ctx.beginPath();
+        ctx.moveTo(-1.00, -11.50);
+        ctx.lineTo(1.00, -11.50);
+        ctx.lineTo(2.00, -7.50);
+        ctx.lineTo(-2.00, -7.50);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
     }
 
     /**
@@ -232,17 +260,6 @@ export class Shuttle extends Ship {
         ctx.lineTo(4.00, 11.50);
         ctx.lineTo(3.00, 12.50);
         ctx.lineTo(1.00, 12.50);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-
-        // Draw the cockpit
-        ctx.fillStyle = this.colors.cockpit.toRGB();
-        ctx.beginPath();
-        ctx.moveTo(-1.00, -11.50);
-        ctx.lineTo(1.00, -11.50);
-        ctx.lineTo(2.00, -7.50);
-        ctx.lineTo(-2.00, -7.50);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
@@ -292,9 +309,8 @@ export class HeavyShuttle extends Ship {
      * Sets up the bounding box
      */
     setupBoundingBox() {
-        // Bounding box: width = 270.0 (from 67.5 to 337.5), height = 510.0 (from 127.5 to 637.5)
         this.boundingBox.set(18.00, 34.00);
-        this.radius = 34;
+        this.radius = this.boundingBox.magnitude() * 0.5;
     }
 
     /**
@@ -316,6 +332,30 @@ export class HeavyShuttle extends Ship {
                 { x: -5.00, y: -7.00, radius: 1.00 },
             ]
         };
+    }
+
+    /**
+     * Draws the ship's windows/cockpit.
+     * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
+     * @param {Camera} camera - The camera object.
+     */
+    drawWindows(ctx, camera) {
+        // Draw the cockpit
+        ctx.save();
+        this.getWindowColour(ctx);
+        ctx.beginPath();
+        ctx.moveTo(-1.00, -15.00);
+        ctx.lineTo(1.00, -15.00);
+        ctx.lineTo(2.00, -11.00);
+        ctx.lineTo(2.00, -9.00);
+        ctx.lineTo(1.00, -8.00);
+        ctx.lineTo(-1.00, -8.00);
+        ctx.lineTo(-2.00, -9.00);
+        ctx.lineTo(-2.00, -11.00);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
     }
 
     /**
@@ -357,21 +397,6 @@ export class HeavyShuttle extends Ship {
         ctx.lineTo(3.00, 16.00);
         ctx.lineTo(1.00, 16.00);
         ctx.lineTo(0.00, 15.00);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-
-        // Draw the cockpit
-        ctx.fillStyle = this.colors.cockpit.toRGB();
-        ctx.beginPath();
-        ctx.moveTo(-1.00, -15.00);
-        ctx.lineTo(1.00, -15.00);
-        ctx.lineTo(2.00, -11.00);
-        ctx.lineTo(2.00, -9.00);
-        ctx.lineTo(1.00, -8.00);
-        ctx.lineTo(-1.00, -8.00);
-        ctx.lineTo(-2.00, -9.00);
-        ctx.lineTo(-2.00, -11.00);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
@@ -421,9 +446,8 @@ export class StarBarge extends Ship {
      * Sets up the bounding box
      */
     setupBoundingBox() {
-        // Bounding box: width = 510.0 (from 127.5 to 637.5), height = 630.0 (from 157.5 to 787.5)
         this.boundingBox.set(34.00, 42.00);
-        this.radius = 42;
+        this.radius = this.boundingBox.magnitude() * 0.5;
     }
 
     /**
@@ -442,6 +466,30 @@ export class StarBarge extends Ship {
                 { x: -16.00, y: 14.00, radius: 1.00 },
             ]
         };
+    }
+
+    /**
+     * Draws the ship's windows/cockpit.
+     * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
+     * @param {Camera} camera - The camera object.
+     */
+    drawWindows(ctx, camera) {
+        // Draw the cockpit
+        ctx.save();
+        this.getWindowColour(ctx);
+        ctx.beginPath();
+        ctx.moveTo(-1.00, -19.00);
+        ctx.lineTo(1.00, -19.00);
+        ctx.lineTo(2.00, -15.00);
+        ctx.lineTo(2.00, -13.00);
+        ctx.lineTo(1.00, -12.00);
+        ctx.lineTo(-1.00, -12.00);
+        ctx.lineTo(-2.00, -13.00);
+        ctx.lineTo(-2.00, -15.00);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
     }
 
     /**
@@ -504,21 +552,6 @@ export class StarBarge extends Ship {
         ctx.lineTo(13.00, 15.00);
         ctx.lineTo(13.00, -7.00);
         ctx.lineTo(12.00, -8.00);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-
-        // Draw the cockpit
-        ctx.fillStyle = this.colors.cockpit.toRGB();
-        ctx.beginPath();
-        ctx.moveTo(-1.00, -19.00);
-        ctx.lineTo(1.00, -19.00);
-        ctx.lineTo(2.00, -15.00);
-        ctx.lineTo(2.00, -13.00);
-        ctx.lineTo(1.00, -12.00);
-        ctx.lineTo(-1.00, -12.00);
-        ctx.lineTo(-2.00, -13.00);
-        ctx.lineTo(-2.00, -15.00);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
@@ -617,9 +650,8 @@ export class Freighter extends Ship {
      * Sets up the bounding box
      */
     setupBoundingBox() {
-        // Bounding box: width = 630.0 (from 157.5 to 787.5), height = 1920.0 (from 480.0 to 2400.0)
         this.boundingBox.set(42.00, 128.00);
-        this.radius = 128;
+        this.radius = this.boundingBox.magnitude() * 0.5;
     }
 
     /**
@@ -644,6 +676,30 @@ export class Freighter extends Ship {
                 { x: -20.00, y: 52.00, radius: 1.00 },
             ]
         };
+    }
+
+    /**
+     * Draws the ship's windows/cockpit.
+     * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
+     * @param {Camera} camera - The camera object.
+     */
+    drawWindows(ctx, camera) {
+        // Draw the cockpit
+        ctx.save();
+        this.getWindowColour(ctx);
+        ctx.beginPath();
+        ctx.moveTo(-1.00, -62.00);
+        ctx.lineTo(1.00, -62.00);
+        ctx.lineTo(2.00, -58.00);
+        ctx.lineTo(2.00, -56.00);
+        ctx.lineTo(1.00, -55.00);
+        ctx.lineTo(-1.00, -55.00);
+        ctx.lineTo(-2.00, -56.00);
+        ctx.lineTo(-2.00, -58.00);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
     }
 
     /**
@@ -807,21 +863,6 @@ export class Freighter extends Ship {
         ctx.lineTo(13.00, -24.00);
         ctx.lineTo(13.00, -46.00);
         ctx.lineTo(12.00, -47.00);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-
-        // Draw the cockpit
-        ctx.fillStyle = this.colors.cockpit.toRGB();
-        ctx.beginPath();
-        ctx.moveTo(-1.00, -62.00);
-        ctx.lineTo(1.00, -62.00);
-        ctx.lineTo(2.00, -58.00);
-        ctx.lineTo(2.00, -56.00);
-        ctx.lineTo(1.00, -55.00);
-        ctx.lineTo(-1.00, -55.00);
-        ctx.lineTo(-2.00, -56.00);
-        ctx.lineTo(-2.00, -58.00);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
@@ -1113,9 +1154,8 @@ export class Arrow extends Ship {
      * Sets up the bounding box
      */
     setupBoundingBox() {
-        // Bounding box: width = 480.0 (from 120.0 to 600.0), height = 690.0 (from 172.5 to 862.5)
         this.boundingBox.set(32.00, 46.00);
-        this.radius = 46;
+        this.radius = this.boundingBox.magnitude() * 0.5;
     }
 
     /**
@@ -1138,6 +1178,26 @@ export class Arrow extends Ship {
                 { x: 5.00, y: -1.00, radius: 1.00 },
             ]
         };
+    }
+
+    /**
+     * Draws the ship's windows/cockpit.
+     * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
+     * @param {Camera} camera - The camera object.
+     */
+    drawWindows(ctx, camera) {
+        // Draw the cockpit
+        ctx.save();
+        this.getWindowColour(ctx);
+        ctx.beginPath();
+        ctx.moveTo(-1.00, -12.00);
+        ctx.lineTo(1.00, -12.00);
+        ctx.lineTo(2.00, -8.00);
+        ctx.lineTo(-2.00, -8.00);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
     }
 
     /**
@@ -1175,17 +1235,6 @@ export class Arrow extends Ship {
         ctx.lineTo(2.00, 8.00);
         ctx.lineTo(2.00, 20.00);
         ctx.lineTo(-2.00, 20.00);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-
-        // Draw the cockpit
-        ctx.fillStyle = this.colors.cockpit.toRGB();
-        ctx.beginPath();
-        ctx.moveTo(-1.00, -12.00);
-        ctx.lineTo(1.00, -12.00);
-        ctx.lineTo(2.00, -8.00);
-        ctx.lineTo(-2.00, -8.00);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
@@ -1232,9 +1281,8 @@ export class Boxwing extends Ship {
      * Sets up the bounding box
      */
     setupBoundingBox() {
-        // Bounding box: width = 270.0 (from 67.5 to 337.5), height = 262.6 (from 65.6 to 328.2)
         this.boundingBox.set(18.00, 17.50);
-        this.radius = 18;
+        this.radius = this.boundingBox.magnitude() * 0.5;
     }
 
     /**
@@ -1257,6 +1305,36 @@ export class Boxwing extends Ship {
                 { x: 6.00, y: 4.25, radius: 1.00 },
             ]
         };
+    }
+
+    /**
+     * Draws the ship's windows/cockpit.
+     * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
+     * @param {Camera} camera - The camera object.
+     */
+    drawWindows(ctx, camera) {
+        // Draw the cockpit
+        ctx.save();
+        this.getWindowColour(ctx);
+        ctx.beginPath();
+        ctx.moveTo(-3.00, -6.75);
+        ctx.lineTo(-2.00, -5.75);
+        ctx.lineTo(-2.00, -4.75);
+        ctx.lineTo(-3.00, -4.75);
+        ctx.closePath();
+        ctx.moveTo(3.00, -6.75);
+        ctx.lineTo(3.00, -4.75);
+        ctx.lineTo(2.00, -4.75);
+        ctx.lineTo(2.00, -5.75);
+        ctx.closePath();
+        ctx.moveTo(-3.00, -7.75);
+        ctx.lineTo(3.00, -7.75);
+        ctx.lineTo(2.00, -6.75);
+        ctx.lineTo(-2.00, -6.75);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
     }
 
     /**
@@ -1303,27 +1381,6 @@ export class Boxwing extends Ship {
         ctx.lineTo(3.00, 7.25);
         ctx.lineTo(2.00, 8.25);
         ctx.lineTo(-2.00, 8.25);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-
-        // Draw the cockpit
-        ctx.fillStyle = this.colors.cockpit.toRGB();
-        ctx.beginPath();
-        ctx.moveTo(-3.00, -6.75);
-        ctx.lineTo(-2.00, -5.75);
-        ctx.lineTo(-2.00, -4.75);
-        ctx.lineTo(-3.00, -4.75);
-        ctx.closePath();
-        ctx.moveTo(3.00, -6.75);
-        ctx.lineTo(3.00, -4.75);
-        ctx.lineTo(2.00, -4.75);
-        ctx.lineTo(2.00, -5.75);
-        ctx.closePath();
-        ctx.moveTo(-3.00, -7.75);
-        ctx.lineTo(3.00, -7.75);
-        ctx.lineTo(2.00, -6.75);
-        ctx.lineTo(-2.00, -6.75);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
@@ -1384,9 +1441,8 @@ export class Interceptor extends Ship {
      * Sets up the bounding box
      */
     setupBoundingBox() {
-        // Bounding box: width = 450.0 (from 112.5 to 562.5), height = 825.0 (from 206.3 to 1031.3)
         this.boundingBox.set(30.00, 55.00);
-        this.radius = 55;
+        this.radius = this.boundingBox.magnitude() * 0.5;
     }
 
     /**
@@ -1406,6 +1462,31 @@ export class Interceptor extends Ship {
                 { x: 14.00, y: 14.50, radius: 1.00 },
             ]
         };
+    }
+
+    /**
+     * Draws the ship's windows/cockpit.
+     * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
+     * @param {Camera} camera - The camera object.
+     */
+    drawWindows(ctx, camera) {
+        // Draw the cockpit
+        ctx.save();
+        this.getWindowColour(ctx);
+        // Draw the cockpit
+        ctx.beginPath();
+        ctx.moveTo(-1.00, 16.50);
+        ctx.lineTo(1.00, 16.50);
+        ctx.lineTo(2.00, 19.50);
+        ctx.lineTo(2.00, 20.50);
+        ctx.lineTo(1.00, 21.50);
+        ctx.lineTo(-1.00, 21.50);
+        ctx.lineTo(-2.00, 20.50);
+        ctx.lineTo(-2.00, 19.50);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
     }
 
     /**
@@ -1441,21 +1522,6 @@ export class Interceptor extends Ship {
         ctx.lineTo(9.00, 19.50);
         ctx.lineTo(8.00, 20.50);
         ctx.lineTo(6.00, 20.50);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-
-        // Draw the cockpit
-        ctx.fillStyle = this.colors.cockpit.toRGB();
-        ctx.beginPath();
-        ctx.moveTo(-1.00, 16.50);
-        ctx.lineTo(1.00, 16.50);
-        ctx.lineTo(2.00, 19.50);
-        ctx.lineTo(2.00, 20.50);
-        ctx.lineTo(1.00, 21.50);
-        ctx.lineTo(-1.00, 21.50);
-        ctx.lineTo(-2.00, 20.50);
-        ctx.lineTo(-2.00, 19.50);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();

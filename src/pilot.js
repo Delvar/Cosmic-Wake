@@ -247,6 +247,9 @@ export class PlayerPilot extends Pilot {
         if (pressed('T')) {
             this.ship.setTarget(this.targetNext(-1));
         }
+        if (pressed('k')) {
+            this.ship.takeDamage(this.ship.shield.strength > 0 ? this.ship.shield.strength : this.ship.hullIntegrity, this.ship.position, this.ship.position, this.ship.age);
+        }
     }
 
     /**

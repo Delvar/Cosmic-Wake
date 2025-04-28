@@ -97,8 +97,11 @@ export function hash(i, j, layer) {
  */
 export class SimpleRNG {
     constructor(seed) {
-        this.seed = seed % 2147483647;
-        if (this.seed <= 0) this.seed += 2147483646;
+        this.seed = (seed * 16807) % 2147483647;
+        if (this.seed <= 0) {
+            this.seed += 2147483646;
+            this.seed = Math.abs(this.seed);
+        }
     }
 
     next() {

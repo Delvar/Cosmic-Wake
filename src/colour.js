@@ -20,6 +20,14 @@ export class Colour {
     }
 
     /**
+     * Creates a copy of this colour.
+     * @returns {Colour} A new Colour with the same values.
+     */
+    clone() {
+        return new Colour(this.r, this.g, this.b, this.a);
+    }
+
+    /**
      * Converts the color to an RGB string format.
      * @returns {string} The RGB string in the format 'rgb(r, g, b)', where r, g, b are integers from 0 to 255.
      */

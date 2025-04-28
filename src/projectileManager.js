@@ -80,17 +80,25 @@ export class ProjectileManager {
             const type = ProjectileManager.projectileTypes[p.typeIndex];
             for (const ship of this.starSystem.ships) {
                 if (ship === p.owner) continue;
+                if (!isFinite(ship.position.x) || !isFinite(ship.position.y) || !isFinite(ship.radius)) {
+                    // console.warn('Invalid ship position or radius:', {
+                    //   position: [ship.position.x, ship.position.y],
+                    //   radius: ship.radius
+                    // });
+                    continue;
+                }
                 this._scratchDistance.set(p.position).subtractInPlace(ship.position);
                 const distanceSq = this._scratchDistance.squareMagnitude();
                 const collisionRadius = type.radius + ship.radius;
                 if (distanceSq <= collisionRadius * collisionRadius) {
-                    ship.triggerShieldEffect(p.position);
+                    ship.takeDamage(type.damage, p.position);
                     removeObjectFromArrayInPlace(p, this.projectiles);
                     break;
                 }
             }
         }
     }
+
 
     /**
      * Draws all active, visible projectiles as white lines (100 units long, trailing backward),

@@ -5,9 +5,10 @@ import { Trail } from './trail.js';
 import { Colour } from './colour.js';
 import { GameObject } from './gameObject.js';
 import { CelestialBody, JumpGate } from './celestialBody.js';
-import { TWO_PI, normalizeAngle, randomBetween } from './utils.js';
+import { TWO_PI, normalizeAngle, randomBetween, SimpleRNG } from './utils.js';
 import { Asteroid } from './asteroidBelt.js';
 import { Weapon } from './weapon.js';
+import { Shield } from './shield.js';
 
 function generateShipName() {
     const prefixes = [
@@ -41,7 +42,9 @@ function generateShipName() {
 /**
  * Represents a spaceship that can navigate, land, and jump between star systems.
  * Extends GameObject to inherit position, velocity, and star system properties.
- * @extends GameObject
+ * @export
+ * @class Ship
+ * @extends {GameObject}
  */
 export class Ship extends GameObject {
     /** @static {number} Maximum speed for initiating landing (units/second). */
@@ -80,10 +83,9 @@ export class Ship extends GameObject {
         this.lastJumpTime = 0;
         /** @type {Pilot|null} The pilot controlling the ship, if any. */
         this.pilot = null;
-        // Generate random colors for ship components
         /** @type {Object} Colors for cockpit, wings, and hull. */
         this.colors = {
-            cockpit: this.generateRandomBlue(),
+            cockpit: this.generateRandomWindowColour(),
             wings: this.generateRandomColor(),
             hull: this.generateRandomGrey()
         };
@@ -103,7 +105,8 @@ export class Ship extends GameObject {
             'Landed': this.updateLanded.bind(this),
             'TakingOff': this.updateTakingOff.bind(this),
             'JumpingOut': this.updateJumpingOut.bind(this),
-            'JumpingIn': this.updateJumpingIn.bind(this)
+            'JumpingIn': this.updateJumpingIn.bind(this),
+            'Disabled': this.updateDisabled.bind(this)
         };
         /** @type {number} Scale factor for rendering (1 = normal size). */
         this.shipScale = 1;
@@ -141,12 +144,14 @@ export class Ship extends GameObject {
         this.featurePoints = null;
         /** @type {Weapon|null} The ship's weapon, if equipped. */
         this.weapon = new Weapon(0); // Rail Gun (typeIndex 0)
-        /** @type {number} Time remaining for shield effect in seconds. */
-        this.shieldEffectTime = 0;
-        /** @type {number} The maximum time the for shield effect in seconds. */
-        this.shieldEffectMaxTime = 0.5;
-        /** @type {Vector2D} Position of the last hit for shield gradient. */
-        this.shieldHitPosition = new Vector2D(0, 0);
+        /** @type {Shield} The ship's energy shield. */
+        this.shield = new Shield(100, 20, 3, 50, 1);
+        /** @type {number} Current hull health. */
+        this.hullIntegrity = 100;
+        /** @type {number} Maximum hull health. */
+        this.maxHull = 100;
+        /** @type {number} Hull percentage below which the ship becomes disabled. */
+        this.disabledThreshold = 10;
 
         // Initialize feature points and bounding box
         this.setupFeaturePoints();
@@ -173,12 +178,6 @@ export class Ship extends GameObject {
         this._scratchDistanceToTarget = new Vector2D(0, 0);
         /** @type {Vector2D} General-purpose temporary vector. */
         this._scratchTemp = new Vector2D(0, 0);
-        /** @type {Vector2D} Temporary vector for shield center in screen coordinates. */
-        this._scratchShieldCenter = new Vector2D(0, 0);
-        /** @type {Vector2D} Temporary vector for shield hit point in screen coordinates. */
-        this._scratchShieldHit = new Vector2D(0, 0);
-        /** @type {Vector2D} Temporary vector for world-space hit point calculation. */
-        this._scratchWorldHit = new Vector2D(0, 0);
     }
 
     /**
@@ -239,10 +238,10 @@ export class Ship extends GameObject {
      * Generates a random blue shade for the cockpit.
      * @returns {Colour} A blue-tinted color object.
      */
-    generateRandomBlue() {
-        const r = randomBetween(0, 0.2); // Low red for blue hue
-        const g = randomBetween(0, 0.5); // Medium green for tint
-        const b = randomBetween(0.7, 1); // High blue for vibrancy
+    generateRandomWindowColour() {
+        const r = randomBetween(0.8, 1);
+        const g = randomBetween(0.8, 1);
+        const b = randomBetween(0.8, 1);
         return new Colour(r, g, b);
     }
 
@@ -262,7 +261,7 @@ export class Ship extends GameObject {
      * @returns {Colour} A grey color object.
      */
     generateRandomGrey() {
-        const shade = randomBetween(0.3, 0.8); // Light to dark grey
+        const shade = randomBetween(0.4, 0.4); // Light to dark grey
         return new Colour(shade, shade, shade);
     }
 
@@ -403,7 +402,6 @@ export class Ship extends GameObject {
      * @returns {boolean} True if hyperjump is initiated, false otherwise.
      */
     initiateHyperjump(gate = null) {
-        const currentTime = performance.now();
         // Find closest jump gate if none provided
         if (!gate) {
             gate = this.starSystem.getClosestJumpGate(this, null);
@@ -417,7 +415,7 @@ export class Ship extends GameObject {
         this.setState('JumpingOut');
         this.jumpGate = gate;
         this.jumpStartPosition.set(this.position);
-        this.lastJumpTime = currentTime;
+        this.lastJumpTime = this.age;
         this.isThrusting = false;
         this.isBraking = false;
         return true;
@@ -427,17 +425,23 @@ export class Ship extends GameObject {
      * Fires the ship's weapon.
      */
     fire() {
-        if (this.state !== 'Flying' || !this.weapon) return;
+        if (this.state !== 'Flying' || !this.weapon || this.state === 'Disabled') return;
         this.weapon.fire(this, this.starSystem.projectileManager);
     }
 
     /**
-     * Triggers a temporary shield effect at the hit position.
-     * @param {Vector2D} hitPosition - The position where the projectile hit.
+     * Applies damage to the ship, processing through shields and hull.
+     * @param {number} damage - Amount of damage to apply.
+     * @param {Vector2D} hitPosition - World-space position of the hit.
      */
-    triggerShieldEffect(hitPosition) {
-        this.shieldEffectTime = this.shieldEffectMaxTime;
-        this.shieldHitPosition.set(hitPosition).subtractInPlace(this.position);
+    takeDamage(damage, hitPosition) {
+        let excessDamage = damage;
+        if (this.shield && this.shield.isActive) {
+            excessDamage = this.shield.takeDamage(damage, hitPosition, this.position, this.age);
+        }
+        if (excessDamage > 0) {
+            this.hullIntegrity = Math.max(this.hullIntegrity - excessDamage, -50);
+        }
     }
 
     /**
@@ -448,12 +452,15 @@ export class Ship extends GameObject {
         if (this.despawned) return; // Skip updates for despawned ships
 
         this.age += deltaTime; // Increment ship age for animations
-        if (this.weapon) {
-            this.weapon.update(deltaTime);
+
+        // Update shield (skip if disabled)
+        if (this.state !== 'Disabled' && this.shield) {
+            this.shield.update(deltaTime, this.age);
         }
 
-        if (this.shieldEffectTime > 0) {
-            this.shieldEffectTime -= deltaTime;
+        // Update weapon (skip if disabled)
+        if (this.state !== 'Disabled' && this.weapon) {
+            this.weapon.update(deltaTime);
         }
 
         // Log NaN position errors in debug mode
@@ -490,6 +497,16 @@ export class Ship extends GameObject {
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
      */
     updateFlying(deltaTime) {
+        // Check for Disabled or Exploding state transitions
+        if (this.hullIntegrity <= this.disabledThreshold) {
+            this.setState('Disabled');
+            this.isThrusting = false;
+            this.isBraking = false;
+            this.shield.isActive = false;
+            this.shield.strength = 0;
+            return;
+        }
+
         // Rotate towards target angle
         const angleDiff = normalizeAngle(this.targetAngle - this.angle);
         this.angle += Math.min(Math.max(angleDiff, -this.rotationSpeed * deltaTime), this.rotationSpeed * deltaTime);
@@ -667,6 +684,22 @@ export class Ship extends GameObject {
     }
 
     /**
+     * Updates the ship in the 'Disabled' state, decelerating.
+     * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     */
+    updateDisabled(deltaTime) {
+        // Decelerate: reduce velocity if significant
+        if (this.velocity.squareMagnitude() > 1) {
+            this.velocity.multiplyInPlace(1 - (0.1 * deltaTime)); // 10% loss per second
+            // Update position based on velocity
+            this._scratchVelocityDelta.set(this.velocity).multiplyInPlace(deltaTime);
+            this.position.addInPlace(this._scratchVelocityDelta);
+        } else {
+            this.velocity.set(0, 0); // Dead stop
+        }
+    }
+
+    /**
      * Updates the ship in the 'JumpingIn' state, animating the entry jump.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
      */
@@ -744,17 +777,18 @@ export class Ship extends GameObject {
         // Render ship if within camera view
         if (camera.isInView(this.position, this.radius)) {
             ctx.save();
-            ctx.save();
             camera.worldToScreen(this.position, this._scratchScreenPos);
             ctx.translate(this._scratchScreenPos.x, this._scratchScreenPos.y);
             ctx.rotate(this.angle);
             ctx.scale(scale, scale * this.stretchFactor);
             this.drawEngines(ctx, camera);
             this.drawShip(ctx, camera);
+            this.drawWindows(ctx, camera);
             this.drawTurrets(ctx, camera);
             this.drawLights(ctx, camera);
             ctx.restore();
         }
+
         // Draw shield effect and debug in untransformed context
         if (camera.isInView(this.position, this.radius)) {
             ctx.save();
@@ -765,64 +799,16 @@ export class Ship extends GameObject {
     }
 
     /**
-     * Draws the shield effect, if active, as a radial gradient bubble.
-     * Can be overridden in subclasses for custom visuals.
+     * Draws the shield effect using the Shield class.
      * @param {CanvasRenderingContext2D} ctx - Canvas context.
-     * @param {Camera} camera - Camera for world-to-screen transform.
+     * @param {Object} camera - Camera for world-to-screen transform.
      */
     drawShieldEffect(ctx, camera) {
-        if (this.shieldEffectTime <= 0) return;
-
-        // Validate inputs to prevent non-finite errors
-        if (!isFinite(this.position.x) || !isFinite(this.position.y) ||
-            !isFinite(this.shieldHitPosition.x) || !isFinite(this.shieldHitPosition.y) ||
-            !isFinite(this.radius)) {
-            // Debug logging (uncomment to trace)
-            // console.warn('Invalid shield effect inputs:', {
-            //   position: [this.position.x, this.position.y],
-            //   shieldHitPosition: [this.shieldHitPosition.x, this.shieldHitPosition.y],
-            //   radius: this.radius
-            // });
-            return;
-        }
-
-        const alpha = this.shieldEffectTime / this.shieldEffectMaxTime; // Fade from 1 to 0
-        camera.worldToScreen(this.position, this._scratchShieldCenter);
-        // Compute world-space hit point from relative offset
-        this._scratchWorldHit.set(this.shieldHitPosition).multiplyInPlace(alpha).addInPlace(this.position);
-        camera.worldToScreen(this._scratchWorldHit, this._scratchShieldHit);
-
-        // Validate screen coordinates
-        if (!isFinite(this._scratchShieldCenter.x) || !isFinite(this._scratchShieldCenter.y) ||
-            !isFinite(this._scratchShieldHit.x) || !isFinite(this._scratchShieldHit.y)) {
-            // console.warn('Invalid shield screen coordinates:', {
-            //   shieldCenter: [this._scratchShieldCenter.x, this._scratchShieldCenter.y],
-            //   shieldHit: [this._scratchShieldHit.x, this._scratchShieldHit.y]
-            // });
-            return;
-        }
-
-        const shieldRadius = camera.worldToSize(this.radius);
-        if (!isFinite(shieldRadius) || shieldRadius <= 0) {
-            // console.warn('Invalid shield radius:', shieldRadius);
-            return;
-        }
-
-        const gradient = ctx.createRadialGradient(
-            this._scratchShieldHit.x, this._scratchShieldHit.y, 0, // Bright blue at hit point
-            this._scratchShieldCenter.x, this._scratchShieldCenter.y, shieldRadius // Fade to edge
-        );
-        gradient.addColorStop(0, `rgba(100, 150, 255, ${0.8 * alpha})`);
-        gradient.addColorStop(1, `rgba(0, 50, 150, ${0.2 * alpha})`);
-
-        ctx.beginPath();
-        ctx.arc(this._scratchShieldCenter.x, this._scratchShieldCenter.y, shieldRadius, 0, TWO_PI);
-        ctx.fillStyle = gradient;
-        ctx.fill();
+        this.shield.draw(ctx, camera, this.position, this.radius);
     }
 
     /**
-     * Draws the ship's main body and thrust effects.
+     * Draws the ship's main body
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
      * @param {Object} camera - The camera object.
      */
@@ -856,6 +842,50 @@ export class Ship extends GameObject {
         }
 
         ctx.restore();
+    }
+
+    /**
+     * Configure the context to draw the windows
+     * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
+     */
+    getWindowColour(ctx) {
+        let brightness = 1;
+        let colour;
+
+        if (this.state === 'Disabled') {
+            let blink = Math.abs(Math.sin(this.age * 1.35) * Math.cos(this.age * 1.55));
+            blink = blink < 0.8 ? 0 : blink;
+            brightness = Math.abs(Math.sin(this.age * 13) * Math.cos(this.age * 7));
+            brightness = (brightness *= blink) > 0.50 ? 1 : brightness;
+            brightness *= blink;
+            colour = this.colors.cockpit.clone();
+            const multiplier = 0.2 + brightness * 0.8;
+            colour.r *= multiplier;
+            colour.g *= multiplier;
+            colour.b *= multiplier;
+        } else {
+            colour = this.colors.cockpit;
+        }
+
+        const colourString = colour.toRGB();
+        ctx.fillStyle = colourString;
+        // Set shadow for glow effect
+        ctx.shadowColor = colourString;
+        ctx.lineWidth = 1.0 - (1-brightness) * 0.9;
+        ctx.strokeStyle = colour.toRGBA(0.25);
+        ctx.shadowBlur = brightness * 4;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+    }
+
+    /**
+     * Draws the ship's windows/cockpit.
+     * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
+     * @param {Object} camera - The camera object.
+     * @param {Number} brightness - The brightness of the windows.
+     */
+    drawWindows(ctx, camera, brightness) {
+
     }
 
     /**
@@ -926,51 +956,50 @@ export class Ship extends GameObject {
     drawLights(ctx, camera) {
         for (let i = 0; i < this.featurePoints.lights.length; i++) {
             const light = this.featurePoints.lights[i];
-            const sinAge = Math.sin(this.age * 5);
-            const leftBrightness = Math.max(0, sinAge) ** 8;
-            const rightBrightness = Math.max(0, -sinAge) ** 8;
+            let brightness = 0;
 
-            // Draw outer light layer
+            if (this.state === 'Disabled') {
+                let blink = Math.abs(Math.sin(107 + i * 0.3 + this.age * 1.3) * Math.cos(113 + i * 0.2 + this.age * 1.5));
+                blink = blink < 0.8 ? 0 : blink;
+                brightness = Math.abs(Math.sin(109 + i * 2.0 + this.age * 13) * Math.cos(127 + i * 3.5 + this.age * 7));
+                brightness = (brightness *= blink) > 0.50 ? 1 : brightness;
+                brightness *= blink;
+            } else {
+                const sinAge = Math.sin((this.age * 5) - (light.y / this.boundingBox.y));
+                brightness = Math.max(0, sinAge) ** 8;
+            }
+
+            // Create radial gradient
+            ctx.save();
+            const gradient = ctx.createRadialGradient(light.x, light.y, 0, light.x, light.y, light.radius * 5 * brightness);
             if (light.x < -3) {
-                ctx.fillStyle = `rgba(255,0,0,${leftBrightness * 0.5})`; // Red for left
+                // Left: Red outer/middle, white inner
+                gradient.addColorStop(0, `rgba(255,255,255,${brightness})`); // Inner
+                gradient.addColorStop(0.1, `rgba(255,255,255,${brightness})`); // Inner
+                gradient.addColorStop(0.3, `rgba(255,0,0,${brightness * 0.5})`); // Middle
+                gradient.addColorStop(1, `rgba(255,0,0,${brightness * 0})`); // Outer
             } else if (light.x > 3) {
-                ctx.fillStyle = `rgba(0,255,0,${rightBrightness * 0.5})`; // Green for right
+                // Right: Green outer/middle, white inner
+                gradient.addColorStop(0, `rgba(255,255,255,${brightness})`);
+                gradient.addColorStop(0.1, `rgba(255,255,255,${brightness})`); // Inner
+                gradient.addColorStop(0.3, `rgba(0,255,0,${brightness * 0.5})`);
+                gradient.addColorStop(1, `rgba(0,255,0,${brightness * 0})`);
             } else {
-                ctx.fillStyle = 'rgba(255,255,255,0.5)'; // White for center
+                // Center: White for all
+                gradient.addColorStop(0, `rgba(255,255,255,${brightness})`);
+                gradient.addColorStop(0.1, `rgba(255,255,255,${brightness})`); // Inner
+                gradient.addColorStop(0.3, `rgba(255,255,255,${brightness * 0.5})`);
+                gradient.addColorStop(1, `rgba(255,255,255,${brightness * 0})`);
             }
-            ctx.beginPath();
-            ctx.moveTo(light.x, light.y);
-            ctx.arc(light.x, light.y, light.radius * 2, 0, TWO_PI);
-            ctx.closePath();
-            ctx.fill();
 
-            // Draw middle light layer
-            if (light.x < -3) {
-                ctx.fillStyle = `rgba(255,0,0,${leftBrightness})`;
-            } else if (light.x > 3) {
-                ctx.fillStyle = `rgba(0,255,0,${rightBrightness})`;
-            } else {
-                ctx.fillStyle = 'rgba(255,255,255,1)';
-            }
+            // Draw single circle with gradient
+            ctx.fillStyle = gradient;
             ctx.beginPath();
             ctx.moveTo(light.x, light.y);
-            ctx.arc(light.x, light.y, light.radius, 0, TWO_PI);
+            ctx.arc(light.x, light.y, light.radius * 5 * brightness, 0, TWO_PI);
             ctx.closePath();
             ctx.fill();
-
-            // Draw inner light layer
-            if (light.x < 3) {
-                ctx.fillStyle = `rgba(255,255,255,${leftBrightness})`;
-            } else if (light.x > 3) {
-                ctx.fillStyle = `rgba(255,255,255,${rightBrightness})`;
-            } else {
-                ctx.fillStyle = 'rgba(255,255,255,1)';
-            }
-            ctx.beginPath();
-            ctx.moveTo(light.x, light.y);
-            ctx.arc(light.x, light.y, light.radius * 0.5, 0, TWO_PI);
-            ctx.closePath();
-            ctx.fill();
+            ctx.restore();
         }
     }
 

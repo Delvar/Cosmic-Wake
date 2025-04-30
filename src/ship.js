@@ -796,10 +796,12 @@ export class Ship extends GameObject {
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
      */
     updateExploding(deltaTime) {
+        this.velocity.multiplyInPlace(1 - (0.1 * deltaTime)); // 10% loss per second
+
         this.explosionTime += deltaTime;
 
         // Compute lerp factor based on hullIntegrity (0 at hull=0, 1 at hull=-50)
-        const t = clamp((this.hullIntegrity - 0) / (-50 - 0), 0, 1);
+        const t = clamp(this.hullIntegrity / -50, 0, 1);
 
         // Check for final explosion and despawn
         if (this.hullIntegrity <= -50) {
@@ -838,9 +840,13 @@ export class Ship extends GameObject {
             const currentTorque = this.explosionTorque * explosionSizeRatio;
 
             // Generate random explosion position on hull
-            const radius = randomBetween(0, this.radius);
-            const angle = randomBetween(0, TWO_PI);
-            this._scratchExplosionPos.setFromPolar(radius, angle).addInPlace(this.position);
+            // const radius = randomBetween(0, this.radius);
+            // const angle = randomBetween(0, TWO_PI);
+            // this._scratchExplosionPos.setFromPolar(radius, angle).addInPlace(this.position);
+            //this._applyExplosionImpulse(this._scratchExplosionPos, currentForce, currentTorque);
+
+            // Generate random explosion position within rotated bounding box
+            this._getRandomPointInBoundingBox(this._scratchExplosionPos);
             this._applyExplosionImpulse(this._scratchExplosionPos, currentForce, currentTorque);
 
             // Store for debug visuals
@@ -877,6 +883,27 @@ export class Ship extends GameObject {
         if (Math.abs(this.angularVelocity) > this.maxAngularVelocity) {
             this.angularVelocity = Math.sign(this.angularVelocity) * this.maxAngularVelocity;
         }
+    }
+
+   /**
+    * Generates a random point within the ship's rotated bounding box.
+    * @param {Vector2D} out - The vector to store the world-space position.
+    */
+    _getRandomPointInBoundingBox(out) {
+        // Generate random point in unrotated bounding box, centered at (0,0)
+        const halfWidth = this.boundingBox.x * 0.5;
+        const halfHeight = this.boundingBox.y * 0.5;
+        const x = randomBetween(-halfWidth, halfWidth);
+        const y = randomBetween(-halfHeight, halfHeight);
+
+        // Rotate point by ship angle
+        const cosAngle = Math.cos(this.angle);
+        const sinAngle = Math.sin(this.angle);
+        const rotatedX = x * cosAngle - y * sinAngle;
+        const rotatedY = x * sinAngle + y * cosAngle;
+
+        // Translate to world position
+        out.set(rotatedX, rotatedY).addInPlace(this.position);
     }
 
     /**

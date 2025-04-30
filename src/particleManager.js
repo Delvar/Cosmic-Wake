@@ -36,24 +36,20 @@ export class ParticleManager {
      *   minSpeed?: number,
      *   maxSpeed?: number,
      *   lifetime?: number,
-     *   shockwaveSpeed?: number,
-     *   fireballSpeed?: number,
      * }>}
      */
     static particleTypes = [
         // Spark Line (Type 0)
         {
             lineWidth: 1,
-            minLength: 10,
+            minLength: 5,
             maxLength: 50,
             minSpeed: 200,
             maxSpeed: 500,
-            lifetime: 1
+            lifetime: 1.5
         },
         // Explosion (Shockwave + Fireball, Type 1)
         {
-            shockwaveSpeed: 200,
-            fireballSpeed: 100,
             lifetime: 0.5
         }
     ];

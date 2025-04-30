@@ -626,6 +626,7 @@ export class Freighter extends Ship {
         this.maxVelocity = 100;
         this.setupTrail();
     }
+
     /**
      * Sets up the bounding box
      */

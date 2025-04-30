@@ -231,7 +231,8 @@ class Game {
         for (let i = 0; i < starSystem.ships.length; i++) {
             starSystem.ships[i].draw(ctx, this.targetCamera);
         }
-        starSystem.particleManager.draw(ctx, this.camera);
+        starSystem.projectileManager.draw(ctx, this.targetCamera);
+        starSystem.particleManager.draw(ctx, this.targetCamera);
         const targetName = target.name || "Unnamed Object";
         ctx.fillStyle = "white";
         ctx.font = "16px Arial";

@@ -27,6 +27,8 @@ export class ProjectileManager {
         this._scratchLineStart = new Vector2D(0, 0);
         /** @type {Vector2D} Temporary vector for line end in screen coordinates. */
         this._scratchLineEnd = new Vector2D(0, 0);
+        /** @type {Vector2D} Temporary vector for local-space projectile position. */
+        this._scratchLocalPos = new Vector2D(0, 0);
     }
 
     /**
@@ -87,11 +89,35 @@ export class ProjectileManager {
                     // });
                     continue;
                 }
+                // Compute distance to ship center
                 this._scratchDistance.set(p.position).subtractInPlace(ship.position);
                 const distanceSq = this._scratchDistance.squareMagnitude();
                 const collisionRadius = type.radius + ship.radius;
-                if (distanceSq <= collisionRadius * collisionRadius) {
-                    //FIXME: this is for debug, each shot takes the ship to the next state
+
+                if (distanceSq > collisionRadius * collisionRadius) {
+                    continue; // Too far, skip collision check
+                }
+
+                let isHit = false;
+                if (ship.shield.isActive) {
+                    // Shield active: Hit if within radius
+                    isHit = true;
+                } else {
+                    // Shield down: Check rotated bounding box
+                    // Transform projectile position to ship's local space
+                    this._scratchLocalPos.set(p.position).subtractInPlace(ship.position);
+                    const cosAngle = Math.cos(-ship.angle);
+                    const sinAngle = Math.sin(-ship.angle);
+                    const localX = this._scratchLocalPos.x * cosAngle - this._scratchLocalPos.y * sinAngle;
+                    const localY = this._scratchLocalPos.x * sinAngle + this._scratchLocalPos.y * cosAngle;
+                    // Check if point is within bounding box
+                    const halfWidth = ship.boundingBox.x * 0.5;
+                    const halfHeight = ship.boundingBox.y * 0.5;
+                    isHit = Math.abs(localX) <= halfWidth && Math.abs(localY) <= halfHeight;
+                }
+
+                if (isHit) {
+                    // Debug damage to force state transitions
                     let damage = 0;
                     if (ship.shield.strength) {
                         damage = ship.shield.strength;
@@ -102,6 +128,7 @@ export class ProjectileManager {
                     }
                     ship.takeDamage(damage, p.position);
                     //ship.takeDamage(type.damage, p.position);
+                    this.starSystem.particleManager.spawnExplosion(p.position, 5);
                     removeObjectFromArrayInPlace(p, this.projectiles);
                     break;
                 }

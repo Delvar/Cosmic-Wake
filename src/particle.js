@@ -15,8 +15,10 @@ export class Particle {
         this.position = new Vector2D(0, 0);
         /** @type {Vector2D} Velocity in units/s (for spark lines) or expansion speed (for explosions). */
         this.velocity = new Vector2D(0, 0);
-        /** @type {number} Time (in seconds) when particle expires. */
-        this.expirationTime = 0;
+        /** @type {number} Time (in seconds) when particle started. */
+        this.startTime = 0;
+        /** @type {number} Time (in seconds) how long the particle will live. */
+        this.lifetime = 0;
         /** @type {number} Index into ParticleManager.particleTypes. */
         this.typeIndex = 0;
         /** @type {boolean} Whether the particle is active. */
@@ -30,13 +32,15 @@ export class Particle {
      * @param {Vector2D} position - Spawn position.
      * @param {Vector2D} velocity - Initial velocity or expansion speed.
      * @param {number} typeIndex - Particle type index.
-     * @param {number} expirationTime - Time (in seconds) when particle expires.
+     * @param {number} startTime - Time (in seconds) when particle started.
+     * @param {number} startTime - Time (in seconds) how long the particle will live.
      * @param {number} length - Length for spark lines or initial radius for explosions.
      */
-    reset(position, velocity, typeIndex, expirationTime, length) {
+    reset(position, velocity, typeIndex, startTime, lifetime, length) {
         this.position.set(position);
         this.velocity.set(velocity);
-        this.expirationTime = expirationTime;
+        this.startTime = startTime;
+        this.lifetime = lifetime;
         this.typeIndex = typeIndex;
         this.isActive = true;
         this.length = length;

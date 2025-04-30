@@ -46,11 +46,12 @@ export class ParticleManager {
             maxLength: 50,
             minSpeed: 200,
             maxSpeed: 500,
-            lifetime: 1.5
+            lifetime: 0.75
         },
         // Explosion (Shockwave + Fireball, Type 1)
         {
-            lifetime: 0.5
+            minSpeed: 200,
+            maxSpeed: 500
         }
     ];
 
@@ -78,7 +79,7 @@ export class ParticleManager {
             const angle = randomBetween(0, TWO_PI);
             const velocity = this._scratchVelocity.setFromPolar(speed, angle);
             const length = randomBetween(sparkType.minLength, sparkType.maxLength);
-            particle.reset(position, velocity, 0, this.currentTime + sparkType.lifetime, length);
+            particle.reset(position, velocity, 0, this.currentTime, sparkType.lifetime, length);
             this.particles.push(particle);
         }
 
@@ -87,7 +88,9 @@ export class ParticleManager {
         const particle = new Particle();
         const shockwaveRadius = remapClamp(t, 0, 1, radius * 2.0, radius * 4.0);
         const velocity = this._scratchVelocity.set(0, 0);
-        particle.reset(position, velocity, 1, this.currentTime + explosionType.lifetime, shockwaveRadius);
+        const speed = randomBetween(explosionType.minSpeed, explosionType.maxSpeed);
+        const lifetime = clamp(shockwaveRadius / speed, 0.5, 3);
+        particle.reset(position, velocity, 1, this.currentTime, lifetime, shockwaveRadius);
         this.particles.push(particle);
 
         if (this.starSystem.debug) {
@@ -103,7 +106,7 @@ export class ParticleManager {
         this.currentTime += deltaTime;
         for (let i = this.particles.length - 1; i >= 0; i--) {
             const p = this.particles[i];
-            if (p.expirationTime <= this.currentTime) {
+            if (p.startTime + p.lifetime <= this.currentTime) {
                 removeObjectFromArrayInPlace(p, this.particles);
                 continue;
             }
@@ -126,8 +129,8 @@ export class ParticleManager {
 
         for (const p of this.particles) {
             const type = ParticleManager.particleTypes[p.typeIndex];
-            const age = this.currentTime - (p.expirationTime - type.lifetime);
-            const t = remapClamp(age, 0, type.lifetime, 0, 1);
+            const age = this.currentTime - p.startTime;
+            const t = remapClamp(age, 0, p.lifetime, 0, 1);
             if (t >= 1) continue;
 
             if (p.typeIndex === 0) {
@@ -176,7 +179,7 @@ export class ParticleManager {
                     // Shockwave: Fast, large, thin ring
                     const shockwaveRadius = t2 * p.length;
                     ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${1 - t2})`;
-                    ctx.lineWidth = camera.worldToSize(1.0 + (t2 * shockwaveRadius * 0.2));
+                    ctx.lineWidth = camera.worldToSize(clamp(t2 * shockwaveRadius * 0.2, 1, 10));
                     ctx.moveTo(this._scratchScreenPos.x + shockwaveRadius, this._scratchScreenPos.y);
                     ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, camera.worldToSize(shockwaveRadius), 0, TWO_PI);
                     ctx.stroke();

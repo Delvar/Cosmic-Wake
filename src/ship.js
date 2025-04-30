@@ -5,7 +5,7 @@ import { Trail } from './trail.js';
 import { Colour } from './colour.js';
 import { GameObject } from './gameObject.js';
 import { CelestialBody, JumpGate } from './celestialBody.js';
-import { TWO_PI, normalizeAngle, randomBetween, SimpleRNG } from './utils.js';
+import { TWO_PI, clamp, remapClamp, normalizeAngle, randomBetween, SimpleRNG } from './utils.js';
 import { Asteroid } from './asteroidBelt.js';
 import { Weapon } from './weapon.js';
 import { Shield } from './shield.js';
@@ -106,7 +106,8 @@ export class Ship extends GameObject {
             'TakingOff': this.updateTakingOff.bind(this),
             'JumpingOut': this.updateJumpingOut.bind(this),
             'JumpingIn': this.updateJumpingIn.bind(this),
-            'Disabled': this.updateDisabled.bind(this)
+            'Disabled': this.updateDisabled.bind(this),
+            'Exploding': this.updateExploding.bind(this)
         };
         /** @type {number} Scale factor for rendering (1 = normal size). */
         this.shipScale = 1;
@@ -153,6 +154,21 @@ export class Ship extends GameObject {
         /** @type {number} Hull percentage below which the ship becomes disabled. */
         this.disabledThreshold = 10;
 
+        /** @type {number} Angular velocity in radians per second for rotation. */
+        this.angularVelocity = 0;
+        /** @type {number} Maximum angular velocity in radians per second. */
+        this.maxAngularVelocity = TWO_PI; // One full rotation per second
+        /** @type {number} Time until next explosion in seconds. */
+        this.explosionDelay = 0.0;
+        /** @type {number} Base force magnitude for explosion impulses (units/s²). */
+        this.explosionForce = 30.0;
+        /** @type {number} Base torque for explosion impulses (rad/s). */
+        this.explosionTorque = 30.0;
+        /** @type {number} Time elapsed since last explosion (seconds). */
+        this.explosionTime = 0;
+        /** @type {Array<{position: Vector2D, time: number, force: number}>} Recent explosion positions for debug visuals. */
+        this._recentExplosions = Array(5).fill().map(() => ({ position: new Vector2D(0, 0), time: -Infinity, force: 0 }));
+
         // Initialize feature points and bounding box
         this.setupFeaturePoints();
         this.setupBoundingBox();
@@ -178,6 +194,10 @@ export class Ship extends GameObject {
         this._scratchDistanceToTarget = new Vector2D(0, 0);
         /** @type {Vector2D} General-purpose temporary vector. */
         this._scratchTemp = new Vector2D(0, 0);
+        /** @type {Vector2D} Temporary vector for explosion position. */
+        this._scratchExplosionPos = new Vector2D(0, 0);
+        /** @type {Vector2D} Temporary vector for explosion force. */
+        this._scratchForce = new Vector2D(0, 0);
     }
 
     /**
@@ -239,9 +259,9 @@ export class Ship extends GameObject {
      * @returns {Colour} A blue-tinted color object.
      */
     generateRandomWindowColour() {
-        const r = randomBetween(0.8, 1);
-        const g = randomBetween(0.8, 1);
-        const b = randomBetween(0.8, 1);
+        const r = randomBetween(0.5, 0.8);
+        const g = randomBetween(0.5, 0.8);
+        const b = randomBetween(0.9, 1);
         return new Colour(r, g, b);
     }
 
@@ -261,7 +281,7 @@ export class Ship extends GameObject {
      * @returns {Colour} A grey color object.
      */
     generateRandomGrey() {
-        const shade = randomBetween(0.4, 0.4); // Light to dark grey
+        const shade = randomBetween(0.4, 0.7); // Light to dark grey
         return new Colour(shade, shade, shade);
     }
 
@@ -306,7 +326,11 @@ export class Ship extends GameObject {
      * @param {boolean} thrusting - Whether to apply thrust.
      */
     applyThrust(thrusting) {
-        this.isThrusting = thrusting;
+        if (this.state === 'Flying') {
+            this.isThrusting = thrusting;
+        } else {
+            this.isThrusting = false;
+        }
     }
 
     /**
@@ -425,7 +449,7 @@ export class Ship extends GameObject {
      * Fires the ship's weapon.
      */
     fire() {
-        if (this.state !== 'Flying' || !this.weapon || this.state === 'Disabled') return;
+        if (this.state !== 'Flying' || !this.weapon) return;
         this.weapon.fire(this, this.starSystem.projectileManager);
     }
 
@@ -452,16 +476,6 @@ export class Ship extends GameObject {
         if (this.despawned) return; // Skip updates for despawned ships
 
         this.age += deltaTime; // Increment ship age for animations
-
-        // Update shield (skip if disabled)
-        if (this.state !== 'Disabled' && this.shield) {
-            this.shield.update(deltaTime, this.age);
-        }
-
-        // Update weapon (skip if disabled)
-        if (this.state !== 'Disabled' && this.weapon) {
-            this.weapon.update(deltaTime);
-        }
 
         // Log NaN position errors in debug mode
         if (isNaN(this.position.x) && this.debug) {
@@ -505,6 +519,16 @@ export class Ship extends GameObject {
             this.shield.isActive = false;
             this.shield.strength = 0;
             return;
+        }
+
+        // Update shield (skip if disabled)
+        if (this.shield) {
+            this.shield.update(deltaTime, this.age);
+        }
+
+        // Update weapon (skip if disabled)
+        if (this.weapon) {
+            this.weapon.update(deltaTime);
         }
 
         // Rotate towards target angle
@@ -684,22 +708,6 @@ export class Ship extends GameObject {
     }
 
     /**
-     * Updates the ship in the 'Disabled' state, decelerating.
-     * @param {number} deltaTime - Time elapsed since the last update in seconds.
-     */
-    updateDisabled(deltaTime) {
-        // Decelerate: reduce velocity if significant
-        if (this.velocity.squareMagnitude() > 1) {
-            this.velocity.multiplyInPlace(1 - (0.1 * deltaTime)); // 10% loss per second
-            // Update position based on velocity
-            this._scratchVelocityDelta.set(this.velocity).multiplyInPlace(deltaTime);
-            this.position.addInPlace(this._scratchVelocityDelta);
-        } else {
-            this.velocity.set(0, 0); // Dead stop
-        }
-    }
-
-    /**
      * Updates the ship in the 'JumpingIn' state, animating the entry jump.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
      */
@@ -757,6 +765,144 @@ export class Ship extends GameObject {
     }
 
     /**
+     * Updates the ship in the 'Disabled' state, decelerating.
+     * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     */
+    updateDisabled(deltaTime) {
+        // Check for transition to Exploding
+        if (this.hullIntegrity <= 0) {
+            this.setState('Exploding');
+            this.pilot = null; // Disable pilot controls!
+            this.isThrusting = false;
+            this.isBraking = false;
+            this.shield.isActive = false;
+            this.shield.strength = 0;
+            this.explosionTime = 0; // Initialize explosion timer
+            return;
+        }
+        // Decelerate: reduce velocity if significant
+        if (this.velocity.squareMagnitude() > 1) {
+            this.velocity.multiplyInPlace(1 - (0.1 * deltaTime)); // 10% loss per second
+            // Update position based on velocity
+            this._scratchVelocityDelta.set(this.velocity).multiplyInPlace(deltaTime);
+            this.position.addInPlace(this._scratchVelocityDelta);
+        } else {
+            this.velocity.set(0, 0); // Dead stop
+        }
+    }
+
+    /**
+     * Updates the ship in the 'Exploding' state, triggering explosions based on hull integrity.
+     * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     */
+    updateExploding(deltaTime) {
+        this.explosionTime += deltaTime;
+
+        // Compute lerp factor based on hullIntegrity (0 at hull=0, 1 at hull=-50)
+        const t = clamp((this.hullIntegrity - 0) / (-50 - 0), 0, 1);
+
+        // Check for final explosion and despawn
+        if (this.hullIntegrity <= -50) {
+            // Trigger large final explosion
+            this._scratchExplosionPos.set(this.position);
+            // Store for debug visuals
+            const explosionEntry = this._recentExplosions.shift();
+            explosionEntry.position.set(this._scratchExplosionPos);
+            explosionEntry.time = this.age;
+            explosionEntry.force = this.explosionForce * 5;
+            this._recentExplosions.push(explosionEntry);
+
+            this.starSystem.particleManager.spawnExplosion(this._scratchExplosionPos, this.radius * 2);
+
+            // Despawn the ship
+            this.despawn();
+
+            if (this.debug) {
+                console.log(`Ship ${this.name} despawned with final explosion at (${this._scratchExplosionPos.x.toFixed(2)}, ${this._scratchExplosionPos.y.toFixed(2)})`);
+            }
+            return;
+        }
+
+        // Trigger explosion if time exceeds delay
+        if (this.explosionTime >= this.explosionDelay) {
+            const explosionSizeRatio = randomBetween(0.0, 1.0);
+
+            //Get the size of the explosion
+            const explosionRadius = clamp(this.radius * remapClamp(explosionSizeRatio, 0, 1, 0.01, 0.25), 1, 300);
+            // Calculate next explosion time
+            const baseInterval = remapClamp(1 - t, 0, 1, 0.1, 2);
+            const nextExplosionTime = baseInterval * randomBetween(0.75, 1.25) * explosionSizeRatio;
+
+            // Calculate scaled force and torque
+            const currentForce = this.explosionForce * explosionSizeRatio;
+            const currentTorque = this.explosionTorque * explosionSizeRatio;
+
+            // Generate random explosion position on hull
+            const radius = randomBetween(0, this.radius);
+            const angle = randomBetween(0, TWO_PI);
+            this._scratchExplosionPos.setFromPolar(radius, angle).addInPlace(this.position);
+            this._applyExplosionImpulse(this._scratchExplosionPos, currentForce, currentTorque);
+
+            // Store for debug visuals
+            const explosionEntry = this._recentExplosions.shift();
+            explosionEntry.position.set(this._scratchExplosionPos);
+            explosionEntry.time = this.age;
+            explosionEntry.force = this.explosionForce;
+            this._recentExplosions.push(explosionEntry);
+
+            // Spawn particles with scaled radius
+            this.starSystem.particleManager.spawnExplosion(this._scratchExplosionPos, explosionRadius);
+
+            // Reduce hull integrity
+            const hullReduction = 1 + (2 * explosionSizeRatio);
+            this.hullIntegrity = Math.max(this.hullIntegrity - hullReduction, -50);
+
+            // Update explosion delay
+            this.explosionDelay = this.explosionTime + nextExplosionTime;
+
+            if (this.debug) {
+                console.log(`Explosion at (${this._scratchExplosionPos.x.toFixed(2)}, ${this._scratchExplosionPos.y.toFixed(2)}), hullIntegrity: ${this.hullIntegrity.toFixed(2)}, nextExplosionTime: ${nextExplosionTime.toFixed(2)}s`);
+            }
+        }
+
+        // Update position based on velocity
+        this._scratchVelocityDelta.set(this.velocity).multiplyInPlace(deltaTime);
+        this.position.addInPlace(this._scratchVelocityDelta);
+
+        // Update angle based on angular velocity
+        this.angle += this.angularVelocity * deltaTime;
+        this.angle = normalizeAngle(this.angle);
+
+        // Cap angular velocity
+        if (Math.abs(this.angularVelocity) > this.maxAngularVelocity) {
+            this.angularVelocity = Math.sign(this.angularVelocity) * this.maxAngularVelocity;
+        }
+    }
+
+    /**
+     * Applies a physics impulse for an explosion at the given position.
+     * @param {Vector2D} explosionPos - World-space position of the explosion.
+     */
+    _applyExplosionImpulse(explosionPos, currentForce, currentTorque) {
+        // Calculate force direction (randomized)
+        const forceAngle = randomBetween(0, TWO_PI);
+        this._scratchForce.setFromPolar(currentForce, forceAngle);
+
+        // Apply linear force to velocity
+        this.velocity.addInPlace(this._scratchForce.multiplyInPlace(1 / 60)); // Scale for 60 FPS
+
+        // Calculate torque: cross product of (explosionPos - shipPos) and force
+        this._scratchTemp.set(explosionPos).subtractInPlace(this.position);
+        const torque = this._scratchTemp.x * this._scratchForce.y - this._scratchTemp.y * this._scratchForce.x;
+        this.angularVelocity += (torque / (this.radius * this.radius)) * currentTorque;
+
+        // Debug log for torque
+        if (this.debug) {
+            console.log(`Explosion at (${explosionPos.x.toFixed(2)}, ${explosionPos.y.toFixed(2)}), torque: ${torque.toFixed(2)}`);
+        }
+    }
+
+    /**
      * Renders the ship and its visual effects to the canvas.
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
      * @param {Object} camera - The camera object for world-to-screen conversion.
@@ -796,6 +942,23 @@ export class Ship extends GameObject {
             this.drawDebug(ctx, camera, scale);
             ctx.restore();
         }
+
+        // Draw explosion debug visuals
+        if (this.debug || camera.debug) {
+            ctx.save();
+            for (let i = 0; i < this._recentExplosions.length; i++) {
+                const explosion = this._recentExplosions[i];
+                if (this.age - explosion.time > 1) continue; // Skip expired explosions
+                camera.worldToScreen(explosion.position, this._scratchScreenPos);
+                const opacity = 1 - (this.age - explosion.time); // Fade over 1s
+                const visualRadius = (explosion.force / this.explosionForce) * 5 * scale; // Scale by force
+                ctx.fillStyle = `rgba(128, 0, 128, ${opacity})`; // Purple
+                ctx.beginPath();
+                ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, visualRadius, 0, TWO_PI);
+                ctx.fill();
+            }
+            ctx.restore();
+        }
     }
 
     /**
@@ -805,6 +968,18 @@ export class Ship extends GameObject {
      */
     drawShieldEffect(ctx, camera) {
         this.shield.draw(ctx, camera, this.position, this.radius);
+    }
+
+    /**
+     * Configures the path for the windows in the ctx, to be used in drawWindows
+     * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
+     * @param {Camera} camera - The camera object.
+     */
+    getWindowPath(ctx, camera) {
+        // Draw the cockpit
+        ctx.beginPath();
+        ctx.moveTo(0.0, 0.0);
+        ctx.closePath();
     }
 
     /**
@@ -842,50 +1017,6 @@ export class Ship extends GameObject {
         }
 
         ctx.restore();
-    }
-
-    /**
-     * Configure the context to draw the windows
-     * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
-     */
-    getWindowColour(ctx) {
-        let brightness = 1;
-        let colour;
-
-        if (this.state === 'Disabled') {
-            let blink = Math.abs(Math.sin(this.age * 1.35) * Math.cos(this.age * 1.55));
-            blink = blink < 0.8 ? 0 : blink;
-            brightness = Math.abs(Math.sin(this.age * 13) * Math.cos(this.age * 7));
-            brightness = (brightness *= blink) > 0.50 ? 1 : brightness;
-            brightness *= blink;
-            colour = this.colors.cockpit.clone();
-            const multiplier = 0.2 + brightness * 0.8;
-            colour.r *= multiplier;
-            colour.g *= multiplier;
-            colour.b *= multiplier;
-        } else {
-            colour = this.colors.cockpit;
-        }
-
-        const colourString = colour.toRGB();
-        ctx.fillStyle = colourString;
-        // Set shadow for glow effect
-        ctx.shadowColor = colourString;
-        ctx.lineWidth = 1.0 - (1-brightness) * 0.9;
-        ctx.strokeStyle = colour.toRGBA(0.25);
-        ctx.shadowBlur = brightness * 4;
-        ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = 0;
-    }
-
-    /**
-     * Draws the ship's windows/cockpit.
-     * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
-     * @param {Object} camera - The camera object.
-     * @param {Number} brightness - The brightness of the windows.
-     */
-    drawWindows(ctx, camera, brightness) {
-
     }
 
     /**
@@ -964,6 +1095,8 @@ export class Ship extends GameObject {
                 brightness = Math.abs(Math.sin(109 + i * 2.0 + this.age * 13) * Math.cos(127 + i * 3.5 + this.age * 7));
                 brightness = (brightness *= blink) > 0.50 ? 1 : brightness;
                 brightness *= blink;
+            } else if (this.state === 'Exploding') {
+                return;
             } else {
                 const sinAge = Math.sin((this.age * 5) - (light.y / this.boundingBox.y));
                 brightness = Math.max(0, sinAge) ** 8;
@@ -974,22 +1107,22 @@ export class Ship extends GameObject {
             const gradient = ctx.createRadialGradient(light.x, light.y, 0, light.x, light.y, light.radius * 5 * brightness);
             if (light.x < -3) {
                 // Left: Red outer/middle, white inner
-                gradient.addColorStop(0, `rgba(255,255,255,${brightness})`); // Inner
-                gradient.addColorStop(0.1, `rgba(255,255,255,${brightness})`); // Inner
-                gradient.addColorStop(0.3, `rgba(255,0,0,${brightness * 0.5})`); // Middle
-                gradient.addColorStop(1, `rgba(255,0,0,${brightness * 0})`); // Outer
+                gradient.addColorStop(0, `rgba(255,255,255,${brightness * 0.75})`);
+                gradient.addColorStop(0.05, `rgba(255,255,255,${brightness * 0.5})`);
+                gradient.addColorStop(0.2, `rgba(255,0,0,${brightness * 0.25})`);
+                gradient.addColorStop(1, 'rgba(255,0,0,0)');
             } else if (light.x > 3) {
                 // Right: Green outer/middle, white inner
-                gradient.addColorStop(0, `rgba(255,255,255,${brightness})`);
-                gradient.addColorStop(0.1, `rgba(255,255,255,${brightness})`); // Inner
-                gradient.addColorStop(0.3, `rgba(0,255,0,${brightness * 0.5})`);
-                gradient.addColorStop(1, `rgba(0,255,0,${brightness * 0})`);
+                gradient.addColorStop(0, `rgba(255,255,255,${brightness * 0.75})`);
+                gradient.addColorStop(0.05, `rgba(255,255,255,${brightness * 0.5})`);
+                gradient.addColorStop(0.2, `rgba(0,255,0,${brightness * 0.25})`);
+                gradient.addColorStop(1, 'rgba(0,255,0,0)');
             } else {
                 // Center: White for all
-                gradient.addColorStop(0, `rgba(255,255,255,${brightness})`);
-                gradient.addColorStop(0.1, `rgba(255,255,255,${brightness})`); // Inner
-                gradient.addColorStop(0.3, `rgba(255,255,255,${brightness * 0.5})`);
-                gradient.addColorStop(1, `rgba(255,255,255,${brightness * 0})`);
+                gradient.addColorStop(0, `rgba(255,255,255,${brightness * 0.75})`);
+                gradient.addColorStop(0.05, `rgba(255,255,255,${brightness * 0.5})`);
+                gradient.addColorStop(0.2, `rgba(255,255,255,${brightness * 0.25})`);
+                gradient.addColorStop(1, 'rgba(255,255,255,0)');
             }
 
             // Draw single circle with gradient
@@ -1001,6 +1134,45 @@ export class Ship extends GameObject {
             ctx.fill();
             ctx.restore();
         }
+    }
+
+    /**
+     * Draws the ship's windows/cockpit.
+     * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
+     * @param {Camera} camera - The camera object.
+     */
+    drawWindows(ctx, camera) {
+        // Draw the cockpit
+        ctx.save();
+        let brightness = 1;
+        let colour;
+
+        if (this.state === 'Disabled') {
+            let blink = Math.abs(Math.sin(this.age * 1.35) * Math.cos(this.age * 1.55));
+            blink = blink < 0.8 ? 0 : blink;
+            brightness = Math.abs(Math.sin(this.age * 13) * Math.cos(this.age * 7));
+            brightness = (brightness *= blink) > 0.50 ? 1 : brightness;
+            brightness *= blink;
+            colour = this.colors.cockpit.clone();
+            const multiplier = 0.2 + brightness * 0.8;
+            colour.r *= multiplier;
+            colour.g *= multiplier;
+            colour.b *= multiplier;
+        } else if (this.state === 'Exploding') {
+            colour = this.colors.cockpit.clone();
+            colour.r *= 0.2;
+            colour.g *= 0.2;
+            colour.b *= 0.2;
+        } else {
+            colour = this.colors.cockpit;
+        }
+
+        const colourString = colour.toRGB();
+        ctx.fillStyle = colourString;
+        this.getWindowPath(ctx, camera);
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
     }
 
     /**

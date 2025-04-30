@@ -14,6 +14,7 @@ import { Asteroid } from './asteroidBelt.js';
 import { removeObjectFromArrayInPlace } from './utils.js';
 import { AsteroidBelt } from './asteroidBelt.js';
 import { ProjectileManager } from './projectileManager.js';
+import { ParticleManager } from './particleManager.js';
 
 /**
  * Represents a star system containing celestial bodies, ships, and connections to other systems.
@@ -33,6 +34,7 @@ export class StarSystem {
         this.name = name;
         this.position = position;
         this.projectileManager = new ProjectileManager(this);
+        this.particleManager = new ParticleManager(this);
 
         // Link each celestial body to this star system
         this.stars = stars;

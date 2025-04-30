@@ -44,10 +44,8 @@ export class Flivver extends Ship {
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
      * @param {Camera} camera - The camera object.
      */
-    drawWindows(ctx, camera) {
+    getWindowPath(ctx, camera) {
         // Draw the cockpit
-        ctx.save();
-        this.getWindowColour(ctx);
         ctx.beginPath();
         ctx.moveTo(-1.00, 3.50);
         ctx.lineTo(1.00, 3.50);
@@ -58,9 +56,6 @@ export class Flivver extends Ship {
         ctx.lineTo(-2.00, 7.50);
         ctx.lineTo(-2.00, 6.50);
         ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-        ctx.restore();
     }
 
     /**
@@ -202,23 +197,18 @@ export class Shuttle extends Ship {
     }
 
     /**
-     * Draws the ship's windows/cockpit.
+     * Configures the path for the windows in the ctx, to be used in drawWindows
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
      * @param {Camera} camera - The camera object.
      */
-    drawWindows(ctx, camera) {
+    getWindowPath(ctx, camera) {
         // Draw the cockpit
-        ctx.save();
-        this.getWindowColour(ctx);
         ctx.beginPath();
         ctx.moveTo(-1.00, -11.50);
         ctx.lineTo(1.00, -11.50);
         ctx.lineTo(2.00, -7.50);
         ctx.lineTo(-2.00, -7.50);
         ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-        ctx.restore();
     }
 
     /**
@@ -335,14 +325,12 @@ export class HeavyShuttle extends Ship {
     }
 
     /**
-     * Draws the ship's windows/cockpit.
+     * Configures the path for the windows in the ctx, to be used in drawWindows
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
      * @param {Camera} camera - The camera object.
      */
-    drawWindows(ctx, camera) {
+    getWindowPath(ctx, camera) {
         // Draw the cockpit
-        ctx.save();
-        this.getWindowColour(ctx);
         ctx.beginPath();
         ctx.moveTo(-1.00, -15.00);
         ctx.lineTo(1.00, -15.00);
@@ -353,9 +341,6 @@ export class HeavyShuttle extends Ship {
         ctx.lineTo(-2.00, -9.00);
         ctx.lineTo(-2.00, -11.00);
         ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-        ctx.restore();
     }
 
     /**
@@ -469,14 +454,12 @@ export class StarBarge extends Ship {
     }
 
     /**
-     * Draws the ship's windows/cockpit.
+     * Configures the path for the windows in the ctx, to be used in drawWindows
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
      * @param {Camera} camera - The camera object.
      */
-    drawWindows(ctx, camera) {
+    getWindowPath(ctx, camera) {
         // Draw the cockpit
-        ctx.save();
-        this.getWindowColour(ctx);
         ctx.beginPath();
         ctx.moveTo(-1.00, -19.00);
         ctx.lineTo(1.00, -19.00);
@@ -487,9 +470,6 @@ export class StarBarge extends Ship {
         ctx.lineTo(-2.00, -13.00);
         ctx.lineTo(-2.00, -15.00);
         ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-        ctx.restore();
     }
 
     /**
@@ -679,14 +659,12 @@ export class Freighter extends Ship {
     }
 
     /**
-     * Draws the ship's windows/cockpit.
+     * Configures the path for the windows in the ctx, to be used in drawWindows
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
      * @param {Camera} camera - The camera object.
      */
-    drawWindows(ctx, camera) {
+    getWindowPath(ctx, camera) {
         // Draw the cockpit
-        ctx.save();
-        this.getWindowColour(ctx);
         ctx.beginPath();
         ctx.moveTo(-1.00, -62.00);
         ctx.lineTo(1.00, -62.00);
@@ -697,9 +675,6 @@ export class Freighter extends Ship {
         ctx.lineTo(-2.00, -56.00);
         ctx.lineTo(-2.00, -58.00);
         ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-        ctx.restore();
     }
 
     /**
@@ -1181,14 +1156,12 @@ export class Arrow extends Ship {
     }
 
     /**
-     * Draws the ship's windows/cockpit.
+     * Configures the path for the windows in the ctx, to be used in drawWindows
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
      * @param {Camera} camera - The camera object.
      */
-    drawWindows(ctx, camera) {
+    getWindowPath(ctx, camera) {
         // Draw the cockpit
-        ctx.save();
-        this.getWindowColour(ctx);
         ctx.beginPath();
         ctx.moveTo(-1.00, -12.00);
         ctx.lineTo(1.00, -12.00);
@@ -1196,8 +1169,6 @@ export class Arrow extends Ship {
         ctx.lineTo(-2.00, -8.00);
         ctx.closePath();
         ctx.fill();
-        ctx.stroke();
-        ctx.restore();
     }
 
     /**
@@ -1308,14 +1279,12 @@ export class Boxwing extends Ship {
     }
 
     /**
-     * Draws the ship's windows/cockpit.
+     * Configures the path for the windows in the ctx, to be used in drawWindows
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
      * @param {Camera} camera - The camera object.
      */
-    drawWindows(ctx, camera) {
+    getWindowPath(ctx, camera) {
         // Draw the cockpit
-        ctx.save();
-        this.getWindowColour(ctx);
         ctx.beginPath();
         ctx.moveTo(-3.00, -6.75);
         ctx.lineTo(-2.00, -5.75);
@@ -1332,9 +1301,6 @@ export class Boxwing extends Ship {
         ctx.lineTo(2.00, -6.75);
         ctx.lineTo(-2.00, -6.75);
         ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-        ctx.restore();
     }
 
     /**
@@ -1465,14 +1431,11 @@ export class Interceptor extends Ship {
     }
 
     /**
-     * Draws the ship's windows/cockpit.
+     * Configures the path for the windows in the ctx, to be used in drawWindows
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
      * @param {Camera} camera - The camera object.
      */
-    drawWindows(ctx, camera) {
-        // Draw the cockpit
-        ctx.save();
-        this.getWindowColour(ctx);
+    getWindowPath(ctx, camera) {
         // Draw the cockpit
         ctx.beginPath();
         ctx.moveTo(-1.00, 16.50);
@@ -1484,9 +1447,6 @@ export class Interceptor extends Ship {
         ctx.lineTo(-2.00, 20.50);
         ctx.lineTo(-2.00, 19.50);
         ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-        ctx.restore();
     }
 
     /**

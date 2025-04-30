@@ -126,6 +126,7 @@ class Game {
             starSystem.ships[i].draw(ctx, this.camera);
         }
         starSystem.projectileManager.draw(ctx, this.camera);
+        starSystem.particleManager.draw(ctx, this.camera);
         this.hud.draw(ctx, this.camera);
         this.renderTargetView();
 
@@ -192,7 +193,6 @@ class Game {
      */
     renderTargetView() {
         //Ensure target is valid, if not hide the window
-
         let target = null;
         if (
             this.manager.cameraTarget &&
@@ -212,29 +212,31 @@ class Game {
             }
         }
 
-        this.targetCtx.fillStyle = 'black';
-        this.targetCtx.fillRect(0, 0, this.targetCanvas.width, this.targetCanvas.height);
-        this.starField.draw(this.targetCtx, this.targetCamera);
+        const ctx = this.targetCtx;
+        ctx.fillStyle = 'black';
+        ctx.fillRect(0, 0, this.targetCanvas.width, this.targetCanvas.height);
+        this.starField.draw(ctx, this.targetCamera);
 
         const starSystem = this.manager.cameraTarget.starSystem;
-        if (starSystem.asteroidBelt) starSystem.asteroidBelt.draw(this.targetCtx, this.targetCamera);
+        if (starSystem.asteroidBelt) starSystem.asteroidBelt.draw(ctx, this.targetCamera);
         for (let i = 0; i < starSystem.stars.length; i++) {
-            starSystem.stars[i].draw(this.targetCtx, this.targetCamera);
+            starSystem.stars[i].draw(ctx, this.targetCamera);
         }
         for (let i = 0; i < starSystem.planets.length; i++) {
-            starSystem.planets[i].draw(this.targetCtx, this.targetCamera);
+            starSystem.planets[i].draw(ctx, this.targetCamera);
         }
         for (let i = 0; i < starSystem.jumpGates.length; i++) {
-            starSystem.jumpGates[i].draw(this.targetCtx, this.targetCamera);
+            starSystem.jumpGates[i].draw(ctx, this.targetCamera);
         }
         for (let i = 0; i < starSystem.ships.length; i++) {
-            starSystem.ships[i].draw(this.targetCtx, this.targetCamera);
+            starSystem.ships[i].draw(ctx, this.targetCamera);
         }
+        starSystem.particleManager.draw(ctx, this.camera);
         const targetName = target.name || "Unnamed Object";
-        this.targetCtx.fillStyle = "white";
-        this.targetCtx.font = "16px Arial";
-        this.targetCtx.textAlign = "center";
-        this.targetCtx.fillText(targetName, this.targetCanvas.width / 2, 20);
+        ctx.fillStyle = "white";
+        ctx.font = "16px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(targetName, this.targetCanvas.width / 2, 20);
     }
 }
 
@@ -326,6 +328,7 @@ class GameManager {
                 starSystem.asteroidBelt.update(deltaTime);
             }
             starSystem.projectileManager.update(deltaTime);
+            starSystem.particleManager.update(deltaTime);
         }
         Object.assign(this.lastKeys, this.keys);
     }

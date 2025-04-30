@@ -76,10 +76,10 @@ export class ProjectileManager {
             // Move projectile
             p.position.addInPlace(this._scratchDistance.set(p.velocity).multiplyInPlace(deltaTime));
 
-            // Check collisions with ships
+            // Check collisions with flying ships
             const type = ProjectileManager.projectileTypes[p.typeIndex];
             for (const ship of this.starSystem.ships) {
-                if (ship === p.owner) continue;
+                if (ship === p.owner || !(ship.state === 'Flying' || ship.state === 'Disabled' || ship.state === 'Exploding') || ship.despawned) continue;
                 if (!isFinite(ship.position.x) || !isFinite(ship.position.y) || !isFinite(ship.radius)) {
                     // console.warn('Invalid ship position or radius:', {
                     //   position: [ship.position.x, ship.position.y],
@@ -91,7 +91,17 @@ export class ProjectileManager {
                 const distanceSq = this._scratchDistance.squareMagnitude();
                 const collisionRadius = type.radius + ship.radius;
                 if (distanceSq <= collisionRadius * collisionRadius) {
-                    ship.takeDamage(type.damage, p.position);
+                    //FIXME: this is for debug, each shot takes the ship to the next state
+                    let damage = 0;
+                    if (ship.shield.strength) {
+                        damage = ship.shield.strength;
+                    } else if (ship.hullIntegrity > ship.disabledThreshold) {
+                        damage = ship.hullIntegrity - ship.disabledThreshold;
+                    } else if (ship.hullIntegrity > 0) {
+                        damage = ship.hullIntegrity;
+                    }
+                    ship.takeDamage(damage, p.position);
+                    //ship.takeDamage(type.damage, p.position);
                     removeObjectFromArrayInPlace(p, this.projectiles);
                     break;
                 }

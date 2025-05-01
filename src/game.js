@@ -81,7 +81,9 @@ class Game {
         deltaTime = deltaTime / 1000;
 
         this.manager.update(deltaTime);
-        this.camera.update(this.manager.cameraTarget.position);
+        if (this.manager.cameraTarget && !this.manager.cameraTarget.despawned) {
+            this.camera.update(this.manager.cameraTarget.starSystem, this.manager.cameraTarget.position);
+        }
 
         if (this.manager.zoomTextTimer > 0) {
             this.manager.zoomTextTimer -= deltaTime;
@@ -109,9 +111,18 @@ class Game {
         ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         this.starField.draw(ctx, this.camera);
         if (!this.manager.cameraTarget || this.manager.cameraTarget.despawned) {
-            this.manager.cameraTarget = this.manager.playerShip;
+            //if (!this.manager.playerShip || this.manager.playerShip.despawned) {
+            this.manager.cameraTarget = null;
+            //} else {
+            //this.manager.cameraTarget = this.manager.playerShip;
+            //}
         }
-        const starSystem = this.manager.cameraTarget.starSystem;
+        const starSystem = this.camera.starSystem;//this.manager.cameraTarget.starSystem;
+        if (!starSystem) {
+            console.log(this.camera);
+            throw new Error('No starSystem on this.camera');
+            //return;
+        }
         if (starSystem.asteroidBelt) starSystem.asteroidBelt.draw(ctx, this.camera);
         for (let i = 0; i < starSystem.stars.length; i++) {
             starSystem.stars[i].draw(ctx, this.camera);
@@ -217,7 +228,7 @@ class Game {
         ctx.fillRect(0, 0, this.targetCanvas.width, this.targetCanvas.height);
         this.starField.draw(ctx, this.targetCamera);
 
-        const starSystem = this.manager.cameraTarget.starSystem;
+        const starSystem = target.starSystem; //this.manager.cameraTarget.starSystem;
         if (starSystem.asteroidBelt) starSystem.asteroidBelt.draw(ctx, this.targetCamera);
         for (let i = 0; i < starSystem.stars.length; i++) {
             starSystem.stars[i].draw(ctx, this.targetCamera);
@@ -279,9 +290,9 @@ class GameManager {
         this.playerPilot = new PlayerPilot(this.playerShip);
         this.playerShip.pilot = this.playerPilot;
         this.galaxy[0].ships.push(this.playerShip);
-        this.camera = new Camera(this.playerShip.position, new Vector2D(window.innerWidth, window.innerHeight), 1);
+        this.camera = new Camera(this.playerShip.starSystem, this.playerShip.position, new Vector2D(window.innerWidth, window.innerHeight), 1);
         this.cameraTarget = this.playerShip;
-        this.targetCamera = new TargetCamera(new Vector2D(0, 0), new Vector2D(this.targetCanvas.width, this.targetCanvas.height));
+        this.targetCamera = new TargetCamera(this.playerShip.starSystem, new Vector2D(0, 0), new Vector2D(this.targetCanvas.width, this.targetCanvas.height));
         this.starField = new StarField(20, 1000, 10);
         this.hud = new HeadsUpDisplay(this, window.innerWidth, window.innerHeight);
         this.zoomTextTimer = 0;
@@ -398,9 +409,6 @@ class GameManager {
                 while (despawned < excessCount && landedShips.length > 0) {
                     const index = Math.floor(Math.random() * landedShips.length);
                     const shipToDespawn = landedShips[index];
-                    if (shipToDespawn === this.cameraTarget) {
-                        this.cameraTarget = this.playerShip;
-                    }
                     shipToDespawn.despawn();
                     despawned++;
                 }
@@ -433,7 +441,7 @@ class GameManager {
         if (this.cameraTarget) {
             this.cameraTarget.debug = false;
         }
-        const ships = this.cameraTarget.starSystem.ships;
+        const ships = this.camera.starSystem.ships;
         if (ships.length === 0) return;
         const currentIndex = ships.indexOf(this.cameraTarget);
         const nextIndex = (currentIndex + 1) % ships.length;

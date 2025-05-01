@@ -9,12 +9,14 @@ import { normalizeAngle, TWO_PI } from './utils.js';
 export class Camera {
     /**
      * Creates a new Camera instance.
+     * @param {StarSystem} starSystem - The initial starSystem.
      * @param {Vector2D} position - The initial position of the camera in world coordinates.
      * @param {Vector2D} screenSize - The size of the screen in pixels.
      * @param {number} [zoom=1] - The initial zoom level (default is 1).
      */
-    constructor(position, screenSize, zoom = 1) {
+    constructor(starSystem, position, screenSize, zoom = 1) {
         this.debug = false;
+        this.starSystem = starSystem;
         // Clone position and screenSize to ensure they aren't modified externally
         this.position = position.clone();
         this.screenSize = screenSize.clone();
@@ -42,9 +44,15 @@ export class Camera {
 
     /**
      * Updates the camera's position to follow a target.
+     * @param {StarSystem} starSystem - The initial starSystem.
      * @param {Vector2D} position - The new position to set in world coordinates.
      */
-    update(position) {
+    update(starSystem, position) {
+        if (!starSystem) {
+            console.log(this.camera);
+            throw new Error('No starSystem on this.camera');
+        }
+        this.starSystem = starSystem;
         this.position.set(position); // Reuse position vector
         this._updateWorldBounds(); // Update world-space bounds
     }
@@ -236,11 +244,12 @@ export class Camera {
 export class TargetCamera extends Camera {
     /**
      * Creates a new TargetCamera instance.
+     * @param {StarSystem} starSystem - The initial starSystem.
      * @param {Vector2D} position - The initial position of the camera in world coordinates.
      * @param {Vector2D} screenSize - The size of the screen in pixels.
      */
-    constructor(position, screenSize) {
-        super(position, screenSize, 1);
+    constructor(starSystem, position, screenSize) {
+        super(starSystem, position, screenSize, 1);
         this.lastTargetSize = null; // Cache for target size to avoid recomputing zoom
         this.lastZoom = this.zoom; // Cache for zoom to detect changes
     }
@@ -252,6 +261,7 @@ export class TargetCamera extends Camera {
     updateTarget(target) {
         if (!target || !target.position) return;
         this.position.set(target.position); // Reuse position vector
+        this.starSystem = target.starSystem;
         let size = 10;
         // Compute target size and check if it has changed
         size = target.radius;

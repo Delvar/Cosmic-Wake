@@ -259,13 +259,13 @@ export class HeadsUpDisplay {
         }
 
         // Draw ship ring (white)
-        this.drawRing(ctx, camera, new Colour(1.0, 1.0, 1.0), this.shipRingRadius, false, this.gameManager.cameraTarget.starSystem.ships, target);
+        this.drawRing(ctx, camera, new Colour(1.0, 1.0, 1.0), this.shipRingRadius, false, camera.starSystem.ships, target);
         // Draw asteroid ring (grey)
-        this.drawRing(ctx, camera, new Colour(0.5, 0.5, 0.5), this.asteroidRingRadius, false, this.gameManager.cameraTarget.starSystem.asteroids, target);
+        this.drawRing(ctx, camera, new Colour(0.5, 0.5, 0.5), this.asteroidRingRadius, false, camera.starSystem.asteroids, target);
         // Draw planet ring (cyan)
-        this.drawRing(ctx, camera, new Colour(0.0, 1.0, 1.0), this.planetRingRadius, true, this.gameManager.cameraTarget.starSystem.planets, target);
+        this.drawRing(ctx, camera, new Colour(0.0, 1.0, 1.0), this.planetRingRadius, true, camera.starSystem.planets, target);
         // Draw jumpGate ring (green)
-        this.drawRing(ctx, camera, new Colour(0.0, 1.0, 0.0), this.jumpGateRingRadius, true, this.gameManager.cameraTarget.starSystem.jumpGates, target);
+        this.drawRing(ctx, camera, new Colour(0.0, 1.0, 0.0), this.jumpGateRingRadius, true, camera.starSystem.jumpGates, target);
 
         this.drawTargetRectangle(ctx, camera, target);
         ctx.restore();

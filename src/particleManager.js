@@ -178,12 +178,13 @@ export class ParticleManager {
                 const t2 = clamp(t * 3, 0, 1);
                 if (t2 < 1) {
                     // Shockwave: Fast, large, thin ring
-                    const shockwaveRadius = t2 * p.length;
+                    const shockwaveRadius = camera.worldToSize(t2 * p.length);
                     ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${1 - t2})`;
                     ctx.lineWidth = camera.worldToSize(clamp(t2 * shockwaveRadius * 0.2, 1, 10));
                     ctx.beginPath();
-                    ctx.moveTo(this._scratchScreenPos.x + shockwaveRadius, this._scratchScreenPos.y);
+                    ctx.moveTo(this._scratchScreenPos.x + camera.worldToSize(shockwaveRadius), this._scratchScreenPos.y);
                     ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, camera.worldToSize(shockwaveRadius), 0, TWO_PI);
+                    ctx.closePath();
                     ctx.stroke();
                 }
 
@@ -193,6 +194,7 @@ export class ParticleManager {
                 ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${opacity})`;
                 ctx.moveTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
                 ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, camera.worldToSize(fireballRadius), 0, TWO_PI);
+                ctx.closePath();
                 ctx.fill();
             }
         }

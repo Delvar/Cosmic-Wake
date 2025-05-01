@@ -44,9 +44,9 @@ export class ParticleManager {
             lineWidth: 1,
             minLength: 5,
             maxLength: 50,
-            minSpeed: 200,
+            minSpeed: 100,
             maxSpeed: 500,
-            lifetime: 0.75
+            lifetime: 0.5
         },
         // Explosion (Shockwave + Fireball, Type 1)
         {
@@ -72,14 +72,14 @@ export class ParticleManager {
 
         // Spawn Spark Lines (Type 0)
         const sparkType = ParticleManager.particleTypes[0];
-        const sparkCount = radius <= 5 ? 0 : Math.floor(remapClamp(t, 0, 1, 1, 20)); // 5–20 sparks
+        const sparkCount = radius <= 5 ? 0 : Math.floor(remapClamp(t, 0, 1, 3, 40)); // 5–20 sparks
         for (let i = 0; i < sparkCount; i++) {
             const particle = new Particle();
-            const speed = remapClamp(t, 0, 1, sparkType.minSpeed, sparkType.maxSpeed);
+            const speed = remapClamp(t * t * randomBetween(0.75, 1.25), 0, 1, sparkType.minSpeed, sparkType.maxSpeed);
             const angle = randomBetween(0, TWO_PI);
             const velocity = this._scratchVelocity.setFromPolar(speed, angle);
             const length = randomBetween(sparkType.minLength, sparkType.maxLength);
-            particle.reset(position, velocity, 0, this.currentTime, sparkType.lifetime, length);
+            particle.reset(position, velocity, 0, this.currentTime, sparkType.lifetime * (randomBetween(1.0, 2.0) + t * 2), length);
             this.particles.push(particle);
         }
 
@@ -138,7 +138,8 @@ export class ParticleManager {
                 if (!camera.isInView(p.position, p.length)) continue;
 
                 // Compute line endpoint (trail backward)
-                this._scratchLineEnd.set(p.velocity).multiplyInPlace(-p.length / Math.max(p.velocity.magnitude(), 1)).addInPlace(p.position);
+                const length = p.length * t;
+                this._scratchLineEnd.set(p.velocity).normalizeInPlace().multiplyInPlace(-length).addInPlace(p.position);
                 camera.worldToScreen(p.position, this._scratchScreenPos);
                 camera.worldToScreen(this._scratchLineEnd, this._scratchLineEnd);
 
@@ -158,10 +159,10 @@ export class ParticleManager {
                 ctx.strokeStyle = gradient;
                 ctx.lineWidth = camera.worldToSize(type.lineWidth);
 
+                ctx.beginPath();
                 ctx.moveTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
                 ctx.lineTo(this._scratchLineEnd.x, this._scratchLineEnd.y);
                 ctx.stroke();
-                ctx.beginPath();
             } else {
                 // Explosion: Draw shockwave and fireball as expanding circles
                 if (!camera.isInView(p.position, p.length)) continue;
@@ -180,6 +181,7 @@ export class ParticleManager {
                     const shockwaveRadius = t2 * p.length;
                     ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${1 - t2})`;
                     ctx.lineWidth = camera.worldToSize(clamp(t2 * shockwaveRadius * 0.2, 1, 10));
+                    ctx.beginPath();
                     ctx.moveTo(this._scratchScreenPos.x + shockwaveRadius, this._scratchScreenPos.y);
                     ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, camera.worldToSize(shockwaveRadius), 0, TWO_PI);
                     ctx.stroke();
@@ -192,7 +194,6 @@ export class ParticleManager {
                 ctx.moveTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
                 ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, camera.worldToSize(fireballRadius), 0, TWO_PI);
                 ctx.fill();
-                ctx.beginPath();
             }
         }
 

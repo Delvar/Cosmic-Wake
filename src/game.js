@@ -491,6 +491,17 @@ class GameManager {
                 }
                 console.log("DEBUG: ", this.debug);
             }
+
+            if (e.key === '=' || e.key === '+') {
+                this.camera.setZoom(this.camera.zoom + 0.1);
+                this.zoomTextTimer = 120;
+            }
+
+            if (e.key === '-' || e.key === '_') {
+                this.camera.setZoom(this.camera.zoom - 0.1);
+                this.zoomTextTimer = 120;
+            }
+
         });
 
         window.addEventListener('keyup', (e) => { this.keys[e.key] = false; });

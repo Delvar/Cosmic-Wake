@@ -270,8 +270,9 @@ class GameManager {
         const starSystem = this.galaxy[0];
         const earth = starSystem.planets[5];
         this.playerShip = createRandomShip(earth.position.x + earth.radius * 1.5, earth.position.y, starSystem);
+        //this.playerShip = new Freighter(earth.position.x + earth.radius * 1.5, earth.position.y, starSystem);
 
-        this.escort01 = new Freighter(earth.position.x - 50, earth.position.y, starSystem);
+        this.escort01 = new Freighter(earth.position.x + earth.radius * 1.0, earth.position.y, starSystem);
         this.escort01.pilot = new EscortAIPilot(this.escort01, this.playerShip);
         this.escort01.colors.cockpit = this.playerShip.colors.cockpit;
         this.escort01.colors.wings = this.playerShip.colors.wings;

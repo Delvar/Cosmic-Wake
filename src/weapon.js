@@ -38,12 +38,14 @@ export class Weapon {
     }
 
     /**
-     * Fires a projectile if off cooldown.
+     * Fires a projectile from turret position and direction.
      * @param {Ship} ship - The ship firing the weapon.
      * @param {ProjectileManager} projectileManager - Manager to spawn projectiles.
+     * @param {Vector2D} [position = null] - World-space firing position.
+     * @param {number} [direction = 0] - Firing direction (radians).
      * @returns {boolean} True if fired, false if on cooldown or invalid type.
      */
-    fire(ship, projectileManager) {
+    fire(ship, projectileManager, position = null, direction = 0) {
         if (this.currentTime < this.nextFireTime) return false;
 
         const type = ProjectileManager.projectileTypes[this.projectileTypeIndex];
@@ -52,12 +54,18 @@ export class Weapon {
             return false;
         }
 
-        // Spawn position: offset from ship center by radius + 5 units along angle
-        const muzzleOffset = ship.radius + 5;
-        const angle = normalizeAngle(ship.angle);
-        this._scratchPosition.setFromPolar(muzzleOffset, angle).addInPlace(ship.position);
+        if (!position) {
+            // Spawn position: offset from ship center by radius + 5 units along angle
+            const muzzleOffset = ship.radius + 5;
+            direction = direction == 0 ? ship.angle : direction;
+            this._scratchPosition.setFromPolar(muzzleOffset, direction).addInPlace(ship.position);
+        } else {
+            // Spawn position: provided turret barrel position
+            this._scratchPosition.set(position);
+        }
 
-        // Velocity: ship velocity + projectile speed in forward direction
+        // Velocity: ship velocity + projectile speed in turret direction
+        const angle = normalizeAngle(direction === null ? ship.angle : direction);
         this._scratchVelocity.setFromPolar(type.speed, angle).addInPlace(ship.velocity);
 
         projectileManager.spawn(this._scratchPosition, this._scratchVelocity, this.projectileTypeIndex, ship);

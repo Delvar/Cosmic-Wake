@@ -9,6 +9,8 @@ import { TWO_PI, clamp, remapClamp, normalizeAngle, randomBetween, SimpleRNG } f
 import { Asteroid } from './asteroidBelt.js';
 import { Weapon } from './weapon.js';
 import { Shield } from './shield.js';
+import { Turret } from './turret.js';
+import { FixedWeapon } from './fixedWeapon.js';
 
 function generateShipName() {
     const prefixes = [
@@ -143,8 +145,6 @@ export class Ship extends GameObject {
         this.boundingBox = new Vector2D(0, 0);
         /** @type {Object|null} Positions of engines, turrets, and lights. */
         this.featurePoints = null;
-        /** @type {Weapon|null} The ship's weapon, if equipped. */
-        this.weapon = new Weapon(0); // Rail Gun (typeIndex 0)
         /** @type {Shield} The ship's energy shield. */
         this.shield = new Shield(100, 20, 3, 50, 1);
         /** @type {number} Current hull health. */
@@ -168,10 +168,16 @@ export class Ship extends GameObject {
         this.explosionTime = 0;
         /** @type {Array<{position: Vector2D, time: number, force: number}>} Recent explosion positions for debug visuals. */
         this._recentExplosions = Array(5).fill().map(() => ({ position: new Vector2D(0, 0), time: -Infinity, force: 0 }));
+        /** @type {Turret[]} Array of turrets. */
+        this.turrets = [];
+        /** @type {FixedWeapon[]} Array of fixed weapons. */
+        this.fixedWeapons = [];
 
         // Initialize feature points and bounding box
         this.setupFeaturePoints();
         this.setupBoundingBox();
+        this.setupTurrets();
+        this.setupFixedWeapons();
 
         // Scratch vectors to avoid memory allocations in main loop
         /** @type {Vector2D} Temporary vector for thrust calculations. */
@@ -216,7 +222,8 @@ export class Ship extends GameObject {
         // Initialize empty arrays for dynamic visual elements
         this.featurePoints = {
             engines: [], // Engine positions for thrust effects
-            turrets: [], // Turret positions for weapons
+            turrets: [], // Turret positions
+            fixedWeapons: [], // Fixed gun positions
             lights: []   // Light positions for visual indicators
         };
     }
@@ -237,6 +244,26 @@ export class Ship extends GameObject {
 
         // Create a trail with specified parameters and wing color
         this.trail = new Trail(2, 1, 3, this.colors.wings.toRGBA(0.5));
+    }
+
+    /**
+     * Sets up turrets from featurePoints.turrets.
+     */
+    setupTurrets() {
+        this.turrets = [];
+        for (const feature of this.featurePoints.turrets) {
+            const relativePosition = new Vector2D(feature.x, feature.y);
+            this.turrets.push(new Turret(relativePosition, feature.radius));
+        }
+    }
+
+    /**
+     * Sets up fixed weapons from featurePoints.fixedWeapons.
+     */
+    setupFixedWeapons() {
+        this.fixedWeapons = this.featurePoints.fixedWeapons.map(feature =>
+            new FixedWeapon(new Vector2D(feature.x, feature.y), feature.radius)
+        );
     }
 
     /**
@@ -449,8 +476,13 @@ export class Ship extends GameObject {
      * Fires the ship's weapon.
      */
     fire() {
-        if (this.state !== 'Flying' || !this.weapon) return;
-        this.weapon.fire(this, this.starSystem.projectileManager);
+        if (this.state !== 'Flying') return;
+        for (const fixedWeapon of this.fixedWeapons) {
+            fixedWeapon.fire(this, this.starSystem.projectileManager);
+        }
+        for (const turret of this.turrets) {
+            turret.fire(this, this.starSystem.projectileManager);
+        }
     }
 
     /**
@@ -480,6 +512,14 @@ export class Ship extends GameObject {
         // Log NaN position errors in debug mode
         if (isNaN(this.position.x) && this.debug) {
             console.log('Position became NaN');
+        }
+
+        // Update turrets and fixed weapons
+        for (const turret of this.turrets) {
+            turret.update(deltaTime, this);
+        }
+        for (const fixedWeapon of this.fixedWeapons) {
+            fixedWeapon.update(deltaTime);
         }
 
         // Call the appropriate state handler
@@ -885,10 +925,10 @@ export class Ship extends GameObject {
         }
     }
 
-   /**
-    * Generates a random point within the ship's rotated bounding box.
-    * @param {Vector2D} out - The vector to store the world-space position.
-    */
+    /**
+     * Generates a random point within the ship's rotated bounding box.
+     * @param {Vector2D} out - The vector to store the world-space position.
+     */
     _getRandomPointInBoundingBox(out) {
         // Generate random point in unrotated bounding box, centered at (0,0)
         const halfWidth = this.boundingBox.x * 0.5;
@@ -1090,20 +1130,56 @@ export class Ship extends GameObject {
     }
 
     /**
-     * Draws turrets as pink circles.
-     * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
-     * @param {Object} camera - The camera object.
+     * Draws turrets as rectangles (base + barrel).
+     * @param {CanvasRenderingContext2D} ctx - Canvas context.
+     * @param {Camera} camera - Camera for transform.
      */
     drawTurrets(ctx, camera) {
-        ctx.fillStyle = '#FF77A8';
-        ctx.beginPath();
-        for (let i = 0; i < this.featurePoints.turrets.length; i++) {
-            const turret = this.featurePoints.turrets[i];
-            ctx.moveTo(turret.x, turret.y);
-            ctx.arc(turret.x, turret.y, turret.radius, 0, TWO_PI);
+        if (!this.turrets || this.turrets == 0) return;
+
+        ctx.save();
+        ctx.fillStyle = 'rgb(100, 100, 100)';
+        // Set default stroke style and line width
+        ctx.strokeStyle = 'rgb(50, 50, 50)';
+        ctx.lineWidth = 0.1;
+
+        for (const turret of this.turrets) {
+            const screenX = turret.relativePosition.x;
+            const screenY = turret.relativePosition.y;
+            ctx.save();
+            ctx.translate(screenX, screenY);
+
+            // Mount: Circle
+            ctx.beginPath();
+            ctx.arc(0, 0, turret.radius, 0, TWO_PI);
+            ctx.fillStyle = 'rgb(100, 100, 100)';
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.rotate(turret.direction);
+            ctx.beginPath();
+            // Base: 1.2 × 2 rectangle
+            const baseWidth = turret.radius * 0.6;
+            const baseLength = turret.radius;
+            ctx.moveTo(-baseWidth, -baseLength);
+            ctx.lineTo(baseWidth, -baseLength);
+            ctx.lineTo(baseWidth, baseLength);
+            ctx.lineTo(-baseWidth, baseLength);
             ctx.closePath();
+            // Barrel: 0.2 × 2 rectangle
+            const barrelWidth = turret.radius * 0.2;
+            const barrelLength = baseLength + turret.radius * 2;
+            ctx.moveTo(-barrelWidth, -barrelLength);
+            ctx.lineTo(barrelWidth, -barrelLength);
+            ctx.lineTo(barrelWidth, -baseLength);
+            ctx.lineTo(-barrelWidth, -baseLength);
+            ctx.closePath();
+            ctx.fillStyle = 'rgb(128, 128, 128)';
+            ctx.fill();
+            ctx.stroke();
+            ctx.restore();
         }
-        ctx.fill();
+        ctx.restore();
     }
 
     /**

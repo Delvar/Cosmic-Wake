@@ -461,10 +461,10 @@ export class StarBarge extends Ship {
                 { x: 0.00, y: 20.00, radius: 2.00 },
             ],
             turrets: [
-                { x: 0.00, y: -1.00, radius: 2.00 },
+                { x: 0.00, y: -1.00, radius: 3.00 },
             ],
             fixedWeapons: [
-                { x: 0.00, y: -20.00, radius: 2.00 },
+                //{ x: 0.00, y: -20.00, radius: 2.00 },
             ],
             lights: [
                 { x: -16.00, y: 15.00, radius: 1.00 },
@@ -659,8 +659,8 @@ export class Freighter extends Ship {
                 { x: -6.00, y: 62.00, radius: 2.00 },
             ],
             turrets: [
-                { x: 0.00, y: -35.00, radius: 2.00 },
-                { x: 0.00, y: 15.00, radius: 2.00 },
+                { x: 0.00, y: -35.00, radius: 3.00 },
+                { x: 0.00, y: 15.00, radius: 3.00 },
             ],
             fixedWeapons: [
             ],

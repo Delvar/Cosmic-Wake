@@ -4,21 +4,22 @@ import { Vector2D } from './vector2d.js';
 import { TWO_PI, remapRange01, removeObjectFromArrayInPlace, SimpleRNG, hash, normalizeAngle, clamp } from './utils.js';
 import { GameObject, isValidTarget } from './gameObject.js';
 
-/**
- * A precomputed asteroid shape, stored as a Float32Array of [x1, y1, x2, y2, ...].
- */
+
 class AsteroidShape {
     /**
+     * A precomputed asteroid shape, stored as a Float32Array of [x1, y1, x2, y2, ...].
      * @param {number} numPoints - Number of points in the shape.
+     * @returns {AsteroidShape} The created asteroid shape instance.
      */
     constructor(numPoints) {
         this.numPoints = numPoints;
         this.points = new Float32Array(numPoints * 2); // [x1, y1, x2, y2, ...]
+        this.path = new Path2D(); // Cached Path2D for drawing
         const angleStep = (Math.PI * 2) / numPoints;
         let centerPoint = new Vector2D(0, 0);
         for (let i = 0; i < numPoints; i++) {
             const angle = i * angleStep + (Math.random() - 0.5) * 0.5;
-            const radius = 0.5 + Math.random() * 0.5; // Between 0.5 and 1
+            const radius = 0.5 + Math.random() * 0.5; // Radius between 0.5 and 1 for varied shape
             this.points[i * 2] = Math.sin(angle) * radius;
             this.points[i * 2 + 1] = -Math.cos(angle) * radius;
             centerPoint.x += this.points[i * 2];
@@ -30,22 +31,27 @@ class AsteroidShape {
         for (let i = 0; i < numPoints; i++) {
             this.points[i * 2] -= centerPoint.x;
             this.points[i * 2 + 1] -= centerPoint.y;
+            if (i === 0) {
+                this.path.moveTo(this.points[i * 2], this.points[i * 2 + 1]);
+            } else {
+                this.path.lineTo(this.points[i * 2], this.points[i * 2 + 1]);
+            }
         }
+        this.path.closePath();
         // Log points for debugging
         //console.log(`AsteroidShape: numPoints=${numPoints}, points=[${this.points.join(', ')}]`);
     }
 }
 
-/**
- * Manages a collection of asteroids forming a belt in a star system.
- */
 export class AsteroidBelt {
     /**
+     * Manages a collection of asteroids forming a belt in a star system.
      * @param {number} innerRadius - Inner radius of the belt.
      * @param {number} outerRadius - Outer radius of the belt.
      * @param {number} backgroundDensity - Asteroids per 500x500 unit area.
      * @param {number} interactiveCount - Number of interactive asteroids.
      * @param {number} [layerCount=10] - Number of orbital layers.
+     * @returns {AsteroidBelt} The created asteroid belt instance.
      */
     constructor(innerRadius, outerRadius, backgroundDensity, interactiveCount, layerCount = 10) {
         this.starSystem = null;
@@ -82,13 +88,14 @@ export class AsteroidBelt {
             const numPoints = 5 + Math.floor(Math.random() * 4);
             this.shapes[i] = new AsteroidShape(numPoints);
         }
+        this.elapsedTime = 0;
 
         // Scratch variables
         this._scratchWorldPos = new Vector2D();
         this._scratchScreenPos = new Vector2D();
         this._scratchVertex = new Vector2D();
         this._scratchCorner = new Vector2D();
-        this.elapsedTime = 0;
+        this._scratchMatrix = new DOMMatrix();
 
         // Debug colors for layers
         this._debugColors = [
@@ -187,7 +194,8 @@ export class AsteroidBelt {
      * @param {number} layer - Layer index.
      * @param {number} cellAngle - Cell's starting angle in radians.
      * @param {number} time - Current time for cache expiration.
-     * @returns {Float32Array} [radius, angleOffset, rotationSpeed, shapeIndex, size, ...]
+     * @returns {Float32Array} [radius, angleOffset, rotationSpeed, shapeIndex, size, ...] or empty array if generation fails.
+     * @remarks Data is cached to avoid regeneration; cache is pruned periodically.
      */
     getCellAsteroids(layer, cellAngle, time) {
         const cellKey = layer * 100000 + Math.round(cellAngle / this.cellAngleSize);
@@ -251,17 +259,30 @@ export class AsteroidBelt {
         ctx.strokeStyle = 'rgb(50, 50, 50)';
         ctx.lineWidth = 1;
 
-        const time = performance.now();
+        const time = this.elapsedTime;
+        const globalPath = new Path2D(); // Separate Path2D for background asteroids to simplify layering
+        const matrix = this._scratchMatrix;
 
         // Draw background asteroids in a batch per layer
         let renderedCells = 0;
         for (let layerIdx = 0; layerIdx < this.layerCount; layerIdx++) {
-            ctx.beginPath();
             const orbitalSpeed = this.orbitalSpeeds[layerIdx];
-            for (let i = 0; i < this.cellCount; i++) {
-                const baseCellAngle = i * this.cellAngleSize;
-                const cellAngle = baseCellAngle + orbitalSpeed * this.elapsedTime;
+            // Adjust camera angles for layer rotation
+            const layerAngle = orbitalSpeed * this.elapsedTime;
+            let minAngleLayer = normalizeAngle(camera.worldBounds.minAngle - layerAngle);
+            let maxAngleLayer = normalizeAngle(camera.worldBounds.maxAngle - layerAngle);
+            // Handle wrapping (if max < min, add TWO_PI to max)
+            if (maxAngleLayer < minAngleLayer) maxAngleLayer += TWO_PI;
+            // Compute cell index range
+            const startIdx = Math.floor(minAngleLayer / this.cellAngleSize);
+            const endIdx = Math.ceil(maxAngleLayer / this.cellAngleSize);
+            for (let i = startIdx; i <= endIdx; i++) {
+                // Normalize index to [0, cellCount)
+                const idx = (i % this.cellCount + this.cellCount) % this.cellCount;
+                const baseCellAngle = idx * this.cellAngleSize;
+                const cellAngle = baseCellAngle + layerAngle;
                 const cellEndAngle = cellAngle + this.cellAngleSize;
+                // Optional: Verify cell is in view (for safety)
                 if (camera.isCellInView(cellAngle, cellEndAngle, this.innerRadius, this.outerRadius)) {
                     renderedCells++;
                     const asteroids = this.getCellAsteroids(layerIdx, baseCellAngle, time);
@@ -274,32 +295,26 @@ export class AsteroidBelt {
 
                         this._scratchWorldPos.setFromPolar(radius, cellAngle + angleOffset);
                         if (camera.isInView(this._scratchWorldPos, size)) {
-                            camera.worldToScreen(this._scratchWorldPos, this._scratchScreenPos);
-
-                            const rotation = rotationSpeed * this.elapsedTime;
-                            const scaledSize = camera.worldToSize(size);
+                            const rotation = rotationSpeed * this.elapsedTime + Math.PI / 2; // Adjust for 0 = up
+                            const scaledSize = camera.worldToSize(size); // Direct zoom scaling
                             const shape = this.shapes[shapeIndex];
+                            camera.worldToScreen(this._scratchWorldPos, this._scratchScreenPos);
                             const cosA = Math.cos(rotation);
                             const sinA = Math.sin(rotation);
-
-                            for (let k = 0; k < shape.numPoints; k++) {
-                                const px = shape.points[k * 2];
-                                const py = shape.points[k * 2 + 1];
-                                const rotatedX = px * cosA - py * sinA;
-                                const rotatedY = px * sinA + py * cosA;
-                                const vx = rotatedX * scaledSize + this._scratchScreenPos.x;
-                                const vy = rotatedY * scaledSize + this._scratchScreenPos.y;
-                                if (k === 0) ctx.moveTo(vx, vy);
-                                else ctx.lineTo(vx, vy);
-                            }
-                            ctx.closePath();
+                            matrix.a = scaledSize * cosA;
+                            matrix.b = scaledSize * sinA;
+                            matrix.c = -scaledSize * sinA;
+                            matrix.d = scaledSize * cosA;
+                            matrix.e = this._scratchScreenPos.x;
+                            matrix.f = this._scratchScreenPos.y;
+                            globalPath.addPath(shape.path, matrix);
                         }
                     }
                 }
             }
-            ctx.fill();
-            ctx.stroke();
         }
+        ctx.fill(globalPath);
+        ctx.stroke(globalPath);
 
         if (camera.debug) {
             console.log(`renderedCells: ${renderedCells}`);
@@ -326,105 +341,98 @@ export class AsteroidBelt {
             ctx.closePath();
             ctx.fill();
             ctx.restore();
-
-            // Draw debug circles for asteroid positions in a separate batch
+            // Batch debug circles and cell outlines in a single loop per layer
             ctx.save();
             for (let layerIdx = 0; layerIdx < this.layerCount; layerIdx++) {
-                ctx.beginPath();
-                ctx.fillStyle = this._debugColors[layerIdx % this._debugColors.length];//'rgba(255, 0, 255, 0.5)';
                 const orbitalSpeed = this.orbitalSpeeds[layerIdx];
-                for (let i = 0; i < this.cellCount; i++) {
-                    const baseCellAngle = i * this.cellAngleSize;
-                    const cellAngle = baseCellAngle + orbitalSpeed * this.elapsedTime;
-                    const cellEndAngle = cellAngle + this.cellAngleSize;
-                    if (camera.isCellInView(cellAngle, cellEndAngle)) {
-                        const asteroids = this.getCellAsteroids(layerIdx, baseCellAngle, time);
-                        for (let j = 0; j < asteroids.length; j += 5) {
-                            const radius = asteroids[j];
-                            const angleOffset = asteroids[j + 1];
-                            const size = asteroids[j + 4];
+                const layerAngle = orbitalSpeed * this.elapsedTime;
+                let minAngleLayer = normalizeAngle(camera.worldBounds.minAngle - layerAngle);
+                let maxAngleLayer = normalizeAngle(camera.worldBounds.maxAngle - layerAngle);
+                if (maxAngleLayer < minAngleLayer) maxAngleLayer += TWO_PI;
+                const startIdx = Math.floor(minAngleLayer / this.cellAngleSize);
+                const endIdx = Math.ceil(maxAngleLayer / this.cellAngleSize);
 
-                            this._scratchWorldPos.setFromPolar(radius, cellAngle + angleOffset);
-                            if (camera.isInView(this._scratchWorldPos, size)) {
-                                camera.worldToScreen(this._scratchWorldPos, this._scratchScreenPos);
-                                ctx.moveTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
-                                ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, 5 * camera.zoom, 0, TWO_PI);
-                            }
+                const circlePath = new Path2D();
+                const outlinePath = new Path2D();
+                for (let i = startIdx; i <= endIdx; i++) {
+                    const idx = (i % this.cellCount + this.cellCount) % this.cellCount;
+                    const baseCellAngle = idx * this.cellAngleSize;
+                    const cellAngle = baseCellAngle + layerAngle;
+                    const cellEndAngle = cellAngle + this.cellAngleSize;
+
+                    // Build circle path for asteroid positions
+                    const asteroids = this.getCellAsteroids(layerIdx, baseCellAngle, time);
+                    for (let j = 0; j < asteroids.length; j += 5) {
+                        const radius = asteroids[j];
+                        const angleOffset = asteroids[j + 1];
+                        const size = asteroids[j + 4];
+
+                        this._scratchWorldPos.setFromPolar(radius, cellAngle + angleOffset);
+                        if (camera.isInView(this._scratchWorldPos, size)) {
+                            camera.worldToScreen(this._scratchWorldPos, this._scratchScreenPos);
+                            circlePath.moveTo(this._scratchScreenPos.x + 5 * camera.zoom, this._scratchScreenPos.y);
+                            circlePath.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, 5 * camera.zoom, 0, TWO_PI);
                         }
                     }
+
+                    // Build cell outline path
+                    this._scratchWorldPos.setFromPolar(this.innerRadius, cellAngle);
+                    camera.worldToScreen(this._scratchWorldPos, this._scratchScreenPos);
+                    outlinePath.moveTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
+                    this._scratchWorldPos.setFromPolar(this.outerRadius, cellAngle);
+                    camera.worldToScreen(this._scratchWorldPos, this._scratchScreenPos);
+                    outlinePath.lineTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
+                    this._scratchWorldPos.setFromPolar(this.outerRadius, cellEndAngle);
+                    camera.worldToScreen(this._scratchWorldPos, this._scratchScreenPos);
+                    outlinePath.lineTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
+                    this._scratchWorldPos.setFromPolar(this.innerRadius, cellEndAngle);
+                    camera.worldToScreen(this._scratchWorldPos, this._scratchScreenPos);
+                    outlinePath.lineTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
+                    outlinePath.closePath();
                 }
-                ctx.fill();
+
+                // Draw batched paths with layer color
+                ctx.fillStyle = this._debugColors[layerIdx % this._debugColors.length];
+                ctx.strokeStyle = this._debugColors[layerIdx % this._debugColors.length];
+                ctx.lineWidth = 2;
+                ctx.fill(circlePath);
+                ctx.stroke(outlinePath);
             }
             ctx.restore();
         }
 
-        // Draw debug cell outlines
-        if (camera.debug) {
-            for (let layerIdx = 0; layerIdx < this.layerCount; layerIdx++) {
-                const orbitalSpeed = this.orbitalSpeeds[layerIdx];
-                for (let i = 0; i < this.cellCount; i++) {
-                    const baseCellAngle = i * this.cellAngleSize;
-                    const cellAngle = baseCellAngle + orbitalSpeed * this.elapsedTime;
-                    const cellEndAngle = cellAngle + this.cellAngleSize;
-                    if (camera.isCellInView(cellAngle, cellEndAngle, this.innerRadius, this.outerRadius)) {
-                        ctx.save();
-                        ctx.strokeStyle = this._debugColors[layerIdx % this._debugColors.length];
-                        ctx.lineWidth = 2;
-                        ctx.beginPath();
-                        this._scratchWorldPos.setFromPolar(this.innerRadius, cellAngle);
-                        camera.worldToScreen(this._scratchWorldPos, this._scratchScreenPos);
-                        ctx.moveTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
-                        this._scratchWorldPos.setFromPolar(this.outerRadius, cellAngle);
-                        camera.worldToScreen(this._scratchWorldPos, this._scratchScreenPos);
-                        ctx.lineTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
-                        this._scratchWorldPos.setFromPolar(this.outerRadius, cellEndAngle);
-                        camera.worldToScreen(this._scratchWorldPos, this._scratchScreenPos);
-                        ctx.lineTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
-                        this._scratchWorldPos.setFromPolar(this.innerRadius, cellEndAngle);
-                        camera.worldToScreen(this._scratchWorldPos, this._scratchScreenPos);
-                        ctx.lineTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
-                        ctx.closePath();
-                        ctx.stroke();
-                        ctx.restore();
-                    }
-                }
-            }
-        }
-
-        // Draw interactive asteroids in a separate batch
-        ctx.beginPath();
+        // Draw interactive asteroids with Path2D
+        const globalPathInteractive = new Path2D(); // Separate Path2D for interactive asteroids
         for (const asteroid of this.interactiveAsteroids) {
             if (camera.isInView(asteroid.position, asteroid.radius)) {
                 camera.worldToScreen(asteroid.position, this._scratchScreenPos);
                 const scaledSize = camera.worldToSize(asteroid.radius);
-                const cosA = Math.cos(asteroid.spin);
-                const sinA = Math.sin(asteroid.spin);
-                const shape = asteroid.shape;
-                for (let j = 0; j < shape.numPoints; j++) {
-                    const px = shape.points[j * 2];
-                    const py = shape.points[j * 2 + 1];
-                    const rotatedX = px * cosA - py * sinA;
-                    const rotatedY = px * sinA + py * cosA;
-                    const x = rotatedX * scaledSize + this._scratchScreenPos.x;
-                    const y = rotatedY * scaledSize + this._scratchScreenPos.y;
-                    if (j === 0) ctx.moveTo(x, y);
-                    else ctx.lineTo(x, y);
-                }
-                ctx.closePath();
+                const rotation = asteroid.spin + Math.PI / 2; // Adjust for 0 = up
+                const cosA = Math.cos(rotation);
+                const sinA = Math.sin(rotation);
+                matrix.a = scaledSize * cosA;
+                matrix.b = scaledSize * sinA;
+                matrix.c = -scaledSize * sinA;
+                matrix.d = scaledSize * cosA;
+                matrix.e = this._scratchScreenPos.x;
+                matrix.f = this._scratchScreenPos.y;
+                globalPathInteractive.addPath(asteroid.shape.path, matrix);
             }
         }
-        ctx.fill();
-        ctx.stroke();
+        ctx.fill(globalPathInteractive);
+        ctx.stroke(globalPathInteractive);
 
         ctx.restore();
     }
 }
 
-/**
- * Represents an individual interactive asteroid within a belt.
- * @extends GameObject
- */
 export class Asteroid extends GameObject {
+    /**
+     * Represents an individual interactive asteroid within a belt.
+     * @extends GameObject
+     * @param {AsteroidBelt} belt - The asteroid belt this asteroid belongs to.
+     * @returns {Asteroid} The created asteroid instance.
+     */
     constructor(belt) {
         const orbitRadius = remapRange01(Math.random(), belt.innerRadius, belt.outerRadius);
         const angle = remapRange01(Math.random(), 0, TWO_PI);
@@ -432,7 +440,7 @@ export class Asteroid extends GameObject {
         this.belt = belt;
         this.shapeIndex = Math.floor(Math.random() * belt.shapeCount);
         this.shape = belt.shapes[this.shapeIndex];
-        this.radius = remapRange01(Math.random(), 15, 30);
+        this.radius = remapRange01(Math.random(), 15, 30); // Radius between 15 and 30 world units
         this.spin = 0;
         this.spinSpeed = remapRange01(Math.random(), -TWO_PI, TWO_PI) * 0.5;
         this.orbitSpeed = remapRange01(Math.random(), Math.PI * 0.002, Math.PI * 0.006);

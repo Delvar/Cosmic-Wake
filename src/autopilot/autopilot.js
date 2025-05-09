@@ -1,10 +1,10 @@
 // autopilot.js
-import { JumpGate } from './celestialBody.js';
-import { remapClamp, normalizeAngle, randomBetween } from './utils.js';
-import { Ship } from './ship.js';
-import { Vector2D } from './vector2d.js';
-import { Asteroid } from './asteroidBelt.js';
-import { GameObject } from './gameObject.js';
+import { JumpGate } from '/src/starSystem/celestialBody.js';
+import { remapClamp, normalizeAngle, randomBetween } from '/src/core/utils.js';
+import { Ship } from '/src/ship/ship.js';
+import { Vector2D } from '/src/core/vector2d.js';
+import { Asteroid } from '/src/starSystem/asteroidBelt.js';
+import { GameObject } from '/src/core/gameObject.js';
 
 /**
  * Base class for autopilot behaviors, providing a common interface for ship control automation.
@@ -72,7 +72,195 @@ export class AutoPilot {
      * @returns {boolean} True if completed or errored, false if still running.
      */
     isComplete() {
-        return this.completed || !!this.error;
+        return false;//this.completed || !!this.error;
+    }
+}
+
+/**
+ * Autopilot to avoid a threat while staying near sector center.
+ * @extends AutoPilot
+ */
+export class AvoidAutoPilot extends AutoPilot {
+    /**
+     * Creates a new AvoidAutoPilot instance.
+     * @param {Ship} ship - The ship to control.
+     * @param {Ship} threat - The threat to avoid.
+     */
+    constructor(ship, threat) {
+        super(ship);
+        this.threat = threat;
+        this.safeDistanceSq = 1000 * 1000; // 1000 units squared
+        this.timeout = 10; // 10s timeout
+        this.timeElapsed = 0;
+        /** @type {Vector2D} Desired velocity vector. */
+        this._scratchDesiredVelocity = new Vector2D();
+        /** @type {Vector2D} Velocity error vector. */
+        this._scratchVelocityError = new Vector2D();
+        /** @type {Vector2D} Temporary vector for distance calculations. */
+        this._scratchDistance = new Vector2D();
+    }
+
+    /**
+     * Starts the autopilot.
+     */
+    start() {
+        super.start();
+        this.timeElapsed = 0;
+    }
+
+    /**
+     * Updates the autopilot, moving away from threat and toward sector center.
+     * @param {number} deltaTime - Time elapsed in seconds.
+     */
+    update(deltaTime) {
+        if (!this.threat || this.ship.state !== 'Flying') {
+            this._complete = true;
+            return;
+        }
+
+        this.timeElapsed += deltaTime;
+        if (this.timeElapsed >= this.timeout) {
+            this._complete = true;
+            return;
+        }
+
+        // Calculate desired velocity: 2 away from threat, 1 toward center
+        this._scratchDesiredVelocity.set(0, 0);
+
+        // Away from threat (weight: 2)
+        const toThreat = this._scratchDistance.set(this.threat.position)
+            .subtractInPlace(this.ship.position);
+        const distanceSq = toThreat.squareMagnitude();
+        if (distanceSq > this.safeDistanceSq) {
+            this._complete = true;
+            return;
+        }
+        if (distanceSq > 0) {
+            this._scratchDesiredVelocity.subtractInPlace(toThreat.normalizeInPlace().multiplyInPlace(2));
+        }
+
+        // Toward sector center (weight: 1)
+        const toCenter = this._scratchDistance.set(0, 0)
+            .subtractInPlace(this.ship.position);
+        if (toCenter.squareMagnitude() > 0) {
+            this._scratchDesiredVelocity.addInPlace(toCenter.normalizeInPlace());
+        }
+
+        // Normalize and scale to max velocity
+        const maxVelocity = this.ship.maxVelocity || 300; // Default max velocity
+        if (this._scratchDesiredVelocity.squareMagnitude() > 0) {
+            this._scratchDesiredVelocity.normalizeInPlace().multiplyInPlace(maxVelocity);
+        }
+
+        // Calculate velocity error
+        this._scratchVelocityError.set(this._scratchDesiredVelocity).subtractInPlace(this.ship.velocity);
+        const velocityErrorMagnitude = this._scratchVelocityError.magnitude();
+
+        // Set target angle and thrust
+        let desiredAngle = this.ship.angle;
+        let shouldThrust = false;
+        if (velocityErrorMagnitude > 5) {
+            desiredAngle = Math.atan2(this._scratchVelocityError.x, -this._scratchVelocityError.y);
+            const angleToDesired = normalizeAngle(desiredAngle - this.ship.angle);
+            desiredAngle = this.ship.angle + angleToDesired;
+            shouldThrust = Math.abs(angleToDesired) < Math.PI / 12; // Thrust if within 15 degrees
+        }
+
+        this.ship.setTargetAngle(desiredAngle);
+        this.ship.applyThrust(shouldThrust);
+    }
+
+    /**
+     * Checks if the autopilot is complete.
+     * @returns {boolean} True if safe or timed out.
+     */
+    isComplete() {
+        return this._complete;
+    }
+}
+
+/**
+ * Autopilot to flee to the nearest planet or jump gate, firing at threat if close.
+ * @extends AutoPilot
+ */
+export class FleeAutoPilot extends AutoPilot {
+    /**
+     * Creates a new FleeAutoPilot instance.
+     * @param {Ship} ship - The ship to control.
+     * @param {Ship} threat - The threat to flee from.
+     */
+    constructor(ship, threat) {
+        super(ship);
+        this.threat = threat;
+        this.target = ship.starSystem.getClosestPlanetOrJumpGate(ship);
+        this.subPilot = null;
+        this._scratchVector = new Vector2D();
+    }
+
+    /**
+     * Starts the autopilot.
+     */
+    start() {
+        super.start();
+        if (!this.target) {
+            this._complete = true;
+        }
+    }
+
+    /**
+     * Updates the autopilot, fleeing to target and firing if threat is near.
+     * @param {number} deltaTime - Time elapsed in seconds.
+     */
+    update(deltaTime) {
+        if (!this.target || this.ship.state !== 'Flying') {
+            this._complete = true;
+            return;
+        }
+
+        // Fire at threat if within 500 units
+        if (this.threat) {
+            const distanceSq = this._scratchVector.set(this.threat.position)
+                .subtractInPlace(this.ship.position).squareMagnitude();
+            if (distanceSq < 500 * 500) {
+                this.ship.setTarget(this.threat);
+                this.ship.fire();
+            }
+        }
+
+        // Manage sub-pilot
+        if (this.subPilot) {
+            this.subPilot.update(deltaTime);
+            if (this.subPilot.isComplete()) {
+                this.subPilot = null;
+                if (this.ship.state === 'Landed') {
+                    this._complete = true;
+                }
+            }
+            return;
+        }
+
+        // Navigate to target
+        const distance = this._scratchVector.set(this.target.position)
+            .subtractInPlace(this.ship.position).magnitude();
+        if (distance < this.target.radius) {
+            if (this.target instanceof JumpGate) {
+                this.subPilot = new TraverseJumpGateAutoPilot(this.ship, this.target);
+            } else {
+                this.subPilot = new LandOnPlanetAutoPilot(this.ship, this.target);
+            }
+            this.subPilot.start();
+        } else {
+            this.subPilot = new FlyToTargetAutoPilot(this.ship, this.target, this.target.radius);
+            this.subPilot.start();
+        }
+    }
+
+    /**
+     * Checks if the autopilot is complete.
+     * @returns {boolean} True if landed or jumped.
+     */
+    isComplete() {
+        return this._complete;
     }
 }
 

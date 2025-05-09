@@ -1,13 +1,14 @@
 // asteroidBelt.js
 
-import { Vector2D } from './vector2d.js';
-import { TWO_PI, remapRange01, removeObjectFromArrayInPlace, SimpleRNG, hash, normalizeAngle, clamp } from './utils.js';
-import { GameObject, isValidTarget } from './gameObject.js';
+import { Vector2D } from '/src/core/vector2d.js';
+import { TWO_PI, remapRange01, removeObjectFromArrayInPlace, SimpleRNG, hash, normalizeAngle, clamp } from '/src/core/utils.js';
+import { GameObject, isValidTarget } from '/src/core/gameObject.js';
 
-
+/**
+ * A precomputed asteroid shape, stored as a Float32Array of [x1, y1, x2, y2, ...].
+ */
 class AsteroidShape {
     /**
-     * A precomputed asteroid shape, stored as a Float32Array of [x1, y1, x2, y2, ...].
      * @param {number} numPoints - Number of points in the shape.
      * @returns {AsteroidShape} The created asteroid shape instance.
      */
@@ -43,9 +44,11 @@ class AsteroidShape {
     }
 }
 
+/**
+ * Manages a collection of asteroids forming a belt in a star system.
+ */
 export class AsteroidBelt {
     /**
-     * Manages a collection of asteroids forming a belt in a star system.
      * @param {number} innerRadius - Inner radius of the belt.
      * @param {number} outerRadius - Outer radius of the belt.
      * @param {number} backgroundDensity - Asteroids per 500x500 unit area.
@@ -426,9 +429,11 @@ export class AsteroidBelt {
     }
 }
 
+/**
+ * Represents an individual interactive asteroid within a belt.
+ */
 export class Asteroid extends GameObject {
     /**
-     * Represents an individual interactive asteroid within a belt.
      * @extends GameObject
      * @param {AsteroidBelt} belt - The asteroid belt this asteroid belongs to.
      * @returns {Asteroid} The created asteroid instance.

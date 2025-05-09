@@ -1,6 +1,6 @@
 // shipTypes.js
 
-import { Ship } from './ship.js';
+import { Ship } from '/src/ship/ship.js';
 
 export class Flivver extends Ship {
     constructor(x, y, starSystem) {

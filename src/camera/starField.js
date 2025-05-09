@@ -1,7 +1,7 @@
 // starField.js
 
-import { TWO_PI, remapRange01, remapClamp, SimpleRNG, hash } from './utils.js';
-import { Vector2D } from './vector2d.js';
+import { TWO_PI, remapRange01, remapClamp, SimpleRNG, hash } from '/src/core/utils.js';
+import { Vector2D } from '/src/core/vector2d.js';
 
 /**
  * Represents a procedurally generated starfield with parallax effects across multiple layers.

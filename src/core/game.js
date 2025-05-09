@@ -1,17 +1,17 @@
 // game.js
 
-import { Vector2D } from './vector2d.js';
-import { Colour } from './colour.js';
-import { Camera, TargetCamera } from './camera.js';
-import { Ship } from './ship.js';
-import { createRandomShip, Flivver, Shuttle, HeavyShuttle, StarBarge, Freighter, Arrow, Boxwing, Interceptor } from './shipTypes.js';
-import { JumpGate } from './celestialBody.js';
-import { StarField } from './starField.js';
-import { HeadsUpDisplay } from './headsUpDisplay.js';
-import { PlayerPilot, AIPilot, InterdictionAIPilot, EscortAIPilot, MiningAIPilot } from './pilot.js';
-import { createGalaxy } from './galaxy.js';
-import { TWO_PI } from './utils.js';
-import { isValidTarget } from './gameObject.js';
+import { Vector2D } from '/src/core/vector2d.js';
+import { Camera, TargetCamera } from '/src/camera/camera.js';
+import { Ship } from '/src/ship/ship.js';
+import { createRandomShip, Flivver, Shuttle, HeavyShuttle, StarBarge, Freighter, Arrow, Boxwing, Interceptor } from '../ship/shipTypes.js';
+import { StarField } from '/src/camera/starField.js';
+import { HeadsUpDisplay } from '/src/camera/headsUpDisplay.js';
+import { PlayerPilot } from '/src/pilot.js';
+import { createGalaxy } from '/src/core/galaxy.js';
+import { isValidTarget } from '/src/core/gameObject.js';
+import { AIPilot } from '/src/ai/aiPilot.js';
+import { WandererJob } from '/src/ai/wandererJob.js';
+import { CivilianReaction } from '/src/ai/civilianReaction.js';
 
 /**
  * Handles the game loop, rendering, and updates for the game.
@@ -270,15 +270,22 @@ class GameManager {
         const starSystem = this.galaxy[0];
         const earth = starSystem.planets[5];
         this.playerShip = createRandomShip(earth.position.x + earth.radius * 1.5, earth.position.y, starSystem);
+
         //this.playerShip = new Freighter(earth.position.x + earth.radius * 1.5, earth.position.y, starSystem);
 
+        //this.escort01 = new Interceptor(earth.position.x + earth.radius * 1.0, earth.position.y, starSystem);
         this.escort01 = new Freighter(earth.position.x + earth.radius * 1.0, earth.position.y, starSystem);
-        this.escort01.pilot = new EscortAIPilot(this.escort01, this.playerShip);
+        const job01 = new WandererJob(this.escort01);
+        const reaction01 = new CivilianReaction(this.escort01);
+        const pilot01 = new AIPilot(this.escort01, job01, reaction01);
+        this.escort01.setPilot(pilot01);
+        //this.escort01.pilot = new EscortAIPilot(this.escort01, this.playerShip);
         this.escort01.colors.cockpit = this.playerShip.colors.cockpit;
         this.escort01.colors.wings = this.playerShip.colors.wings;
         this.escort01.colors.hull = this.playerShip.colors.hull;
         this.escort01.trail.color = this.playerShip.trail.color;
         starSystem.addGameObject(this.escort01);
+        this.playerShip.setTarget(this.escort01);
 
         // this.escort02 = new Flivver(earth.position.x + 100, earth.position.y, starSystem);
         // this.escort02.pilot = new EscortAIPilot(this.escort02, this.playerShip);
@@ -353,68 +360,68 @@ class GameManager {
     spawnAIShipsIfNeeded(currentTime) {
         if (currentTime != 0 && (currentTime - this.lastSpawnTime < this.spawnInterval)) return;
 
-        this.galaxy.forEach(system => {
-            const aiShipCount = system.ships.length;
+        // this.galaxy.forEach(system => {
+        //     const aiShipCount = system.ships.length;
 
-            if (aiShipCount < system.maxAIShips) {
-                const spawnPlanet = system.getRandomPlanet();
-                if (!spawnPlanet) {
-                    console.warn('No spawnPlanet found!');
-                }
+        //     if (aiShipCount < system.maxAIShips) {
+        //         const spawnPlanet = system.getRandomPlanet();
+        //         if (!spawnPlanet) {
+        //             console.warn('No spawnPlanet found!');
+        //         }
 
-                const aiShip = createRandomShip(spawnPlanet.position.x, spawnPlanet.position.y, system);
-                if (aiShip instanceof Flivver || aiShip instanceof Arrow || aiShip instanceof Interceptor) {
-                    if (Math.random() > 0.5) {
-                        aiShip.pilot = new AIPilot(aiShip, spawnPlanet);
-                    } else {
-                        aiShip.pilot = new InterdictionAIPilot(aiShip, spawnPlanet);
-                    }
-                } else if (aiShip instanceof Boxwing) {
-                    aiShip.pilot = new MiningAIPilot(aiShip, spawnPlanet);
-                }
-                else {
-                    aiShip.pilot = new AIPilot(aiShip, spawnPlanet);
-                }
+        //         const aiShip = createRandomShip(spawnPlanet.position.x, spawnPlanet.position.y, system);
+        //         if (aiShip instanceof Flivver || aiShip instanceof Arrow || aiShip instanceof Interceptor) {
+        //             if (Math.random() > 0.5) {
+        //                 aiShip.pilot = new AIPilot(aiShip, spawnPlanet);
+        //             } else {
+        //                 aiShip.pilot = new InterdictionAIPilot(aiShip, spawnPlanet);
+        //             }
+        //         } else if (aiShip instanceof Boxwing) {
+        //             aiShip.pilot = new MiningAIPilot(aiShip, spawnPlanet);
+        //         }
+        //         else {
+        //             aiShip.pilot = new AIPilot(aiShip, spawnPlanet);
+        //         }
 
-                if (aiShip instanceof Freighter) {
-                    const escort01 = new Flivver(spawnPlanet.position.x, spawnPlanet.position.y, system);
-                    escort01.pilot = new EscortAIPilot(escort01, aiShip);
-                    escort01.colors.cockpit = aiShip.colors.cockpit;
-                    escort01.colors.wings = aiShip.colors.wings;
-                    escort01.colors.hull = aiShip.colors.hull;
-                    escort01.trail.color = aiShip.trail.color;
-                    escort01.setState('Landed');
-                    escort01.shipScale = 0;
-                    escort01.velocity.set(0, 0);
-                    escort01.landedObject = spawnPlanet;
-                    spawnPlanet.addLandedShip(escort01);
-                    system.addGameObject(escort01);
-                }
+        //         if (aiShip instanceof Freighter) {
+        //             const escort01 = new Flivver(spawnPlanet.position.x, spawnPlanet.position.y, system);
+        //             escort01.pilot = new EscortAIPilot(escort01, aiShip);
+        //             escort01.colors.cockpit = aiShip.colors.cockpit;
+        //             escort01.colors.wings = aiShip.colors.wings;
+        //             escort01.colors.hull = aiShip.colors.hull;
+        //             escort01.trail.color = aiShip.trail.color;
+        //             escort01.setState('Landed');
+        //             escort01.shipScale = 0;
+        //             escort01.velocity.set(0, 0);
+        //             escort01.landedObject = spawnPlanet;
+        //             spawnPlanet.addLandedShip(escort01);
+        //             system.addGameObject(escort01);
+        //         }
 
-                aiShip.setState('Landed');
-                aiShip.shipScale = 0;
-                aiShip.velocity.set(0, 0);
-                aiShip.landedObject = spawnPlanet;
-                spawnPlanet.addLandedShip(aiShip);
-                system.addGameObject(aiShip);
+        //         aiShip.setState('Landed');
+        //         aiShip.shipScale = 0;
+        //         aiShip.velocity.set(0, 0);
+        //         aiShip.landedObject = spawnPlanet;
+        //         spawnPlanet.addLandedShip(aiShip);
+        //         system.addGameObject(aiShip);
 
-            } else if (aiShipCount > system.maxAIShips) {
-                const excessCount = aiShipCount - system.maxAIShips;
-                let despawned = 0;
-                const landedShips = [];
-                system.planets.forEach(body => {
-                    if (body.landedShips && body.landedShips.length > 0) {
-                        landedShips.push(...body.landedShips.filter(ship => ship.pilot instanceof AIPilot));
-                    }
-                });
-                while (despawned < excessCount && landedShips.length > 0) {
-                    const index = Math.floor(Math.random() * landedShips.length);
-                    const shipToDespawn = landedShips[index];
-                    shipToDespawn.despawn();
-                    despawned++;
-                }
-            }
-        });
+        //     } else if (aiShipCount > system.maxAIShips) {
+        //         const excessCount = aiShipCount - system.maxAIShips;
+        //         let despawned = 0;
+        //         const landedShips = [];
+        //         system.planets.forEach(body => {
+        //             if (body.landedShips && body.landedShips.length > 0) {
+        //                 landedShips.push(...body.landedShips.filter(ship => ship.pilot instanceof AIPilot));
+        //             }
+        //         });
+        //         while (despawned < excessCount && landedShips.length > 0) {
+        //             const index = Math.floor(Math.random() * landedShips.length);
+        //             const shipToDespawn = landedShips[index];
+        //             shipToDespawn.despawn();
+        //             despawned++;
+        //         }
+        //     }
+        // });
 
         this.lastSpawnTime = currentTime;
         this.spawnInterval = this.randomSpawnInterval();

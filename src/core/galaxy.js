@@ -1,10 +1,10 @@
 // galaxy.js
-import { StarSystem } from './starSystem.js';
-import { Planet, Star, PlanetaryRing, celestialTypes } from './celestialBody.js';
-import { AsteroidBelt } from './asteroidBelt.js';
-import { Vector2D } from './vector2d.js';
-import { Colour } from './colour.js';
-import { TWO_PI } from './utils.js';
+import { StarSystem } from '/src/starSystem/starSystem.js';
+import { Planet, Star, PlanetaryRing, celestialTypes } from '/src/starSystem/celestialBody.js';
+import { AsteroidBelt } from '/src/starSystem/asteroidBelt.js';
+import { Vector2D } from '/src/core/vector2d.js';
+import { Colour } from '/src/core/colour.js';
+import { TWO_PI } from '/src/core/utils.js';
 
 /**
  * Creates and initializes the galaxy with star systems, celestial bodies, and hyperlanes.

@@ -1,7 +1,7 @@
 // projectile.js
 
-import { Vector2D } from './vector2d.js';
-import { Ship } from './ship.js';
+import { Vector2D } from '/src/core/vector2d.js';
+import { Ship } from '/src/ship/ship.js';
 
 /**
  * A lightweight data holder for a projectile (e.g., Rail Gun tungsten slug).

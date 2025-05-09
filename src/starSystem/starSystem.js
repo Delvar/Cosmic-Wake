@@ -6,15 +6,14 @@
  * The Hyperlane class represents a connection between two star systems.
  */
 
-import { Vector2D } from './vector2d.js';
-import { GameObject, isValidTarget } from './gameObject.js';
-import { CelestialBody, Planet, Star, JumpGate } from './celestialBody.js';
-import { Ship } from './ship.js';
-import { Asteroid } from './asteroidBelt.js';
-import { removeObjectFromArrayInPlace } from './utils.js';
-import { AsteroidBelt } from './asteroidBelt.js';
-import { ProjectileManager } from './projectileManager.js';
-import { ParticleManager } from './particleManager.js';
+import { Vector2D } from '/src/core/vector2d.js';
+import { GameObject, isValidTarget } from '/src/core/gameObject.js';
+import { CelestialBody, Planet, Star, JumpGate } from '/src/starSystem/celestialBody.js';
+import { Ship } from '/src/ship/ship.js';
+import { Asteroid, AsteroidBelt } from '/src/starsystem/asteroidBelt.js';
+import { removeObjectFromArrayInPlace } from '/src/core/utils.js';
+import { ProjectileManager } from '/src/starsystem/projectileManager.js';
+import { ParticleManager } from '/src/starsystem/particleManager.js';
 
 /**
  * Represents a star system containing celestial bodies, ships, and connections to other systems.

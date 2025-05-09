@@ -1,7 +1,7 @@
 // fixedWeapon.js
 
-import { Vector2D } from './vector2d.js';
-import { Weapon } from './weapon.js';
+import { Vector2D } from '/src/core/vector2d.js';
+import { Weapon } from '/src/weapon/weapon.js';
 
 /**
  * Fixed, forward-facing weapon on a ship.

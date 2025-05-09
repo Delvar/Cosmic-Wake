@@ -1,7 +1,7 @@
 // camera.js
 
-import { Vector2D } from './vector2d.js';
-import { normalizeAngle, TWO_PI } from './utils.js';
+import { Vector2D } from '/src/core/vector2d.js';
+import { normalizeAngle, TWO_PI } from '/src/core/utils.js';
 
 /**
  * Represents a camera that handles rendering and coordinate transformations in a 2D space.

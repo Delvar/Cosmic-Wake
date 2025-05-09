@@ -1,6 +1,6 @@
 // trail.js
 
-import { Vector2D } from './vector2d.js';
+import { Vector2D } from '/src/core/vector2d.js';
 
 /**
  * A ring buffer managing trail points in a Float32Array.

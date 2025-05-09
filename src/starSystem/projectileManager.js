@@ -1,8 +1,8 @@
 // projectileManager.js
 
-import { Vector2D } from './vector2d.js';
-import { Projectile } from './projectile.js';
-import { removeObjectFromArrayInPlace, TWO_PI } from './utils.js';
+import { Vector2D } from '/src/core/vector2d.js';
+import { Projectile } from '/src/starSystem/projectile.js';
+import { removeObjectFromArrayInPlace, TWO_PI } from '/src/core/utils.js';
 
 /**
  * Manages active projectiles in a star system, handling updates, rendering, collisions, and lifecycle.
@@ -118,16 +118,16 @@ export class ProjectileManager {
 
                 if (isHit) {
                     // Debug damage to force state transitions
-                    let damage = 0;
-                    if (ship.shield.strength) {
-                        damage = ship.shield.strength;
-                    } else if (ship.hullIntegrity > ship.disabledThreshold) {
-                        damage = ship.hullIntegrity - ship.disabledThreshold;
-                    } else if (ship.hullIntegrity > 0) {
-                        damage = ship.hullIntegrity;
-                    }
-                    ship.takeDamage(damage, p.position);
-                    //ship.takeDamage(type.damage, p.position);
+                    // let damage = 0;
+                    // if (ship.shield.strength) {
+                    //     damage = ship.shield.strength;
+                    // } else if (ship.hullIntegrity > ship.disabledThreshold) {
+                    //     damage = ship.hullIntegrity - ship.disabledThreshold;
+                    // } else if (ship.hullIntegrity > 0) {
+                    //     damage = ship.hullIntegrity;
+                    // }
+                    // ship.takeDamage(damage, p.position);
+                    ship.takeDamage(type.damage, p.position, p.owner);
                     this.starSystem.particleManager.spawnExplosion(p.position, 5);
                     removeObjectFromArrayInPlace(p, this.projectiles);
                     break;

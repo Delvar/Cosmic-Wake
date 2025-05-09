@@ -1,9 +1,9 @@
 // celestialBody.js
 
-import { Vector2D } from './vector2d.js';
-import { Colour } from './colour.js';
-import { GameObject } from './gameObject.js';
-import { TWO_PI, removeObjectFromArrayInPlace } from './utils.js';
+import { Vector2D } from '/src/core/vector2d.js';
+import { Colour } from '/src/core/colour.js';
+import { GameObject } from '/src/core/gameObject.js';
+import { TWO_PI, removeObjectFromArrayInPlace } from '/src/core/utils.js';
 
 /**
  * Defines the types and colors for celestial bodies in the game.

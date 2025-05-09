@@ -1,6 +1,6 @@
 // particle.js
 
-import { Vector2D } from './vector2d.js';
+import { Vector2D } from '/src/core/vector2d.js';
 
 /**
  * A lightweight data holder for a particle (e.g., spark line, explosion).

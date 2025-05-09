@@ -1,8 +1,8 @@
 // particleManager.js
 
-import { Vector2D } from './vector2d.js';
-import { Particle } from './particle.js';
-import { removeObjectFromArrayInPlace, TWO_PI, randomBetween, remapClamp, clamp } from './utils.js';
+import { Vector2D } from '/src/core/vector2d.js';
+import { Particle } from '/src/starSystem/particle.js';
+import { removeObjectFromArrayInPlace, TWO_PI, randomBetween, remapClamp, clamp } from '../core/utils.js';
 
 /**
  * Manages active particles in a star system, handling updates, rendering, and lifecycle.

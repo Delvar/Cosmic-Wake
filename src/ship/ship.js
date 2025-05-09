@@ -1,16 +1,17 @@
 // ship.js
 
-import { Vector2D } from './vector2d.js';
-import { Trail } from './trail.js';
-import { Colour } from './colour.js';
-import { GameObject } from './gameObject.js';
-import { CelestialBody, JumpGate } from './celestialBody.js';
-import { TWO_PI, clamp, remapClamp, normalizeAngle, randomBetween, SimpleRNG } from './utils.js';
-import { Asteroid } from './asteroidBelt.js';
-import { Weapon } from './weapon.js';
-import { Shield } from './shield.js';
-import { Turret } from './turret.js';
-import { FixedWeapon } from './fixedWeapon.js';
+import { Vector2D } from '/src/core/vector2d.js';
+import { Trail } from '/src/ship/trail.js';
+import { Colour } from '/src/core/colour.js';
+import { GameObject } from '/src/core/gameObject.js';
+import { CelestialBody, JumpGate } from '/src/starSystem/celestialBody.js';
+import { TWO_PI, clamp, remapClamp, normalizeAngle, randomBetween, SimpleRNG } from '/src/core/utils.js';
+import { Asteroid } from '/src/starSystem/asteroidBelt.js';
+import { Weapon } from '/src/weapon/weapon.js';
+import { Shield } from '/src/ship/shield.js';
+import { Turret } from '/src/weapon/turret.js';
+import { FixedWeapon } from '/src/weapon/fixedWeapon.js';
+import { AIPilot } from '/src/ai/aiPilot.js';
 
 function generateShipName() {
     const prefixes = [
@@ -313,6 +314,14 @@ export class Ship extends GameObject {
     }
 
     /**
+     * Sets the pilot for this ship.
+     * @param {Pilot} pilot - The pilot to control the ship.
+     */
+    setPilot(pilot) {
+        this.pilot = pilot;
+    }
+
+    /**
      * Transitions the ship to a new state, resetting animation time.
      * @param {string} newState - The state to transition to (e.g., 'Flying', 'Landing').
      */
@@ -489,14 +498,18 @@ export class Ship extends GameObject {
      * Applies damage to the ship, processing through shields and hull.
      * @param {number} damage - Amount of damage to apply.
      * @param {Vector2D} hitPosition - World-space position of the hit.
+     * @param {Ship} source - Ship causing damage.
      */
-    takeDamage(damage, hitPosition) {
+    takeDamage(damage, hitPosition, source) {
         let excessDamage = damage;
         if (this.shield && this.shield.isActive) {
             excessDamage = this.shield.takeDamage(damage, hitPosition, this.position, this.age);
         }
         if (excessDamage > 0) {
             this.hullIntegrity = Math.max(this.hullIntegrity - excessDamage, -50);
+        }
+        if (this.pilot instanceof AIPilot) {
+            this.pilot.onDamage(damage, source);
         }
     }
 

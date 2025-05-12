@@ -10,8 +10,9 @@ import { PlayerPilot } from '/src/pilot.js';
 import { createGalaxy } from '/src/core/galaxy.js';
 import { isValidTarget } from '/src/core/gameObject.js';
 import { AIPilot } from '/src/ai/aiPilot.js';
+import { CivilianAIPilot } from '/src/ai/civilianAIPilot.js';
 import { WandererJob } from '/src/ai/wandererJob.js';
-import { CivilianReaction } from '/src/ai/civilianReaction.js';
+
 
 /**
  * Handles the game loop, rendering, and updates for the game.
@@ -276,8 +277,7 @@ class GameManager {
         //this.escort01 = new Interceptor(earth.position.x + earth.radius * 1.0, earth.position.y, starSystem);
         this.escort01 = new Freighter(earth.position.x + earth.radius * 1.0, earth.position.y, starSystem);
         const job01 = new WandererJob(this.escort01);
-        const reaction01 = new CivilianReaction(this.escort01);
-        const pilot01 = new AIPilot(this.escort01, job01, reaction01);
+        const pilot01 = new CivilianAIPilot(this.escort01, job01);
         this.escort01.setPilot(pilot01);
         //this.escort01.pilot = new EscortAIPilot(this.escort01, this.playerShip);
         this.escort01.colors.cockpit = this.playerShip.colors.cockpit;
@@ -294,6 +294,17 @@ class GameManager {
         // this.escort02.colors.hull = this.playerShip.colors.hull;
         // this.escort02.trail.color = this.playerShip.trail.color;
         // starSystem.addGameObject(this.escort02);
+
+        this.escort02 = new Interceptor(earth.position.x + earth.radius * 1.0, earth.position.y, starSystem);
+        const job02 = new WandererJob(this.escort02);
+        const pilot02 = new CivilianAIPilot(this.escort02, job02);
+        this.escort02.setPilot(pilot02);
+        this.escort02.colors.cockpit = this.playerShip.colors.cockpit;
+        this.escort02.colors.wings = this.playerShip.colors.wings;
+        this.escort02.colors.hull = this.playerShip.colors.hull;
+        this.escort02.trail.color = this.playerShip.trail.color;
+        starSystem.addGameObject(this.escort02);
+        this.playerShip.setTarget(this.escort02);
 
         this.playerPilot = new PlayerPilot(this.playerShip);
         this.playerShip.pilot = this.playerPilot;

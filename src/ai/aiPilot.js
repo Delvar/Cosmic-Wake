@@ -1,11 +1,12 @@
 // ai/aiPilot.js
 
 import { Pilot } from '/src/pilot.js';
-import { Vector2D } from '/src/core/vector2d.js';
 import { Ship } from '/src/ship/ship.js';
+import { Vector2D } from '/src/core/vector2d.js';
+import { AvoidAutoPilot, FleeAutoPilot } from '/src/autopilot/autopilot.js';
 
 /**
- * AI pilot coordinating jobs and reactions without a state machine.
+ * Base AI pilot with common states and reaction handling.
  * @extends Pilot
  */
 export class AIPilot extends Pilot {
@@ -13,17 +14,22 @@ export class AIPilot extends Pilot {
      * Creates a new AIPilot instance.
      * @param {Ship} ship - The ship to control.
      * @param {Object} job - The job instance (e.g., WandererJob).
-     * @param {Object} reaction - The reaction instance (e.g., CivilianReaction).
      */
-    constructor(ship, job, reaction) {
+    constructor(ship, job) {
         super(ship);
         this.job = job;
-        this.reaction = reaction;
         this.autopilot = null;
         this.threat = null;
-        this.reactionAutopilot = false; // Track if autopilot is from reaction
+        this.state = 'Job';
         this.reactionCooldown = 0; // Anti-flip-flop cooldown
-        this._scratchVector = new Vector2D(); // For threat distance checks
+        /** @type {Vector2D} Temporary vector for distance calculations. */
+        this._scratchDistance = new Vector2D();
+        this.stateHandlers = {
+            'Job': this.updateJob.bind(this),
+            'Flee': this.updateFlee.bind(this),
+            'Avoid': this.updateAvoid.bind(this),
+            'Attack': this.updateAttack.bind(this)
+        };
     }
 
     /**
@@ -34,26 +40,42 @@ export class AIPilot extends Pilot {
     onDamage(damage, source) {
         if (source instanceof Ship && source !== this.ship) {
             this.threat = source;
-            this.reaction.onDamage(source, this);
         }
     }
 
     /**
      * Sets a new autopilot, stopping and cleaning up the current one.
      * @param {AutoPilot} newAutoPilot - The new autopilot to set.
-     * @param {boolean} isReaction - True if set by reaction.
      */
-    setAutoPilot(newAutoPilot, isReaction = false) {
+    setAutoPilot(newAutoPilot) {
         if (this.autopilot) {
             this.autopilot.stop();
             this.autopilot = null;
         }
         this.autopilot = newAutoPilot;
-        this.reactionAutopilot = isReaction;
         if (this.autopilot) {
             this.autopilot.start();
         }
-        console.log(`setAutoPilot`, newAutoPilot, isReaction);
+    }
+
+    /**
+     * Changes state and autopilot, handling cleanup.
+     * @param {string} newState - The new state ('Job', 'Flee', 'Avoid', 'Attack').
+     * @param {AutoPilot} newAutoPilot - The new autopilot, if any.
+     */
+    changeState(newState, newAutoPilot = null) {
+        if (this.state === newState) return;
+        // Pause job only when leaving Job state
+        if (this.state === 'Job') {
+            this.job.pause();
+        }
+        // Set new state and autopilot
+        this.state = newState;
+        this.setAutoPilot(newAutoPilot);
+        // Reset cooldown for reaction states
+        if (newState !== 'Job') {
+            this.reactionCooldown = 0;
+        }
     }
 
     /**
@@ -74,28 +96,115 @@ export class AIPilot extends Pilot {
             this.reactionCooldown = Math.max(0, this.reactionCooldown - deltaTime);
         }
 
-        // Check reaction for threats
-        this.reaction.update(deltaTime, this);
+        // Run state handler
+        const handler = this.stateHandlers[this.state];
+        if (handler) {
+            handler(deltaTime, gameManager);
+        }
+    }
 
-        // Execute active autopilot (from reaction or job)
-        if (this.autopilot) {
+    /**
+     * Handles Job state, running the assigned job.
+     * @param {number} deltaTime - Time elapsed in seconds.
+     */
+    updateJob(deltaTime) {
+        // Execute active autopilot
+        if (this.autopilot && !this.autopilot.isComplete()) {
             this.autopilot.update(deltaTime);
             if (this.autopilot.isComplete()) {
                 this.setAutoPilot(null);
             }
-            // Check reaction completion only for reaction autopilots
-            if (this.reactionAutopilot && this.reaction.isComplete(this)) {
-                this.setAutoPilot(null);
-                this.threat = null;
-                this.reactionCooldown = 1; // 1s cooldown to prevent flip-flopping
-                this.job.resume();
+        } else {
+            // Run job to set next autopilot
+            if (this.ship.state === 'Landed' || this.ship.state === 'Flying') {
+                this.job.update(deltaTime, this);
             }
-            return;
         }
+    }
 
-        // No autopilot, delegate to job
-        if (this.ship.state === 'Landed' || this.ship.state === 'Flying') {
-            this.job.update(deltaTime, this);
+    /**
+     * Handles Flee state, running FleeAutoPilot.
+     * @param {number} deltaTime - Time elapsed in seconds.
+     */
+    updateFlee(deltaTime) {
+        // Ensure correct autopilot
+        if (!(this.autopilot instanceof FleeAutoPilot) && this.ship.state === 'Flying' && this.threat) {
+            this.setAutoPilot(new FleeAutoPilot(this.ship, this.threat));
+        }
+        // Execute autopilot
+        if (this.autopilot && !this.autopilot.isComplete()) {
+            this.autopilot.update(deltaTime);
+            if (this.autopilot.isComplete()) {
+                this.setAutoPilot(null);
+            }
+        }
+        // Transition to Job if safe
+        if (this.isSafe() && !this.autopilot) {
+            this.changeState('Job');
+            this.threat = null;
+            this.job.resume();
+        }
+    }
+
+    /**
+     * Handles Avoid state, running AvoidAutoPilot.
+     * @param {number} deltaTime - Time elapsed in seconds.
+     */
+    updateAvoid(deltaTime) {
+        // Ensure correct autopilot
+        if (!(this.autopilot instanceof AvoidAutoPilot) && this.ship.state === 'Flying' && this.threat) {
+            this.setAutoPilot(new AvoidAutoPilot(this.ship, this.threat));
+        }
+        // Execute autopilot
+        if (this.autopilot && !this.autopilot.isComplete()) {
+            this.autopilot.update(deltaTime);
+            if (this.autopilot.isComplete()) {
+                this.setAutoPilot(null);
+            }
+        }
+        // Transition to Job if safe
+        if (this.isSafe() && !this.autopilot) {
+            this.changeState('Job');
+            this.threat = null;
+            this.job.resume();
+        }
+    }
+
+    /**
+     * Handles Attack state, placeholder for subclasses.
+     * @param {number} deltaTime - Time elapsed in seconds.
+     */
+    updateAttack(deltaTime) {
+        this.changeState('Job');
+    }
+
+    /**
+     * Checks if the ship is safe from the threat.
+     * @returns {boolean} True if safe.
+     */
+    isSafe() {
+        if (this.ship.state === 'Landed') return true;
+        if (!this.threat) return true;
+        if (this.ship.starSystem !== this.threat.starSystem) return true;
+        const distanceSq = this._scratchDistance.set(this.threat.position)
+            .subtractInPlace(this.ship.position).squareMagnitude();
+        return distanceSq > 1000 * 1000; // Safe if threat > 1000 units
+    }
+
+    /**
+     * Returns the pilot's status for debugging.
+     * @returns {string} Status string.
+     */
+    getStatus() {
+        if (this.ship.debug) {
+            let status = `${this.constructor.name}: ${this.state}, `;
+            if (this.state === 'Job') {
+                status += `${this.job.constructor.name}: ${this.job.getStatus()}, `;
+            }
+            status += `${this.autopilot.constructor.name}: ${this.autopilot.getStatus()}`;
+            return status;
+        } else {
+            return this.autopilot.getStatus();
         }
     }
 }

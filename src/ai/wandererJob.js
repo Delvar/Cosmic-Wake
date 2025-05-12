@@ -82,7 +82,7 @@ export class WandererJob extends Job {
     planRoute() {
         const currentSystem = this.ship.starSystem;
         const excludePlanet = this.ship.state === 'Landed' ? this.ship.landedBody : null;
-        
+
         if (Math.random() < 0.2) {
             // 20% chance: Same system, exclude current planet
             this.finalTarget = currentSystem.getRandomPlanet(this.ship, excludePlanet);
@@ -141,8 +141,8 @@ export class WandererJob extends Job {
     resume() {
         super.resume();
         if (this.state !== 'Paused') {
-            // Recalculate route if system changed
-            if (this.finalTarget && this.ship.starSystem !== this.finalTarget.starSystem && this.state !== 'Completed') {
+            // Reset to Planning if no valid route or system changed
+            if (!this.finalTarget || this.ship.starSystem !== this.finalTarget.starSystem) {
                 this.state = 'Planning';
                 this.target = null;
                 this.route = [];

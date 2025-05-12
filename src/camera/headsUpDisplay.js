@@ -5,6 +5,7 @@ import { Ship } from '/src/ship/ship.js';
 import { TWO_PI, remapClamp } from '/src/core/utils.js';
 import { isValidTarget } from '/src/core/gameObject.js';
 import { Colour } from '/src/core/colour.js';
+import { AIPilot } from '/src/ai/aiPilot.js';
 
 /**
  * Manages the Heads-Up Display (HUD) showing rings and indicators for game objects.
@@ -237,7 +238,12 @@ export class HeadsUpDisplay {
         ctx.save();
 
         // Draw autopilot status at top middle if the camera's target ship has an active autopilot
-        const autopilotStatus = this.gameManager.cameraTarget?.pilot?.autopilot?.getStatus();
+        let autopilotStatus;
+        if (this.gameManager.cameraTarget?.pilot instanceof AIPilot) {
+            autopilotStatus = this.gameManager.cameraTarget?.pilot?.getStatus();
+        } else {
+            autopilotStatus = this.gameManager.cameraTarget?.pilot?.autopilot?.getStatus();
+        }
         if (autopilotStatus) {
             ctx.fillStyle = "white";
             ctx.font = "16px Arial";

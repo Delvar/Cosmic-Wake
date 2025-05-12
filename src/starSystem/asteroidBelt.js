@@ -267,7 +267,7 @@ export class AsteroidBelt {
         const matrix = this._scratchMatrix;
 
         // Draw background asteroids in a batch per layer
-        let renderedCells = 0;
+        //let renderedCells = 0;
         for (let layerIdx = 0; layerIdx < this.layerCount; layerIdx++) {
             const orbitalSpeed = this.orbitalSpeeds[layerIdx];
             // Adjust camera angles for layer rotation
@@ -287,7 +287,7 @@ export class AsteroidBelt {
                 const cellEndAngle = cellAngle + this.cellAngleSize;
                 // Optional: Verify cell is in view (for safety)
                 if (camera.isCellInView(cellAngle, cellEndAngle, this.innerRadius, this.outerRadius)) {
-                    renderedCells++;
+                    //renderedCells++;
                     const asteroids = this.getCellAsteroids(layerIdx, baseCellAngle, time);
                     for (let j = 0; j < asteroids.length; j += 5) {
                         const radius = asteroids[j];
@@ -320,7 +320,7 @@ export class AsteroidBelt {
         ctx.stroke(globalPath);
 
         if (camera.debug) {
-            console.log(`renderedCells: ${renderedCells}`);
+            //console.log(`renderedCells: ${renderedCells}`);
             // Draw translucent purple cone for camera’s minAngle to maxAngle
             ctx.save();
             ctx.fillStyle = 'rgba(128, 0, 128, 0.3)';

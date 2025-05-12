@@ -32,12 +32,12 @@ export class Pilot {
     }
 
     /**
-     * Returns a string describing the pilot's current state for HUD display.
-     * @returns {string} The current state description.
+     * Returns a string describing the pilot's current status for HUD display.
+     * @returns {string} The current status description.
      * @throws {Error} Must be implemented by subclasses.
      */
-    getState() {
-        throw new Error("getState() must be implemented by subclass");
+    getStatus() {
+        throw new Error("getStatus() must be implemented by subclass");
     }
 }
 
@@ -255,10 +255,10 @@ export class PlayerPilot extends Pilot {
     }
 
     /**
-     * Returns the current state of the player pilot for HUD display.
+     * Returns the current status of the player pilot for HUD display.
      * @returns {string} A descriptive status string.
      */
-    getState() {
+    getStatus() {
         if (this.autopilot?.active) {
             return this.autopilot.getStatus();
         }

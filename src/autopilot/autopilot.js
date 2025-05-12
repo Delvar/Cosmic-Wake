@@ -64,7 +64,7 @@ export class AutoPilot {
      * @returns {string} A descriptive status string.
      */
     getStatus() {
-        return "Autopilot: Idle";
+        return "Idle";
     }
 
     /**
@@ -488,7 +488,7 @@ export class FlyToTargetAutoPilot extends AutoPilot {
      * @returns {string} A descriptive status string.
      */
     getStatus() {
-        return `Autopilot: Flying to ${this.target.name || 'target'}`;
+        return `Flying to ${this.target.name || 'target'}`;
     }
 }
 
@@ -608,9 +608,9 @@ export class LandOnPlanetAutoPilot extends AutoPilot {
             return this.subPilot.getStatus();
         }
         if (this.ship.state === 'Landing') {
-            return `Autopilot: Landing on ${this.target.name || 'planet'} (Animating)`;
+            return `Landing on ${this.target.name || 'planet'} (Animating)`;
         }
-        return `Autopilot: Landing on ${this.target.name || 'planet'}`;
+        return `Landing on ${this.target.name || 'planet'}`;
     }
 }
 
@@ -723,16 +723,15 @@ export class TraverseJumpGateAutoPilot extends AutoPilot {
      * @returns {string} A descriptive status string indicating jump progress.
      */
     getStatus() {
-        if (this.subPilot && this.subPilot.active) {
-            return this.subPilot.getStatus();
+        if (this.ship.debug) {
+            let status = `${this.target.name || 'jump gate'}`;
+            if (this.subPilot && this.subPilot.active) {
+                status += `, ${this.subPilot.constructor.name}: ${this.subPilot.getStatus()}`;
+            }
+            return status;
+        } else {
+            return `Traversing ${this.target.name || 'jump gate'}`;
         }
-        if (this.ship.state === 'JumpingOut') {
-            return `Autopilot: Jumping out to ${this.target.lane.target.name || 'system'} (Animating)`;
-        }
-        if (this.ship.state === 'JumpingIn') {
-            return `Autopilot: Jumping in to ${this.target.lane.target.name || 'system'} (Animating)`;
-        }
-        return `Autopilot: Traversing ${this.target.name || 'jump gate'}`;
     }
 }
 
@@ -927,7 +926,7 @@ export class FollowShipAutoPilot extends AutoPilot {
      * @returns {string} A descriptive status string indicating the follow target.
      */
     getStatus() {
-        return `Autopilot: Following ${this.target.name || 'ship'}`;
+        return `Following ${this.target.name || 'ship'}`;
     }
 }
 
@@ -1198,18 +1197,18 @@ export class EscortAutoPilot extends AutoPilot {
      */
     getStatus() {
         if (this.state === 'Following' && this.subAutopilot?.active) {
-            return `Autopilot: Escorting ${this.target.name || 'ship'}`;
+            return `Escorting ${this.target.name || 'ship'}`;
         }
         if (this.state === 'Landing' && this.subAutopilot?.active) {
-            return `Autopilot: Landing on ${this.target.landedOn?.name || 'body'}`;
+            return `Landing on ${this.target.landedOn?.name || 'body'}`;
         }
         if (this.state === 'TraversingJumpGate' && this.subAutopilot?.active) {
-            return `Autopilot: Jumping to ${this.target.starSystem?.name || 'system'}`;
+            return `Jumping to ${this.target.starSystem?.name || 'system'}`;
         }
         if (this.state === 'Waiting') {
-            return 'Autopilot: Waiting';
+            return 'Waiting';
         }
-        return `Autopilot: Escorting (${this.state})`;
+        return `Escorting (${this.state})`;
     }
 }
 
@@ -1352,9 +1351,9 @@ export class LandOnAsteroidAutoPilot extends AutoPilot {
             return this.subPilot.getStatus();
         }
         if (this.ship.state === 'Landing') {
-            return `Autopilot: Landing on ${this.target.name || 'asteroid'} (Animating)`;
+            return `Landing on ${this.target.name || 'asteroid'} (Animating)`;
         }
-        return `Autopilot: Mining ${this.target.name || 'asteroid'}`;
+        return `Mining ${this.target.name || 'asteroid'}`;
     }
 }
 
@@ -1535,6 +1534,6 @@ export class ApproachTargetAutoPilot extends AutoPilot {
      * @returns {string} A descriptive status string.
      */
     getStatus() {
-        return `Approach Autopilot: ${this.completed ? 'Completed' : 'Active'}`;
+        return `Approach ${this.completed ? 'Completed' : 'Active'}`;
     }
 }

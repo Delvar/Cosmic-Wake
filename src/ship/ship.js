@@ -1383,7 +1383,7 @@ export class Ship extends GameObject {
 
         // Draw pilot state text
         if (this.pilot) {
-            const state = this.pilot.getState();
+            const state = this.pilot.getStatus();
             ctx.fillStyle = 'white';
             ctx.font = `${10 * scale}px Arial`;
             const textMetrics = ctx.measureText(state);

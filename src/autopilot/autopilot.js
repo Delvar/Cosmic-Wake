@@ -193,7 +193,6 @@ export class FleeAutoPilot extends AutoPilot {
         super(ship);
         this.threat = threat;
         this.target = ship.starSystem.getClosestJumpGatePlanet(ship);
-        this.subPilot = null;
         this._scratchVector = new Vector2D();
     }
 
@@ -230,10 +229,10 @@ export class FleeAutoPilot extends AutoPilot {
         }
 
         // Manage sub-pilot
-        if (this.subPilot) {
-            this.subPilot.update(deltaTime);
-            if (this.subPilot.isComplete()) {
-                this.subPilot = null;
+        if (this.subAutopilot) {
+            this.subAutopilot.update(deltaTime);
+            if (this.subAutopilot.isComplete()) {
+                this.subAutopilot = null;
                 if (this.ship.state === 'Landed') {
                     this.completed = true;
                     this.stop();
@@ -247,14 +246,14 @@ export class FleeAutoPilot extends AutoPilot {
             .subtractInPlace(this.ship.position).magnitude();
         if (distance < this.target.radius) {
             if (this.target instanceof JumpGate) {
-                this.subPilot = new TraverseJumpGateAutoPilot(this.ship, this.target);
+                this.subAutopilot = new TraverseJumpGateAutoPilot(this.ship, this.target);
             } else {
-                this.subPilot = new LandOnPlanetAutoPilot(this.ship, this.target);
+                this.subAutopilot = new LandOnPlanetAutoPilot(this.ship, this.target);
             }
-            this.subPilot.start();
+            this.subAutopilot.start();
         } else {
-            this.subPilot = new FlyToTargetAutoPilot(this.ship, this.target, this.target.radius);
-            this.subPilot.start();
+            this.subAutopilot = new FlyToTargetAutoPilot(this.ship, this.target, this.target.radius);
+            this.subAutopilot.start();
         }
     }
 
@@ -515,7 +514,7 @@ export class LandOnPlanetAutoPilot extends AutoPilot {
      */
     constructor(ship, planet) {
         super(ship, planet);
-        this.subPilot = null;
+        this.subAutopilot = null;
         // Pre-allocated scratch vectors for allocation-free updates
         this._scratchDistanceToTarget = new Vector2D(0, 0);
         this._scratchVelocityError = new Vector2D();
@@ -540,8 +539,8 @@ export class LandOnPlanetAutoPilot extends AutoPilot {
             return;
         }
         // Initialize sub-pilot to approach the planet
-        this.subPilot = new FlyToTargetAutoPilot(this.ship, this.target, this.target.radius, Ship.LANDING_SPEED * 0.9, Ship.LANDING_SPEED * 2);
-        this.subPilot.start();
+        this.subAutopilot = new FlyToTargetAutoPilot(this.ship, this.target, this.target.radius, Ship.LANDING_SPEED * 0.9, Ship.LANDING_SPEED * 2);
+        this.subAutopilot.start();
     }
 
     /**
@@ -552,16 +551,16 @@ export class LandOnPlanetAutoPilot extends AutoPilot {
     update(deltaTime) {
         if (!this.active) return;
 
-        if (this.subPilot && this.subPilot.active) {
+        if (this.subAutopilot && this.subAutopilot.active) {
             // Delegate to sub-pilot for approaching the planet
-            this.subPilot.update(deltaTime);
-            if (this.subPilot.isComplete()) {
-                if (this.subPilot.error) {
-                    this.error = this.subPilot.error;
+            this.subAutopilot.update(deltaTime);
+            if (this.subAutopilot.isComplete()) {
+                if (this.subAutopilot.error) {
+                    this.error = this.subAutopilot.error;
                     this.stop();
                     return;
                 }
-                this.subPilot = null; // Sub-pilot done, proceed to landing check
+                this.subAutopilot = null; // Sub-pilot done, proceed to landing check
             }
         } else if (this.ship.state === 'Flying') {
             // Check distance to planet for landing readiness
@@ -585,8 +584,8 @@ export class LandOnPlanetAutoPilot extends AutoPilot {
                 }
             } else {
                 // Overshot the planet; restart sub-pilot to re-approach
-                this.subPilot = new FlyToTargetAutoPilot(this.ship, this.target, this.target.radius, Ship.LANDING_SPEED * 0.9, Ship.LANDING_SPEED * 2);
-                this.subPilot.start();
+                this.subAutopilot = new FlyToTargetAutoPilot(this.ship, this.target, this.target.radius, Ship.LANDING_SPEED * 0.9, Ship.LANDING_SPEED * 2);
+                this.subAutopilot.start();
             }
         } else if (this.ship.state === 'Landing') {
             // Wait for landing animation to complete
@@ -605,7 +604,7 @@ export class LandOnPlanetAutoPilot extends AutoPilot {
      * Stops the autopilot and any active sub-autopilot.
      */
     stop() {
-        if (this.subPilot) this.subPilot.stop();
+        if (this.subAutopilot) this.subAutopilot.stop();
         super.stop();
     }
 
@@ -614,8 +613,8 @@ export class LandOnPlanetAutoPilot extends AutoPilot {
      * @returns {string} A descriptive status string indicating landing or sub-autopilot state.
      */
     getStatus() {
-        if (this.subPilot && this.subPilot.active) {
-            return this.subPilot.getStatus();
+        if (this.subAutopilot && this.subAutopilot.active) {
+            return this.subAutopilot.getStatus();
         }
         if (this.ship.state === 'Landing') {
             return `Landing on ${this.target.name || 'planet'} (Animating)`;
@@ -637,7 +636,7 @@ export class TraverseJumpGateAutoPilot extends AutoPilot {
      */
     constructor(ship, gate) {
         super(ship, gate);
-        this.subPilot = null;
+        this.subAutopilot = null;
         // Pre-allocated scratch vectors for allocation-free updates
         this._scratchDistanceToTarget = new Vector2D(0, 0);
         this._scratchTemp = new Vector2D(0, 0);
@@ -659,8 +658,8 @@ export class TraverseJumpGateAutoPilot extends AutoPilot {
             return;
         }
         // Initialize sub-pilot to fly to the gate
-        this.subPilot = new FlyToTargetAutoPilot(this.ship, this.target, this.target.radius, Ship.LANDING_SPEED * 0.9, Ship.LANDING_SPEED * 2);
-        this.subPilot.start();
+        this.subAutopilot = new FlyToTargetAutoPilot(this.ship, this.target, this.target.radius, Ship.LANDING_SPEED * 0.9, Ship.LANDING_SPEED * 2);
+        this.subAutopilot.start();
     }
 
     /**
@@ -671,16 +670,16 @@ export class TraverseJumpGateAutoPilot extends AutoPilot {
     update(deltaTime) {
         if (!this.active) return;
 
-        if (this.subPilot && this.subPilot.active) {
+        if (this.subAutopilot && this.subAutopilot.active) {
             // Delegate to sub-pilot to approach the jump gate
-            this.subPilot.update(deltaTime);
-            if (this.subPilot.isComplete()) {
-                if (this.subPilot.error) {
-                    this.error = this.subPilot.error;
+            this.subAutopilot.update(deltaTime);
+            if (this.subAutopilot.isComplete()) {
+                if (this.subAutopilot.error) {
+                    this.error = this.subAutopilot.error;
                     this.stop();
                     return;
                 }
-                this.subPilot = null; // Sub-pilot done, proceed to jump phase
+                this.subAutopilot = null; // Sub-pilot done, proceed to jump phase
             }
         } else if (this.ship.state === 'Flying' && this.ship.starSystem === this.target.lane.target) {
             // Jump completed successfully
@@ -708,8 +707,8 @@ export class TraverseJumpGateAutoPilot extends AutoPilot {
                 if (this.ship.debug) {
                     console.log(`Not aligned with ${this.target.name || 'jump gate'}; restarting fly-to phase`);
                 }
-                this.subPilot = new FlyToTargetAutoPilot(this.ship, this.target, this.target.radius, Ship.LANDING_SPEED * 0.9, Ship.LANDING_SPEED * 2);
-                this.subPilot.start();
+                this.subAutopilot = new FlyToTargetAutoPilot(this.ship, this.target, this.target.radius, Ship.LANDING_SPEED * 0.9, Ship.LANDING_SPEED * 2);
+                this.subAutopilot.start();
             }
         } else if (this.ship.state === 'JumpingOut' || this.ship.state === 'JumpingIn') {
             // Wait for jump animation to complete
@@ -724,7 +723,7 @@ export class TraverseJumpGateAutoPilot extends AutoPilot {
      * Stops the autopilot and any active sub-autopilot.
      */
     stop() {
-        if (this.subPilot) this.subPilot.stop();
+        if (this.subAutopilot) this.subAutopilot.stop();
         super.stop();
     }
 
@@ -735,8 +734,8 @@ export class TraverseJumpGateAutoPilot extends AutoPilot {
     getStatus() {
         if (this.ship.debug) {
             let status = `${this.target.name || 'jump gate'}`;
-            if (this.subPilot && this.subPilot.active) {
-                status += `, ${this.subPilot.constructor.name}: ${this.subPilot.getStatus()}`;
+            if (this.subAutopilot && this.subAutopilot.active) {
+                status += `, ${this.subAutopilot.constructor.name}: ${this.subAutopilot.getStatus()}`;
             }
             return status;
         } else {
@@ -1257,7 +1256,7 @@ export class LandOnAsteroidAutoPilot extends AutoPilot {
             return;
         }
         // Initialize sub-pilot for approach
-        this.subPilot = new ApproachTargetAutoPilot(
+        this.subAutopilot = new ApproachTargetAutoPilot(
             this.ship,
             this.target,
             this.target.radius,  // finalRadius
@@ -1269,7 +1268,7 @@ export class LandOnAsteroidAutoPilot extends AutoPilot {
             2,                       // lowerVelocityErrorThreshold
             2                        // maxTimeToIntercept
         );
-        this.subPilot.start();
+        this.subAutopilot.start();
     }
 
     /**
@@ -1280,16 +1279,16 @@ export class LandOnAsteroidAutoPilot extends AutoPilot {
     update(deltaTime) {
         if (!this.active) return;
 
-        if (this.subPilot && this.subPilot.active) {
+        if (this.subAutopilot && this.subAutopilot.active) {
             // Delegate to sub-pilot for approaching the asteroid
-            this.subPilot.update(deltaTime);
-            if (this.subPilot.isComplete()) {
-                if (this.subPilot.error) {
-                    this.error = this.subPilot.error;
+            this.subAutopilot.update(deltaTime);
+            if (this.subAutopilot.isComplete()) {
+                if (this.subAutopilot.error) {
+                    this.error = this.subAutopilot.error;
                     this.stop();
                     return;
                 }
-                this.subPilot = null; // Sub-pilot done, proceed to mining check
+                this.subAutopilot = null; // Sub-pilot done, proceed to mining check
             }
         } else if (this.ship.state === 'Flying') {
             // Check distance to asteroid for mining readiness
@@ -1317,7 +1316,7 @@ export class LandOnAsteroidAutoPilot extends AutoPilot {
                 if (this.ship.debug) {
                     console.log(`Overshot ${this.target.name || 'asteroid'}; restarting approach phase`);
                 }
-                this.subPilot = new ApproachTargetAutoPilot(
+                this.subAutopilot = new ApproachTargetAutoPilot(
                     this.ship,
                     this.target,
                     this.target.radius,  // finalRadius
@@ -1329,7 +1328,7 @@ export class LandOnAsteroidAutoPilot extends AutoPilot {
                     2,                       // lowerVelocityErrorThreshold
                     2                        // maxTimeToIntercept
                 );
-                this.subPilot.start();
+                this.subAutopilot.start();
             }
         } else if (this.ship.state === 'Landing') {
             // Wait for landing animation to complete
@@ -1348,7 +1347,7 @@ export class LandOnAsteroidAutoPilot extends AutoPilot {
      * Stops the autopilot and any active sub-autopilot.
      */
     stop() {
-        if (this.subPilot) this.subPilot.stop();
+        if (this.subAutopilot) this.subAutopilot.stop();
         super.stop();
     }
 
@@ -1357,8 +1356,8 @@ export class LandOnAsteroidAutoPilot extends AutoPilot {
      * @returns {string} A descriptive status string indicating mining or sub-autopilot state.
      */
     getStatus() {
-        if (this.subPilot && this.subPilot.active) {
-            return this.subPilot.getStatus();
+        if (this.subAutopilot && this.subAutopilot.active) {
+            return this.subAutopilot.getStatus();
         }
         if (this.ship.state === 'Landing') {
             return `Landing on ${this.target.name || 'asteroid'} (Animating)`;

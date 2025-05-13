@@ -1311,8 +1311,8 @@ export class Ship extends GameObject {
 
         // Draw autopilot future position and target distances
         if (this.pilot && this.pilot.autopilot && (this.pilot.autopilot._scratchFuturePosition ||
-            (this.pilot.autopilot.subPilot && this.pilot.autopilot.subPilot._scratchFuturePosition))) {
-            const autopilot = this.pilot.autopilot.subPilot || this.pilot.autopilot;
+            (this.pilot.autopilot.subAutopilot && this.pilot.autopilot.subAutopilot._scratchFuturePosition))) {
+            const autopilot = this.pilot.autopilot.subAutopilot || this.pilot.autopilot;
             camera.worldToScreen(autopilot._scratchFuturePosition, this._scratchScreenPos);
             ctx.save();
             ctx.lineWidth = 2;
@@ -1346,8 +1346,8 @@ export class Ship extends GameObject {
 
         // Draw velocity error if available
         let velocityError = null;
-        if (this.pilot && this.pilot.autopilot && this.pilot.autopilot.subPilot && this.pilot.autopilot.subPilot.active && this.pilot.autopilot.subPilot._scratchVelocityError) {
-            velocityError = this.pilot.autopilot.subPilot._scratchVelocityError;
+        if (this.pilot && this.pilot.autopilot && this.pilot.autopilot.subAutopilot && this.pilot.autopilot.subAutopilot.active && this.pilot.autopilot.subAutopilot._scratchVelocityError) {
+            velocityError = this.pilot.autopilot.subAutopilot._scratchVelocityError;
         } else if (this.pilot && this.pilot.autopilot && this.pilot.autopilot.active && this.pilot.autopilot._scratchVelocityError) {
             velocityError = this.pilot.autopilot._scratchVelocityError;
         } else if (this.pilot && this.pilot._scratchVelocityError) {

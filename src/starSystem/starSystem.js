@@ -430,6 +430,39 @@ export class StarSystem {
     }
 
     /**
+     * @param {Ship} ship the ship looking for a target
+     * @param {GameObject} [exclude=null] exclude this other GameObject
+     * @return {JumpGate|Planet|null} The selected body, or null if none available.
+     */
+    getClosestJumpGatePlanet(ship, exclude = null) {
+        const arr1 = this.planets;
+        const length1 = arr1 ? arr1.length : 0;
+        const arr2 = this.jumpGates;
+        const length2 = arr2 ? arr2.length : 0;
+        const totalLength = length1 + length2;
+        if (totalLength == 0) {
+            return null;
+        }
+        let item = null;
+        let closestItem = arr1[0];
+        let closestSquaredDistance = closestItem.position.distanceSquaredTo(ship.position);
+        for (let i = 1; i < totalLength; i++) {
+            if (i < length1) {
+                item = arr1[i];
+            } else {
+                item = arr2[i - length1];
+            }
+            if (item !== exclude && isValidTarget(ship, item)) {
+                const squaredDistance = item.position.distanceSquaredTo(ship.position);
+                if (squaredDistance < closestSquaredDistance) {
+                    closestItem = item;
+                }
+            }
+        }
+        return closestItem;
+    }
+
+    /**
      * Finds a jump gate in the current system that leads to the target system.
      * @param {StarSystem} targetSystem - The star system to jump to.
      * @returns {JumpGate|null} The jump gate leading to the target system, or null if none found.

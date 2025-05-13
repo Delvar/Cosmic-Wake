@@ -48,6 +48,7 @@ export class AIPilot extends Pilot {
      * @param {AutoPilot} newAutoPilot - The new autopilot to set.
      */
     setAutoPilot(newAutoPilot) {
+        console.log(`setAutoPilot ${this.ship.name}: ${this.autopilot?.constructor?.name} >> ${newAutoPilot?.constructor?.name}`);
         if (this.autopilot) {
             this.autopilot.stop();
             this.autopilot = null;
@@ -94,6 +95,15 @@ export class AIPilot extends Pilot {
         // Update reaction cooldown
         if (this.reactionCooldown > 0) {
             this.reactionCooldown = Math.max(0, this.reactionCooldown - deltaTime);
+        }
+
+        // Fire at threat if within 500 units
+        if (this.threat && this.threat.state === 'Flying' && !this.threat.isDespawned()) {
+            const distanceSq = this.ship.position.distanceSquaredTo(this.threat.position);
+            if (distanceSq < 500 * 500) {
+                this.ship.setTarget(this.threat);
+                this.ship.fire();
+            }
         }
 
         // Run state handler
@@ -201,10 +211,15 @@ export class AIPilot extends Pilot {
             if (this.state === 'Job') {
                 status += `${this.job.constructor.name}: ${this.job.getStatus()}, `;
             }
-            status += `${this.autopilot.constructor.name}: ${this.autopilot.getStatus()}`;
+            if (this.autopilot) {
+                status += `${this.autopilot.constructor.name}: ${this.autopilot.getStatus()}`;
+            }
             return status;
         } else {
-            return this.autopilot.getStatus();
+            if (this.autopilot) {
+                return this.autopilot.getStatus();
+            }
+            return 'idle';
         }
     }
 }

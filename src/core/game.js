@@ -295,16 +295,16 @@ class GameManager {
         // this.escort02.trail.color = this.playerShip.trail.color;
         // starSystem.addGameObject(this.escort02);
 
-        this.escort02 = new Interceptor(earth.position.x + earth.radius * 1.0, earth.position.y, starSystem);
-        const job02 = new WandererJob(this.escort02);
-        const pilot02 = new CivilianAIPilot(this.escort02, job02);
-        this.escort02.setPilot(pilot02);
-        this.escort02.colors.cockpit = this.playerShip.colors.cockpit;
-        this.escort02.colors.wings = this.playerShip.colors.wings;
-        this.escort02.colors.hull = this.playerShip.colors.hull;
-        this.escort02.trail.color = this.playerShip.trail.color;
-        starSystem.addGameObject(this.escort02);
-        this.playerShip.setTarget(this.escort02);
+        // this.escort02 = new Interceptor(earth.position.x + earth.radius * 1.0, earth.position.y, starSystem);
+        // const job02 = new WandererJob(this.escort02);
+        // const pilot02 = new CivilianAIPilot(this.escort02, job02);
+        // this.escort02.setPilot(pilot02);
+        // this.escort02.colors.cockpit = this.playerShip.colors.cockpit;
+        // this.escort02.colors.wings = this.playerShip.colors.wings;
+        // this.escort02.colors.hull = this.playerShip.colors.hull;
+        // this.escort02.trail.color = this.playerShip.trail.color;
+        // starSystem.addGameObject(this.escort02);
+        //this.playerShip.setTarget(this.escort02);
 
         this.playerPilot = new PlayerPilot(this.playerShip);
         this.playerShip.pilot = this.playerPilot;

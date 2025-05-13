@@ -72,7 +72,7 @@ export class AutoPilot {
      * @returns {boolean} True if completed or errored, false if still running.
      */
     isComplete() {
-        return false;//this.completed || !!this.error;
+        return this.completed || !!this.error;
     }
 }
 
@@ -90,7 +90,7 @@ export class AvoidAutoPilot extends AutoPilot {
         super(ship);
         this.threat = threat;
         this.safeDistanceSq = 1000 * 1000; // 1000 units squared
-        this.timeout = 10; // 10s timeout
+        this.timeout = 10;
         this.timeElapsed = 0;
         /** @type {Vector2D} Desired velocity vector. */
         this._scratchDesiredVelocity = new Vector2D();
@@ -114,13 +114,13 @@ export class AvoidAutoPilot extends AutoPilot {
      */
     update(deltaTime) {
         if (!this.threat || this.ship.state !== 'Flying') {
-            this._complete = true;
+            this.completed = true;
             return;
         }
 
         this.timeElapsed += deltaTime;
         if (this.timeElapsed >= this.timeout) {
-            this._complete = true;
+            this.completed = true;
             return;
         }
 
@@ -132,7 +132,7 @@ export class AvoidAutoPilot extends AutoPilot {
             .subtractInPlace(this.ship.position);
         const distanceSq = toThreat.squareMagnitude();
         if (distanceSq > this.safeDistanceSq) {
-            this._complete = true;
+            this.completed = true;
             return;
         }
         if (distanceSq > 0) {
@@ -171,11 +171,11 @@ export class AvoidAutoPilot extends AutoPilot {
     }
 
     /**
-     * Checks if the autopilot is complete.
-     * @returns {boolean} True if safe or timed out.
+     * Returns the current status of the autopilot for HUD display.
+     * @returns {string} A descriptive status string.
      */
-    isComplete() {
-        return this._complete;
+    getStatus() {
+        return `Avoiding ${this.threat.name} (${(this.timeout - this.timeElapsed).toFixed(1)})`;
     }
 }
 
@@ -192,7 +192,7 @@ export class FleeAutoPilot extends AutoPilot {
     constructor(ship, threat) {
         super(ship);
         this.threat = threat;
-        this.target = ship.starSystem.getClosestPlanetOrJumpGate(ship);
+        this.target = ship.starSystem.getClosestJumpGatePlanet(ship);
         this.subPilot = null;
         this._scratchVector = new Vector2D();
     }
@@ -203,7 +203,7 @@ export class FleeAutoPilot extends AutoPilot {
     start() {
         super.start();
         if (!this.target) {
-            this._complete = true;
+            this.completed = true;
         }
     }
 
@@ -213,7 +213,7 @@ export class FleeAutoPilot extends AutoPilot {
      */
     update(deltaTime) {
         if (!this.target || this.ship.state !== 'Flying') {
-            this._complete = true;
+            this.completed = true;
             return;
         }
 
@@ -233,7 +233,7 @@ export class FleeAutoPilot extends AutoPilot {
             if (this.subPilot.isComplete()) {
                 this.subPilot = null;
                 if (this.ship.state === 'Landed') {
-                    this._complete = true;
+                    this.completed = true;
                 }
             }
             return;
@@ -253,14 +253,6 @@ export class FleeAutoPilot extends AutoPilot {
             this.subPilot = new FlyToTargetAutoPilot(this.ship, this.target, this.target.radius);
             this.subPilot.start();
         }
-    }
-
-    /**
-     * Checks if the autopilot is complete.
-     * @returns {boolean} True if landed or jumped.
-     */
-    isComplete() {
-        return this._complete;
     }
 }
 

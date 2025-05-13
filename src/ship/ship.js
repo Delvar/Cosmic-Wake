@@ -12,6 +12,7 @@ import { Shield } from '/src/ship/shield.js';
 import { Turret } from '/src/weapon/turret.js';
 import { FixedWeapon } from '/src/weapon/fixedWeapon.js';
 import { AIPilot } from '/src/ai/aiPilot.js';
+import { PlayerPilot } from '/src/pilot.js';
 
 function generateShipName() {
     const prefixes = [
@@ -502,6 +503,10 @@ export class Ship extends GameObject {
      */
     takeDamage(damage, hitPosition, source) {
         let excessDamage = damage;
+        //Debug: player takes no damage
+        if (this.pilot instanceof PlayerPilot) {
+            excessDamage = 0;
+        }
         if (this.shield && this.shield.isActive) {
             excessDamage = this.shield.takeDamage(damage, hitPosition, this.position, this.age);
         }

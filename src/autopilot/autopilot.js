@@ -88,9 +88,11 @@ export class AvoidAutoPilot extends AutoPilot {
      */
     constructor(ship, threat) {
         super(ship);
+        /** @type {Ship} The ship that is a threat to us. */
         this.threat = threat;
-        this.safeDistanceSq = 1000 * 1000; // 1000 units squared
-        this.timeout = 10;
+        /** @type {Number} How long to atempt to avoid the threat*/
+        this.timeout = 30;
+        /** @type {Number} Cumulative time we have been trying to avoid the threat*/
         this.timeElapsed = 0;
         /** @type {Vector2D} Desired velocity vector. */
         this._scratchDesiredVelocity = new Vector2D();
@@ -115,12 +117,14 @@ export class AvoidAutoPilot extends AutoPilot {
     update(deltaTime) {
         if (!this.threat || this.ship.state !== 'Flying') {
             this.completed = true;
+            this.stop();
             return;
         }
 
         this.timeElapsed += deltaTime;
         if (this.timeElapsed >= this.timeout) {
             this.completed = true;
+            this.stop();
             return;
         }
 
@@ -131,10 +135,6 @@ export class AvoidAutoPilot extends AutoPilot {
         const toThreat = this._scratchDistance.set(this.threat.position)
             .subtractInPlace(this.ship.position);
         const distanceSq = toThreat.squareMagnitude();
-        if (distanceSq > this.safeDistanceSq) {
-            this.completed = true;
-            return;
-        }
         if (distanceSq > 0) {
             this._scratchDesiredVelocity.subtractInPlace(toThreat.normalizeInPlace().multiplyInPlace(2));
         }
@@ -204,6 +204,7 @@ export class FleeAutoPilot extends AutoPilot {
         super.start();
         if (!this.target) {
             this.completed = true;
+            this.stop();
         }
     }
 
@@ -214,6 +215,7 @@ export class FleeAutoPilot extends AutoPilot {
     update(deltaTime) {
         if (!this.target || this.ship.state !== 'Flying') {
             this.completed = true;
+            this.stop();
             return;
         }
 
@@ -234,6 +236,7 @@ export class FleeAutoPilot extends AutoPilot {
                 this.subPilot = null;
                 if (this.ship.state === 'Landed') {
                     this.completed = true;
+                    this.stop();
                 }
             }
             return;
@@ -253,6 +256,21 @@ export class FleeAutoPilot extends AutoPilot {
             this.subPilot = new FlyToTargetAutoPilot(this.ship, this.target, this.target.radius);
             this.subPilot.start();
         }
+    }
+
+    /**
+     * Returns the current status of the autopilot for HUD display.
+     * @returns {string} A descriptive status string.
+     */
+    getStatus() {
+        if (this.ship.debug) {
+            let status = `${this.constructor.name}: ${this.threat.name} to ${this.target.name}, `;
+            if (this.autopilot) {
+                status += `${this.autopilot.constructor.name}: ${this.autopilot.getStatus()}`;
+            }
+            return status;
+        }
+        return `Fleeing ${this.threat.name} to ${this.target.name}`;
     }
 }
 
@@ -1401,6 +1419,7 @@ export class ApproachTargetAutoPilot extends AutoPilot {
         if (!this.target || !this.target.position) {
             this.error = 'No valid target specified';
             this.completed = true;
+            this.stop();
             return;
         }
         // Precompute distance thresholds based on ship physics
@@ -1427,9 +1446,9 @@ export class ApproachTargetAutoPilot extends AutoPilot {
      */
     update(deltaTime) {
         if (!this.active || !this.target || !this.target.position) {
-            this.stop();
             this.error = 'Target lost or invalid';
             this.completed = true;
+            this.stop();
             return;
         }
 

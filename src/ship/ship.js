@@ -503,12 +503,12 @@ export class Ship extends GameObject {
      */
     takeDamage(damage, hitPosition, source) {
         let excessDamage = damage;
-        //Debug: player takes no damage
-        if (this.pilot instanceof PlayerPilot) {
-            excessDamage = 0;
-        }
         if (this.shield && this.shield.isActive) {
             excessDamage = this.shield.takeDamage(damage, hitPosition, this.position, this.age);
+        }
+        //Debug: player takes no hull damage
+        if (this.pilot instanceof PlayerPilot) {
+            excessDamage = 0;
         }
         if (excessDamage > 0) {
             this.hullIntegrity = Math.max(this.hullIntegrity - excessDamage, -50);
@@ -1225,6 +1225,7 @@ export class Ship extends GameObject {
 
             // Create radial gradient
             ctx.save();
+            ctx.globalCompositeOperation = "lighter";
             const gradient = ctx.createRadialGradient(light.x, light.y, 0, light.x, light.y, light.radius * 5 * brightness);
             if (light.x < -3) {
                 // Left: Red outer/middle, white inner

@@ -15,7 +15,7 @@ export class CivilianAIPilot extends AIPilot {
      */
     constructor(ship, job) {
         super(ship, job);
-        this.threatScanInterval = 0.5; // Scan every 0.5s
+        this.threatScanInterval = 0.5;
         this.nextThreatScan = 0;
         this.safeTime = 0;
     }
@@ -43,7 +43,7 @@ export class CivilianAIPilot extends AIPilot {
             this.nextThreatScan = this.ship.age + this.threatScanInterval;
 
             // Check shields for immediate flee
-            if (this.ship.shield && this.ship.shield.shield <= 0 && this.threat) {
+            if (this.ship.shield && this.ship.shield.strength <= 0 && this.threat) {
                 if (this.ship.debug) {
                     console.log('Job: Shields down, switching to Flee');
                 }
@@ -108,7 +108,7 @@ export class CivilianAIPilot extends AIPilot {
         }
 
         //Check if the shilds have gone down
-        if (this.ship.shield && this.ship.shield.shield <= 0 && this.threat) {
+        if (this.ship.shield && this.ship.shield.strength <= 0 && this.threat) {
             if (this.ship.debug) {
                 console.log('Avoid: Shields down, switching to Flee');
             }
@@ -120,7 +120,6 @@ export class CivilianAIPilot extends AIPilot {
         if (this.autopilot && !this.autopilot.isComplete()) {
             this.autopilot.update(deltaTime);
             if (this.autopilot.isComplete()) {
-                console.log("this.autopilot.isComplete");
                 this.setAutoPilot(null);
             }
         }
@@ -147,21 +146,28 @@ export class CivilianAIPilot extends AIPilot {
             }
             this.setAutoPilot(new FleeAutoPilot(this.ship, this.threat));
         }
+
+        // Transition to Job if safe
+        if (this.safeTime > 10) {
+            if (this.ship.debug) {
+                console.log('Flee: Safe, switching to Job');
+            }
+            this.setAutoPilot(null);
+            this.changeState('Job');
+            this.threat = null;
+            this.job.resume();
+            return;
+        }
+
         // Execute autopilot
         if (this.autopilot && !this.autopilot.isComplete()) {
             this.autopilot.update(deltaTime);
             if (this.autopilot.isComplete()) {
                 this.setAutoPilot(null);
+                this.changeState('Job');
+                this.threat = null;
+                this.job.resume();
             }
-        }
-        // Transition to Job if safe
-        if (this.isSafe() && !this.autopilot) {
-            if (this.ship.debug) {
-                console.log('Flee: Safe, switching to Job');
-            }
-            this.changeState('Job');
-            this.threat = null;
-            this.job.resume();
         }
     }
 
@@ -172,7 +178,8 @@ export class CivilianAIPilot extends AIPilot {
      */
     onDamage(damage, source) {
         super.onDamage(damage, source);
-        if (this.ship.shield && this.ship.shield.shield <= 0 && this.threat) {
+        this.safeTime = 0;
+        if (this.ship.shield && this.ship.shield.strength <= 0 && this.threat) {
             if (this.ship.debug) {
                 console.log('onDamage: Shields down, switching to Flee');
             }

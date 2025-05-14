@@ -1,26 +1,32 @@
-// autopilot.js
+// ai/autopilot.js
 import { JumpGate } from '/src/starSystem/celestialBody.js';
 import { remapClamp, normalizeAngle, randomBetween } from '/src/core/utils.js';
 import { Ship } from '/src/ship/ship.js';
 import { Vector2D } from '/src/core/vector2d.js';
 import { Asteroid } from '/src/starSystem/asteroidBelt.js';
-import { GameObject } from '/src/core/gameObject.js';
+import { GameObject, isValidTarget } from '/src/core/gameObject.js';
 
 /**
- * Base class for autopilot behaviors, providing a common interface for ship control automation.
+ * Base class for autopilot behaviors controlling ship navigation.
  */
 export class AutoPilot {
     /**
      * Creates a new AutoPilot instance.
      * @param {Ship} ship - The ship to control.
-     * @param {GameObject} [target=null] - The target object (e.g., planet, gate).
+     * @param {GameObject} [target=null] - The target object (e.g., planet, jump gate).
      */
     constructor(ship, target = null) {
+        /** @type {Ship} The ship controlled by this autopilot. */
         this.ship = ship;
+        /** @type {GameObject|null} The target object (e.g., planet, jump gate). */
         this.target = target;
+        /** @type {boolean} Whether the autopilot is active. */
         this.active = false;
+        /** @type {boolean} Whether the autopilot has completed its task. */
         this.completed = false;
+        /** @type {string|null} Error message if the autopilot fails, null if no error. */
         this.error = null;
+        /** @type {AutoPilot|null} Optional sub-autopilot for delegated tasks. */
         this.subAutopilot = null;
     }
 
@@ -38,10 +44,11 @@ export class AutoPilot {
     }
 
     /**
-     * Updates the autopilot's behavior each frame.
-     * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * Updates the autopilot's behavior each frame. Must be overridden by subclasses.
+     * @param {number} deltaTime - Time elapsed since last update (seconds).
+     * @param {GameManager} gameManager - The game manager instance for context.
      */
-    update(deltaTime) {
+    update(deltaTime, gameManager) {
         if (!this.active) return;
         // Subclasses override this
     }
@@ -77,7 +84,7 @@ export class AutoPilot {
 }
 
 /**
- * Autopilot to avoid a threat while staying near sector center.
+ * Autopilot for avoiding a threat by moving away and toward the sector center.
  * @extends AutoPilot
  */
 export class AvoidAutoPilot extends AutoPilot {
@@ -88,22 +95,22 @@ export class AvoidAutoPilot extends AutoPilot {
      */
     constructor(ship, threat) {
         super(ship);
-        /** @type {Ship} The ship that is a threat to us. */
+        /** @type {Ship} The ship posing a threat to avoid. */
         this.threat = threat;
-        /** @type {Number} How long to atempt to avoid the threat*/
+        /** @type {number} Maximum duration (seconds) to attempt avoiding the threat. */
         this.timeout = 30;
-        /** @type {Number} Cumulative time we have been trying to avoid the threat*/
+        /** @type {number} Cumulative time (seconds) spent avoiding the threat. */
         this.timeElapsed = 0;
-        /** @type {Vector2D} Desired velocity vector. */
+        /** @type {Vector2D} Desired velocity vector for navigation. */
         this._scratchDesiredVelocity = new Vector2D();
-        /** @type {Vector2D} Velocity error vector. */
+        /** @type {Vector2D} Velocity error vector for course correction. */
         this._scratchVelocityError = new Vector2D();
         /** @type {Vector2D} Temporary vector for distance calculations. */
         this._scratchDistance = new Vector2D();
     }
 
     /**
-     * Starts the autopilot.
+     * Starts the autopilot, initializing avoidance behavior.
      */
     start() {
         super.start();
@@ -111,10 +118,11 @@ export class AvoidAutoPilot extends AutoPilot {
     }
 
     /**
-     * Updates the autopilot, moving away from threat and toward sector center.
-     * @param {number} deltaTime - Time elapsed in seconds.
+     * Updates the autopilot, moving the ship away from the threat and toward the sector center.
+     * @param {number} deltaTime - Time elapsed since last update (seconds).
+     * @param {GameManager} gameManager - The game manager instance for context.
      */
-    update(deltaTime) {
+    update(deltaTime, gameManager) {
         if (!this.threat || this.ship.state !== 'Flying') {
             this.completed = true;
             this.stop();
@@ -172,7 +180,7 @@ export class AvoidAutoPilot extends AutoPilot {
 
     /**
      * Returns the current status of the autopilot for HUD display.
-     * @returns {string} A descriptive status string.
+     * @returns {string} A descriptive status string including threat name and time remaining.
      */
     getStatus() {
         return `Avoiding ${this.threat.name} (${(this.timeout - this.timeElapsed).toFixed(1)})`;
@@ -191,13 +199,16 @@ export class FleeAutoPilot extends AutoPilot {
      */
     constructor(ship, threat) {
         super(ship);
+        /** @type {Ship} The ship posing a threat to flee from. */
         this.threat = threat;
+        /** @type {JumpGate|Planet|null} The target to flee to (jump gate or planet). */
         this.target = ship.starSystem.getClosestJumpGatePlanet(ship);
+        /** @type {Vector2D} Temporary vector for calculations. */
         this._scratchVector = new Vector2D();
     }
 
     /**
-     * Starts the autopilot.
+     * Starts the autopilot, validating the target.
      */
     start() {
         super.start();
@@ -208,43 +219,28 @@ export class FleeAutoPilot extends AutoPilot {
     }
 
     /**
-     * Updates the autopilot, fleeing to target and firing if threat is near.
-     * @param {number} deltaTime - Time elapsed in seconds.
+     * Updates the autopilot, fleeing to the target and managing sub-autopilots.
+     * @param {number} deltaTime - Time elapsed since last update (seconds).
+     * @param {GameManager} gameManager - The game manager instance for context.
      */
-    update(deltaTime) {
+    update(deltaTime, gameManager) {
         if (!this.target || this.ship.state !== 'Flying') {
             this.completed = true;
             this.stop();
             return;
         }
 
-        // Fire at threat if within 500 units
-        if (this.threat) {
-            const distanceSq = this._scratchVector.set(this.threat.position)
-                .subtractInPlace(this.ship.position).squareMagnitude();
-            if (distanceSq < 500 * 500) {
-                this.ship.setTarget(this.threat);
-                this.ship.fire();
-            }
-        }
-
-        // Manage sub-pilot
-        if (this.subAutopilot) {
-            this.subAutopilot.update(deltaTime);
-            if (this.subAutopilot.isComplete()) {
+        if (!isValidTarget(this.ship, this.target)) {
+            console.log('FleeAutoPilot: target not valid!');
+            this.target = this.ship.starSystem.getClosestPlanet(this.ship);
+            if (this.subAutopilot) {
+                this.subAutopilot.stop();
                 this.subAutopilot = null;
-                if (this.ship.state === 'Landed') {
-                    this.completed = true;
-                    this.stop();
-                }
             }
-            return;
         }
 
-        // Navigate to target
-        const distance = this._scratchVector.set(this.target.position)
-            .subtractInPlace(this.ship.position).magnitude();
-        if (distance < this.target.radius) {
+        if (!this.subAutopilot) {
+            // Navigate to target
             if (this.target instanceof JumpGate) {
                 this.subAutopilot = new TraverseJumpGateAutoPilot(this.ship, this.target);
             } else {
@@ -252,20 +248,30 @@ export class FleeAutoPilot extends AutoPilot {
             }
             this.subAutopilot.start();
         } else {
-            this.subAutopilot = new FlyToTargetAutoPilot(this.ship, this.target, this.target.radius);
-            this.subAutopilot.start();
+            this.subAutopilot.update(deltaTime);
+            if (this.subAutopilot.isComplete()) {
+                this.subAutopilot = null;
+                if (this.ship.state === 'Landed') {
+                    this.completed = true;
+                    this.stop();
+                } else {
+                    console.log('Auto pilot complete looking for a new planet');
+                    this.target = this.ship.starSystem.getClosestPlanet(this.ship);
+                }
+            }
+            return;
         }
     }
 
     /**
      * Returns the current status of the autopilot for HUD display.
-     * @returns {string} A descriptive status string.
+     * @returns {string} A descriptive status string including threat and target names.
      */
     getStatus() {
         if (this.ship.debug) {
             let status = `${this.constructor.name}: ${this.threat.name} to ${this.target.name}, `;
-            if (this.autopilot) {
-                status += `${this.autopilot.constructor.name}: ${this.autopilot.getStatus()}`;
+            if (this.subAutopilot) {
+                status += `${this.subAutopilot.constructor.name}: ${this.subAutopilot.getStatus()}`;
             }
             return status;
         }
@@ -288,21 +294,32 @@ export class FlyToTargetAutoPilot extends AutoPilot {
      */
     constructor(ship, target, arrivalDistance = 100, arrivalSpeed = Ship.LANDING_SPEED, closeApproachSpeed = 30) {
         super(ship, target);
+        /** @type {number} Distance from target center to achieve arrivalSpeed. */
         this.arrivalDistance = arrivalDistance;
+        /** @type {number} Target speed when within arrivalDistance. */
         this.arrivalSpeed = arrivalSpeed;
+        /** @type {number} Speed at closeApproachDistance for smoother approach. */
         this.closeApproachSpeed = closeApproachSpeed;
+        /** @type {number} Distance for far approach phase, computed dynamically. */
         this.farApproachDistance = 0;
+        /** @type {number} Distance for close approach phase, computed dynamically. */
         this.closeApproachDistance = 0;
-
-        // Pre-allocated scratch vectors for allocation-free updates
-        this._scratchDirectionToTarget = new Vector2D(0, 0); // Direction from ship to target
-        this._scratchTargetVelocity = new Vector2D(0, 0);    // Desired velocity toward target
-        this._scratchVelocityError = new Vector2D(0, 0);     // Difference between desired and current velocity
-        this._scratchLateralCorrection = new Vector2D(0, 0); // Correction for perpendicular velocity
-        this._scratchVelocityPerpendicular = new Vector2D(0, 0); // Perpendicular component of current velocity
-        this._scratchDesiredVelocity = new Vector2D(0, 0);   // Final desired velocity after corrections
-        this._scratchTemp = new Vector2D(0, 0);              // Temporary vector for intermediate calculations
-        this._scratchFuturePosition = new Vector2D(0, 0);    // Predicted future position of the target
+        /** @type {Vector2D} Direction from ship to target. */
+        this._scratchDirectionToTarget = new Vector2D(0, 0);
+        /** @type {Vector2D} Desired velocity toward target. */
+        this._scratchTargetVelocity = new Vector2D(0, 0);
+        /** @type {Vector2D} Difference between desired and current velocity. */
+        this._scratchVelocityError = new Vector2D(0, 0);
+        /** @type {Vector2D} Correction for perpendicular velocity. */
+        this._scratchLateralCorrection = new Vector2D(0, 0);
+        /** @type {Vector2D} Perpendicular component of current velocity. */
+        this._scratchVelocityPerpendicular = new Vector2D(0, 0);
+        /** @type {Vector2D} Final desired velocity after corrections. */
+        this._scratchDesiredVelocity = new Vector2D(0, 0);
+        /** @type {Vector2D} Temporary vector for intermediate calculations. */
+        this._scratchTemp = new Vector2D(0, 0);
+        /** @type {Vector2D} Predicted future position of the target. */
+        this._scratchFuturePosition = new Vector2D(0, 0);
     }
 
     /**
@@ -319,9 +336,10 @@ export class FlyToTargetAutoPilot extends AutoPilot {
     /**
      * Updates the ship's trajectory to fly toward the target with velocity control.
      * Adjusts speed and direction based on distance zones (far, mid, close).
-     * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @param {number} deltaTime - Time elapsed since last update (seconds).
+     * @param {GameManager} gameManager - The game manager instance for context.
      */
-    update(deltaTime) {
+    update(deltaTime, gameManager) {
         if (!this.active || !this.target) return;
 
         // Default to target's current position
@@ -502,8 +520,7 @@ export class FlyToTargetAutoPilot extends AutoPilot {
 }
 
 /**
- * Autopilot that flies to a planet and lands on it.
- * Chains FlyToTargetAutoPilot and handles landing initiation and completion.
+ * Autopilot that flies to a planet and lands on it, chaining FlyToTargetAutoPilot for approach.
  * @extends AutoPilot
  */
 export class LandOnPlanetAutoPilot extends AutoPilot {
@@ -514,10 +531,13 @@ export class LandOnPlanetAutoPilot extends AutoPilot {
      */
     constructor(ship, planet) {
         super(ship, planet);
+        /** @type {FlyToTargetAutoPilot|null} Sub-autopilot for approaching the planet. */
         this.subAutopilot = null;
-        // Pre-allocated scratch vectors for allocation-free updates
+        /** @type {Vector2D} Distance vector from ship to target planet. */
         this._scratchDistanceToTarget = new Vector2D(0, 0);
+        /** @type {Vector2D} Velocity error vector for course correction. */
         this._scratchVelocityError = new Vector2D();
+        /** @type {Vector2D} Temporary vector for calculations. */
         this._scratchTemp = new Vector2D(0, 0);
     }
 
@@ -545,10 +565,11 @@ export class LandOnPlanetAutoPilot extends AutoPilot {
 
     /**
      * Updates the autopilot, managing the fly-to phase, landing initiation, and completion.
-     * Restarts the sub-pilot if the ship overshoots and can't land yet.
-     * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * Restarts the sub-autopilot if the ship overshoots and cannot land yet.
+     * @param {number} deltaTime - Time elapsed since last update (seconds).
+     * @param {GameManager} gameManager - The game manager instance for context.
      */
-    update(deltaTime) {
+    update(deltaTime, gameManager) {
         if (!this.active) return;
 
         if (this.subAutopilot && this.subAutopilot.active) {
@@ -625,7 +646,7 @@ export class LandOnPlanetAutoPilot extends AutoPilot {
 
 /**
  * Autopilot that flies to a jump gate and traverses it, waiting for the full jump animation to complete.
- * Chains FlyToTargetAutoPilot and handles hyperjump initiation and completion.
+ * Chains FlyToTargetAutoPilot for approach and handles hyperjump initiation.
  * @extends AutoPilot
  */
 export class TraverseJumpGateAutoPilot extends AutoPilot {
@@ -636,10 +657,14 @@ export class TraverseJumpGateAutoPilot extends AutoPilot {
      */
     constructor(ship, gate) {
         super(ship, gate);
+        /** @type {FlyToTargetAutoPilot|null} Sub-autopilot for approaching the jump gate. */
         this.subAutopilot = null;
-        // Pre-allocated scratch vectors for allocation-free updates
+        /** @type {Vector2D} Distance vector from ship to target jump gate. */
         this._scratchDistanceToTarget = new Vector2D(0, 0);
+        /** @type {Vector2D} Temporary vector for calculations. */
         this._scratchTemp = new Vector2D(0, 0);
+        /** @type {Vector2D} Velocity error vector for course correction. */
+        this._scratchVelocityError = new Vector2D();
     }
 
     /**
@@ -664,10 +689,11 @@ export class TraverseJumpGateAutoPilot extends AutoPilot {
 
     /**
      * Updates the autopilot, managing the fly-to phase, hyperjump initiation, and jump completion.
-     * Restarts the sub-pilot if the ship is not aligned with the gate.
-     * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * Restarts the sub-autopilot if the ship is not aligned with the gate.
+     * @param {number} deltaTime - Time elapsed since last update (seconds).
+     * @param {GameManager} gameManager - The game manager instance for context.
      */
-    update(deltaTime) {
+    update(deltaTime, gameManager) {
         if (!this.active) return;
 
         if (this.subAutopilot && this.subAutopilot.active) {
@@ -729,7 +755,7 @@ export class TraverseJumpGateAutoPilot extends AutoPilot {
 
     /**
      * Returns the current status of the autopilot for HUD display.
-     * @returns {string} A descriptive status string indicating jump progress.
+     * @returns {string} A descriptive status string indicating jump progress or sub-autopilot state.
      */
     getStatus() {
         if (this.ship.debug) {
@@ -758,34 +784,42 @@ export class FollowShipAutoPilot extends AutoPilot {
      */
     constructor(ship, target, followRadius, approachSpeed = 100) {
         super(ship, target);
+        /** @type {number} The radius within which to fully match the target's velocity. */
         this.followRadius = followRadius;
+        /** @type {number} Speed to approach the target when outside the approach distance. */
         this.approachSpeed = approachSpeed;
-
-        // Distance zones for gradual velocity matching
-        this.farApproachDistance = 0; // Computed dynamically
-        this.closeApproachDistance = followRadius * 2; // Start velocity matching at 2x follow radius
-
-        // Scratch vectors to eliminate allocations in update
+        /** @type {number} Distance for far approach phase, computed dynamically in start(). */
+        this.farApproachDistance = 0;
+        /** @type {number} Distance for close approach phase, set to 2x followRadius. */
+        this.closeApproachDistance = followRadius * 2;
+        /** @type {Vector2D} Direction from ship to target, reused for calculations. */
         this._scratchDirectionToTarget = new Vector2D();
+        /** @type {Vector2D} Predicted future position of the target. */
         this._scratchFuturePosition = new Vector2D();
+        /** @type {Vector2D} Difference between desired and current velocity. */
         this._scratchVelocityError = new Vector2D();
+        /** @type {Vector2D} Desired velocity vector for the ship. */
         this._scratchDesiredVelocity = new Vector2D();
+        /** @type {Vector2D} Temporary vector for intermediate calculations. */
         this._scratchTemp = new Vector2D();
+        /** @type {Vector2D} Target's velocity vector, reused for efficiency. */
         this._scratchTargetVelocity = new Vector2D();
     }
 
     /**
-     * Starts the autopilot, ensuring the target is a ship in the same star system.
+     * Starts the autopilot, ensuring the target is a valid game object in the same star system.
      */
     start() {
         super.start();
         if (!(this.target instanceof GameObject)) {
             this.error = "Target is not a Game Object";
             this.active = false;
+            return;
         }
         if (this.target.starSystem !== this.ship.starSystem) {
             this.error = "Target not in same system";
             this.active = false;
+            return;
         }
 
         // Calculate far approach distance based on ship's max velocity and thrust
@@ -796,9 +830,8 @@ export class FollowShipAutoPilot extends AutoPilot {
     }
 
     /**
-     * Updates the ship's trajectory to follow the target ship, projecting its future position
-     * and gradually matching velocity as it approaches.
-     * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * Updates the ship's trajectory to follow the target, projecting its future position and matching velocity.
+     * @param {number} deltaTime - Time elapsed since last update (seconds).
      */
     update(deltaTime) {
         if (!this.active || !this.target || this.target.isDespawned()) {
@@ -824,10 +857,9 @@ export class FollowShipAutoPilot extends AutoPilot {
             .multiplyInPlace(timeToIntercept)
             .addInPlace(this.target.position);
 
-        // Recalculate direction and distance to the future position
+        // Recalculate direction to the future position
         this._scratchDirectionToTarget.set(this._scratchFuturePosition)
             .subtractInPlace(this.ship.position);
-        //const distanceToFuture = this._scratchDirectionToTarget.magnitude();
         this._scratchDirectionToTarget.normalizeInPlace();
 
         let desiredAngle = this.ship.angle;
@@ -848,23 +880,13 @@ export class FollowShipAutoPilot extends AutoPilot {
                 const angleToDesired = normalizeAngle(desiredAngle - this.ship.angle);
                 shouldThrust = Math.abs(angleToDesired) < Math.PI / 4;
             } else {
-                if (this.target instanceof Ship) {
-                    if (this.target.isThrusting) {
-                        desiredAngle = this.ship.angle; // Maintain current heading
-                    } else {
-                        desiredAngle = this.target.angle; // Align with target's heading
-                    }
-                } else if (this.target instanceof Asteroid) {
-                    desiredAngle = this.target.orbitAngle + Math.PI * 0.5;
-                } else {
-                    desiredAngle = this.ship.angle;
-                }
+                desiredAngle = this.getAlignedAngle();
             }
         } else if (distanceToTarget > this.followRadius) {
             // Approach distance: gradually match the target's velocity
             const distanceRange = this.closeApproachDistance - this.followRadius;
-            const distanceProgress = (distanceToTarget - this.followRadius) / distanceRange; // 1 at closeApproachDistance, 0 at followRadius
-            const speedFactor = remapClamp(distanceProgress, 0, 1, 0, 1); // 0 to 1
+            const distanceProgress = (distanceToTarget - this.followRadius) / distanceRange;
+            const speedFactor = remapClamp(distanceProgress, 0, 1, 0, 1);
 
             // Interpolate desired velocity between approach speed and target's velocity
             const approachVelocity = this._scratchTemp.set(this._scratchDirectionToTarget)
@@ -884,21 +906,11 @@ export class FollowShipAutoPilot extends AutoPilot {
                 desiredAngle = this.ship.angle + angleToDesired;
                 shouldThrust = Math.abs(angleToDesired) < Math.PI / 12;
             } else {
-                if (this.target instanceof Ship) {
-                    if (this.target.isThrusting) {
-                        desiredAngle = this.ship.angle; // Maintain current heading
-                    } else {
-                        desiredAngle = this.target.angle; // Align with target's heading
-                    }
-                } else if (this.target instanceof Asteroid) {
-                    desiredAngle = this.target.orbitAngle + Math.PI * 0.5;
-                } else {
-                    desiredAngle = this.ship.angle;
-                }
+                desiredAngle = this.getAlignedAngle();
             }
         } else {
             if (this.ship.debug) {
-                console.log("Inside follow radiuss");
+                console.log("Inside follow radius");
             }
             // Inside follow radius: fully match the target's velocity
             this._scratchDesiredVelocity.set(this.target.velocity);
@@ -912,22 +924,30 @@ export class FollowShipAutoPilot extends AutoPilot {
                 desiredAngle = this.ship.angle + angleToDesired;
                 shouldThrust = Math.abs(angleToDesired) < Math.PI / 12;
             } else {
-                if (this.target instanceof Ship) {
-                    if (this.target.isThrusting) {
-                        desiredAngle = this.ship.angle; // Maintain current heading
-                    } else {
-                        desiredAngle = this.target.angle; // Align with target's heading
-                    }
-                } else if (this.target instanceof Asteroid) {
-                    desiredAngle = this.target.orbitAngle + Math.PI * 0.5;
-                } else {
-                    desiredAngle = this.ship.angle;
-                }
+                desiredAngle = this.getAlignedAngle();
             }
         }
 
         this.ship.setTargetAngle(desiredAngle);
         this.ship.applyThrust(shouldThrust);
+    }
+
+    /**
+     * Determines the desired angle based on the target's type and state.
+     * @returns {number} The desired angle in radians.
+     */
+    getAlignedAngle() {
+        if (this.target instanceof Ship) {
+            if (this.target.isThrusting) {
+                return this.ship.angle; // Maintain current heading
+            } else {
+                return this.target.angle; // Align with target's heading
+            }
+        } else if (this.target instanceof Asteroid) {
+            return this.target.orbitAngle + Math.PI * 0.5;
+        } else {
+            return this.ship.angle;
+        }
     }
 
     /**
@@ -947,25 +967,27 @@ export class FollowShipAutoPilot extends AutoPilot {
 export class EscortAutoPilot extends AutoPilot {
     /**
      * Creates a new EscortAutoPilot instance.
-     * @param {Ship} ship - The ship to control.
-     * @param {Ship} escortedShip - The ship to escort.
-     * @param {number} [followDistance=250] - The distance to maintain while following.
+     * @param {Ship} ship - The ship to control with this autopilot.
+     * @param {Ship} escortedShip - The target ship to escort.
+     * @param {number} [followDistance=250] - The desired distance to maintain while following the escorted ship.
      */
     constructor(ship, escortedShip, followDistance = 250) {
         super(ship, escortedShip);
+        /** @type {number} The distance to maintain while following the escorted ship. */
         this.followDistance = followDistance;
+        /** @type {string} The current state of the autopilot (e.g., 'Idle', 'Following'). */
         this.state = 'Idle';
+        /** @type {number} Time (seconds) remaining to wait in the 'Waiting' state. */
         this.waitTime = 0;
-
-        // Pre-allocated scratch vectors for allocation-free updates
+        /** @type {Vector2D} Pre-allocated vector for direction calculations to avoid allocations. */
         this._scratchDirectionToTarget = new Vector2D(0, 0);
-        this._scratchDistanceToTarget = new Vector2D(0, 0); // Unused but kept for consistency
-
-        // Constants for behavior tuning
-        this.waitTimeMin = 2; // Minimum wait time after landing (seconds)
-        this.waitTimeMax = 5; // Maximum wait time after landing (seconds)
-
-        // State handlers for autopilot behavior
+        /** @type {Vector2D} Pre-allocated vector for distance (unused but retained for consistency). */
+        this._scratchDistanceToTarget = new Vector2D(0, 0);
+        /** @type {number} Minimum wait time (seconds) after landing before taking off. */
+        this.waitTimeMin = 2;
+        /** @type {number} Maximum wait time (seconds) after landing before taking off. */
+        this.waitTimeMax = 5;
+        /** @type {Object.<string, Function>} Map of state names to their respective handler methods. */
         this.stateHandlers = {
             Idle: this.updateIdle.bind(this),
             Following: this.updateFollowing.bind(this),
@@ -977,7 +999,8 @@ export class EscortAutoPilot extends AutoPilot {
     }
 
     /**
-     * Starts the autopilot, ensuring the target is a ship in the same star system.
+     * Starts the autopilot, validating that the target is a ship in the same star system.
+     * @override
      */
     start() {
         super.start();
@@ -994,13 +1017,13 @@ export class EscortAutoPilot extends AutoPilot {
     }
 
     /**
-     * Updates the autopilot's behavior based on the current state.
+     * Updates the autopilot's behavior based on its current state.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
      */
     update(deltaTime) {
         if (!this.active) return;
 
-        // Check if escorted ship is still present
+        // Check if the escorted ship still exists
         if (!this.target || this.target.isDespawned()) {
             this.stop();
             this.error = 'Escorted ship despawned';
@@ -1018,31 +1041,33 @@ export class EscortAutoPilot extends AutoPilot {
     }
 
     /**
-     * Handles the Idle state: initiates following or takeoff based on escorted ship's state.
+     * Handles the 'Idle' state: initiates following or takeoff based on the escorted ship's state.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @private
      */
     updateIdle(deltaTime) {
         if (this.ship.state === 'Landed') {
-            // Take off if escorted ship is moving
+            // Take off if the escorted ship is moving
             if (this.target.state === 'TakingOff' || this.target.state === 'Flying') {
                 this.ship.initiateTakeoff();
                 this.state = 'TakingOff';
             }
         } else if (this.ship.state === 'Flying') {
-            // Start following the escorted ship
+            // Begin following the escorted ship
             this.subAutopilot = new FollowShipAutoPilot(this.ship, this.target, this.followDistance, 100);
             this.subAutopilot.start();
             this.state = 'Following';
         } else if (this.ship.state === 'TakingOff' || this.ship.state === 'Landing') {
-            // Wait for animation to compelte
+            // Wait for transitional states to complete
         } else {
             console.warn(`Invalid ship state '${this.ship.state}' in EscortAutoPilot updateIdle`);
         }
     }
 
     /**
-     * Handles the Following state: follows the escorted ship and reacts to its actions (landing, jumping).
+     * Handles the 'Following' state: follows the escorted ship and reacts to its actions (landing, jumping).
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @private
      */
     updateFollowing(deltaTime) {
         if (!this.subAutopilot) {
@@ -1051,7 +1076,7 @@ export class EscortAutoPilot extends AutoPilot {
             return;
         }
 
-        // React to escorted ship jumping out
+        // Handle the escorted ship jumping out
         if (this.target.state === 'JumpingOut') {
             this.subAutopilot.stop();
             const jumpGate = this.target.jumpGate;
@@ -1068,7 +1093,7 @@ export class EscortAutoPilot extends AutoPilot {
             return;
         }
 
-        // React to escorted ship landing
+        // Handle the escorted ship landing
         if (this.target.state === 'Landed' || this.target.state === 'Landing') {
             this.subAutopilot.stop();
             this.subAutopilot = new LandOnPlanetAutoPilot(this.ship, this.target.landedObject);
@@ -1077,7 +1102,7 @@ export class EscortAutoPilot extends AutoPilot {
             return;
         }
 
-        // React to escorted ship jumping to another system
+        // Handle the escorted ship moving to another star system
         if (this.target.starSystem !== this.ship.starSystem) {
             this.subAutopilot.stop();
             const targetSystem = this.target.starSystem;
@@ -1095,7 +1120,7 @@ export class EscortAutoPilot extends AutoPilot {
             return;
         }
 
-        // Continue following
+        // Continue following the escorted ship
         this.subAutopilot.update(deltaTime);
         if (!this.subAutopilot.active) {
             console.warn('Sub-autopilot inactive during Following state; resetting');
@@ -1105,18 +1130,20 @@ export class EscortAutoPilot extends AutoPilot {
     }
 
     /**
-     * Handles the TakingOff state: waits for takeoff to complete.
+     * Handles the 'TakingOff' state: waits for the ship to complete takeoff.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @private
      */
     updateTakingOff(deltaTime) {
         if (this.ship.state === 'Flying') {
-            this.state = 'Idle'; // Transition to check next action
+            this.state = 'Idle'; // Transition to determine the next action
         }
     }
 
     /**
-     * Handles the Landing state: lands on the same body as the escorted ship, aborts if it takes off.
+     * Handles the 'Landing' state: lands on the same body as the escorted ship, aborting if it takes off.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @private
      */
     updateLanding(deltaTime) {
         if (!this.subAutopilot) {
@@ -1125,7 +1152,7 @@ export class EscortAutoPilot extends AutoPilot {
             return;
         }
 
-        // Abort landing if escorted ship takes off
+        // Abort landing if the escorted ship takes off
         if (this.target.state === 'TakingOff' || this.target.state === 'Flying') {
             this.subAutopilot.stop();
             this.subAutopilot = null;
@@ -1133,7 +1160,7 @@ export class EscortAutoPilot extends AutoPilot {
             return;
         }
 
-        // Continue landing process
+        // Process landing
         this.subAutopilot.update(deltaTime);
         if (this.subAutopilot.isComplete()) {
             if (this.subAutopilot.error) {
@@ -1157,8 +1184,9 @@ export class EscortAutoPilot extends AutoPilot {
     }
 
     /**
-     * Handles the TraversingJumpGate state: jumps to the escorted ship's system.
+     * Handles the 'TraversingJumpGate' state: jumps to the escorted ship's star system.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @private
      */
     updateTraversingJumpGate(deltaTime) {
         if (!this.subAutopilot) {
@@ -1167,7 +1195,7 @@ export class EscortAutoPilot extends AutoPilot {
             return;
         }
 
-        // Continue jump process
+        // Process the jump
         this.subAutopilot.update(deltaTime);
         if (this.subAutopilot.isComplete()) {
             if (this.subAutopilot.error) {
@@ -1176,7 +1204,7 @@ export class EscortAutoPilot extends AutoPilot {
                 this.state = 'Idle';
             } else if (this.ship.state === 'Flying' && this.ship.starSystem === this.target.starSystem) {
                 this.subAutopilot = null;
-                this.state = 'Idle'; // Transition to Following next frame
+                this.state = 'Idle'; // Transition to resume following
             } else {
                 console.warn('Jump completed but not in target system; resetting');
                 this.subAutopilot = null;
@@ -1190,19 +1218,20 @@ export class EscortAutoPilot extends AutoPilot {
     }
 
     /**
-     * Handles the Waiting state: waits after landing, then resumes based on escorted ship's state.
+     * Handles the 'Waiting' state: pauses after landing before resuming escort duties.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @private
      */
     updateWaiting(deltaTime) {
         this.waitTime -= deltaTime;
         if (this.waitTime <= 0) {
-            this.state = 'Idle'; // Check escorted ship's state next frame
+            this.state = 'Idle'; // Check the escorted ship's state next update
         }
     }
 
     /**
-     * Returns the current status of the autopilot for HUD display.
-     * @returns {string} A descriptive status string.
+     * Returns the current status of the autopilot for display (e.g., on a HUD).
+     * @returns {string} A descriptive status string based on the current state.
      */
     getStatus() {
         if (this.state === 'Following' && this.subAutopilot?.active) {
@@ -1234,14 +1263,17 @@ export class LandOnAsteroidAutoPilot extends AutoPilot {
      */
     constructor(ship, asteroid) {
         super(ship, asteroid);
-        // Pre-allocated scratch vectors for allocation-free updates
+        /** @type {Vector2D} Pre-allocated vector for distance calculations. */
         this._scratchDistanceToTarget = new Vector2D(0, 0);
+        /** @type {Vector2D} Pre-allocated vector for temporary calculations. */
         this._scratchTemp = new Vector2D(0, 0);
+        /** @type {Vector2D} Pre-allocated vector for velocity error calculations. */
         this._scratchVelocityError = new Vector2D(0, 0);
     }
 
     /**
      * Starts the autopilot, ensuring the target is an asteroid in the same system.
+     * @override
      */
     start() {
         super.start();
@@ -1259,14 +1291,14 @@ export class LandOnAsteroidAutoPilot extends AutoPilot {
         this.subAutopilot = new ApproachTargetAutoPilot(
             this.ship,
             this.target,
-            this.target.radius,  // finalRadius
-            Ship.LANDING_SPEED * 0.9,      // arrivalSpeedMin
-            Ship.LANDING_SPEED * 4,  // arrivalSpeedMax
-            2,                       // velocityTolerance
-            Math.PI / 6,             // thrustAngleLimit
-            Ship.LANDING_SPEED,      // upperVelocityErrorThreshold
-            2,                       // lowerVelocityErrorThreshold
-            2                        // maxTimeToIntercept
+            this.target.radius,           // finalRadius
+            Ship.LANDING_SPEED * 0.9,     // arrivalSpeedMin
+            Ship.LANDING_SPEED * 4,       // arrivalSpeedMax
+            2,                            // velocityTolerance
+            Math.PI / 6,                  // thrustAngleLimit
+            Ship.LANDING_SPEED,           // upperVelocityErrorThreshold
+            2,                            // lowerVelocityErrorThreshold
+            2                             // maxTimeToIntercept
         );
         this.subAutopilot.start();
     }
@@ -1275,6 +1307,7 @@ export class LandOnAsteroidAutoPilot extends AutoPilot {
      * Updates the autopilot, managing the approach phase, mining initiation, and completion.
      * Restarts the sub-pilot if the ship overshoots and can't mine yet.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @override
      */
     update(deltaTime) {
         if (!this.active) return;
@@ -1309,7 +1342,6 @@ export class LandOnAsteroidAutoPilot extends AutoPilot {
                     if (velocityErrorMagnitude > 1) {
                         this.ship.applyThrust(Math.abs(angleToDesired) < Math.PI / 12);
                     }
-                    //this.ship.velocity.addInPlace(this._scratchVelocityError.multiplyInPlace(deltaTime));
                 }
             } else {
                 // Overshot the asteroid; restart sub-pilot to re-approach
@@ -1319,14 +1351,14 @@ export class LandOnAsteroidAutoPilot extends AutoPilot {
                 this.subAutopilot = new ApproachTargetAutoPilot(
                     this.ship,
                     this.target,
-                    this.target.radius,  // finalRadius
-                    Ship.LANDING_SPEED * 0.9,      // arrivalSpeedMin
-                    Ship.LANDING_SPEED * 4,  // arrivalSpeedMax
-                    2,                       // velocityTolerance
-                    Math.PI / 6,             // thrustAngleLimit
-                    Ship.LANDING_SPEED,      // upperVelocityErrorThreshold
-                    2,                       // lowerVelocityErrorThreshold
-                    2                        // maxTimeToIntercept
+                    this.target.radius,           // finalRadius
+                    Ship.LANDING_SPEED * 0.9,     // arrivalSpeedMin
+                    Ship.LANDING_SPEED * 4,       // arrivalSpeedMax
+                    2,                            // velocityTolerance
+                    Math.PI / 6,                  // thrustAngleLimit
+                    Ship.LANDING_SPEED,           // upperVelocityErrorThreshold
+                    2,                            // lowerVelocityErrorThreshold
+                    2                             // maxTimeToIntercept
                 );
                 this.subAutopilot.start();
             }
@@ -1345,6 +1377,7 @@ export class LandOnAsteroidAutoPilot extends AutoPilot {
 
     /**
      * Stops the autopilot and any active sub-autopilot.
+     * @override
      */
     stop() {
         if (this.subAutopilot) this.subAutopilot.stop();
@@ -1376,43 +1409,63 @@ export class ApproachTargetAutoPilot extends AutoPilot {
      * Creates a new ApproachTargetAutoPilot instance.
      * @param {Ship} ship - The ship to control.
      * @param {GameObject} target - The target to approach (static or moving).
-     * @param {number} finalRadius - Radius within which to settle and match velocity.
-     * @param {number} arrivalSpeedMin - Minimum speed when near the target.
-     * @param {number} arrivalSpeedMax - Maximum speed during mid-range approach.
-     * @param {number} velocityTolerance - Tolerance for velocity matching completion.
-     * @param {number} thrustAngleLimit - Maximum angle deviation to apply thrust.
-     * @param {number} upperVelocityErrorThreshold - Upper threshold for thrust activation.
-     * @param {number} lowerVelocityErrorThreshold - Lower threshold for thrust hysteresis.
-     * @param {number} maxTimeToIntercept - Maximum time to predict target position.
+     * @param {number} finalRadius - Radius within which to settle and match velocity (in units).
+     * @param {number} arrivalSpeedMin - Minimum speed when near the target (in units/sec).
+     * @param {number} arrivalSpeedMax - Maximum speed during mid-range approach (in units/sec).
+     * @param {number} velocityTolerance - Tolerance for velocity matching completion (in units/sec).
+     * @param {number} thrustAngleLimit - Maximum angle deviation to apply thrust (in radians).
+     * @param {number} upperVelocityErrorThreshold - Upper threshold for thrust activation (in units/sec).
+     * @param {number} lowerVelocityErrorThreshold - Lower threshold for thrust hysteresis (in units/sec).
+     * @param {number} maxTimeToIntercept - Maximum time to predict target position (in seconds).
      */
     constructor(ship, target, finalRadius, arrivalSpeedMin, arrivalSpeedMax, velocityTolerance, thrustAngleLimit, upperVelocityErrorThreshold, lowerVelocityErrorThreshold, maxTimeToIntercept) {
         super(ship, target);
+        /** @type {number} Radius within which to settle and match velocity. */
         this.finalRadius = finalRadius;
+        /** @type {number} Minimum speed when near the target. */
         this.arrivalSpeedMin = arrivalSpeedMin;
+        /** @type {number} Maximum speed during mid-range approach. */
         this.arrivalSpeedMax = arrivalSpeedMax;
+        /** @type {number} Tolerance for velocity matching completion. */
         this.velocityTolerance = velocityTolerance;
+        /** @type {number} Maximum angle deviation to apply thrust. */
         this.thrustAngleLimit = thrustAngleLimit;
+        /** @type {number} Upper threshold for thrust activation. */
         this.upperVelocityErrorThreshold = upperVelocityErrorThreshold;
+        /** @type {number} Lower threshold for thrust hysteresis. */
         this.lowerVelocityErrorThreshold = lowerVelocityErrorThreshold;
+        /** @type {number} Maximum time to predict target position. */
         this.maxTimeToIntercept = maxTimeToIntercept;
 
+        /** @type {boolean} Whether the autopilot is active. */
         this.active = false;
+        /** @type {boolean} Whether the autopilot has completed its task. */
         this.completed = false;
+        /** @type {string|null} Error message if the autopilot fails, null if no error. */
         this.error = null;
+        /** @type {number} Distance for far approach phase, computed dynamically. */
         this.farApproachDistance = 0;
+        /** @type {number} Distance for mid approach phase, computed dynamically. */
         this.midApproachDistance = 0;
 
         // Pre-allocated scratch vectors for allocation-free updates
+        /** @type {Vector2D} Predicted future position of the target. */
         this._scratchFuturePosition = new Vector2D(0, 0);
+        /** @type {Vector2D} Direction from ship to target. */
         this._scratchDirectionToTarget = new Vector2D(0, 0);
+        /** @type {Vector2D} Desired velocity vector. */
         this._scratchDesiredVelocity = new Vector2D(0, 0);
+        /** @type {Vector2D} Temporary vector for calculations. */
         this._scratchTemp = new Vector2D(0, 0);
+        /** @type {Vector2D} Difference between ship and target velocity. */
         this._scratchVelocityDifference = new Vector2D(0, 0);
+        /** @type {Vector2D} Error between desired and current velocity. */
         this._scratchVelocityError = new Vector2D(0, 0);
     }
 
     /**
      * Starts the autopilot, setting approach distances and validating the target.
+     * @override
      */
     start() {
         if (!this.target || !this.target.position) {
@@ -1433,6 +1486,7 @@ export class ApproachTargetAutoPilot extends AutoPilot {
 
     /**
      * Stops the autopilot, disabling thrust.
+     * @override
      */
     stop() {
         this.active = false;
@@ -1441,7 +1495,9 @@ export class ApproachTargetAutoPilot extends AutoPilot {
 
     /**
      * Updates the ship's trajectory to approach the target, blending velocity based on distance.
+     * Applies thrust using hysteresis and checks for task completion.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @override
      */
     update(deltaTime) {
         if (!this.active || !this.target || !this.target.position) {
@@ -1533,7 +1589,8 @@ export class ApproachTargetAutoPilot extends AutoPilot {
 
     /**
      * Checks if the autopilot has completed its task.
-     * @returns {boolean} True if completed, false otherwise.
+     * @returns {boolean} True if the ship is within the final radius and velocity is matched, false otherwise.
+     * @override
      */
     isComplete() {
         return this.completed;
@@ -1541,7 +1598,8 @@ export class ApproachTargetAutoPilot extends AutoPilot {
 
     /**
      * Returns the current status of the autopilot for HUD display.
-     * @returns {string} A descriptive status string.
+     * @returns {string} A descriptive status string (e.g., "Approach Active" or "Approach Completed").
+     * @override
      */
     getStatus() {
         return `Approach ${this.completed ? 'Completed' : 'Active'}`;

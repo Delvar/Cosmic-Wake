@@ -17,13 +17,19 @@ export class AIPilot extends Pilot {
      */
     constructor(ship, job) {
         super(ship);
+        /** @type {Object} The job instance controlling high-level behavior (e.g., WandererJob). */
         this.job = job;
+        /** @type {AutoPilot|null} The active autopilot controlling ship navigation (e.g., FlyToTargetAutoPilot). */
         this.autopilot = null;
+        /** @type {Ship|null} The current threat triggering reactions (e.g., player ship). */
         this.threat = null;
+        /** @type {string} The current state ('Job', 'Flee', 'Avoid', 'Attack'). */
         this.state = 'Job';
+        /** @type {number} Cooldown timer (seconds) to prevent rapid state changes. */
         this.reactionCooldown = 0; // Anti-flip-flop cooldown
         /** @type {Vector2D} Temporary vector for distance calculations. */
         this._scratchDistance = new Vector2D();
+        /** @type {Object.<string, Function>} Map of state names to handler methods. */
         this.stateHandlers = {
             'Job': this.updateJob.bind(this),
             'Flee': this.updateFlee.bind(this),
@@ -33,56 +39,9 @@ export class AIPilot extends Pilot {
     }
 
     /**
-     * Notified when the ship takes damage.
-     * @param {number} damage - Amount of damage.
-     * @param {Ship} source - Ship causing damage.
-     */
-    onDamage(damage, source) {
-        if (source instanceof Ship && source !== this.ship) {
-            this.threat = source;
-        }
-    }
-
-    /**
-     * Sets a new autopilot, stopping and cleaning up the current one.
-     * @param {AutoPilot} newAutoPilot - The new autopilot to set.
-     */
-    setAutoPilot(newAutoPilot) {
-        console.log(`setAutoPilot ${this.ship.name}: ${this.autopilot?.constructor?.name} >> ${newAutoPilot?.constructor?.name}`);
-        if (this.autopilot) {
-            this.autopilot.stop();
-            this.autopilot = null;
-        }
-        this.autopilot = newAutoPilot;
-        if (this.autopilot) {
-            this.autopilot.start();
-        }
-    }
-
-    /**
-     * Changes state and autopilot, handling cleanup.
-     * @param {string} newState - The new state ('Job', 'Flee', 'Avoid', 'Attack').
-     * @param {AutoPilot} newAutoPilot - The new autopilot, if any.
-     */
-    changeState(newState, newAutoPilot = null) {
-        if (this.state === newState) return;
-        // Pause job only when leaving Job state
-        if (this.state === 'Job') {
-            this.job.pause();
-        }
-        // Set new state and autopilot
-        this.state = newState;
-        this.setAutoPilot(newAutoPilot);
-        // Reset cooldown for reaction states
-        if (newState !== 'Job') {
-            this.reactionCooldown = 0;
-        }
-    }
-
-    /**
-     * Updates the AI pilot's behavior.
-     * @param {number} deltaTime - Time elapsed in seconds.
-     * @param {Object} gameManager - The game manager instance.
+     * Updates the AI pilot's behavior based on the current state.
+     * @param {number} deltaTime - Time elapsed since last update (seconds).
+     * @param {GameManager} gameManager - The game manager instance for context.
      */
     update(deltaTime, gameManager) {
         // Skip if ship is in animation or non-functional states
@@ -114,10 +73,11 @@ export class AIPilot extends Pilot {
     }
 
     /**
-     * Handles Job state, running the assigned job.
-     * @param {number} deltaTime - Time elapsed in seconds.
+     * Handles the 'Job' state, running the job and checking reactions.
+     * @param {number} deltaTime - Time elapsed since last update (seconds).
+     * @param {GameManager} gameManager - The game manager instance for context.
      */
-    updateJob(deltaTime) {
+    updateJob(deltaTime, gameManager) {
         // Execute active autopilot
         if (this.autopilot && !this.autopilot.isComplete()) {
             this.autopilot.update(deltaTime);
@@ -133,10 +93,11 @@ export class AIPilot extends Pilot {
     }
 
     /**
-     * Handles Flee state, running FleeAutoPilot.
-     * @param {number} deltaTime - Time elapsed in seconds.
+     * Handles the 'Flee' state, managing flee behavior and reactions.
+     * @param {number} deltaTime - Time elapsed since last update (seconds).
+     * @param {GameManager} gameManager - The game manager instance for context.
      */
-    updateFlee(deltaTime) {
+    updateFlee(deltaTime, gameManager) {
         // Ensure correct autopilot
         if (!(this.autopilot instanceof FleeAutoPilot) && this.ship.state === 'Flying' && this.threat) {
             this.setAutoPilot(new FleeAutoPilot(this.ship, this.threat));
@@ -157,10 +118,11 @@ export class AIPilot extends Pilot {
     }
 
     /**
-     * Handles Avoid state, running AvoidAutoPilot.
-     * @param {number} deltaTime - Time elapsed in seconds.
+     * Handles the 'Avoid' state, managing avoidance behavior and reactions.
+     * @param {number} deltaTime - Time elapsed since last update (seconds).
+     * @param {GameManager} gameManager - The game manager instance for context.
      */
-    updateAvoid(deltaTime) {
+    updateAvoid(deltaTime, gameManager) {
         // Ensure correct autopilot
         if (!(this.autopilot instanceof AvoidAutoPilot) && this.ship.state === 'Flying' && this.threat) {
             this.setAutoPilot(new AvoidAutoPilot(this.ship, this.threat));
@@ -181,11 +143,30 @@ export class AIPilot extends Pilot {
     }
 
     /**
-     * Handles Attack state, placeholder for subclasses.
-     * @param {number} deltaTime - Time elapsed in seconds.
+     * Handles the 'Attack' state, managing attack behavior and reactions.
+     * @param {number} deltaTime - Time elapsed since last update (seconds).
+     * @param {GameManager} gameManager - The game manager instance for context.
      */
-    updateAttack(deltaTime) {
+    updateAttack(deltaTime, gameManager) {
         this.changeState('Job');
+    }
+
+    /**
+     * Sets a new autopilot, stopping and cleaning up the current one.
+     * @param {AutoPilot|null} newAutoPilot - The new autopilot to set, or null to clear.
+     */
+    setAutoPilot(newAutoPilot) {
+        if (this.ship.debug) {
+            console.log(`setAutoPilot ${this.ship.name}: ${this.autopilot?.constructor?.name} >> ${newAutoPilot?.constructor?.name}`);
+        }
+        if (this.autopilot) {
+            this.autopilot.stop();
+            this.autopilot = null;
+        }
+        this.autopilot = newAutoPilot;
+        if (this.autopilot) {
+            this.autopilot.start();
+        }
     }
 
     /**
@@ -202,7 +183,41 @@ export class AIPilot extends Pilot {
     }
 
     /**
-     * Returns the pilot's status for debugging.
+     * Notified when the ship takes damage.
+     * @param {number} damage - Amount of damage received.
+     * @param {Ship} source - Ship causing the damage.
+     */
+    onDamage(damage, source) {
+        if (source instanceof Ship && source !== this.ship) {
+            this.threat = source;
+        }
+    }
+
+    /**
+     * Changes state and autopilot, handling cleanup.
+     * @param {string} newState - The new state ('Job', 'Flee', 'Avoid', 'Attack').
+     * @param {AutoPilot} [newAutoPilot=null] - The new autopilot, if any.
+     */
+    changeState(newState, newAutoPilot = null) {
+        if (this.state === newState) return;
+        // Pause job only when leaving Job state
+        if (this.state === 'Job') {
+            this.job.pause();
+        }
+        // Set new state and autopilot
+        this.state = newState;
+        this.setAutoPilot(newAutoPilot);
+        // Reset cooldown for reaction states
+        if (newState !== 'Job') {
+            this.reactionCooldown = 0;
+        }
+        if (this.ship.debug) {
+            console.log(`AIPilot: State changed to ${newState}`);
+        }
+    }
+
+    /**
+     * Returns the pilot's status for HUD display and debugging.
      * @returns {string} Status string.
      */
     getStatus() {

@@ -50,7 +50,7 @@ export class StarSystem {
 
         this.jumpGates = [];
         this.ships = []; // Array to hold ships in the system
-        this.maxAIShips = 10; // Maximum number of AI-controlled ships allowed
+        this.maxAIShips = 20; // Maximum number of AI-controlled ships allowed
         this.hyperlanes = []; // Array to hold hyperlane connections
         this.asteroidBelt = asteroidBelt; // Optional asteroid belt
         if (asteroidBelt) {
@@ -409,6 +409,33 @@ export class StarSystem {
      */
     getClosestJumpGate(ship, exclude = null) {
         const arr1 = this.jumpGates;
+        const length1 = arr1 ? arr1.length : 0;
+        const totalLength = length1;
+        if (totalLength == 0) {
+            return null;
+        }
+        let item = null;
+        let closestItem = arr1[0];
+        let closestSquaredDistance = closestItem.position.distanceSquaredTo(ship.position);
+        for (let i = 1; i < totalLength; i++) {
+            item = arr1[i];
+            if (item !== exclude && isValidTarget(ship, item)) {
+                const squaredDistance = item.position.distanceSquaredTo(ship.position);
+                if (squaredDistance < closestSquaredDistance) {
+                    closestItem = item;
+                }
+            }
+        }
+        return closestItem;
+    }
+
+    /**
+     * @param {Ship} ship the ship looking for a target
+     * @param {GameObject} [exclude=null] exclude this other GameObject
+     * @return {Planet|null} The selected body, or null if none available.
+     */
+    getClosestPlanet(ship, exclude = null) {
+        const arr1 = this.planets;
         const length1 = arr1 ? arr1.length : 0;
         const totalLength = length1;
         if (totalLength == 0) {

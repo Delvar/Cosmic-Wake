@@ -9,22 +9,26 @@ export class Job {
      * @param {Ship} ship - The ship to control.
      */
     constructor(ship) {
+        /** @type {Ship} The ship controlled by this job. */
         this.ship = ship;
+        /** @type {string} The current job state (e.g., 'Starting', 'Paused'). */
         this.state = 'Starting';
+        /** @type {string|null} The state before pausing, restored on resume. */
         this.pausedState = null;
     }
 
     /**
      * Updates the job's behavior. Must be overridden by subclasses.
-     * @param {number} deltaTime - Time elapsed in seconds.
-     * @param {AIPilot} pilot - The controlling AI pilot.
+     * @param {number} deltaTime - Time elapsed since last update (seconds).
+     * @param {GameManager} gameManager - The game manager instance for context.
+     * @throws {Error} If not implemented by subclass.
      */
-    update(deltaTime, pilot) {
+    update(deltaTime, gameManager) {
         throw new Error('update() must be implemented by subclass');
     }
 
     /**
-     * Pauses the job, saving state.
+     * Pauses the job, saving the current state.
      */
     pause() {
         this.pausedState = this.state;
@@ -32,7 +36,7 @@ export class Job {
     }
 
     /**
-     * Resumes the job, restoring state.
+     * Resumes the job, restoring the previously saved state.
      */
     resume() {
         if (this.state === 'Paused') {
@@ -41,8 +45,8 @@ export class Job {
     }
 
     /**
-     * Returns the job's status for HUD. Can be overridden.
-     * @returns {string} Status message.
+     * Returns the job's status for HUD display.
+     * @returns {string} The current state or 'Paused' if paused.
      */
     getStatus() {
         return this.state === 'Paused' ? 'Paused' : this.state;

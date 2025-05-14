@@ -15,14 +15,17 @@ export class CivilianAIPilot extends AIPilot {
      */
     constructor(ship, job) {
         super(ship, job);
+        /** @type {number} Interval (seconds) between threat scans in Job state. */
         this.threatScanInterval = 0.5;
+        /** @type {number} Ship age (seconds) when the next threat scan is due. */
         this.nextThreatScan = 0;
+        /** @type {number} Time (seconds) the ship has been safe from threats. */
         this.safeTime = 0;
     }
     /**
-     * Updates the AI pilot's behavior.
+     * Updates the AI pilot's behavior, tracking safe time and delegating to state handlers.
      * @param {number} deltaTime - Time elapsed in seconds.
-     * @param {Object} gameManager - The game manager instance.
+     * @param {GameManager} gameManager - The game manager instance for context.
      */
     update(deltaTime, gameManager) {
         super.update(deltaTime, gameManager);
@@ -34,10 +37,11 @@ export class CivilianAIPilot extends AIPilot {
     }
 
     /**
-     * Handles Job state, running job and checking reactions.
+     * Handles the 'Job' state, running the job and checking for threats to trigger reactions.
      * @param {number} deltaTime - Time elapsed in seconds.
+     * @param {GameManager} gameManager - The game manager instance for context.
      */
-    updateJob(deltaTime) {
+    updateJob(deltaTime, gameManager) {
         // Check reactions
         if (this.ship.age >= this.nextThreatScan) {
             this.nextThreatScan = this.ship.age + this.threatScanInterval;
@@ -80,10 +84,11 @@ export class CivilianAIPilot extends AIPilot {
     }
 
     /**
-     * Handles Avoid state, running AvoidAutoPilot and checking reactions.
+     * Handles the 'Avoid' state, running AvoidAutoPilot and checking for flee or job transitions.
      * @param {number} deltaTime - Time elapsed in seconds.
+     * @param {GameManager} gameManager - The game manager instance for context.
      */
-    updateAvoid(deltaTime) {
+    updateAvoid(deltaTime, gameManager) {
         // Ensure correct autopilot
         if (!(this.autopilot instanceof AvoidAutoPilot) && this.ship.state === 'Flying' && this.threat) {
             if (this.ship.debug) {
@@ -135,10 +140,11 @@ export class CivilianAIPilot extends AIPilot {
     }
 
     /**
-     * Handles Flee state, running FleeAutoPilot and checking reactions.
+     * Handles the 'Flee' state, running FleeAutoPilot and checking for job transition.
      * @param {number} deltaTime - Time elapsed in seconds.
+     * @param {GameManager} gameManager - The game manager instance for context.
      */
-    updateFlee(deltaTime) {
+    updateFlee(deltaTime, gameManager) {
         // Ensure correct autopilot
         if (!(this.autopilot instanceof FleeAutoPilot) && this.ship.state === 'Flying' && this.threat) {
             if (this.ship.debug) {
@@ -173,8 +179,8 @@ export class CivilianAIPilot extends AIPilot {
 
     /**
      * Handles damage, updating state based on shields.
-     * @param {number} damage - Amount of damage.
-     * @param {Ship} source - Ship causing damage.
+     * @param {number} damage - Amount of damage received.
+     * @param {Ship} source - The ship causing the damage.
      */
     onDamage(damage, source) {
         super.onDamage(damage, source);

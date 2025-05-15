@@ -12,6 +12,8 @@ import { isValidTarget } from '/src/core/gameObject.js';
 import { AIPilot } from '/src/ai/aiPilot.js';
 import { CivilianAIPilot } from '/src/ai/civilianAIPilot.js';
 import { WandererJob } from '/src/ai/wandererJob.js';
+import { MinerJob } from '/src/ai/minerJob.js';
+
 
 
 /**
@@ -383,7 +385,11 @@ class GameManager {
                 }
 
                 const aiShip = createRandomShip(spawnPlanet.position.x, spawnPlanet.position.y, system);
-                aiShip.pilot = new CivilianAIPilot(aiShip, new WandererJob(aiShip));
+                if (aiShip instanceof Boxwing) {
+                    aiShip.pilot = new CivilianAIPilot(aiShip, new MinerJob(aiShip, spawnPlanet));
+                } else {
+                    aiShip.pilot = new CivilianAIPilot(aiShip, new WandererJob(aiShip));
+                }
 
                 // if (aiShip instanceof Flivver || aiShip instanceof Arrow || aiShip instanceof Interceptor) {
                 //     if (Math.random() > 0.5) {

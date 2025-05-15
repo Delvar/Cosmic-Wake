@@ -14,9 +14,10 @@ export class WandererJob extends Job {
     /**
      * Creates a new WandererJob instance.
      * @param {Ship} ship - The ship to control.
+     * @param {AIPilot} [pilot=null] - The pilot controlling the ship (optional).
      */
-    constructor(ship) {
-        super(ship);
+    constructor(ship, pilot = null) {
+        super(ship, pilot);
         /** @type {string} The current job state ('Starting', 'Planning', 'Traveling', 'Waiting'). */
         this.state = 'Starting';
         /** @type {JumpGate|Planet|null} The current navigation target (jump gate or planet). */
@@ -162,25 +163,25 @@ export class WandererJob extends Job {
                 }
             }
 
-            if (!gameManager.autopilot) {
+            if (!this.pilot.autopilot) {
                 if (this.target instanceof JumpGate) {
                     if (this.ship.debug) {
                         console.log(`WandererJob: Setting autopilot to jump gate ${this.target.name}`);
                     }
-                    gameManager.setAutoPilot(new TraverseJumpGateAutoPilot(this.ship, this.target));
+                    this.pilot.setAutoPilot(new TraverseJumpGateAutoPilot(this.ship, this.target));
                 } else {
                     if (this.ship.debug) {
                         console.log(`WandererJob: Setting autopilot to land on ${this.target.name}`);
                     }
-                    gameManager.setAutoPilot(new LandOnPlanetAutoPilot(this.ship, this.target));
+                    this.pilot.setAutoPilot(new LandOnPlanetAutoPilot(this.ship, this.target));
                 }
             }
         }
-        if (gameManager.autopilot && gameManager.autopilot.isComplete()) {
+        if (this.pilot.autopilot && this.pilot.autopilot.isComplete()) {
             if (this.ship.debug) {
                 console.log('WandererJob: Autopilot complete, clearing');
             }
-            gameManager.setAutoPilot(null);
+            this.pilot.setAutoPilot(null);
         }
     }
 

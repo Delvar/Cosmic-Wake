@@ -70,9 +70,10 @@ export class AsteroidBelt {
         this.orbitalSpeeds = new Float32Array(this.layerCount);
         for (let i = 0; i < this.layerCount; i++) {
             const speedRatio = this.layerCount > 1 ? i / (this.layerCount - 1) : 0;
-            this.orbitalSpeeds[i] = remapRange01(speedRatio, 0.001, 0.006) * Math.PI;
+            const minTangentialVelocity = 25 / outerRadius;
+            const maxTangentialVelocity = 95 / outerRadius;
+            this.orbitalSpeeds[i] = remapRange01(speedRatio, minTangentialVelocity, maxTangentialVelocity);
         }
-
         // Cell configuration: target ~500 units arc length at innerRadius
         const targetArcLength = 500;
         this.cellCount = Math.max(4, Math.ceil(TWO_PI * innerRadius / targetArcLength));
@@ -436,22 +437,36 @@ export class Asteroid extends GameObject {
     /**
      * @extends GameObject
      * @param {AsteroidBelt} belt - The asteroid belt this asteroid belongs to.
-     * @returns {Asteroid} The created asteroid instance.
      */
     constructor(belt) {
-        const orbitRadius = remapRange01(Math.random(), belt.innerRadius, belt.outerRadius);
-        const angle = remapRange01(Math.random(), 0, TWO_PI);
         super(new Vector2D(0, 0), belt.starSystem);
+        /** @type {AsteroidBelt} The asteroid belt this asteroid belongs to. */
         this.belt = belt;
+        /** @type {number} Index of the shape used for rendering. */
         this.shapeIndex = Math.floor(Math.random() * belt.shapeCount);
+        /** @type {Shape} The shape used for rendering this asteroid. */
         this.shape = belt.shapes[this.shapeIndex];
-        this.radius = remapRange01(Math.random(), 15, 30); // Radius between 15 and 30 world units
+        /** @type {number} The radius of the asteroid (world units). */
+        this.radius = remapRange01(Math.random(), 15, 30);
+        /** @type {number} Current spin angle (radians). */
         this.spin = 0;
+        /** @type {number} Spin angular velocity (radians/second). */
         this.spinSpeed = remapRange01(Math.random(), -TWO_PI, TWO_PI) * 0.5;
-        this.orbitSpeed = remapRange01(Math.random(), Math.PI * 0.002, Math.PI * 0.006);
-        this.orbitRadius = orbitRadius;
-        this.orbitAngle = angle;
+
+        // Calculate orbital speed to achieve tangential velocity between 25 and 95 units/second
+        const tangentialVelocity = remapRange01(Math.random(), 25, 95);
+        /** @type {number} Orbital radius from system center (world units). */
+        this.orbitRadius = remapRange01(Math.random(), belt.innerRadius, belt.outerRadius);
+        /** @type {number} Orbital angular velocity (radians/second). */
+        this.orbitSpeed = tangentialVelocity / this.orbitRadius; // ω = v / r
+
+        // Clamp orbitSpeed to prevent extreme values for small or large radii
+        this.orbitSpeed = clamp(this.orbitSpeed, Math.PI * 0.0001, Math.PI * 0.01);
+        /** @type {number} Current orbital angle (radians). */
+        this.orbitAngle = remapRange01(Math.random(), 0, TWO_PI);
+        /** @type {Vector2D} Current position in world coordinates. */
         this.position.setFromPolar(this.orbitRadius, this.orbitAngle);
+        /** @type {Vector2D} Scratch vector for screen position calculations. */
         this._scratchScreenPos = new Vector2D();
     }
 

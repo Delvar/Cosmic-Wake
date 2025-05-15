@@ -3,7 +3,7 @@
 import { Pilot } from '/src/pilot.js';
 import { Ship } from '/src/ship/ship.js';
 import { Vector2D } from '/src/core/vector2d.js';
-import { AvoidAutoPilot, FleeAutoPilot } from '/src/autopilot/autopilot.js';
+import { AvoidAutoPilot, FleeAutoPilot, LandOnPlanetDespawnAutoPilot } from '/src/autopilot/autopilot.js';
 
 /**
  * Base AI pilot with common states and reaction handling.
@@ -19,6 +19,8 @@ export class AIPilot extends Pilot {
         super(ship);
         /** @type {Object} The job instance controlling high-level behavior (e.g., WandererJob). */
         this.job = job;
+        // set the job pilot so it can update back to us
+        this.job.pilot = this;
         /** @type {AutoPilot|null} The active autopilot controlling ship navigation (e.g., FlyToTargetAutoPilot). */
         this.autopilot = null;
         /** @type {Ship|null} The current threat triggering reactions (e.g., player ship). */
@@ -34,7 +36,8 @@ export class AIPilot extends Pilot {
             'Job': this.updateJob.bind(this),
             'Flee': this.updateFlee.bind(this),
             'Avoid': this.updateAvoid.bind(this),
-            'Attack': this.updateAttack.bind(this)
+            'Attack': this.updateAttack.bind(this),
+            'Despawning': this.updateDespawning.bind(this)
         };
     }
 
@@ -78,16 +81,32 @@ export class AIPilot extends Pilot {
      * @param {GameManager} gameManager - The game manager instance for context.
      */
     updateJob(deltaTime, gameManager) {
+        if (this.job.state === 'Failed') {
+            if (this.ship.debug) {
+                console.log('AIPilot: Job failed, transitioning to Despawning');
+            }
+            this.changeState('Despawning', new LandOnPlanetDespawnAutoPilot(this.ship));
+            return;
+        }
+
         // Execute active autopilot
         if (this.autopilot && !this.autopilot.isComplete()) {
-            this.autopilot.update(deltaTime);
+            this.autopilot.update(deltaTime, gameManager);
+            return;
+        }
+
+        // Run job to set next autopilot
+        if (this.ship.state === 'Landed' || this.ship.state === 'Flying') {
+            this.job.update(deltaTime, gameManager);
+        }
+
+        // If autopilot is compelte null it, this ensures Job gets to see the compelte autopilot first
+        if (this.autopilot) {
+            if (this.autopilot.error && this.ship.debug) {
+                console.warn(`autopilot ${this.autopilot.constructor.name} has an error: ${this.autopilot.error}`);
+            }
             if (this.autopilot.isComplete()) {
                 this.setAutoPilot(null);
-            }
-        } else {
-            // Run job to set next autopilot
-            if (this.ship.state === 'Landed' || this.ship.state === 'Flying') {
-                this.job.update(deltaTime, this);
             }
         }
     }
@@ -149,6 +168,30 @@ export class AIPilot extends Pilot {
      */
     updateAttack(deltaTime, gameManager) {
         this.changeState('Job');
+    }
+
+    /**
+     * Handles the 'Despawning' state, landing on the closest planet and despawning.
+     * @param {number} deltaTime - Time elapsed in seconds.
+     * @param {GameManager} gameManager - The game manager instance for context.
+     */
+    updateDespawning(deltaTime, gameManager) {
+        if (!(this.autopilot instanceof LandOnPlanetDespawnAutoPilot)) {
+            this.setAutoPilot(new LandOnPlanetDespawnAutoPilot(this.ship));
+        }
+        if (this.autopilot && !this.autopilot.isComplete()) {
+            this.autopilot.update(deltaTime);
+            if (this.autopilot.isComplete()) {
+                this.setAutoPilot(null);
+            }
+        }
+        if (this.autopilot?.error) {
+            if (this.ship.debug) {
+                console.warn(`Despawn failed: ${this.autopilot.error}`);
+            }
+            this.ship.despawn();
+            this.setAutoPilot(null);
+        }
     }
 
     /**

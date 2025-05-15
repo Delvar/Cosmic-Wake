@@ -7,10 +7,13 @@ export class Job {
     /**
      * Creates a new Job instance.
      * @param {Ship} ship - The ship to control.
+     * @param {AIPilot} [pilot=null] - The pilot controlling the ship (optional).
      */
-    constructor(ship) {
+    constructor(ship, pilot = null) {
         /** @type {Ship} The ship controlled by this job. */
         this.ship = ship;
+        /** @type {AIPilot} The AIPilot using this job. */
+        this.pilot = pilot;
         /** @type {string} The current job state (e.g., 'Starting', 'Paused'). */
         this.state = 'Starting';
         /** @type {string|null} The state before pausing, restored on resume. */
@@ -31,8 +34,10 @@ export class Job {
      * Pauses the job, saving the current state.
      */
     pause() {
-        this.pausedState = this.state;
-        this.state = 'Paused';
+        if (this.state !== 'Paused') {
+            this.pausedState = this.state;
+            this.state = 'Paused';
+        }
     }
 
     /**

@@ -645,6 +645,93 @@ export class LandOnPlanetAutoPilot extends AutoPilot {
 }
 
 /**
+ * Autopilot that flies to the closest planet, lands, and despawns the ship.
+ * @extends AutoPilot
+ */
+export class LandOnPlanetDespawnAutoPilot extends AutoPilot {
+    /**
+     * Creates a new LandOnPlanetDespawnAutoPilot instance.
+     * @param {Ship} ship - The ship to control.
+     */
+    constructor(ship) {
+        super(ship);
+        /** @type {Planet|null} The closest planet to land on. */
+        this.target = ship.starSystem?.getClosestPlanet(ship);
+        /** @type {Vector2D} Scratch vector for distance calculations. */
+        this._scratchDistanceToTarget = new Vector2D();
+        /** @type {Vector2D} Scratch vector for velocity corrections. */
+        this._scratchVelocityError = new Vector2D();
+    }
+
+    /**
+     * Starts the autopilot, validating the target planet.
+     */
+    start() {
+        super.start();
+        if (!this.target) {
+            this.error = 'No planet available';
+            this.active = false;
+            return;
+        }
+        this.subAutopilot = new LandOnPlanetAutoPilot(this.ship, this.target);
+        this.subAutopilot.start();
+    }
+
+    /**
+     * Updates the autopilot, managing landing and despawning.
+     * @param {number} deltaTime - Time elapsed in seconds.
+     */
+    update(deltaTime) {
+        if (!this.active) return;
+        if (!this.target || this.target.isDespawned()) {
+            this.target = this.ship.starSystem?.getClosestPlanet(this.ship);
+            if (!this.target) {
+                this.error = 'No planet available';
+                this.stop();
+                return;
+            }
+            this.subAutopilot = new LandOnPlanetAutoPilot(this.ship, this.target);
+            this.subAutopilot.start();
+        }
+
+        if (this.subAutopilot && this.subAutopilot.active) {
+            this.subAutopilot.update(deltaTime);
+            if (this.subAutopilot.isComplete()) {
+                if (this.subAutopilot.error) {
+                    this.error = this.subAutopilot.error;
+                    this.stop();
+                    return;
+                }
+                this.subAutopilot = null;
+            }
+        } else if (this.ship.state === 'Landed') {
+            this.ship.despawn();
+            this.completed = true;
+            this.stop();
+        } else if (this.ship.state !== 'Landing') {
+            this.subAutopilot = new LandOnPlanetAutoPilot(this.ship, this.target);
+            this.subAutopilot.start();
+        }
+    }
+
+    /**
+     * Stops the autopilot and any active sub-autopilot.
+     */
+    stop() {
+        if (this.subAutopilot) this.subAutopilot.stop();
+        super.stop();
+    }
+
+    /**
+     * Returns the current status of the autopilot for HUD display.
+     * @returns {string} A descriptive status string.
+     */
+    getStatus() {
+        return `Despawning on ${this.target?.name || 'planet'}`;
+    }
+}
+
+/**
  * Autopilot that flies to a jump gate and traverses it, waiting for the full jump animation to complete.
  * Chains FlyToTargetAutoPilot for approach and handles hyperjump initiation.
  * @extends AutoPilot

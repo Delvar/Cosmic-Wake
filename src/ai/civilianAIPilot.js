@@ -69,18 +69,7 @@ export class CivilianAIPilot extends AIPilot {
             }
         }
 
-        // Execute active autopilot (set by job)
-        if (this.autopilot && !this.autopilot.isComplete()) {
-            this.autopilot.update(deltaTime);
-            if (this.autopilot.isComplete()) {
-                this.setAutoPilot(null);
-            }
-        } else {
-            // Run job to set next autopilot
-            if (this.ship.state === 'Landed' || this.ship.state === 'Flying') {
-                this.job.update(deltaTime, this);
-            }
-        }
+        super.updateJob(deltaTime, gameManager);
     }
 
     /**

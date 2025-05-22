@@ -109,3 +109,50 @@ export class SimpleRNG {
         return (this.seed - 1) / 2147483646;
     }
 }
+
+/**
+ * A simple conttext wrapper so i can monitor and report on save/restore issues
+ */
+export function wrapCanvasContext(ctx) {
+    let saveStackCount = 0;
+
+    const wrappedCtx = new Proxy(ctx, {
+        get(target, prop) {
+            if (prop === 'save') {
+                return function (...args) {
+                    saveStackCount++;
+                    //console.log(`save() called. Stack size: ${saveStackCount}`);
+                    return target.save.apply(target, args);
+                };
+            }
+            if (prop === 'restore') {
+                return function (...args) {
+                    if (saveStackCount <= 0) {
+                        console.warn('restore() called with empty stack!');
+                    } else {
+                        saveStackCount--;
+                        //console.log(`restore() called. Stack size: ${saveStackCount}`);
+                    }
+                    return target.restore.apply(target, args);
+                };
+            }
+            if (prop === 'getStackSize') {
+                return () => saveStackCount;
+            }
+            const value = Reflect.get(target, prop);
+            // Bind methods to the original context
+            if (typeof value === 'function') {
+                return value.bind(target);
+            }
+            return value;
+        },
+        set(target, prop, value) {
+            //if (prop === 'fillStyle') {
+                //console.log(`Setting fillStyle to ${value}`);
+            //}
+            return Reflect.set(target, prop, value);
+        }
+    });
+
+    return wrappedCtx;
+}

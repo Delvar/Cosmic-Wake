@@ -191,7 +191,7 @@ export class HeadsUpDisplay {
                     ctx.beginPath();
                     ctx.globalAlpha = 1.0;
                     ctx.fillStyle = 'white';
-                    ctx.font = `${camera.worldToSize(16)}px Arial`;
+                    //ctx.font = `${camera.worldToSize(16)}px Arial`;
                     ctx.textAlign = 'center';
                     const scaledRadius = camera.worldToSize(body.radius);
                     ctx.fillText(body.name, this._scratchScreenPos.x, this._scratchScreenPos.y + scaledRadius + camera.worldToSize(20));
@@ -246,7 +246,7 @@ export class HeadsUpDisplay {
         }
         if (autopilotStatus) {
             ctx.fillStyle = "white";
-            ctx.font = "16px Arial";
+            //ctx.font = "16px Arial";
             ctx.textAlign = "center";
             ctx.fillText(autopilotStatus, this.size.width / 2, 20); // Top middle of screen
         }

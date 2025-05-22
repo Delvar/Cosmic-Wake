@@ -364,7 +364,7 @@ export class Ship extends GameObject {
      */
     applyThrust(thrusting) {
         if (this.state === 'Flying') {
-            this.isThrusting = thrusting;
+            this.isThrusting = thrusting == true;
         } else {
             this.isThrusting = false;
         }
@@ -483,13 +483,29 @@ export class Ship extends GameObject {
     }
 
     /**
-     * Fires the ship's weapon.
+     * Fires all the ship's weapons.
      */
     fire() {
+        if (this.state !== 'Flying') return;
+        this.fireFixedWeapons();
+        this.fireTurrets();
+    }
+
+    /**
+     * Fires the ship's fixed weapons.
+     */
+    fireFixedWeapons() {
         if (this.state !== 'Flying') return;
         for (const fixedWeapon of this.fixedWeapons) {
             fixedWeapon.fire(this, this.starSystem.projectileManager);
         }
+    }
+
+    /**
+     * Fires the ship's turrets.
+     */
+    fireTurrets() {
+        if (this.state !== 'Flying') return;
         for (const turret of this.turrets) {
             turret.fire(this, this.starSystem.projectileManager);
         }
@@ -507,9 +523,9 @@ export class Ship extends GameObject {
             excessDamage = this.shield.takeDamage(damage, hitPosition, this.position, this.age);
         }
         //Debug: player takes no hull damage
-        if (this.pilot instanceof PlayerPilot) {
-            excessDamage = 0;
-        }
+        //if (this.pilot instanceof PlayerPilot) {
+        excessDamage = 0;
+        //}
         if (excessDamage > 0) {
             this.hullIntegrity = Math.max(this.hullIntegrity - excessDamage, -50);
         }
@@ -1341,8 +1357,15 @@ export class Ship extends GameObject {
         }
 
         // Convert world positions to screen coordinates
-        this._scratchScreenPos.set(this.position);
-        camera.worldToScreen(this._scratchScreenPos, this._scratchScreenPos);
+        camera.worldToScreen(this.position, this._scratchScreenPos);
+
+        if (this.isThrusting) {
+            ctx.beginPath();
+            ctx.fillStyle = 'rgba(255,255,0,1.0)';
+            ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, 10, 0, TWO_PI);
+            ctx.closePath();
+            ctx.fill();
+        }
 
         // Draw velocity error if available
         let velocityError = null;
@@ -1365,7 +1388,7 @@ export class Ship extends GameObject {
         }
 
         // Draw velocity vector
-        this._scratchVelocityEnd.set(this.velocity).multiplyInPlace(1).addInPlace(this.position);
+        this._scratchVelocityEnd.set(this.velocity).addInPlace(this.position);
         camera.worldToScreen(this._scratchVelocityEnd, this._scratchVelocityEnd);
         ctx.strokeStyle = 'red';
         ctx.beginPath();
@@ -1391,7 +1414,7 @@ export class Ship extends GameObject {
         if (this.pilot) {
             const state = this.pilot.getStatus();
             ctx.fillStyle = 'white';
-            ctx.font = `${10 * scale}px Arial`;
+            //ctx.font = `${10 * scale}px Arial`;
             const textMetrics = ctx.measureText(state);
             const textX = this._scratchScreenPos.x - textMetrics.width / 2;
             const textY = this._scratchScreenPos.y + 20 * scale;

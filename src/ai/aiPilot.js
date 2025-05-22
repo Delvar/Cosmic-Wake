@@ -3,7 +3,9 @@
 import { Pilot } from '/src/pilot.js';
 import { Ship } from '/src/ship/ship.js';
 import { Vector2D } from '/src/core/vector2d.js';
-import { AvoidAutoPilot, FleeAutoPilot, LandOnPlanetDespawnAutoPilot } from '/src/autopilot/autopilot.js';
+import { FleeAutopilot, LandOnPlanetDespawnAutopilot } from '/src/autopilot/autopilot.js';
+import { AttackAutopilot } from '/src/autopilot/attackAutopilot.js';
+import { isValidTarget } from '/src/core/gameObject.js';
 
 /**
  * Base AI pilot with common states and reaction handling.
@@ -21,7 +23,7 @@ export class AIPilot extends Pilot {
         this.job = job;
         // set the job pilot so it can update back to us
         this.job.pilot = this;
-        /** @type {AutoPilot|null} The active autopilot controlling ship navigation (e.g., FlyToTargetAutoPilot). */
+        /** @type {Autopilot|null} The active autopilot controlling ship navigation (e.g., FlyToTargetAutopilot). */
         this.autopilot = null;
         /** @type {Ship|null} The current threat triggering reactions (e.g., player ship). */
         this.threat = null;
@@ -59,14 +61,14 @@ export class AIPilot extends Pilot {
             this.reactionCooldown = Math.max(0, this.reactionCooldown - deltaTime);
         }
 
-        // Fire at threat if within 500 units
-        if (this.threat && this.threat.state === 'Flying' && !this.threat.isDespawned()) {
-            const distanceSq = this.ship.position.distanceSquaredTo(this.threat.position);
-            if (distanceSq < 500 * 500) {
-                this.ship.setTarget(this.threat);
-                this.ship.fire();
-            }
-        }
+        // // Fire at threat if within 500 units
+        // if (this.threat && this.threat.state === 'Flying' && !this.threat.isDespawned()) {
+        //     const distanceSq = this.ship.position.distanceSquaredTo(this.threat.position);
+        //     if (distanceSq < 500 * 500) {
+        //         this.ship.setTarget(this.threat);
+        //         this.ship.fire();
+        //     }
+        // }
 
         // Run state handler
         const handler = this.stateHandlers[this.state];
@@ -85,7 +87,7 @@ export class AIPilot extends Pilot {
             if (this.ship.debug) {
                 console.log('AIPilot: Job failed, transitioning to Despawning');
             }
-            this.changeState('Despawning', new LandOnPlanetDespawnAutoPilot(this.ship));
+            this.changeState('Despawning', new LandOnPlanetDespawnAutopilot(this.ship));
             return;
         }
 
@@ -106,7 +108,7 @@ export class AIPilot extends Pilot {
                 console.warn(`autopilot ${this.autopilot.constructor.name} has an error: ${this.autopilot.error}`);
             }
             if (this.autopilot.isComplete()) {
-                this.setAutoPilot(null);
+                this.setAutopilot(null);
             }
         }
     }
@@ -118,14 +120,14 @@ export class AIPilot extends Pilot {
      */
     updateFlee(deltaTime, gameManager) {
         // Ensure correct autopilot
-        if (!(this.autopilot instanceof FleeAutoPilot) && this.ship.state === 'Flying' && this.threat) {
-            this.setAutoPilot(new FleeAutoPilot(this.ship, this.threat));
+        if (!(this.autopilot instanceof FleeAutopilot) && this.ship.state === 'Flying' && this.threat) {
+            this.setAutopilot(new FleeAutopilot(this.ship, this.threat));
         }
         // Execute autopilot
         if (this.autopilot && !this.autopilot.isComplete()) {
             this.autopilot.update(deltaTime);
             if (this.autopilot.isComplete()) {
-                this.setAutoPilot(null);
+                this.setAutopilot(null);
             }
         }
         // Transition to Job if safe
@@ -143,14 +145,20 @@ export class AIPilot extends Pilot {
      */
     updateAvoid(deltaTime, gameManager) {
         // Ensure correct autopilot
-        if (!(this.autopilot instanceof AvoidAutoPilot) && this.ship.state === 'Flying' && this.threat) {
-            this.setAutoPilot(new AvoidAutoPilot(this.ship, this.threat));
+        // if (!(this.autopilot instanceof AvoidAutopilot) && this.ship.state === 'Flying' && this.threat) {
+        //     this.setAutopilot(new AvoidAutopilot(this.ship, this.threat));
+        // }
+        // Ensure correct autopilot
+        if (!(this.autopilot instanceof AttackAutopilot) && this.ship.state === 'Flying' && this.threat) {
+            this.ship.target = this.threat;
+            this.setAutopilot(new AttackAutopilot(this.ship, this.threat));
         }
+
         // Execute autopilot
         if (this.autopilot && !this.autopilot.isComplete()) {
             this.autopilot.update(deltaTime);
             if (this.autopilot.isComplete()) {
-                this.setAutoPilot(null);
+                this.setAutopilot(null);
             }
         }
         // Transition to Job if safe
@@ -167,7 +175,23 @@ export class AIPilot extends Pilot {
      * @param {GameManager} gameManager - The game manager instance for context.
      */
     updateAttack(deltaTime, gameManager) {
-        this.changeState('Job');
+        if (!this.threat || !isValidTarget(this.ship, this.threat)) {
+            this.changeState('Job');
+            return;
+        }
+        if (!(this.autopilot instanceof AttackAutopilot) && this.ship.state === 'Flying') {
+            this.setAutopilot(new AttackAutopilot(this.ship, this.threat));
+            if (this.ship.debug) {
+                console.log("AIPilot: Set AttackAutopilot");
+            }
+        }
+        if (this.autopilot && !this.autopilot.isComplete()) {
+            this.autopilot.update(deltaTime);
+            if (this.autopilot.isComplete() || this.autopilot.error) {
+                this.setAutopilot(null);
+                this.changeState('Job');
+            }
+        }
     }
 
     /**
@@ -176,13 +200,13 @@ export class AIPilot extends Pilot {
      * @param {GameManager} gameManager - The game manager instance for context.
      */
     updateDespawning(deltaTime, gameManager) {
-        if (!(this.autopilot instanceof LandOnPlanetDespawnAutoPilot)) {
-            this.setAutoPilot(new LandOnPlanetDespawnAutoPilot(this.ship));
+        if (!(this.autopilot instanceof LandOnPlanetDespawnAutopilot)) {
+            this.setAutopilot(new LandOnPlanetDespawnAutopilot(this.ship));
         }
         if (this.autopilot && !this.autopilot.isComplete()) {
             this.autopilot.update(deltaTime);
             if (this.autopilot.isComplete()) {
-                this.setAutoPilot(null);
+                this.setAutopilot(null);
             }
         }
         if (this.autopilot?.error) {
@@ -190,23 +214,23 @@ export class AIPilot extends Pilot {
                 console.warn(`Despawn failed: ${this.autopilot.error}`);
             }
             this.ship.despawn();
-            this.setAutoPilot(null);
+            this.setAutopilot(null);
         }
     }
 
     /**
      * Sets a new autopilot, stopping and cleaning up the current one.
-     * @param {AutoPilot|null} newAutoPilot - The new autopilot to set, or null to clear.
+     * @param {Autopilot|null} newAutopilot - The new autopilot to set, or null to clear.
      */
-    setAutoPilot(newAutoPilot) {
+    setAutopilot(newAutopilot) {
         if (this.ship.debug) {
-            console.log(`setAutoPilot ${this.ship.name}: ${this.autopilot?.constructor?.name} >> ${newAutoPilot?.constructor?.name}`);
+            console.log(`setAutopilot ${this.ship.name}: ${this.autopilot?.constructor?.name} >> ${newAutopilot?.constructor?.name}`);
         }
         if (this.autopilot) {
             this.autopilot.stop();
             this.autopilot = null;
         }
-        this.autopilot = newAutoPilot;
+        this.autopilot = newAutopilot;
         if (this.autopilot) {
             this.autopilot.start();
         }
@@ -239,9 +263,9 @@ export class AIPilot extends Pilot {
     /**
      * Changes state and autopilot, handling cleanup.
      * @param {string} newState - The new state ('Job', 'Flee', 'Avoid', 'Attack').
-     * @param {AutoPilot} [newAutoPilot=null] - The new autopilot, if any.
+     * @param {Autopilot} [newAutopilot=null] - The new autopilot, if any.
      */
-    changeState(newState, newAutoPilot = null) {
+    changeState(newState, newAutopilot = null) {
         if (this.state === newState) return;
         // Pause job only when leaving Job state
         if (this.state === 'Job') {
@@ -249,7 +273,7 @@ export class AIPilot extends Pilot {
         }
         // Set new state and autopilot
         this.state = newState;
-        this.setAutoPilot(newAutoPilot);
+        this.setAutopilot(newAutopilot);
         // Reset cooldown for reaction states
         if (newState !== 'Job') {
             this.reactionCooldown = 0;

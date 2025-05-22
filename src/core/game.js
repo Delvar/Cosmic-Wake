@@ -13,8 +13,7 @@ import { AIPilot } from '/src/ai/aiPilot.js';
 import { CivilianAIPilot } from '/src/ai/civilianAIPilot.js';
 import { WandererJob } from '/src/ai/wandererJob.js';
 import { MinerJob } from '/src/ai/minerJob.js';
-
-
+import { wrapCanvasContext } from '/src/core/utils.js';
 
 /**
  * Handles the game loop, rendering, and updates for the game.
@@ -29,13 +28,14 @@ class Game {
     constructor(manager, canvas, targetCanvas) {
         this.manager = manager;
         this.canvas = canvas;
+        //this.ctx = wrapCanvasContext(this.canvas.getContext('2d'));
         this.ctx = this.canvas.getContext('2d');
-        this.canvasSize = new Vector2D(window.innerWidth, window.innerHeight);
-        this.canvas.width = this.canvasSize.width;
-        this.canvas.height = this.canvasSize.height;
-
+        this.canvasSize = new Vector2D(0, 0);
         this.targetCanvas = targetCanvas;
+        //this.targetCtx = wrapCanvasContext(this.targetCanvas.getContext('2d'));
         this.targetCtx = this.targetCanvas.getContext('2d');
+        this.targetCtx.font = 'bolder 16px "Century Gothic Paneuropean", "Century Gothic", "CenturyGothic", "AppleGothic", sans-serif';
+
         this.targetCamera = manager.targetCamera;
 
         this.camera = manager.camera;
@@ -46,6 +46,8 @@ class Game {
         this.fps = 0;
         this.lastFpsUpdate = performance.now();
         this.zoomTextTimer = 0;
+
+        this.resizeCanvas();
     }
 
     /**
@@ -57,12 +59,14 @@ class Game {
         this.canvas.height = this.canvasSize.height;
         this.camera.resize(this.canvasSize.width, this.canvasSize.height);
         this.hud.resize(this.canvasSize.width, this.canvasSize.height);
+        this.ctx.font = 'bolder 16px "Century Gothic Paneuropean", "Century Gothic", "CenturyGothic", "AppleGothic", sans-serif';
     }
 
     /**
      * Starts the game loop, which continuously updates and renders the game.
      */
     start() {
+
         const gameLoop = (currentTime) => {
             const deltaTime = (currentTime - this.lastTime);
             this.lastTime = currentTime;
@@ -114,17 +118,12 @@ class Game {
         ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         this.starField.draw(ctx, this.camera);
         if (!this.manager.cameraTarget || this.manager.cameraTarget.despawned) {
-            //if (!this.manager.playerShip || this.manager.playerShip.despawned) {
             this.manager.cameraTarget = null;
-            //} else {
-            //this.manager.cameraTarget = this.manager.playerShip;
-            //}
         }
-        const starSystem = this.camera.starSystem;//this.manager.cameraTarget.starSystem;
+        const starSystem = this.camera.starSystem;
         if (!starSystem) {
             console.log(this.camera);
             throw new Error('No starSystem on this.camera');
-            //return;
         }
         if (starSystem.asteroidBelt) starSystem.asteroidBelt.draw(ctx, this.camera);
         for (let i = 0; i < starSystem.stars.length; i++) {
@@ -146,7 +145,6 @@ class Game {
 
         ctx.save();
         ctx.fillStyle = 'white';
-        ctx.font = '16px Arial';
         ctx.textAlign = 'left';
         ctx.fillText(`FPS: ${this.fps}`, 10, 20);
 
@@ -159,7 +157,7 @@ class Game {
         if (this.manager.zoomTextTimer > 0) {
             ctx.save();
             ctx.fillStyle = 'white';
-            ctx.font = '20px Arial';
+            //ctx.font = '20px Arial';
             ctx.textAlign = 'right';
             const zoomPercent = Math.round(this.camera.zoom * 100);
             ctx.fillText(`${zoomPercent}%`, this.canvasSize.width - 10, 30);
@@ -200,6 +198,10 @@ class Game {
         // ctx.fill();
         // ctx.restore();
         ctx.restore();
+
+        // if (ctx.getStackSize() !== 0) {
+        //     console.warn(`Frame end: Stack size is ${ctx.getStackSize()}`);
+        // }
     }
 
     /**
@@ -249,7 +251,7 @@ class Game {
         starSystem.particleManager.draw(ctx, this.targetCamera);
         const targetName = target.name || "Unnamed Object";
         ctx.fillStyle = "white";
-        ctx.font = "16px Arial";
+        //ctx.font = "16px Arial";
         ctx.textAlign = "center";
         ctx.fillText(targetName, this.targetCanvas.width / 2, 20);
     }

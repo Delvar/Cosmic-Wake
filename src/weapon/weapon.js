@@ -72,4 +72,12 @@ export class Weapon {
         this.nextFireTime = this.currentTime + this.cooldown;
         return true;
     }
+
+    /**
+     * Returns true if the weapon is read to fire
+     * @returns {boolean} True if it is ready to fired, false if on cooldown. 
+     */
+    canFire() {
+        return (this.currentTime < this.nextFireTime);
+    }
 }

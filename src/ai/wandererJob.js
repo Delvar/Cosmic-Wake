@@ -2,7 +2,7 @@
 
 import { Job } from '/src/ai/job.js';
 import { Vector2D } from '/src/core/vector2d.js';
-import { FlyToTargetAutoPilot, LandOnPlanetAutoPilot, TraverseJumpGateAutoPilot } from '/src/autopilot/autopilot.js';
+import { FlyToTargetAutopilot, LandOnPlanetAutopilot, TraverseJumpGateAutopilot } from '/src/autopilot/autopilot.js';
 import { JumpGate, Planet } from '/src/starSystem/celestialBody.js';
 import { isValidTarget } from '/src/core/gameObject.js';
 
@@ -168,12 +168,12 @@ export class WandererJob extends Job {
                     if (this.ship.debug) {
                         console.log(`WandererJob: Setting autopilot to jump gate ${this.target.name}`);
                     }
-                    this.pilot.setAutoPilot(new TraverseJumpGateAutoPilot(this.ship, this.target));
+                    this.pilot.setAutopilot(new TraverseJumpGateAutopilot(this.ship, this.target));
                 } else {
                     if (this.ship.debug) {
                         console.log(`WandererJob: Setting autopilot to land on ${this.target.name}`);
                     }
-                    this.pilot.setAutoPilot(new LandOnPlanetAutoPilot(this.ship, this.target));
+                    this.pilot.setAutopilot(new LandOnPlanetAutopilot(this.ship, this.target));
                 }
             }
         }
@@ -181,7 +181,7 @@ export class WandererJob extends Job {
             if (this.ship.debug) {
                 console.log('WandererJob: Autopilot complete, clearing');
             }
-            this.pilot.setAutoPilot(null);
+            this.pilot.setAutopilot(null);
         }
     }
 

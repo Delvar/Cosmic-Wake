@@ -4,7 +4,8 @@ import { Vector2D } from '/src/core/vector2d.js';
 import { CelestialBody, JumpGate, Star, Planet } from '/src/starSystem/celestialBody.js';
 import { remapClamp, randomBetween, normalizeAngle } from '/src/core/utils.js';
 import { Ship } from '/src/ship/ship.js';
-import { TraverseJumpGateAutoPilot, FlyToTargetAutoPilot, LandOnPlanetAutoPilot, FollowShipAutoPilot, EscortAutoPilot, LandOnAsteroidAutoPilot, ApproachTargetAutoPilot } from '/src/autopilot/autopilot.js';
+import { TraverseJumpGateAutopilot, LandOnPlanetAutopilot, EscortAutopilot, LandOnAsteroidAutopilot, ApproachTargetAutopilot } from '/src/autopilot/autopilot.js';
+import { AttackAutopilot } from '/src/autopilot/attackAutopilot.js';
 import { Asteroid } from '/src/starSystem/asteroidBelt.js';
 import { GameObject, isValidTarget } from '/src/core/gameObject.js';
 
@@ -141,8 +142,8 @@ export class PlayerPilot extends Pilot {
      */
     update(deltaTime, gameManager) {
         // Helper functions for key states
-        const pressed = (key) => gameManager.keys[key] && !gameManager.lastKeys[key];
-        const held = (key) => gameManager.keys[key];
+        const pressed = (key) => gameManager.keys[key] === true && !(gameManager.lastKeys[key] === true);
+        const held = (key) => gameManager.keys[key] === true;
 
         // Disable autopilot and handle takeoff if manual controls are used
         if (pressed('ArrowLeft') || pressed('ArrowRight') || pressed('ArrowUp') || pressed('ArrowDown') || pressed('l')) {
@@ -153,6 +154,18 @@ export class PlayerPilot extends Pilot {
             if (this.ship.state === 'Landed') {
                 this.ship.initiateTakeoff();
             }
+        }
+
+        // Update autopilot if active
+        if (this.autopilot?.active) {
+            this.autopilot.update(deltaTime);
+            if (this.autopilot.isComplete()) {
+                if (this.autopilot.error) {
+                    console.warn(`Autopilot failed: ${this.autopilot.error}`);
+                }
+                this.autopilot = null;
+            }
+            return;
         }
 
         // Manual rotation and movement
@@ -176,21 +189,21 @@ export class PlayerPilot extends Pilot {
                 if (this.ship.target.overlapsPoint(this.ship.position)) {
                     this.ship.initiateHyperjump(this.ship.target);
                 } else {
-                    this.autopilot = new TraverseJumpGateAutoPilot(this.ship, this.ship.target);
+                    this.autopilot = new TraverseJumpGateAutopilot(this.ship, this.ship.target);
                     this.autopilot.start();
                 }
             } else if (this.ship.target instanceof CelestialBody) {
                 if (this.ship.canLand(this.ship.target)) {
                     this.ship.initiateLanding(this.ship.target);
                 } else {
-                    this.autopilot = new LandOnPlanetAutoPilot(this.ship, this.ship.target);
+                    this.autopilot = new LandOnPlanetAutopilot(this.ship, this.ship.target);
                     this.autopilot.start();
                 }
             } else if (this.ship.target instanceof Asteroid) {
                 if (this.ship.canLand(this.ship.target)) {
                     this.ship.initiateLanding(this.ship.target);
                 } else {
-                    this.autopilot = new LandOnAsteroidAutoPilot(this.ship, this.ship.target);
+                    this.autopilot = new LandOnAsteroidAutopilot(this.ship, this.ship.target);
                     this.autopilot.start();
                 }
             }
@@ -198,7 +211,7 @@ export class PlayerPilot extends Pilot {
 
         // Escort a targeted ship ('f' key)
         if (pressed('f') && this.ship.state === 'Flying' && this.ship.target instanceof Ship) {
-            this.autopilot = new EscortAutoPilot(this.ship, this.ship.target);
+            this.autopilot = new EscortAutopilot(this.ship, this.ship.target);
             this.autopilot.start();
         }
 
@@ -214,7 +227,7 @@ export class PlayerPilot extends Pilot {
             const upperVelocityErrorThreshold = arrivalSpeedMin;
             const lowerVelocityErrorThreshold = 1;
             const maxTimeToIntercept = 2;
-            this.autopilot = new ApproachTargetAutoPilot(
+            this.autopilot = new ApproachTargetAutopilot(
                 ship,
                 target,
                 finalRadius,
@@ -229,15 +242,9 @@ export class PlayerPilot extends Pilot {
             this.autopilot.start();
         }
 
-        // Update autopilot if active
-        if (this.autopilot?.active) {
-            this.autopilot.update(deltaTime);
-            if (this.autopilot.isComplete()) {
-                if (this.autopilot.error) {
-                    console.warn(`Autopilot failed: ${this.autopilot.error}`);
-                }
-                this.autopilot = null;
-            }
+        if (pressed('a') && this.ship.state === 'Flying' && this.ship.target instanceof GameObject) {
+            this.autopilot = new AttackAutopilot(this.ship, this.ship.target);
+            this.autopilot.start();
         }
 
         // Target selection ('t' for next, 'T' for previous)
@@ -341,7 +348,7 @@ export class PlayerPilot extends Pilot {
 //         }
 
 //         if (this.target instanceof JumpGate) {
-//             this.autopilot = new TraverseJumpGateAutoPilot(this.ship, this.target);
+//             this.autopilot = new TraverseJumpGateAutopilot(this.ship, this.target);
 //             this.autopilot.start();
 //             if (this.ship.state === 'Landed') {
 //                 this.ship.initiateTakeoff();
@@ -352,7 +359,7 @@ export class PlayerPilot extends Pilot {
 //                 console.warn(`Invalid ship state '${this.ship.state}' in AIPilot updateIdle`);
 //             }
 //         } else {
-//             this.autopilot = new LandOnPlanetAutoPilot(this.ship, this.target);
+//             this.autopilot = new LandOnPlanetAutopilot(this.ship, this.target);
 //             this.autopilot.start();
 //             if (this.ship.state === 'Landed') {
 //                 this.ship.initiateTakeoff();
@@ -595,7 +602,7 @@ export class PlayerPilot extends Pilot {
 //         if (taskRoll < 0.4) { // 40% chance to follow a ship
 //             this.target = this.pickShipToFollow();
 //             if (this.target) {
-//                 this.autopilot = new FollowShipAutoPilot(this.ship, this.target, this.followDistance, 100);
+//                 this.autopilot = new FollowShipAutopilot(this.ship, this.target, this.followDistance, 100);
 //                 this.autopilot.start();
 //                 this.followTime = this.followDuration;
 //                 this.isFollowingInRange = false;
@@ -607,7 +614,7 @@ export class PlayerPilot extends Pilot {
 //             this.target = this.pickBodyToVisit();
 //             if (this.target) {
 //                 const arrivalDistance = this.target.radius ? this.target.radius + this.visitDistance : this.visitDistance;
-//                 this.autopilot = new FlyToTargetAutoPilot(this.ship, this.target, arrivalDistance, 50, 100);
+//                 this.autopilot = new FlyToTargetAutopilot(this.ship, this.target, arrivalDistance, 50, 100);
 //                 this.autopilot.start();
 //                 this.transitionFromIdle('VisitingBody');
 //             } else {
@@ -615,7 +622,7 @@ export class PlayerPilot extends Pilot {
 //             }
 //         } else { // 30% chance to fly to a random point
 //             this.target = this.pickRandomPoint();
-//             this.autopilot = new FlyToTargetAutoPilot(this.ship, { position: this.target }, 100, 50, 100);
+//             this.autopilot = new FlyToTargetAutopilot(this.ship, { position: this.target }, 100, 50, 100);
 //             this.autopilot.start();
 //             this.transitionFromIdle('FlyingToRandomPoint');
 //         }
@@ -864,7 +871,7 @@ export class PlayerPilot extends Pilot {
 //             this.escortedShip = null;
 //             this.autopilot?.stop();
 //             const planet = this.findPlanet();
-//             this.autopilot = new LandOnPlanetAutoPilot(this.ship, planet);
+//             this.autopilot = new LandOnPlanetAutopilot(this.ship, planet);
 //             this.autopilot.start();
 //             this.state = 'Despawn';
 //         }
@@ -894,7 +901,7 @@ export class PlayerPilot extends Pilot {
 //         this.ship.setTarget(this.escortedShip);
 
 //         if (!this.autopilot || !this.autopilot.active) {
-//             this.autopilot = new EscortAutoPilot(this.ship, this.escortedShip, this.followDistance);
+//             this.autopilot = new EscortAutopilot(this.ship, this.escortedShip, this.followDistance);
 //             this.autopilot.start();
 //         }
 
@@ -1053,11 +1060,11 @@ export class PlayerPilot extends Pilot {
 //             }
 //         } else if (this.ship.state === 'Flying') {
 //             if (this.targetAsteroid) {
-//                 this.autopilot = new LandOnAsteroidAutoPilot(this.ship, this.targetAsteroid);
+//                 this.autopilot = new LandOnAsteroidAutopilot(this.ship, this.targetAsteroid);
 //                 this.autopilot.start();
 //                 this.state = 'FlyingToAsteroid';
 //             } else {
-//                 this.autopilot = new LandOnPlanetAutoPilot(this.ship, this.homePlanet);
+//                 this.autopilot = new LandOnPlanetAutopilot(this.ship, this.homePlanet);
 //                 this.autopilot.start();
 //                 this.state = 'FlyingToHomePlanet';
 //             }
@@ -1134,7 +1141,7 @@ export class PlayerPilot extends Pilot {
 //      */
 //     updateTakingOffFromAsteroid(deltaTime, gameManager) {
 //         if (this.ship.state === 'Flying') {
-//             this.autopilot = new LandOnPlanetAutoPilot(this.ship, this.homePlanet);
+//             this.autopilot = new LandOnPlanetAutopilot(this.ship, this.homePlanet);
 //             this.autopilot.start();
 //             this.state = 'FlyingToHomePlanet';
 //             this.targetAsteroid = null;

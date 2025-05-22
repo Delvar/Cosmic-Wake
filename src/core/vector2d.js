@@ -173,6 +173,40 @@ export class Vector2D {
     }
 
     /**
+     * Computes the delta, direction, and distance to another vector.
+     * @param {Vector2D} other - The target vector.
+     * @param {Vector2D} outDelta - Output vector for position delta.
+     * @param {Vector2D} outDirection - Output vector for normalized direction.
+     * @returns {number} The distance.
+     */
+    getDirectionAndDistanceTo(other, outDelta, outDirection) {
+        outDelta.set(other).subtractInPlace(this);
+        const distance = outDelta.magnitude();
+        outDirection.set(outDelta);
+        if (distance > 0) outDirection.divideInPlace(distance);
+        return distance;
+    }
+
+    /**
+     * Gets the angle of this vector from origin.
+     * @returns {number} Angle in radians (0 upward, π/2 right).
+     */
+    getAngle() {
+        return Math.atan2(this.x, -this.y);
+    }
+
+    /**
+     * Gets the angle to another vector.
+     * @param {Vector2D} other - The target vector.
+     * @returns {number} Angle in radians from this to other.
+     */
+    getAngleTo(other) {
+        const dx = other.x - this.x;
+        const dy = other.y - this.y;
+        return Math.atan2(dx, -dy);
+    }
+
+    /**
      * Adds another vector to this vector in-place.
      * @param {Vector2D} other - The vector to add.
      * @returns {Vector2D} This vector, for chaining.
@@ -283,3 +317,5 @@ export class Vector2D {
         return dx * dx + dy * dy;
     }
 }
+
+Vector2D.Zero = Object.freeze(new Vector2D(0, 0));

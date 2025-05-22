@@ -1,6 +1,6 @@
 // ai/minerJob.js
 import { Job } from '/src/ai/job.js';
-import { LandOnAsteroidAutoPilot, LandOnPlanetAutoPilot } from '/src/autopilot/autopilot.js';
+import { LandOnAsteroidAutopilot, LandOnPlanetAutopilot } from '/src/autopilot/autopilot.js';
 import { randomBetween } from '/src/core/utils.js';
 import { Vector2D } from '/src/core/vector2d.js';
 import { isValidTarget } from '/src/core/gameObject.js';
@@ -110,7 +110,7 @@ export class MinerJob extends Job {
                 // Stay in Starting; next update handles Flying
             }
         } else if (this.ship.state === 'Flying') {
-            this.pilot.setAutoPilot(new LandOnAsteroidAutoPilot(this.ship, this.targetAsteroid));
+            this.pilot.setAutopilot(new LandOnAsteroidAutopilot(this.ship, this.targetAsteroid));
             this.state = 'FlyingToAsteroid';
             if (this.ship.debug) {
                 console.log(`MinerJob: Flying to asteroid ${this.targetAsteroid.name}`);
@@ -131,7 +131,7 @@ export class MinerJob extends Job {
                 this.state = 'Failed';
                 return;
             }
-            this.pilot.setAutoPilot(new LandOnAsteroidAutoPilot(this.ship, this.targetAsteroid));
+            this.pilot.setAutopilot(new LandOnAsteroidAutopilot(this.ship, this.targetAsteroid));
         }
         if (this.pilot.autopilot == null || this.pilot.autopilot.isComplete()) {
             if (this.ship.state === 'Landed' && this.ship.landedObject === this.targetAsteroid) {
@@ -142,7 +142,7 @@ export class MinerJob extends Job {
                 this.targetAsteroid = null;
                 this.state = 'Starting';
             }
-            this.pilot.setAutoPilot(null);
+            this.pilot.setAutopilot(null);
         }
     }
 
@@ -155,7 +155,7 @@ export class MinerJob extends Job {
         this.waitTime -= deltaTime;
         if (this.waitTime <= 0) {
             this.ship.initiateTakeoff();
-            this.pilot.setAutoPilot(new LandOnPlanetAutoPilot(this.ship, this.homePlanet));
+            this.pilot.setAutopilot(new LandOnPlanetAutopilot(this.ship, this.homePlanet));
             this.state = 'FlyingToHomePlanet';
             this.targetAsteroid = null;
         }
@@ -175,7 +175,7 @@ export class MinerJob extends Job {
                 console.warn('Autopilot complete but not landed on home planet; resetting');
                 this.state = 'Starting';
             }
-            this.pilot.setAutoPilot(null);
+            this.pilot.setAutopilot(null);
         }
     }
 

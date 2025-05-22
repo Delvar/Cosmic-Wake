@@ -44,4 +44,12 @@ export class FixedWeapon {
         this._scratchWorldPos.set(worldX, worldY);
         this.weapon.fire(ship, projectileManager, this._scratchWorldPos, ship.angle);
     }
+
+    /**
+     * Returns true if the weapon is read to fire
+     * @returns {boolean} True if it is ready to fired, false if on cooldown. 
+     */
+    canFire() {
+        return this.weapon.canFire();
+    }
 }

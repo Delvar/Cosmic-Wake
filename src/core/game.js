@@ -3,7 +3,7 @@
 import { Vector2D } from '/src/core/vector2d.js';
 import { Camera, TargetCamera } from '/src/camera/camera.js';
 import { Ship } from '/src/ship/ship.js';
-import { createRandomShip, Flivver, Shuttle, HeavyShuttle, StarBarge, Freighter, Arrow, Boxwing, Interceptor } from '../ship/shipTypes.js';
+import { createRandomShip, Flivver, Shuttle, HeavyShuttle, StarBarge, Freighter, Arrow, Boxwing, Interceptor, Fighter } from '../ship/shipTypes.js';
 import { StarField } from '/src/camera/starField.js';
 import { HeadsUpDisplay } from '/src/camera/headsUpDisplay.js';
 import { PlayerPilot } from '/src/pilot.js';
@@ -11,8 +11,12 @@ import { createGalaxy } from '/src/core/galaxy.js';
 import { isValidTarget } from '/src/core/gameObject.js';
 import { AIPilot } from '/src/ai/aiPilot.js';
 import { CivilianAIPilot } from '/src/ai/civilianAIPilot.js';
+import { PirateAIPilot } from '/src/ai/pirateAIPilot.js';
+
 import { WandererJob } from '/src/ai/wandererJob.js';
 import { MinerJob } from '/src/ai/minerJob.js';
+import { PirateJob } from '/src/ai/pirateJob.js';
+
 import { wrapCanvasContext } from '/src/core/utils.js';
 
 /**
@@ -389,6 +393,9 @@ class GameManager {
                 const aiShip = createRandomShip(spawnPlanet.position.x, spawnPlanet.position.y, system);
                 if (aiShip instanceof Boxwing) {
                     aiShip.pilot = new CivilianAIPilot(aiShip, new MinerJob(aiShip, spawnPlanet));
+                } else if (aiShip instanceof Flivver || aiShip instanceof Arrow || aiShip instanceof Interceptor || aiShip instanceof Interceptor || aiShip instanceof Fighter) {
+                    //aiShip.pilot = new CivilianAIPilot(aiShip, new WandererJob(aiShip));
+                    aiShip.pilot = new PirateAIPilot(aiShip, new PirateJob(aiShip));
                 } else {
                     aiShip.pilot = new CivilianAIPilot(aiShip, new WandererJob(aiShip));
                 }

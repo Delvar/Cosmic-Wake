@@ -1,13 +1,14 @@
-// ai/civilianAIPilot.js
+// ai/pirateAIPilot.js
 
 import { AIPilot } from '/src/ai/aiPilot.js';
 import { AvoidAutopilot, FleeAutopilot } from '/src/autopilot/autopilot.js';
-
+import { AttackAutopilot } from '/src/autopilot/attackAutopilot.js';
+import { remapClamp } from '/src/core/utils.js';
 /**
- * AI pilot for civilian ships with reaction logic.
+ * AI pilot for pirate ships with reaction logic.
  * @extends AIPilot
  */
-export class CivilianAIPilot extends AIPilot {
+export class PirateAIPilot extends AIPilot {
     /**
      * Creates a new CivilianAIPilot instance.
      * @param {Ship} ship - The ship to control.
@@ -57,12 +58,12 @@ export class CivilianAIPilot extends AIPilot {
                     if (this.ship.debug) {
                         console.log('Job: Threat within 500 units, switching to Avoid');
                     }
-                    this.changeState('Avoid', new AvoidAutopilot(this.ship, this.threat));
+                    this.ship.target = this.threat;
+                    this.changeState('Avoid', new AttackAutopilot(this.ship, this.threat));
                     return;
                 }
             }
         }
-
         super.updateJob(deltaTime, gameManager);
     }
 
@@ -74,8 +75,10 @@ export class CivilianAIPilot extends AIPilot {
     updateAvoid(deltaTime, gameManager) {
         super.updateAvoid(deltaTime, gameManager);
 
-        //Check if the shilds have gone down
-        if (this.ship.shield && this.ship.shield.strength <= 0 && this.threat) {
+        const hullRatio = remapClamp(this.ship.hullIntegrity, 0, this.ship.maxHull, 0, 1);
+
+        //Check if the shilds have gone down and 50% hull
+        if (((this.ship.shield && this.ship.shield.strength <= 0) || !this.ship.shield) && hullRatio < 0.5 && this.threat) {
             if (this.ship.debug) {
                 console.log('Avoid: Shields down, switching to Flee');
             }
@@ -110,17 +113,20 @@ export class CivilianAIPilot extends AIPilot {
     onDamage(damage, source) {
         super.onDamage(damage, source);
         this.safeTime = 0;
-        if (this.ship.shield && this.ship.shield.strength <= 0 && this.threat) {
+        const hullRatio = remapClamp(this.ship.hullIntegrity, 0, this.ship.maxHull, 0, 1);
+
+        //Check if the shilds have gone down and 50% hull
+        if (((this.ship.shield && this.ship.shield.strength <= 0) || !this.ship.shield) && hullRatio < 0.5 && this.threat) {
             if (this.ship.debug) {
                 console.log('onDamage: Shields down, switching to Flee');
             }
             this.changeState('Flee', new FleeAutopilot(this.ship, this.threat));
-        } else if (this.state !== 'Avoid' && this.state !== 'Flee' && this.threat) {
+        } else if (this.state !== 'Avoid' && this.state !== 'Flee' && this.state !== 'Attack' && this.threat) {
             if (this.ship.debug) {
-                console.log('onDamage: Threat detected, switching to Avoid');
+                console.log('onDamage: Threat detected, switching to Attack');
             }
             this.ship.target = this.threat;
-            this.changeState('Avoid', new AvoidAutopilot(this.ship, this.threat));
+            this.changeState('Attack', new AttackAutopilot(this.ship, this.threat));
         }
     }
 }

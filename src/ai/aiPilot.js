@@ -190,8 +190,9 @@ export class AIPilot extends Pilot {
         if (this.autopilot && !this.autopilot.isComplete()) {
             this.autopilot.update(deltaTime);
             if (this.autopilot.isComplete() || this.autopilot.error) {
-                this.setAutopilot(null);
                 this.changeState('Job');
+                this.threat = null;
+                this.job.resume();
             }
         }
     }

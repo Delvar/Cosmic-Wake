@@ -523,10 +523,13 @@ export class Ship extends GameObject {
             excessDamage = this.shield.takeDamage(damage, hitPosition, this.position, this.age);
         }
         //Debug: player takes no hull damage
-        //if (this.pilot instanceof PlayerPilot) {
-        excessDamage = 0;
-        //}
+        if (this.pilot instanceof PlayerPilot) {
+            excessDamage = 0;
+        }
         if (excessDamage > 0) {
+            if (this.hullIntegrity < 0) {
+                excessDamage = 1;
+            }
             this.hullIntegrity = Math.max(this.hullIntegrity - excessDamage, -50);
         }
         if (this.pilot instanceof AIPilot) {

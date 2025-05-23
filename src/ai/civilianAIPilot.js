@@ -1,7 +1,7 @@
 // ai/civilianAIPilot.js
 
 import { AIPilot } from '/src/ai/aiPilot.js';
-import { FleeAutopilot } from '/src/autopilot/autopilot.js';
+import { AvoidAutopilot, FleeAutopilot } from '/src/autopilot/autopilot.js';
 import { AttackAutopilot } from '/src/autopilot/attackAutopilot.js';
 
 /**
@@ -20,9 +20,8 @@ export class CivilianAIPilot extends AIPilot {
         this.threatScanInterval = 0.5;
         /** @type {number} Ship age (seconds) when the next threat scan is due. */
         this.nextThreatScan = 0;
-        /** @type {number} Time (seconds) the ship has been safe from threats. */
-        this.safeTime = 0;
     }
+
     /**
      * Updates the AI pilot's behavior, tracking safe time and delegating to state handlers.
      * @param {number} deltaTime - Time elapsed in seconds.
@@ -30,11 +29,6 @@ export class CivilianAIPilot extends AIPilot {
      */
     update(deltaTime, gameManager) {
         super.update(deltaTime, gameManager);
-        if (this.isSafe()) {
-            this.safeTime += deltaTime;
-        } else {
-            this.safeTime = 0;
-        }
     }
 
     /**
@@ -81,31 +75,7 @@ export class CivilianAIPilot extends AIPilot {
      * @param {GameManager} gameManager - The game manager instance for context.
      */
     updateAvoid(deltaTime, gameManager) {
-        // Ensure correct autopilot
-        //if (!(this.autopilot instanceof AvoidAutopilot) && this.ship.state === 'Flying' && this.threat) {
-        if (!(this.autopilot instanceof AttackAutopilot) && this.ship.state === 'Flying' && this.threat) {
-            if (this.ship.debug) {
-                console.log('Avoid: Incorrect autopilot, setting AvoidAutopilot');
-                if (this.autopilot) {
-                    console.log(`${this.autopilot.constructor.name}`);
-                }
-            }
-            //this.setAutopilot(new AvoidAutopilot(this.ship, this.threat));
-            this.ship.target = this.threat;
-            this.changeState('Avoid', new AttackAutopilot(this.ship, this.threat));
-        }
-
-        // Transition to Job if safe
-        if (this.safeTime > 5) {
-            if (this.ship.debug) {
-                console.log('Avoid: Safe, switching to Job');
-            }
-            this.setAutopilot(null);
-            this.changeState('Job');
-            this.threat = null;
-            this.job.resume();
-            return;
-        }
+        super.updateAvoid(deltaTime, gameManager);
 
         //Check if the shilds have gone down
         if (this.ship.shield && this.ship.shield.strength <= 0 && this.threat) {
@@ -116,16 +86,8 @@ export class CivilianAIPilot extends AIPilot {
             return;
         }
 
-        // Execute autopilot
-        if (this.autopilot && !this.autopilot.isComplete()) {
-            this.autopilot.update(deltaTime);
-            if (this.autopilot.isComplete()) {
-                this.setAutopilot(null);
-            }
-        }
-
         // Check for timeout fleeing
-        if (!this.autopilot && !this.isSafe()) {
+        if ((!this.autopilot || this.autopilot.timeElapsed >= this.autopilot.timeout) && !this.isSafe()) {
             if (this.ship.debug) {
                 console.log('Avoid: Timeout or complete and not safe, switching to Flee');
             }
@@ -140,36 +102,7 @@ export class CivilianAIPilot extends AIPilot {
      * @param {GameManager} gameManager - The game manager instance for context.
      */
     updateFlee(deltaTime, gameManager) {
-        // Ensure correct autopilot
-        if (!(this.autopilot instanceof FleeAutopilot) && this.ship.state === 'Flying' && this.threat) {
-            if (this.ship.debug) {
-                console.log('Flee: Incorrect autopilot, setting FleeAutopilot');
-            }
-            this.setAutopilot(new FleeAutopilot(this.ship, this.threat));
-        }
-
-        // Transition to Job if safe
-        if (this.safeTime > 10) {
-            if (this.ship.debug) {
-                console.log('Flee: Safe, switching to Job');
-            }
-            this.setAutopilot(null);
-            this.changeState('Job');
-            this.threat = null;
-            this.job.resume();
-            return;
-        }
-
-        // Execute autopilot
-        if (this.autopilot && !this.autopilot.isComplete()) {
-            this.autopilot.update(deltaTime);
-            if (this.autopilot.isComplete()) {
-                this.setAutopilot(null);
-                this.changeState('Job');
-                this.threat = null;
-                this.job.resume();
-            }
-        }
+        super.updateFlee(deltaTime, gameManager);
     }
 
     /**
@@ -190,8 +123,7 @@ export class CivilianAIPilot extends AIPilot {
                 console.log('onDamage: Threat detected, switching to Avoid');
             }
             this.ship.target = this.threat;
-            this.changeState('Avoid', new AttackAutopilot(this.ship, this.threat));
-            //this.changeState('Avoid', new AvoidAutopilot(this.ship, this.threat));
+            this.changeState('Avoid', new AvoidAutopilot(this.ship, this.threat));
         }
     }
 }

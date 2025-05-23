@@ -3,7 +3,7 @@
 import { Pilot } from '/src/pilot.js';
 import { Ship } from '/src/ship/ship.js';
 import { Vector2D } from '/src/core/vector2d.js';
-import { FleeAutopilot, LandOnPlanetDespawnAutopilot } from '/src/autopilot/autopilot.js';
+import { AvoidAutopilot, FleeAutopilot, LandOnPlanetDespawnAutopilot } from '/src/autopilot/autopilot.js';
 import { AttackAutopilot } from '/src/autopilot/attackAutopilot.js';
 import { isValidTarget } from '/src/core/gameObject.js';
 
@@ -29,10 +29,6 @@ export class AIPilot extends Pilot {
         this.threat = null;
         /** @type {string} The current state ('Job', 'Flee', 'Avoid', 'Attack'). */
         this.state = 'Job';
-        /** @type {number} Cooldown timer (seconds) to prevent rapid state changes. */
-        this.reactionCooldown = 0; // Anti-flip-flop cooldown
-        /** @type {Vector2D} Temporary vector for distance calculations. */
-        this._scratchDistance = new Vector2D();
         /** @type {Object.<string, Function>} Map of state names to handler methods. */
         this.stateHandlers = {
             'Job': this.updateJob.bind(this),
@@ -41,6 +37,10 @@ export class AIPilot extends Pilot {
             'Attack': this.updateAttack.bind(this),
             'Despawning': this.updateDespawning.bind(this)
         };
+        /** @type {number} Time (seconds) the ship has been safe from threats. */
+        this.safeTime = 0;
+        /** @type {Vector2D} Temporary vector for distance calculations. */
+        this._scratchDistance = new Vector2D();
     }
 
     /**
@@ -56,24 +56,16 @@ export class AIPilot extends Pilot {
             return;
         }
 
-        // Update reaction cooldown
-        if (this.reactionCooldown > 0) {
-            this.reactionCooldown = Math.max(0, this.reactionCooldown - deltaTime);
-        }
-
-        // // Fire at threat if within 500 units
-        // if (this.threat && this.threat.state === 'Flying' && !this.threat.isDespawned()) {
-        //     const distanceSq = this.ship.position.distanceSquaredTo(this.threat.position);
-        //     if (distanceSq < 500 * 500) {
-        //         this.ship.setTarget(this.threat);
-        //         this.ship.fire();
-        //     }
-        // }
-
         // Run state handler
         const handler = this.stateHandlers[this.state];
         if (handler) {
             handler(deltaTime, gameManager);
+        }
+
+        if (this.isSafe()) {
+            this.safeTime += deltaTime;
+        } else {
+            this.safeTime = 0;
         }
     }
 
@@ -114,24 +106,33 @@ export class AIPilot extends Pilot {
     }
 
     /**
-     * Handles the 'Flee' state, managing flee behavior and reactions.
+     * Handles the 'Avoid' state, managing avoidance behavior and reactions.
      * @param {number} deltaTime - Time elapsed since last update (seconds).
      * @param {GameManager} gameManager - The game manager instance for context.
      */
-    updateFlee(deltaTime, gameManager) {
+    updateAvoid(deltaTime, gameManager) {
         // Ensure correct autopilot
-        if (!(this.autopilot instanceof FleeAutopilot) && this.ship.state === 'Flying' && this.threat) {
-            this.setAutopilot(new FleeAutopilot(this.ship, this.threat));
+        if (!(this.autopilot instanceof AvoidAutopilot) && this.ship.state === 'Flying' && this.threat) {
+            if (this.ship.debug) {
+                console.log('Avoid: Incorrect autopilot, setting AvoidAutopilot');
+                if (this.autopilot) {
+                    console.log(`${this.autopilot.constructor.name}`);
+                }
+            }
+            this.ship.target = this.threat;
+            this.changeState('Avoid', new AvoidAutopilot(this.ship, this.threat));
         }
+
         // Execute autopilot
         if (this.autopilot && !this.autopilot.isComplete()) {
             this.autopilot.update(deltaTime);
-            if (this.autopilot.isComplete()) {
-                this.setAutopilot(null);
-            }
         }
+
         // Transition to Job if safe
-        if (this.isSafe() && !this.autopilot) {
+        if (this.safeTime > 5) {
+            if (this.ship.debug) {
+                console.log('Avoid: Safe, switching to Job');
+            }
             this.changeState('Job');
             this.threat = null;
             this.job.resume();
@@ -139,30 +140,31 @@ export class AIPilot extends Pilot {
     }
 
     /**
-     * Handles the 'Avoid' state, managing avoidance behavior and reactions.
+     * Handles the 'Flee' state, managing flee behavior and reactions.
      * @param {number} deltaTime - Time elapsed since last update (seconds).
      * @param {GameManager} gameManager - The game manager instance for context.
      */
-    updateAvoid(deltaTime, gameManager) {
+    updateFlee(deltaTime, gameManager) {
         // Ensure correct autopilot
-        // if (!(this.autopilot instanceof AvoidAutopilot) && this.ship.state === 'Flying' && this.threat) {
-        //     this.setAutopilot(new AvoidAutopilot(this.ship, this.threat));
-        // }
-        // Ensure correct autopilot
-        if (!(this.autopilot instanceof AttackAutopilot) && this.ship.state === 'Flying' && this.threat) {
-            this.ship.target = this.threat;
-            this.setAutopilot(new AttackAutopilot(this.ship, this.threat));
+        if (!(this.autopilot instanceof FleeAutopilot) && this.ship.state === 'Flying' && this.threat) {
+            if (this.ship.debug) {
+                console.log('Flee: Incorrect autopilot, setting FleeAutopilot');
+            }
+            this.setAutopilot(new FleeAutopilot(this.ship, this.threat));
         }
 
         // Execute autopilot
         if (this.autopilot && !this.autopilot.isComplete()) {
             this.autopilot.update(deltaTime);
             if (this.autopilot.isComplete()) {
-                this.setAutopilot(null);
+                this.changeState('Job');
+                this.threat = null;
+                this.job.resume();
             }
         }
+
         // Transition to Job if safe
-        if (this.isSafe() && !this.autopilot) {
+        if (this.safeTime > 10) {
             this.changeState('Job');
             this.threat = null;
             this.job.resume();
@@ -274,10 +276,6 @@ export class AIPilot extends Pilot {
         // Set new state and autopilot
         this.state = newState;
         this.setAutopilot(newAutopilot);
-        // Reset cooldown for reaction states
-        if (newState !== 'Job') {
-            this.reactionCooldown = 0;
-        }
         if (this.ship.debug) {
             console.log(`AIPilot: State changed to ${newState}`);
         }

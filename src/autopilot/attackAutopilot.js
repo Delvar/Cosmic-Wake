@@ -1,7 +1,7 @@
 // /src/ai/attackAutopilot.js
 import { Vector2D } from '/src/core/vector2d.js';
 import { Autopilot, ApproachTargetAutopilot } from '/src/autopilot/autopilot.js';
-import { remapClamp, normalizeAngle, randomBetween, clamp } from '/src/core/utils.js';
+import { remapClamp, normalizeAngle, randomBetween, clamp, TWO_PI } from '/src/core/utils.js';
 import { isValidTarget } from '/src/core/gameObject.js';
 import { Ship } from '/src/ship/ship.js';
 
@@ -209,8 +209,6 @@ export class OrbitAttackAutopilot extends Autopilot {
         this.minRadius = this.orbitRadius * 0.25;
         /** @type {number} Maximum allowed orbital radius. */
         this.maxRadius = this.orbitRadius * 1.75;
-        /** @type {number} Maximum distance to fire weapons. */
-        this.firingRange = 1000;
         /** @type {number} Speed of projectiles for lead aiming. */
         this.projectileSpeed = 1000;
         /** @type {string} Current state: "Approaching" or "Orbiting". */
@@ -374,20 +372,6 @@ export class OrbitAttackAutopilot extends Autopilot {
     }
 
     /**
-     * Handles firing weapons if within range and aligned with the target.
-     * @param {number} distance - Distance to the target.
-     * @param {number} angleToLead - Angle to the lead position (radians).
-     */
-    handleFiring(distance, angleToLead) {
-        if (distance <= this.firingRange) {
-            this.ship.fireTurrets();
-            if (Math.abs(angleToLead) < this.target.radius / distance) {
-                this.ship.fireFixedWeapons();
-            }
-        }
-    }
-
-    /**
      * Stops the autopilot, disabling ship thrust.
      */
     stop() {
@@ -424,9 +408,9 @@ export class FlybyAttackAutopilot extends Autopilot {
         /** @type {number} Minimum distance to avoid collision. */
         this.minRange = 100;
         /** @type {number} Maximum distance to loop back for another pass. */
-        this.maxRange = 2 * this.ship.maxVelocity;
-        /** @type {number} Maximum distance to fire weapons. */
-        this.firingRange = 1000;
+        this.maxRange = this.firingRange * 1.1;
+        /** @type {number} The length of tiem we have been turning. */
+        this.turningTime = 0;
         /** @type {number} Speed of projectiles for lead aiming. */
         this.projectileSpeed = 1000;
         /** @type {string} Current state: "Approaching", "Firing", "Retreating", or "Turning". */
@@ -525,7 +509,7 @@ export class FlybyAttackAutopilot extends Autopilot {
         );
 
         // Transition to Firing
-        if (distance * distance <= this.firingRange * this.firingRange) {
+        if (distance <= this.firingRange) {
             this.state = "Firing";
             if (this.ship.debug) {
                 console.log("FlybyAttackAutopilot: Transitioned to Firing");
@@ -567,20 +551,13 @@ export class FlybyAttackAutopilot extends Autopilot {
         this._scratchDesiredVelocity.set(this._scratchLeadDirection)
             .multiplyInPlace(this.passSpeed);
 
-        // Apply thrust
-        const shouldThrust = super.applyThrustLogic(
-            this.ship,
-            this._scratchDesiredVelocity,
-            true,
-            this._scratchLeadDirection.getAngle(),
-            this._scratchVelocityError
-        );
-
+        this.ship.applyThrust(true);
+        this.ship.setTargetAngle(angleToLead + this.ship.angle);
         // Handle firing
         this.handleFiring(distance, angleToLead);
 
         // Transition to Retreating
-        if (Math.abs(angleToLead) > Math.PI / 3 || distance < this.minRange) {
+        if (Math.abs(angleToLead) > Math.PI / 3 && distance < this.minRange) {
             this.state = "Retreating";
             this.lastDistance = distance;
             if (this.ship.debug) {
@@ -602,25 +579,18 @@ export class FlybyAttackAutopilot extends Autopilot {
             this._scratchDirectionToTarget
         );
 
-        // Desired velocity: away from target
-        this._scratchDesiredVelocity.set(this._scratchDirectionToTarget)
-            .multiplyInPlace(-this.passSpeed);
-
-        // Apply thrust
-        const shouldThrust = super.applyThrustLogic(
-            this.ship,
-            this._scratchDesiredVelocity,
-            true,
-            this._scratchDesiredVelocity.getAngle(),
-            this._scratchVelocityError
-        );
+        // Always be thrusting
+        this.ship.applyThrust(true);
+        // Aim away from the target
+        this.ship.setTargetAngle(this._scratchDirectionToTarget.getAngle() + Math.PI);
 
         // Check for chasing target
-        const isChasing = distance <= this.lastDistance && deltaTime > 0.5;
+        const isChasing = distance <= this.lastDistance;
         this.lastDistance = distance;
 
         // Transition to Turning
-        if (distance >= this.maxRange * 0.5 || isChasing) {
+        if (distance >= this.maxRange * 0.25 && !isChasing) {
+            this.turningTime = 0;
             this.state = "Turning";
             if (this.ship.debug) {
                 console.log(`FlybyAttackAutopilot: Transitioned to Turning${isChasing ? ' (chasing detected)' : ''}`);
@@ -634,6 +604,7 @@ export class FlybyAttackAutopilot extends Autopilot {
      * @param {GameManager} gameManager - The game manager instance for context.
      */
     updateTurning(deltaTime, gameManager) {
+        this.turningTime += deltaTime;
         // Calculate distance and direction
         const distance = this.ship.position.getDirectionAndDistanceTo(
             this.target.position,
@@ -657,46 +628,21 @@ export class FlybyAttackAutopilot extends Autopilot {
             this._scratchLeadDirection,
             this._scratchVelocityError
         );
-
-        // Desired velocity toward lead position (for consistency, though not used for angle)
-        this._scratchDesiredVelocity.set(this._scratchLeadDirection)
-            .multiplyInPlace(this.passSpeed);
-
-        // Arc turning toward lead position
-        const turnRatio = remapClamp(distance, this.maxRange * 0.5, this.maxRange, 0.1, 0.5) ** 2;
-        const turnRate = turnRatio * this.ship.rotationSpeed;
-        const angleError = angleToLead;
-        const angleToDesired = Math.min(Math.abs(turnRate * deltaTime), Math.abs(angleError)) * Math.sign(angleError);
-        this.ship.setTargetAngle(this.ship.angle + angleToDesired);
+        const leadAngle = this._scratchLeadDirection.getAngle();
+        const requestedAngle = (1 - remapClamp(this.turningTime, 0, 3, 0, 1)) * Math.PI + leadAngle;
+        this.ship.setTargetAngle(requestedAngle);
         this.ship.applyThrust(true);
+        this._scratchDesiredVelocity.setFromPolar(this.ship.maxVelocity, requestedAngle);
+        this._scratchVelocityError.set(this._scratchDesiredVelocity).subtractInPlace(this.ship.velocity);
 
         // Handle firing
         this.handleFiring(distance, angleToLead);
 
         // Transition to Approaching
-        if (Math.abs(angleToLead) < Math.PI / 16) {
+        if (this.turningTime > 3) {
             this.state = "Approaching";
             if (this.ship.debug) {
                 console.log("FlybyAttackAutopilot: Transitioned to Approaching");
-            }
-        }
-    }
-
-    /**
-     * Handles firing weapons if within range and aligned with the target.
-     * @param {number} distance - Distance to the target.
-     * @param {number} angleToLead - Angle to the lead position (radians).
-     */
-    handleFiring(distance, angleToLead) {
-        if (distance <= this.firingRange) {
-            this.ship.fireTurrets();
-            if (Math.abs(angleToLead) < Math.PI / 25) {
-                this.ship.fireFixedWeapons();
-            }
-            if (this.ship.debug) {
-                console.log(
-                    `FlybyAttackAutopilot: Firing, distance=${distance.toFixed(2)}, angleToLead=${(angleToLead * 180 / Math.PI).toFixed(2)}°`
-                );
             }
         }
     }

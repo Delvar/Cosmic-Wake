@@ -30,10 +30,16 @@ export class Autopilot {
         this.subAutopilot = null;
         /** @type {number} Maximum angle deviation to apply thrust. */
         this.thrustAngleLimit = Math.PI / 16;
+        /** @type {Vector2D} Final desired velocity after corrections. */
+        this._scratchDesiredVelocity = new Vector2D(0, 0);
+        /** @type {Vector2D} Difference between desired and current velocity. */
+        this._scratchVelocityError = new Vector2D(0, 0);
         /** @type {number} Upper threshold for thrust activation. */
         this.upperVelocityErrorThreshold = this.ship.thrust * 0.1;
         /** @type {number} Lower threshold for thrust hysteresis. */
         this.lowerVelocityErrorThreshold = this.ship.thrust * 0.002;
+        /** @type {number} Maximum distance to fire weapons. */
+        this.firingRange = 1000;
         /** @type {string} Current state of the autopilot (e.g., "Approaching"). */
         this.state = "";
         /** @type {Object.<string, Function>} State handlers for update logic. */
@@ -67,7 +73,7 @@ export class Autopilot {
         if (!handler) {
             throw new Error(`Invalid autopilot state: ${this.state}`);
         }
-        handler(deltaTime);
+        handler(deltaTime, gameManager);
     }
 
     /**
@@ -123,6 +129,11 @@ export class Autopilot {
     validateTarget() {
         if (!isValidTarget(this.ship, this.target)) {
             this.error = "Invalid or unreachable target";
+            this.active = false;
+            return false;
+        }
+        if (this.target instanceof Ship && this.target.state !== 'Flying') {
+            this.error = "Target not flying";
             this.active = false;
             return false;
         }
@@ -201,6 +212,20 @@ export class Autopilot {
 
         return shouldThrust;
     }
+
+    /**
+     * Handles firing weapons if within range and aligned with the target.
+     * @param {number} distance - Distance to the target.
+     * @param {number} angleToLead - Angle to the lead position (radians).
+     */
+    handleFiring(distance, angleToLead) {
+        if (distance <= this.firingRange) {
+            this.ship.fireTurrets();
+            if (Math.abs(angleToLead) < this.target.radius / distance) {
+                this.ship.fireFixedWeapons();
+            }
+        }
+    }
 }
 
 //OLD Auto Pilots
@@ -253,14 +278,8 @@ export class ApproachTargetAutopilot extends Autopilot {
         this._scratchFuturePosition = new Vector2D(0, 0);
         /** @type {Vector2D} Direction from ship to target. */
         this._scratchDirectionToTarget = new Vector2D(0, 0);
-        /** @type {Vector2D} Desired velocity vector. */
-        this._scratchDesiredVelocity = new Vector2D(0, 0);
-        /** @type {Vector2D} Temporary vector for calculations. */
-        this._scratchTemp = new Vector2D(0, 0);
         /** @type {Vector2D} Difference between ship and target velocity. */
         this._scratchVelocityDifference = new Vector2D(0, 0);
-        /** @type {Vector2D} Error between desired and current velocity. */
-        this._scratchVelocityError = new Vector2D(0, 0);
     }
 
     /**
@@ -703,10 +722,6 @@ export class LandOnPlanetAutopilot extends Autopilot {
         this.subAutopilot = null;
         /** @type {Vector2D} Distance vector from ship to target planet. */
         this._scratchDistanceToTarget = new Vector2D(0, 0);
-        /** @type {Vector2D} Velocity error vector for course correction. */
-        this._scratchVelocityError = new Vector2D();
-        /** @type {Vector2D} Temporary vector for calculations. */
-        this._scratchTemp = new Vector2D(0, 0);
     }
 
     /**
@@ -821,10 +836,6 @@ export class LandOnAsteroidAutopilot extends Autopilot {
         super(ship, asteroid);
         /** @type {Vector2D} Pre-allocated vector for distance calculations. */
         this._scratchDistanceToTarget = new Vector2D(0, 0);
-        /** @type {Vector2D} Pre-allocated vector for temporary calculations. */
-        this._scratchTemp = new Vector2D(0, 0);
-        /** @type {Vector2D} Pre-allocated vector for velocity error calculations. */
-        this._scratchVelocityError = new Vector2D(0, 0);
     }
 
     /**
@@ -966,10 +977,6 @@ export class TraverseJumpGateAutopilot extends Autopilot {
         this.subAutopilot = null;
         /** @type {Vector2D} Distance vector from ship to target jump gate. */
         this._scratchDistanceToTarget = new Vector2D(0, 0);
-        /** @type {Vector2D} Temporary vector for calculations. */
-        this._scratchTemp = new Vector2D(0, 0);
-        /** @type {Vector2D} Velocity error vector for course correction. */
-        this._scratchVelocityError = new Vector2D(0, 0);
     }
 
     /**
@@ -1172,8 +1179,6 @@ export class LandOnPlanetDespawnAutopilot extends Autopilot {
         this.target = ship.starSystem?.getClosestPlanet(ship);
         /** @type {Vector2D} Scratch vector for distance calculations. */
         this._scratchDistanceToTarget = new Vector2D();
-        /** @type {Vector2D} Scratch vector for velocity corrections. */
-        this._scratchVelocityError = new Vector2D();
     }
 
     /**
@@ -1269,14 +1274,10 @@ export class FlyToTargetAutopilot extends Autopilot {
         this._scratchDirectionToTarget = new Vector2D(0, 0);
         /** @type {Vector2D} Desired velocity toward target. */
         this._scratchTargetVelocity = new Vector2D(0, 0);
-        /** @type {Vector2D} Difference between desired and current velocity. */
-        this._scratchVelocityError = new Vector2D(0, 0);
         /** @type {Vector2D} Correction for perpendicular velocity. */
         this._scratchLateralCorrection = new Vector2D(0, 0);
         /** @type {Vector2D} Perpendicular component of current velocity. */
         this._scratchVelocityPerpendicular = new Vector2D(0, 0);
-        /** @type {Vector2D} Final desired velocity after corrections. */
-        this._scratchDesiredVelocity = new Vector2D(0, 0);
         /** @type {Vector2D} Temporary vector for intermediate calculations. */
         this._scratchTemp = new Vector2D(0, 0);
         /** @type {Vector2D} Predicted future position of the target. */
@@ -1477,6 +1478,106 @@ export class FlyToTargetAutopilot extends Autopilot {
      */
     getStatus() {
         return `Flying to ${this.target.name || 'target'}`;
+    }
+}
+
+/**
+ * Autopilot for avoiding a threat by moving away and toward the sector center.
+ * @extends Autopilot
+ */
+export class AvoidAutopilot extends Autopilot {
+    /**
+     * Creates a new AvoidAutopilot instance.
+     * @param {Ship} ship - The ship to control.
+     * @param {Ship} threat - The threat to avoid.
+     */
+    constructor(ship, threat) {
+        super(ship);
+        /** @type {Ship} The ship posing a threat to avoid. */
+        this.threat = threat;
+        /** @type {number} Maximum duration (seconds) to attempt avoiding the threat. */
+        this.timeout = 30;
+        /** @type {number} Cumulative time (seconds) spent avoiding the threat. */
+        this.timeElapsed = 0;
+        /** @type {Vector2D} Temporary vector for distance calculations. */
+        this._scratchDistance = new Vector2D();
+    }
+
+    /**
+     * Starts the autopilot, initializing avoidance behavior.
+     */
+    start() {
+        super.start();
+        this.timeElapsed = 0;
+    }
+
+    /**
+     * Updates the autopilot, moving the ship away from the threat and toward the sector center.
+     * @param {number} deltaTime - Time elapsed since last update (seconds).
+     * @param {GameManager} gameManager - The game manager instance for context.
+     */
+    update(deltaTime, gameManager) {
+        if (!this.threat || this.ship.state !== 'Flying') {
+            this.completed = true;
+            this.stop();
+            return;
+        }
+
+        this.timeElapsed += deltaTime;
+        if (this.timeElapsed >= this.timeout) {
+            this.completed = true;
+            this.stop();
+            return;
+        }
+
+        // Calculate desired velocity: 2 away from threat, 1 toward center
+        this._scratchDesiredVelocity.set(0, 0);
+
+        // Away from threat (weight: 2)
+        const toThreat = this._scratchDistance.set(this.threat.position)
+            .subtractInPlace(this.ship.position);
+        const distanceSq = toThreat.squareMagnitude();
+        if (distanceSq > 0) {
+            this._scratchDesiredVelocity.subtractInPlace(toThreat.normalizeInPlace().multiplyInPlace(2));
+        }
+
+        // Toward sector center (weight: 1)
+        const toCenter = this._scratchDistance.set(0, 0)
+            .subtractInPlace(this.ship.position);
+        if (toCenter.squareMagnitude() > 0) {
+            this._scratchDesiredVelocity.addInPlace(toCenter.normalizeInPlace());
+        }
+
+        // Normalize and scale to max velocity
+        const maxVelocity = this.ship.maxVelocity || 300; // Default max velocity
+        if (this._scratchDesiredVelocity.squareMagnitude() > 0) {
+            this._scratchDesiredVelocity.normalizeInPlace().multiplyInPlace(maxVelocity);
+        }
+
+        // Calculate velocity error
+        this._scratchVelocityError.set(this._scratchDesiredVelocity).subtractInPlace(this.ship.velocity);
+        const velocityErrorMagnitude = this._scratchVelocityError.magnitude();
+
+        // Set target angle and thrust
+        let desiredAngle = this.ship.angle;
+        let shouldThrust = false;
+        if (velocityErrorMagnitude > 5) {
+            desiredAngle = Math.atan2(this._scratchVelocityError.x, -this._scratchVelocityError.y);
+            const angleToDesired = normalizeAngle(desiredAngle - this.ship.angle);
+            desiredAngle = this.ship.angle + angleToDesired;
+            shouldThrust = Math.abs(angleToDesired) < Math.PI / 12; // Thrust if within 15 degrees
+        }
+
+        this.ship.setTargetAngle(desiredAngle);
+        this.ship.applyThrust(shouldThrust);
+    }
+
+    /**
+     * Returns the current status of the autopilot for HUD display.
+     * @returns {string} A descriptive status string including threat name and time remaining.
+     */
+    getStatus() {
+        return `Avoiding ${this.threat.name} (${(this.timeout - this.timeElapsed).toFixed(1)})`;
     }
 }
 

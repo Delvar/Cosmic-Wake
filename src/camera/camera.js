@@ -1,4 +1,4 @@
-// camera.js
+// /src/camera/camera.js
 
 import { Vector2D } from '/src/core/vector2d.js';
 import { normalizeAngle, TWO_PI } from '/src/core/utils.js';

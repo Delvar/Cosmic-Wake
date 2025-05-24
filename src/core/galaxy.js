@@ -1,4 +1,5 @@
-// galaxy.js
+// /src/core/galaxy.js
+
 import { StarSystem } from '/src/starSystem/starSystem.js';
 import { Planet, Star, PlanetaryRing, celestialTypes } from '/src/starSystem/celestialBody.js';
 import { AsteroidBelt } from '/src/starSystem/asteroidBelt.js';

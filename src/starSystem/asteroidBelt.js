@@ -1,4 +1,4 @@
-// asteroidBelt.js
+// /src/starSystem/asteroidBelt.js
 
 import { Vector2D } from '/src/core/vector2d.js';
 import { TWO_PI, remapRange01, removeObjectFromArrayInPlace, SimpleRNG, hash, normalizeAngle, clamp } from '/src/core/utils.js';

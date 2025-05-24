@@ -1,4 +1,4 @@
-// shield.js
+// /src/ship/shield.js
 
 import { Vector2D } from '/src/core/vector2d.js';
 import { TWO_PI, remapClamp } from '/src/core/utils.js';

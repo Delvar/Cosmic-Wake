@@ -1,4 +1,4 @@
-// ai/job.js
+// /src/job/job.js
 
 /**
  * Base class for all job types, providing common job functionality.

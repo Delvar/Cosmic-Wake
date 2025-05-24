@@ -1,4 +1,4 @@
-// fixedWeapon.js
+// /src/weapon/fixedWeapon.js
 
 import { Vector2D } from '/src/core/vector2d.js';
 import { Weapon } from '/src/weapon/weapon.js';

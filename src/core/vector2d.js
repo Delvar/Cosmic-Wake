@@ -1,4 +1,4 @@
-// vector2d.js
+// /src/core/vector2d.js
 
 /**
  * Represents a 2D vector with x and y components.

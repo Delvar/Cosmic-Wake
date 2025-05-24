@@ -1,11 +1,11 @@
-// headsUpDisplay.js
+// /src/camera/headsUpDisplay.js
 
 import { Vector2D } from '/src/core/vector2d.js';
 import { Ship } from '/src/ship/ship.js';
 import { TWO_PI, remapClamp } from '/src/core/utils.js';
 import { isValidTarget } from '/src/core/gameObject.js';
 import { Colour } from '/src/core/colour.js';
-import { AIPilot } from '/src/ai/aiPilot.js';
+import { AIPilot } from '/src/pilot/aiPilot.js';
 
 /**
  * Manages the Heads-Up Display (HUD) showing rings and indicators for game objects.

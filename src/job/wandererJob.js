@@ -1,9 +1,9 @@
-// ai/wandererJob.js
+// /src/job/wandererJob.js
 
-import { Job } from '/src/ai/job.js';
+import { Job } from '/src/job/job.js';
 import { Vector2D } from '/src/core/vector2d.js';
-import { FlyToTargetAutopilot, LandOnPlanetAutopilot, TraverseJumpGateAutopilot } from '/src/autopilot/autopilot.js';
-import { JumpGate, Planet } from '/src/starSystem/celestialBody.js';
+import { LandOnPlanetAutopilot, TraverseJumpGateAutopilot } from '/src/autopilot/autopilot.js';
+import { JumpGate } from '/src/starSystem/celestialBody.js';
 import { isValidTarget } from '/src/core/gameObject.js';
 
 /**

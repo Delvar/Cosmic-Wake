@@ -1,7 +1,6 @@
-// gameObject.js
+// /src/core/gameObject.js
 
 import { Vector2D } from '/src/core/vector2d.js';
-
 
 /**
  * Checks if a target is still valid (not despawned and exists in the galaxy).

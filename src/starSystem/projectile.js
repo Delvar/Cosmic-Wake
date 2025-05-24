@@ -1,4 +1,4 @@
-// projectile.js
+// /src/starSystem/projectile.js
 
 import { Vector2D } from '/src/core/vector2d.js';
 import { Ship } from '/src/ship/ship.js';

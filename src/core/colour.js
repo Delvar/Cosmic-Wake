@@ -1,4 +1,4 @@
-// colour.js
+// /src/core/colour.js
 
 /**
  * Represents a color with red, green, blue, and alpha components.

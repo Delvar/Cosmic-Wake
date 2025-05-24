@@ -1,4 +1,4 @@
-// projectileManager.js
+// /src/starSystem/projectileManager.js
 
 import { Vector2D } from '/src/core/vector2d.js';
 import { Projectile } from '/src/starSystem/projectile.js';

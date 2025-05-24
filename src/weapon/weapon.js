@@ -1,9 +1,8 @@
-// weapon.js
+// /src/weapon/weapon.js
 
 import { Vector2D } from '/src/core/vector2d.js';
 import { normalizeAngle } from '/src/core/utils.js';
 import { ProjectileManager } from '/src/starSystem/projectileManager.js';
-import { Ship } from '/src/ship/ship.js';
 
 /**
  * A weapon that fires projectiles (e.g., Rail Gun) with a cooldown.

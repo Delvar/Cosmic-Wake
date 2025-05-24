@@ -1,4 +1,4 @@
-// game.js
+// /src/core/game.js
 
 import { Vector2D } from '/src/core/vector2d.js';
 import { Camera, TargetCamera } from '/src/camera/camera.js';
@@ -6,18 +6,14 @@ import { Ship } from '/src/ship/ship.js';
 import { createRandomShip, Flivver, Shuttle, HeavyShuttle, StarBarge, Freighter, Arrow, Boxwing, Interceptor, Fighter } from '../ship/shipTypes.js';
 import { StarField } from '/src/camera/starField.js';
 import { HeadsUpDisplay } from '/src/camera/headsUpDisplay.js';
-import { PlayerPilot } from '/src/pilot.js';
+import { PlayerPilot } from '/src/pilot/pilot.js';
 import { createGalaxy } from '/src/core/galaxy.js';
 import { isValidTarget } from '/src/core/gameObject.js';
-import { AIPilot } from '/src/ai/aiPilot.js';
-import { CivilianAIPilot } from '/src/ai/civilianAIPilot.js';
-import { PirateAIPilot } from '/src/ai/pirateAIPilot.js';
-
-import { WandererJob } from '/src/ai/wandererJob.js';
-import { MinerJob } from '/src/ai/minerJob.js';
-import { PirateJob } from '/src/ai/pirateJob.js';
-
-import { wrapCanvasContext } from '/src/core/utils.js';
+import { AIPilot, CivilianAIPilot, PirateAIPilot } from '/src/pilot/aiPilot.js';
+import { WandererJob } from '/src/job/wandererJob.js';
+import { MinerJob } from '/src/job/minerJob.js';
+import { PirateJob } from '/src/job/pirateJob.js';
+//import { wrapCanvasContext } from '/src/core/utils.js';
 
 /**
  * Handles the game loop, rendering, and updates for the game.

@@ -1,5 +1,6 @@
-// ai/minerJob.js
-import { Job } from '/src/ai/job.js';
+// /src/job/minerJob.js
+
+import { Job } from '/src/job/job.js';
 import { LandOnAsteroidAutopilot, LandOnPlanetAutopilot } from '/src/autopilot/autopilot.js';
 import { randomBetween } from '/src/core/utils.js';
 import { Vector2D } from '/src/core/vector2d.js';

@@ -1,4 +1,4 @@
-// starSystem.js
+// /src/starSystem/starSystem.js
 
 /**
  * This file contains classes for managing star systems and their connections via hyperlanes.

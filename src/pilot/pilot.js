@@ -1,4 +1,4 @@
-// pilot.js
+// /src/pilot.js
 
 import { Vector2D } from '/src/core/vector2d.js';
 import { CelestialBody, JumpGate, Star, Planet } from '/src/starSystem/celestialBody.js';

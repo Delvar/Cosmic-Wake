@@ -1,4 +1,4 @@
-// particle.js
+// /src/starSystem/particle.js
 
 import { Vector2D } from '/src/core/vector2d.js';
 

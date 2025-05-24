@@ -1,4 +1,4 @@
-// celestialBody.js
+// /src/starSystem/celestialBody.js
 
 import { Vector2D } from '/src/core/vector2d.js';
 import { Colour } from '/src/core/colour.js';

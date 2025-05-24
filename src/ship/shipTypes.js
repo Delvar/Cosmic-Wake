@@ -1,4 +1,4 @@
-// shipTypes.js
+// /src/ship/shipTypes.js
 
 import { Ship } from '/src/ship/ship.js';
 

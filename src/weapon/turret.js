@@ -1,4 +1,4 @@
-// turret.js
+// /src/weapon/turret.js
 
 import { Vector2D } from '/src/core/vector2d.js';
 import { Weapon } from '/src/weapon/weapon.js';

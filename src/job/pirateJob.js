@@ -1,6 +1,7 @@
-// /src/ai/pirateJob.js
+// /src/job/pirateJob.js
 
-import { Job } from '/src/ai/job.js';
+import { PirateAIPilot } from '/src/pilot/aiPilot.js';
+import { Job } from '/src/job/job.js';
 import { AttackAutopilot } from '/src/autopilot/attackAutopilot.js';
 import { isValidTarget } from '/src/core/gameObject.js';
 import { Ship } from '/src/ship/ship.js';
@@ -76,8 +77,8 @@ export class PirateJob extends Job {
     isValidTarget(source, target) {
         if (!(target instanceof Ship)) return false;
         if (!isValidTarget(source, target)) return false;
-        if (!isValidTarget(source, target)) return false;
         if (target.state !== 'Landed' && target.state !== 'Disabled') return false;
+        if (target.pilot instanceof PirateAIPilot) return false;
         return true;
     }
 

@@ -1,4 +1,4 @@
-// ship.js
+// /src/ship/ship.js
 
 import { Vector2D } from '/src/core/vector2d.js';
 import { Trail } from '/src/ship/trail.js';
@@ -11,8 +11,8 @@ import { Weapon } from '/src/weapon/weapon.js';
 import { Shield } from '/src/ship/shield.js';
 import { Turret } from '/src/weapon/turret.js';
 import { FixedWeapon } from '/src/weapon/fixedWeapon.js';
-import { AIPilot } from '/src/ai/aiPilot.js';
-import { PlayerPilot } from '/src/pilot.js';
+import { AIPilot } from '/src/pilot/aiPilot.js';
+import { PlayerPilot } from '/src/pilot/pilot.js';
 
 function generateShipName() {
     const prefixes = [

@@ -1,4 +1,4 @@
-// trail.js
+// /src/ship/trail.js
 
 import { Vector2D } from '/src/core/vector2d.js';
 

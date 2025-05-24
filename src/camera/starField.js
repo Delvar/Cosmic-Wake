@@ -1,4 +1,4 @@
-// starField.js
+// /src/camera/starField.js
 
 import { TWO_PI, remapRange01, remapClamp, SimpleRNG, hash } from '/src/core/utils.js';
 import { Vector2D } from '/src/core/vector2d.js';

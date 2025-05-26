@@ -3,11 +3,10 @@
 import { Vector2D } from '/src/core/vector2d.js';
 import { Trail } from '/src/ship/trail.js';
 import { Colour } from '/src/core/colour.js';
-import { GameObject } from '/src/core/gameObject.js';
-import { CelestialBody, JumpGate } from '/src/starSystem/celestialBody.js';
-import { TWO_PI, clamp, remapClamp, normalizeAngle, randomBetween, SimpleRNG } from '/src/core/utils.js';
+import { GameObject, isValidTarget } from '/src/core/gameObject.js';
+import { CelestialBody } from '/src/starSystem/celestialBody.js';
+import { TWO_PI, clamp, remapClamp, normalizeAngle, randomBetween } from '/src/core/utils.js';
 import { Asteroid } from '/src/starSystem/asteroidBelt.js';
-import { Weapon } from '/src/weapon/weapon.js';
 import { Shield } from '/src/ship/shield.js';
 import { Turret } from '/src/weapon/turret.js';
 import { FixedWeapon } from '/src/weapon/fixedWeapon.js';
@@ -41,6 +40,34 @@ function generateShipName() {
     const addNumber = Math.random() < (addSuffix ? 0.05 : 0.2);
     if (addNumber) name += ` ${Math.floor(Math.random() * 99) + 1}`;
     return name;
+}
+
+/**
+ * Checks if a target is still valid (not despawned and exists in the galaxy).
+ * @param {GameObject} source - The source game object to validate.
+ * @param {GameObject} target - The target game object to validate.
+ * @returns {boolean} True if the target is valid, false otherwise.
+ */
+export function isValidAttackTarget(source, target) {
+    if (!(target instanceof Ship)) {
+        if (source.debug) {
+            console.log('isValidAttackTarget: validateTarget, target not a Ship');
+        }
+        return false;
+    }
+    if (!isValidTarget(source, target)) {
+        if (source.debug) {
+            console.log('isValidAttackTarget: validateTarget, target not isValidTarget');
+        }
+        return false;
+    }
+    if (target.state !== 'Flying' && target.state !== 'Disabled') {
+        if (source.debug) {
+            console.log(`isValidAttackTarget: validateTarget, target state invalid ${target.state}`);
+        }
+        return false;
+    }
+    return true;
 }
 
 /**

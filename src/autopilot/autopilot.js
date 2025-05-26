@@ -1,7 +1,7 @@
 // /src/autopilot/autopilot.js
 import { isValidTarget } from '/src/core/gameObject.js';
 import { Vector2D } from '/src/core/vector2d.js';
-import { Ship } from '/src/ship/ship.js';
+import { Ship, isValidAttackTarget } from '/src/ship/ship.js';
 import { JumpGate } from '/src/starSystem/celestialBody.js';
 import { remapClamp, normalizeAngle, randomBetween } from '/src/core/utils.js';
 import { Asteroid } from '/src/starSystem/asteroidBelt.js';
@@ -68,7 +68,7 @@ export class Autopilot {
      * @throws {Error} If the current state is invalid.
      */
     update(deltaTime, gameManager) {
-        if (!this.active || !this.validateTarget()) return;
+        if (!this.active || !isValidAttackTarget(this.ship, this.target)) return;
         const handler = this.stateHandlers[this.state];
         if (!handler) {
             throw new Error(`Invalid autopilot state: ${this.state}`);
@@ -128,11 +128,17 @@ export class Autopilot {
      */
     validateTarget() {
         if (!isValidTarget(this.ship, this.target)) {
+            if (this.ship.debug) {
+                console.log(`${this.constructor.name}: validateTarget, Invalid or unreachable target`);
+            }
             this.error = "Invalid or unreachable target";
             this.active = false;
             return false;
         }
         if (this.target instanceof Ship && this.target.state !== 'Flying') {
+            if (this.ship.debug) {
+                console.log(`${this.constructor.name}: validateTarget, Target not flying`);
+            }
             this.error = "Target not flying";
             this.active = false;
             return false;

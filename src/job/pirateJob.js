@@ -1,10 +1,9 @@
 // /src/job/pirateJob.js
 
-import { PirateAIPilot } from '/src/pilot/aiPilot.js';
 import { Job } from '/src/job/job.js';
 import { AttackAutopilot } from '/src/autopilot/attackAutopilot.js';
-import { isValidTarget } from '/src/core/gameObject.js';
-import { Ship } from '/src/ship/ship.js';
+import { isValidAttackTarget } from '/src/ship/ship.js';
+import { PirateAIPilot } from '/src/pilot/aiPilot.js';
 
 /**
  * Job for a ship to wander between planets, prioritizing different star systems.
@@ -54,13 +53,12 @@ export class PirateJob extends Job {
         } else if (this.ship.state === 'Flying') {
 
             //const target = this.ship.starSystem.getClosestShip(this.ship, null);
-            const target = this.ship.starSystem.getRandomShip(this.ship, null, this.isValidTarget);
+            const target = this.ship.starSystem.getRandomShip(this.ship, null, this.isValidPirateTarget);
 
             if (target) {
                 this.pilot.threat = target;
                 this.ship.target = target;
-                this.pilot.setAutopilot(new AttackAutopilot(this.ship, target));
-                this.pilot.changeState('Attack');
+                this.pilot.changeState('Attack', new AttackAutopilot(this.ship, target));
                 if (this.ship.debug) {
                     console.log('PirateJob: Ship flying, found target, Attacking');
                 }
@@ -69,15 +67,13 @@ export class PirateJob extends Job {
     }
 
     /**
-     * Checks if a target is still valid (not despawned and exists in the galaxy).
+     * Checks if a target is valid, normal checks and not Pirate.
      * @param {GameObject} source - The source game object to validate.
      * @param {GameObject} target - The target game object to validate.
      * @returns {boolean} True if the target is valid, false otherwise.
      */
-    isValidTarget(source, target) {
-        if (!(target instanceof Ship)) return false;
-        if (!isValidTarget(source, target)) return false;
-        if (target.state !== 'Landed' && target.state !== 'Disabled') return false;
+    isValidPirateTarget(source, target) {
+        if (!isValidAttackTarget(source, target)) return false;
         if (target.pilot instanceof PirateAIPilot) return false;
         return true;
     }

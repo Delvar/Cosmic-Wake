@@ -550,7 +550,7 @@ export class PlayerPilot extends Pilot {
 //      * @returns {Ship|null} The selected ship, or null if none available.
 //      */
 //     pickShipToFollow() {
-//         return this.ship.starSystem.getRandomShip(this.ship, null, this.isValidTarget);
+//         return this.ship.starSystem.getRandomShip(this.ship, null, isValidAttackTarget);
 //     }
 
 //     /**

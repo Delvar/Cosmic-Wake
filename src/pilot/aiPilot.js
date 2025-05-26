@@ -1,11 +1,10 @@
 // /src/pilot/aiPilot.js
 
 import { Pilot } from '/src/pilot/pilot.js';
-import { Ship } from '/src/ship/ship.js';
+import { Ship, isValidAttackTarget } from '/src/ship/ship.js';
 import { Vector2D } from '/src/core/vector2d.js';
 import { AvoidAutopilot, FleeAutopilot, LandOnPlanetDespawnAutopilot } from '/src/autopilot/autopilot.js';
 import { AttackAutopilot } from '/src/autopilot/attackAutopilot.js';
-import { isValidTarget } from '/src/core/gameObject.js';
 import { remapClamp } from '/src/core/utils.js';
 
 /**
@@ -101,6 +100,9 @@ export class AIPilot extends Pilot {
                 console.warn(`autopilot ${this.autopilot.constructor.name} has an error: ${this.autopilot.error}`);
             }
             if (this.autopilot.isComplete()) {
+                if (this.ship.debug) {
+                    console.log(`${this.autopilot.constructor.name} is compelte, nulling`);
+                }
                 this.setAutopilot(null);
             }
         }
@@ -113,15 +115,19 @@ export class AIPilot extends Pilot {
      */
     updateAvoid(deltaTime, gameManager) {
         // Ensure correct autopilot
-        if (!(this.autopilot instanceof AvoidAutopilot) && this.ship.state === 'Flying' && this.threat) {
+        if (!(this.autopilot instanceof AvoidAutopilot) && this.ship.state === 'Flying') {
             if (this.ship.debug) {
                 console.log('Avoid: Incorrect autopilot, setting AvoidAutopilot');
-                if (this.autopilot) {
-                    console.log(`${this.autopilot.constructor.name}`);
-                }
             }
-            this.ship.target = this.threat;
-            this.changeState('Avoid', new AvoidAutopilot(this.ship, this.threat));
+            if (this.threat) {
+                this.ship.target = this.threat;
+                this.changeState('Avoid', new AvoidAutopilot(this.ship, this.threat));
+            } else {
+                if (this.ship.debug) {
+                    console.log('Avoid: No threat, switching to Job');
+                }
+                this.changeState('Job');
+            }
         }
 
         // Execute autopilot
@@ -172,7 +178,7 @@ export class AIPilot extends Pilot {
      * @param {GameManager} gameManager - The game manager instance for context.
      */
     updateAttack(deltaTime, gameManager) {
-        if (!this.threat || !isValidTarget(this.ship, this.threat)) {
+        if (!this.threat || !isValidAttackTarget(this.ship, this.threat)) {
             this.changeState('Job');
             return;
         }
@@ -182,10 +188,17 @@ export class AIPilot extends Pilot {
                 console.log("AIPilot: Set AttackAutopilot");
             }
         }
-        if (this.autopilot && !this.autopilot.isComplete()) {
-            this.autopilot.update(deltaTime);
-            if (this.autopilot.isComplete() || this.autopilot.error) {
+        if (this.autopilot) {
+            if (!this.autopilot.active) {
+                if (this.ship.debug && this.autopilot.error) {
+                    console.log(`AIPilot: AttackAutopilot error ${this.autopilot.error}`);
+                }
+                if (this.ship.debug && this.autopilot.isComplete()) {
+                    console.log(`AIPilot: AttackAutopilot completed`);
+                }
                 this.changeState('Job');
+            } else {
+                this.autopilot.update(deltaTime);
             }
         }
     }
@@ -221,6 +234,12 @@ export class AIPilot extends Pilot {
     setAutopilot(newAutopilot) {
         if (this.ship.debug) {
             console.log(`setAutopilot ${this.ship.name}: ${this.autopilot?.constructor?.name} >> ${newAutopilot?.constructor?.name}`);
+            // if (this.autopilot instanceof AttackAutopilot && newAutopilot === null) {
+            //     throw new Error('Attack Stop!');
+            // }
+            // if (newAutopilot instanceof AttackAutopilot && this.autopilot === null) {
+            //     throw new Error('Attack Start!');
+            // }
         }
         if (this.autopilot) {
             this.autopilot.stop();

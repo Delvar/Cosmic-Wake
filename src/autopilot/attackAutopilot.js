@@ -4,7 +4,7 @@ import { Vector2D } from '/src/core/vector2d.js';
 import { Autopilot, ApproachTargetAutopilot } from '/src/autopilot/autopilot.js';
 import { remapClamp, randomBetween, clamp } from '/src/core/utils.js';
 import { isValidTarget } from '/src/core/gameObject.js';
-import { Ship } from '/src/ship/ship.js';
+import { Ship, isValidAttackTarget } from '/src/ship/ship.js';
 
 /**
  * Coordinates attack behavior, selecting a pattern-specific sub-autopilot based on ship velocity.
@@ -43,16 +43,22 @@ export class AttackAutopilot extends Autopilot {
      * @returns {string} The pattern ("inrange", "orbit", "flyby").
      */
     determinePattern(maxVelocity) {
-        if (maxVelocity < 150) return "inrange";
-        if (maxVelocity <= 500) return "orbit";
-        return "flyby";
+        if (maxVelocity > 150) {
+            if (Math.random() > 0.5) {
+                return "orbit";
+            } else {
+                return "flyby";
+            }
+        } else {
+            return "inrange";
+        }
     }
 
     /**
      * Starts the autopilot, initializing the approach sub-autopilot.
      */
     start() {
-        if (!this.validateTarget()) return;
+        if (!isValidAttackTarget(this.ship, this.target)) return;
         this.active = true;
         this.completed = false;
         this.error = null;
@@ -81,6 +87,10 @@ export class AttackAutopilot extends Autopilot {
      * @param {GameManager} gameManager - The game manager instance for context.
      */
     update(deltaTime, gameManager) {
+        if (!isValidAttackTarget(this.ship, this.target)) {
+            this.stop();
+            return;
+        }
         super.update(deltaTime, gameManager);
     }
 
@@ -245,7 +255,7 @@ export class OrbitAttackAutopilot extends Autopilot {
      * Starts the autopilot, initializing the Approaching state.
      */
     start() {
-        if (!this.validateTarget()) return;
+        if (!isValidAttackTarget(this.ship, this.target)) return;
         this.active = true;
         this.completed = false;
         this.error = null;
@@ -405,7 +415,7 @@ export class FlybyAttackAutopilot extends Autopilot {
     constructor(ship, target) {
         super(ship, target);
         /** @type {number} Speed for flyby passes. */
-        this.passSpeed = this.ship.maxVelocity;
+        this.passSpeed = this.ship.maxVelocity * 0.5;
         /** @type {number} Minimum distance to avoid collision. */
         this.minRange = 100;
         /** @type {number} Maximum distance to loop back for another pass. */
@@ -447,7 +457,7 @@ export class FlybyAttackAutopilot extends Autopilot {
      * Starts the autopilot, initializing the Approaching state.
      */
     start() {
-        if (!this.validateTarget()) return;
+        if (!isValidAttackTarget(this.ship, this.target)) return;
         this.active = true;
         this.completed = false;
         this.error = null;

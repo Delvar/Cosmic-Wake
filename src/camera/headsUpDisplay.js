@@ -22,12 +22,15 @@ export class HeadsUpDisplay {
         this.size = new Vector2D(width, height);
 
         this.shipRingRadius = 1;
+        this.threatRingRadius = 1;
         this.asteroidRingRadius = 1;
         this.planetRingRadius = 1;
         this.jumpGateRingRadius = 1;
 
         this.maxRadius = 5000; // Maximum distance for arrow visibility
         this.resize(width, height);
+
+        this.threats = [];
 
         // Temporary scratch values to avoid allocations
         this._scratchCenter = new Vector2D(0, 0); // For screen center in draw
@@ -47,10 +50,18 @@ export class HeadsUpDisplay {
      */
     resize(width, height) {
         this.size.set(width, height);
-        this.shipRingRadius = Math.min(width, height) * 0.2;
+        // this.shipRingRadius = Math.min(width, height) * 0.2;
+        // this.asteroidRingRadius = Math.min(width, height) * 0.42;
+        // this.planetRingRadius = Math.min(width, height) * 0.44;
+        // this.jumpGateRingRadius = Math.min(width, height) * 0.46;
+        const gap = 8;
+
+        this.threatRingRadius = Math.min(width, height) * 0.2;
+        this.shipRingRadius = this.threatRingRadius + gap;
+
         this.asteroidRingRadius = Math.min(width, height) * 0.42;
-        this.planetRingRadius = Math.min(width, height) * 0.44;
-        this.jumpGateRingRadius = Math.min(width, height) * 0.46;
+        this.planetRingRadius = this.asteroidRingRadius + gap;
+        this.jumpGateRingRadius = this.planetRingRadius + gap;
     }
 
     /**
@@ -169,8 +180,10 @@ export class HeadsUpDisplay {
         ctx.save();
         const colour = ringColour.toRGB();
         ctx.strokeStyle = colour;
-        ctx.lineWidth = 2;
-        ctx.globalAlpha = 0.33;
+        ctx.lineWidth = 3;
+        //ctx.globalAlpha = 0.5;
+        ctx.shadowColor = colour;
+        ctx.shadowBlur = 8;
 
         ctx.beginPath();
         ctx.arc(camera.screenCenter.x, camera.screenCenter.y, ringRadius, 0, TWO_PI);
@@ -261,14 +274,25 @@ export class HeadsUpDisplay {
             target = this.gameManager.cameraTarget.target;
         }
 
+        this.threats.length = 0;
+        for (let i = 0; i < camera.starSystem.ships.length; i++) {
+            if (camera.starSystem.ships[i].target == this.gameManager.cameraTarget) {
+                this.threats.push(camera.starSystem.ships[i]);
+            }
+        }
+
+        // Draw jumpGate ring (cyan)
+        this.drawRing(ctx, camera, new Colour(0.0, 1.0, 1.0), this.jumpGateRingRadius, true, camera.starSystem.jumpGates, target);
+        // Draw planet ring (green)
+        this.drawRing(ctx, camera, new Colour(0.0, 1.0, 0.0), this.planetRingRadius, true, camera.starSystem.planets, target);
+        // Draw asteroid ring (yellow)
+        this.drawRing(ctx, camera, new Colour(1.0, 1.0, 0.0), this.asteroidRingRadius, false, camera.starSystem.asteroids, target);
         // Draw ship ring (white)
         this.drawRing(ctx, camera, new Colour(1.0, 1.0, 1.0), this.shipRingRadius, false, camera.starSystem.ships, target);
-        // Draw asteroid ring (grey)
-        this.drawRing(ctx, camera, new Colour(0.5, 0.5, 0.5), this.asteroidRingRadius, false, camera.starSystem.asteroids, target);
-        // Draw planet ring (cyan)
-        this.drawRing(ctx, camera, new Colour(0.0, 1.0, 1.0), this.planetRingRadius, true, camera.starSystem.planets, target);
-        // Draw jumpGate ring (green)
-        this.drawRing(ctx, camera, new Colour(0.0, 1.0, 0.0), this.jumpGateRingRadius, true, camera.starSystem.jumpGates, target);
+        if (this.threats.length > 0) {
+            // Draw threat ring (red)
+            this.drawRing(ctx, camera, new Colour(1.0, 0.0, 0.0), this.threatRingRadius, false, this.threats, target);
+        }
 
         this.drawTargetRectangle(ctx, camera, target);
         ctx.restore();

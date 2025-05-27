@@ -27,6 +27,9 @@ export class HeadsUpDisplay {
         this.planetRingRadius = 1;
         this.jumpGateRingRadius = 1;
 
+        this.ringLineWidth = 3;
+        this.ringLineSpace = 13;
+
         this.maxRadius = 5000; // Maximum distance for arrow visibility
         this.resize(width, height);
 
@@ -54,14 +57,13 @@ export class HeadsUpDisplay {
         // this.asteroidRingRadius = Math.min(width, height) * 0.42;
         // this.planetRingRadius = Math.min(width, height) * 0.44;
         // this.jumpGateRingRadius = Math.min(width, height) * 0.46;
-        const gap = 8;
 
         this.threatRingRadius = Math.min(width, height) * 0.2;
-        this.shipRingRadius = this.threatRingRadius + gap;
+        this.shipRingRadius = this.threatRingRadius + this.ringLineSpace;
 
-        this.asteroidRingRadius = Math.min(width, height) * 0.42;
-        this.planetRingRadius = this.asteroidRingRadius + gap;
-        this.jumpGateRingRadius = this.planetRingRadius + gap;
+        this.jumpGateRingRadius = Math.min(width, height) * 0.42; //this.planetRingRadius + this.ringLineSpace;
+        this.planetRingRadius = this.jumpGateRingRadius - this.ringLineSpace;
+        this.asteroidRingRadius = this.planetRingRadius - this.ringLineSpace;
     }
 
     /**
@@ -178,11 +180,12 @@ export class HeadsUpDisplay {
      */
     drawRing(ctx, camera, ringColour, ringRadius, showNames = true, objects, target) {
         ctx.save();
+        //ctx.globalCompositeOperation = "lighter";
         const colour = ringColour.toRGB();
         ctx.strokeStyle = colour;
-        ctx.lineWidth = 3;
+        ctx.lineWidth = this.ringLineWidth;
         //ctx.globalAlpha = 0.5;
-        ctx.shadowColor = colour;
+        ctx.shadowColor = ringColour.toRGBA(0.75);
         ctx.shadowBlur = 8;
 
         ctx.beginPath();
@@ -281,16 +284,16 @@ export class HeadsUpDisplay {
             }
         }
 
-        // Draw jumpGate ring (cyan)
-        this.drawRing(ctx, camera, new Colour(0.0, 1.0, 1.0), this.jumpGateRingRadius, true, camera.starSystem.jumpGates, target);
-        // Draw planet ring (green)
-        this.drawRing(ctx, camera, new Colour(0.0, 1.0, 0.0), this.planetRingRadius, true, camera.starSystem.planets, target);
-        // Draw asteroid ring (yellow)
-        this.drawRing(ctx, camera, new Colour(1.0, 1.0, 0.0), this.asteroidRingRadius, false, camera.starSystem.asteroids, target);
-        // Draw ship ring (white)
-        this.drawRing(ctx, camera, new Colour(1.0, 1.0, 1.0), this.shipRingRadius, false, camera.starSystem.ships, target);
+        // Draw jumpGate
+        this.drawRing(ctx, camera, new Colour(0.0, 0.0, 1.0), this.jumpGateRingRadius, true, camera.starSystem.jumpGates, target);
+        // Draw planet ring
+        this.drawRing(ctx, camera, new Colour(0.0, 1.0, 1.0), this.planetRingRadius, true, camera.starSystem.planets, target);
+        // Draw asteroid ring
+        this.drawRing(ctx, camera, new Colour(0.0, 1.0, 0.0), this.asteroidRingRadius, false, camera.starSystem.asteroids, target);
+        // Draw ship ring
+        this.drawRing(ctx, camera, new Colour(1.0, 1.0, 0.0), this.shipRingRadius, false, camera.starSystem.ships, target);
         if (this.threats.length > 0) {
-            // Draw threat ring (red)
+            // Draw threat ring
             this.drawRing(ctx, camera, new Colour(1.0, 0.0, 0.0), this.threatRingRadius, false, this.threats, target);
         }
 

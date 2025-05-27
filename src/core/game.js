@@ -49,6 +49,7 @@ class Game {
         this.zoomTextTimer = 0;
 
         this.resizeCanvas();
+        this.gameLoop = this.gameLoop.bind(this);
     }
 
     /**
@@ -64,18 +65,22 @@ class Game {
     }
 
     /**
+     * The main game loop
+     * @param {number} currentTime - The current time from requestAnimationFrame.
+     */
+    gameLoop(currentTime) {
+        const deltaTime = (currentTime - this.lastTime);
+        this.lastTime = currentTime;
+        this.update(deltaTime);
+        this.render(deltaTime);
+        requestAnimationFrame(this.gameLoop);
+    }
+
+    /**
      * Starts the game loop, which continuously updates and renders the game.
      */
     start() {
-
-        const gameLoop = (currentTime) => {
-            const deltaTime = (currentTime - this.lastTime);
-            this.lastTime = currentTime;
-            this.update(deltaTime);
-            this.render(deltaTime);
-            requestAnimationFrame(gameLoop);
-        };
-        requestAnimationFrame(gameLoop);
+        requestAnimationFrame(this.gameLoop);
     }
 
     /**
@@ -124,21 +129,21 @@ class Game {
         const barWidth = camera.screenSize.width - barGap * 2.0;
         let top = camera.screenSize.height - barGap - barHeight;
         let width = Math.round(barWidth * shieldRatio * 0.5);
-        ctx.shadowBlur = 0;
+        //ctx.shadowBlur = 0;
         ctx.fillStyle = 'rgb(32, 32, 128)';
         ctx.fillRect(barGap, top, barWidth, barHeight);
-        ctx.shadowBlur = 8;
-        ctx.shadowColor = 'rgba(64, 64, 255, 0.75)';
+        //ctx.shadowBlur = 8;
+        //ctx.shadowColor = 'rgba(64, 64, 255, 0.75)';
         ctx.fillStyle = 'rgb(64, 64, 255)';
         ctx.fillRect(centerX - width, top, width * 2.0, barHeight);
 
         top = top - barGap - barHeight;
         width = Math.round(barWidth * hullRatio * 0.5);
-        ctx.shadowBlur = 0;
+        //ctx.shadowBlur = 0;
         ctx.fillStyle = 'rgb(32, 128, 32)';
         ctx.fillRect(barGap, top, barWidth, barHeight);
-        ctx.shadowColor = 'rgba(64, 255, 64, 0.75)';
-        ctx.shadowBlur = 8;
+        //ctx.shadowColor = 'rgba(64, 255, 64, 0.75)';
+        //ctx.shadowBlur = 8;
         ctx.fillStyle = 'rgb(64, 255, 64)';
         ctx.fillRect(centerX - width, top, width * 2.0, barHeight);
         ctx.restore();

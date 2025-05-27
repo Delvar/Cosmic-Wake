@@ -83,6 +83,10 @@ export class CelestialBody extends GameObject {
      * @param {Camera} camera - The camera object handling coordinate transformations.
      */
     draw(ctx, camera) {
+        if (!camera.isInView(this.position, this.radius)) {
+            return;
+        }
+
         ctx.save();
         camera.worldToScreen(this.position, this._scratchScreenPos); // Use scratch for screen pos
         const screenX = this._scratchScreenPos.x;

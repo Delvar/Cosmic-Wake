@@ -83,8 +83,8 @@ export class HeadsUpDisplay {
         camera.worldToScreen(target.position, this._scratchScreenPos);
 
         ctx.save();
-        ctx.shadowColor = 'rgba(255, 255, 64, 0.75)';
-        ctx.shadowBlur = 4;
+        //ctx.shadowColor = 'rgba(255, 255, 64, 0.75)';
+        //ctx.shadowBlur = 4;
         ctx.strokeStyle = 'rgb(255, 255, 64)';
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -198,8 +198,8 @@ export class HeadsUpDisplay {
         ctx.strokeStyle = colour;
         ctx.lineWidth = this.ringLineWidth;
         //ctx.globalAlpha = 0.5;
-        ctx.shadowColor = ringColour.toRGBA(0.75);
-        ctx.shadowBlur = 8;
+        //ctx.shadowColor = ringColour.toRGBA(0.75);
+        //ctx.shadowBlur = 8;
 
         ctx.beginPath();
         ctx.arc(camera.screenCenter.x, camera.screenCenter.y, ringRadius, 0, TWO_PI);

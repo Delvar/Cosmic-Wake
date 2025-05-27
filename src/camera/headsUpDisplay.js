@@ -53,15 +53,9 @@ export class HeadsUpDisplay {
      */
     resize(width, height) {
         this.size.set(width, height);
-        // this.shipRingRadius = Math.min(width, height) * 0.2;
-        // this.asteroidRingRadius = Math.min(width, height) * 0.42;
-        // this.planetRingRadius = Math.min(width, height) * 0.44;
-        // this.jumpGateRingRadius = Math.min(width, height) * 0.46;
-
         this.threatRingRadius = Math.min(width, height) * 0.2;
         this.shipRingRadius = this.threatRingRadius + this.ringLineSpace;
-
-        this.jumpGateRingRadius = Math.min(width, height) * 0.42; //this.planetRingRadius + this.ringLineSpace;
+        this.jumpGateRingRadius = Math.min(width, height) * 0.42;
         this.planetRingRadius = this.jumpGateRingRadius - this.ringLineSpace;
         this.asteroidRingRadius = this.planetRingRadius - this.ringLineSpace;
     }
@@ -285,16 +279,16 @@ export class HeadsUpDisplay {
         }
 
         // Draw jumpGate
-        this.drawRing(ctx, camera, new Colour(0.0, 0.0, 1.0), this.jumpGateRingRadius, true, camera.starSystem.jumpGates, target);
+        this.drawRing(ctx, camera, new Colour(0.25, 0.25, 1.0), this.jumpGateRingRadius, true, camera.starSystem.jumpGates, target);
         // Draw planet ring
-        this.drawRing(ctx, camera, new Colour(0.0, 1.0, 1.0), this.planetRingRadius, true, camera.starSystem.planets, target);
+        this.drawRing(ctx, camera, new Colour(0.25, 1.0, 1.25), this.planetRingRadius, true, camera.starSystem.planets, target);
         // Draw asteroid ring
-        this.drawRing(ctx, camera, new Colour(0.0, 1.0, 0.0), this.asteroidRingRadius, false, camera.starSystem.asteroids, target);
+        this.drawRing(ctx, camera, new Colour(0.25, 1.0, 0.25), this.asteroidRingRadius, false, camera.starSystem.asteroids, target);
         // Draw ship ring
-        this.drawRing(ctx, camera, new Colour(1.0, 1.0, 0.0), this.shipRingRadius, false, camera.starSystem.ships, target);
+        this.drawRing(ctx, camera, new Colour(1.0, 1.0, 0.25), this.shipRingRadius, false, camera.starSystem.ships, target);
         if (this.threats.length > 0) {
             // Draw threat ring
-            this.drawRing(ctx, camera, new Colour(1.0, 0.0, 0.0), this.threatRingRadius, false, this.threats, target);
+            this.drawRing(ctx, camera, new Colour(1.0, 0.25, 0.25), this.threatRingRadius, false, this.threats, target);
         }
 
         this.drawTargetRectangle(ctx, camera, target);

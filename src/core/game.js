@@ -1,5 +1,6 @@
 // /src/core/game.js
 
+import { remapClamp } from '/src/core/utils.js';
 import { Vector2D } from '/src/core/vector2d.js';
 import { Camera, TargetCamera } from '/src/camera/camera.js';
 import { Ship } from '/src/ship/ship.js';
@@ -108,6 +109,42 @@ class Game {
     }
 
     /**
+     * Draws the ships Shields and Hull to the screen
+     * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
+     * @param {Camera} camera - The camera object for world-to-screen conversion.
+     * @param {Ship} ship - The ship object to get the stats from.
+     */
+    drawShipStats(ctx, camera, ship) {
+        ctx.save();
+        const shieldRatio = remapClamp(ship.shield.strength, 0, ship.shield.maxStrength, 0, 1);
+        const hullRatio = remapClamp(ship.hullIntegrity, 0, ship.maxHull, 0, 1);
+        const centerX = camera.screenCenter.x;
+        const barHeight = 8;
+        const barGap = 8;
+        const barWidth = camera.screenSize.width - barGap * 2.0;
+        let top = camera.screenSize.height - barGap - barHeight;
+        let width = Math.round(barWidth * shieldRatio * 0.5);
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = 'rgb(32, 32, 128)';
+        ctx.fillRect(barGap, top, barWidth, barHeight);
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = 'rgba(64, 64, 255, 0.75)';
+        ctx.fillStyle = 'rgb(64, 64, 255)';
+        ctx.fillRect(centerX - width, top, width * 2.0, barHeight);
+
+        top = top - barGap - barHeight;
+        width = Math.round(barWidth * hullRatio * 0.5);
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = 'rgb(32, 128, 32)';
+        ctx.fillRect(barGap, top, barWidth, barHeight);
+        ctx.shadowColor = 'rgba(64, 255, 64, 0.75)';
+        ctx.shadowBlur = 8;
+        ctx.fillStyle = 'rgb(64, 255, 64)';
+        ctx.fillRect(centerX - width, top, width * 2.0, barHeight);
+        ctx.restore();
+    }
+
+    /**
      * Renders the game state to the canvas.
      * @param {number} deltaTime - Time elapsed since the last render in milliseconds.
      */
@@ -117,7 +154,8 @@ class Game {
         ctx.fillStyle = 'black';
         ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         this.starField.draw(ctx, this.camera);
-        if (!this.manager.cameraTarget || this.manager.cameraTarget.despawned) {
+        const cameraTarget = this.manager.cameraTarget;
+        if (!cameraTarget || cameraTarget.despawned) {
             this.manager.cameraTarget = null;
         }
         const starSystem = this.camera.starSystem;
@@ -162,6 +200,10 @@ class Game {
             const zoomPercent = Math.round(this.camera.zoom * 100);
             ctx.fillText(`${zoomPercent}%`, this.canvasSize.width - 10, 30);
             ctx.restore();
+        }
+
+        if (cameraTarget && cameraTarget instanceof Ship && !cameraTarget.despawned && (cameraTarget.state === 'Flying' || cameraTarget.state === 'Disabled')) {
+            this.drawShipStats(ctx, this.camera, cameraTarget);
         }
 
         // ctx.save();
@@ -251,9 +293,12 @@ class Game {
         starSystem.particleManager.draw(ctx, this.targetCamera);
         const targetName = target.name || "Unnamed Object";
         ctx.fillStyle = "white";
-        //ctx.font = "16px Arial";
         ctx.textAlign = "center";
         ctx.fillText(targetName, this.targetCanvas.width / 2, 20);
+
+        if (target && target instanceof Ship && !target.despawned && (target.state === 'Flying' || target.state === 'Disabled')) {
+            this.drawShipStats(ctx, this.targetCamera, target);
+        }
     }
 }
 

@@ -124,7 +124,7 @@ export class Shield {
     /**
      * Draws the shield effects (hit pulse, collapse, or restart) if active.
      * @param {CanvasRenderingContext2D} ctx - Canvas context.
-     * @param {Object} camera - Camera for world-to-screen transform.
+     * @param {Camera} camera - Camera for world-to-screen transform.
      * @param {Vector2D} shipPosition - Ship's current world-space position.
      * @param {number} shipRadius - Ship's radius in world units.
      */

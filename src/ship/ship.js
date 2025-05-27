@@ -1036,7 +1036,7 @@ export class Ship extends GameObject {
     /**
      * Renders the ship and its visual effects to the canvas.
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
-     * @param {Object} camera - The camera object for world-to-screen conversion.
+     * @param {Camera} camera - The camera object for world-to-screen conversion.
      */
     draw(ctx, camera) {
         // Draw trail if visible and scaled
@@ -1095,7 +1095,7 @@ export class Ship extends GameObject {
     /**
      * Draws the shield effect using the Shield class.
      * @param {CanvasRenderingContext2D} ctx - Canvas context.
-     * @param {Object} camera - Camera for world-to-screen transform.
+     * @param {Camera} camera - Camera for world-to-screen transform.
      */
     drawShieldEffect(ctx, camera) {
         this.shield.draw(ctx, camera, this.position, this.radius);
@@ -1116,7 +1116,7 @@ export class Ship extends GameObject {
     /**
      * Draws the ship's main body
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
-     * @param {Object} camera - The camera object.
+     * @param {Camera} camera - The camera object.
      */
     drawShip(ctx, camera) {
         ctx.save();
@@ -1153,7 +1153,7 @@ export class Ship extends GameObject {
     /**
      * Draws engine thrust effects if active.
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
-     * @param {Object} camera - The camera object.
+     * @param {Camera} camera - The camera object.
      */
     drawEngines(ctx, camera) {
         if (this.thrustTime <= 0) return; // Skip if no thrust effect
@@ -1249,7 +1249,7 @@ export class Ship extends GameObject {
     /**
      * Draws blinking navigation lights.
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
-     * @param {Object} camera - The camera object.
+     * @param {Camera} camera - The camera object.
      */
     drawLights(ctx, camera) {
         for (let i = 0; i < this.featurePoints.lights.length; i++) {
@@ -1346,7 +1346,7 @@ export class Ship extends GameObject {
     /**
      * Draws debug information if enabled, including velocity, target, and autopilot data.
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
-     * @param {Object} camera - The camera object.
+     * @param {Camera} camera - The camera object.
      * @param {number} scale - The current render scale.
      */
     drawDebug(ctx, camera, scale) {

@@ -10,10 +10,10 @@ import { Vector2D } from '/src/core/vector2d.js';
 import { GameObject, isValidTarget } from '/src/core/gameObject.js';
 import { CelestialBody, Planet, Star, JumpGate } from '/src/starSystem/celestialBody.js';
 import { Ship } from '/src/ship/ship.js';
-import { Asteroid, AsteroidBelt } from '/src/starsystem/asteroidBelt.js';
+import { Asteroid, AsteroidBelt } from '/src/starSystem/asteroidBelt.js';
 import { removeObjectFromArrayInPlace } from '/src/core/utils.js';
-import { ProjectileManager } from '/src/starsystem/projectileManager.js';
-import { ParticleManager } from '/src/starsystem/particleManager.js';
+import { ProjectileManager } from '/src/starSystem/projectileManager.js';
+import { ParticleManager } from '/src/starSystem/particleManager.js';
 
 /**
  * Represents a star system containing celestial bodies, ships, and connections to other systems.

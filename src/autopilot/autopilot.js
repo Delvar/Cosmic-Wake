@@ -716,6 +716,7 @@ export class EscortAutopilot extends Autopilot {
         return `Escorting (${this.state})`;
     }
 }
+
 export class LandOnPlanetAutopilot extends Autopilot {
     /**
      * Creates a new LandOnPlanetAutopilot instance.
@@ -832,6 +833,7 @@ export class LandOnPlanetAutopilot extends Autopilot {
         return `Landing on ${this.target.name || 'planet'}`;
     }
 }
+
 export class LandOnAsteroidAutopilot extends Autopilot {
     /**
      * Creates a new LandOnAsteroidAutopilot instance.
@@ -971,6 +973,7 @@ export class LandOnAsteroidAutopilot extends Autopilot {
         return `Mining ${this.target.name || 'asteroid'}`;
     }
 }
+
 export class TraverseJumpGateAutopilot extends Autopilot {
     /**
      * Creates a new TraverseJumpGateAutopilot instance.
@@ -1087,6 +1090,7 @@ export class TraverseJumpGateAutopilot extends Autopilot {
         }
     }
 }
+
 export class FleeAutopilot extends Autopilot {
     /**
      * Creates a new FleeAutopilot instance.
@@ -1174,6 +1178,7 @@ export class FleeAutopilot extends Autopilot {
         return `Fleeing ${this.threat.name} to ${this.target.name}`;
     }
 }
+
 export class LandOnPlanetDespawnAutopilot extends Autopilot {
     /**
      * Creates a new LandOnPlanetDespawnAutopilot instance.
@@ -1505,8 +1510,10 @@ export class AvoidAutopilot extends Autopilot {
         this.timeout = 30;
         /** @type {number} Cumulative time (seconds) spent avoiding the threat. */
         this.timeElapsed = 0;
-        /** @type {Vector2D} Temporary vector for distance calculations. */
-        this._scratchDistance = new Vector2D();
+        /** @type {Vector2D} Scratch vector for target direction. */
+        this._scratchDirectionToTarget = new Vector2D(0, 0);
+        /** @type {Vector2D} Scratch vector for delta to target. */
+        this._scratchDeltaToTarget = new Vector2D(0, 0);
     }
 
     /**
@@ -1536,46 +1543,24 @@ export class AvoidAutopilot extends Autopilot {
             return;
         }
 
-        // Calculate desired velocity: 2 away from threat, 1 toward center
-        this._scratchDesiredVelocity.set(0, 0);
+        // Calculate distance and direction to threat
+        const distance = this.ship.position.getDirectionAndDistanceTo(
+            this.threat.position,
+            this._scratchDeltaToTarget,
+            this._scratchDirectionToTarget
+        );
 
-        // Away from threat (weight: 2)
-        const toThreat = this._scratchDistance.set(this.threat.position)
-            .subtractInPlace(this.ship.position);
-        const distanceSq = toThreat.squareMagnitude();
-        if (distanceSq > 0) {
-            this._scratchDesiredVelocity.subtractInPlace(toThreat.normalizeInPlace().multiplyInPlace(2));
-        }
+        // Compute desired velocity away from threat and towrads system center
+        this._scratchDesiredVelocity.set(this.ship.position).normalizeInPlace().multiplyInPlace(0.5).addInPlace(this._scratchDirectionToTarget).normalizeInPlace().multiplyInPlace(-this.ship.maxVelocity);
 
-        // Toward sector center (weight: 1)
-        const toCenter = this._scratchDistance.set(0, 0)
-            .subtractInPlace(this.ship.position);
-        if (toCenter.squareMagnitude() > 0) {
-            this._scratchDesiredVelocity.addInPlace(toCenter.normalizeInPlace());
-        }
-
-        // Normalize and scale to max velocity
-        const maxVelocity = this.ship.maxVelocity || 300; // Default max velocity
-        if (this._scratchDesiredVelocity.squareMagnitude() > 0) {
-            this._scratchDesiredVelocity.normalizeInPlace().multiplyInPlace(maxVelocity);
-        }
-
-        // Calculate velocity error
-        this._scratchVelocityError.set(this._scratchDesiredVelocity).subtractInPlace(this.ship.velocity);
-        const velocityErrorMagnitude = this._scratchVelocityError.magnitude();
-
-        // Set target angle and thrust
-        let desiredAngle = this.ship.angle;
-        let shouldThrust = false;
-        if (velocityErrorMagnitude > 5) {
-            desiredAngle = Math.atan2(this._scratchVelocityError.x, -this._scratchVelocityError.y);
-            const angleToDesired = normalizeAngle(desiredAngle - this.ship.angle);
-            desiredAngle = this.ship.angle + angleToDesired;
-            shouldThrust = Math.abs(angleToDesired) < Math.PI / 12; // Thrust if within 15 degrees
-        }
-
-        this.ship.setTargetAngle(desiredAngle);
-        this.ship.applyThrust(shouldThrust);
+        // Apply thrust with hysteresis
+        const shouldThrust = super.applyThrustLogic(
+            this.ship,
+            this._scratchDesiredVelocity,
+            true,
+            this.ship.velocity.getAngle(),
+            this._scratchVelocityError
+        );
     }
 
     /**

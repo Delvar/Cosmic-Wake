@@ -234,12 +234,6 @@ export class AIPilot extends Pilot {
     setAutopilot(newAutopilot) {
         if (this.ship.debug) {
             console.log(`setAutopilot ${this.ship.name}: ${this.autopilot?.constructor?.name} >> ${newAutopilot?.constructor?.name}`);
-            // if (this.autopilot instanceof AttackAutopilot && newAutopilot === null) {
-            //     throw new Error('Attack Stop!');
-            // }
-            // if (newAutopilot instanceof AttackAutopilot && this.autopilot === null) {
-            //     throw new Error('Attack Start!');
-            // }
         }
         if (this.autopilot) {
             this.autopilot.stop();
@@ -256,12 +250,11 @@ export class AIPilot extends Pilot {
      * @returns {boolean} True if safe.
      */
     isSafe() {
+        if (!isValidAttackTarget(this.ship, this.threat)) return true;
         if (this.ship.state === 'Landed') return true;
-        if (!this.threat) return true;
-        if (this.ship.starSystem !== this.threat.starSystem) return true;
-        const distanceSq = this._scratchDistance.set(this.threat.position)
-            .subtractInPlace(this.ship.position).squareMagnitude();
-        return distanceSq > 1000 * 1000; // Safe if threat > 1000 units
+        const distanceSq = this.ship.position.distanceSquaredTo(this.threat.position);
+        const threatSpeed = this.threat.maxVelocity;
+        return distanceSq > threatSpeed * threatSpeed; // Safe if mopre than 1 second away from the threat
     }
 
     /**

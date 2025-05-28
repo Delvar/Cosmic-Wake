@@ -1483,6 +1483,7 @@ export class Interceptor extends Ship {
                 { x: -7.00, y: 20.50, radius: 1.00 },
             ],
             turrets: [
+                { x: 0.00, y: 10.50, radius: 2.00 },
             ],
             fixedWeapons: [
                 { x: -5.00, y: -14.50, radius: 2.00 },

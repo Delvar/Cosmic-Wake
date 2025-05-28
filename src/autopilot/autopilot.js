@@ -147,20 +147,20 @@ export class Autopilot {
     }
 
     /**
- * Computes the lead position and direction for aiming at the target.
- * @param {Ship} ship - The ship to control.
- * @param {GameObject} target - The target to aim at.
- * @param {number} projectileSpeed - Speed of projectiles for lead aiming.
- * @param {Vector2D} targetVelocity - The target's velocity.
- * @param {number} distance - Distance to the target.
- * @param {Vector2D} directionToTarget - Normalized direction to the target.
- * @param {Vector2D} outLeadPosition - Output vector for lead position.
- * @param {Vector2D} outLeadOffset - Output vector for lead offset.
- * @param {Vector2D} outLateralOffset - Output vector for lateral offset.
- * @param {Vector2D} outLeadDirection - Output vector for normalized lead direction.
- * @param {Vector2D} outVelocityError - Output vector for velocity error.
- * @returns {number} Angle to lead position (radians).
- */
+     * Computes the lead position and direction for aiming at the target.
+     * @param {Ship} ship - The ship to control.
+     * @param {GameObject} target - The target to aim at.
+     * @param {number} projectileSpeed - Speed of projectiles for lead aiming.
+     * @param {Vector2D} targetVelocity - The target's velocity.
+     * @param {number} distance - Distance to the target.
+     * @param {Vector2D} directionToTarget - Normalized direction to the target.
+     * @param {Vector2D} outLeadPosition - Output vector for lead position.
+     * @param {Vector2D} outLeadOffset - Output vector for lead offset.
+     * @param {Vector2D} outLateralOffset - Output vector for lateral offset.
+     * @param {Vector2D} outLeadDirection - Output vector for normalized lead direction.
+     * @param {Vector2D} outVelocityError - Output vector for velocity error.
+     * @returns {number} Angle to lead position (radians).
+     */
     computeLeadPosition(
         ship,
         target,

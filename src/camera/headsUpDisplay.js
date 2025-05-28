@@ -27,8 +27,8 @@ export class HeadsUpDisplay {
         this.planetRingRadius = 1;
         this.jumpGateRingRadius = 1;
 
-        this.ringLineWidth = 3;
-        this.ringLineSpace = 13;
+        this.ringLineWidth = 4;
+        this.ringLineSpace = 12;
 
         this.maxRadius = 5000; // Maximum distance for arrow visibility
         this.resize(width, height);
@@ -193,8 +193,25 @@ export class HeadsUpDisplay {
      */
     drawRing(ctx, camera, ringColour, ringRadius, showNames = true, objects, target) {
         ctx.save();
-        //ctx.globalCompositeOperation = "lighter";
-        const colour = ringColour.toRGB();
+        // Optional Glow efect without drop shadow,
+        // ctx.globalCompositeOperation = "screen";
+        // const steps = 8;
+        // for (let i = steps; i > 0; i--) {
+        //     const colourRatio = remapClamp(i, 0, steps, 0.3, 1.0) ** 2 * 0.1;
+        //     //ctx.strokeStyle = ringColour.toRGBA(1);//remapClamp(i, 0, steps, 0.3, 1.0) ** 2 * 0.1);
+        //     const r = Math.round(ringColour.r * colourRatio * 255);
+        //     const g = Math.round(ringColour.g * colourRatio * 255);
+        //     const b = Math.round(ringColour.b * colourRatio * 255);
+        //     ctx.strokeStyle = `rgb(${r}, ${g}, ${b})`;
+        //     ctx.lineWidth = this.ringLineWidth + remapClamp(i, 0, steps, steps * 4.0, 2);
+        //     ctx.beginPath();
+        //     ctx.arc(camera.screenCenter.x, camera.screenCenter.y, ringRadius, 0, TWO_PI);
+        //     ctx.closePath();
+        //     ctx.stroke();
+        // }
+        // ctx.globalCompositeOperation = "source-over";
+
+        let colour = ringColour.toRGB();
         ctx.strokeStyle = colour;
         ctx.lineWidth = this.ringLineWidth;
         //ctx.globalAlpha = 0.5;

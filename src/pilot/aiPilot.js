@@ -339,6 +339,14 @@ export class CivilianAIPilot extends AIPilot {
      */
     update(deltaTime, gameManager) {
         super.update(deltaTime, gameManager);
+        if (this.threat && isValidAttackTarget(this.ship, this.threat)) {
+            if (this.ship.target !== this.threat) {
+                this.ship.target = this.threat;
+            }
+            if (this.ship.position.distanceSquaredTo(this.threat.position) < 1000 * 1000) {
+                this.ship.fireTurrets();
+            }
+        }
     }
 
     /**

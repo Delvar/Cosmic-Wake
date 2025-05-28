@@ -46,7 +46,8 @@ export function clamp(value, min, max) {
  */
 export function remapClamp(value, inMin, inMax, outMin, outMax) {
     if (inMax === inMin) throw new Error("inMax cannot equal inMin (division by zero)");
-    return Math.min(Math.max((outMax - outMin) * (value - inMin) / (inMax - inMin) + outMin, outMin), outMax);
+    //return Math.min(Math.max((outMax - outMin) * (value - inMin) / (inMax - inMin) + outMin, outMin), outMax);
+    return (((Math.max(inMin, Math.min(inMax, value)) - inMin) / (inMax - inMin)) * (outMax - outMin)) + outMin;
 }
 
 /**
@@ -148,7 +149,7 @@ export function wrapCanvasContext(ctx) {
         },
         set(target, prop, value) {
             //if (prop === 'fillStyle') {
-                //console.log(`Setting fillStyle to ${value}`);
+            //console.log(`Setting fillStyle to ${value}`);
             //}
             return Reflect.set(target, prop, value);
         }

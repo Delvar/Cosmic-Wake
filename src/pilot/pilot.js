@@ -25,7 +25,7 @@ export class Pilot {
     /**
      * Updates the pilot's behavior based on the current game state.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
-     * @param {Object} gameManager - The game manager instance providing input and context.
+     * @param {GameManager} gameManager - The game manager instance providing input and context.
      * @throws {Error} Must be implemented by subclasses.
      */
     update(deltaTime, gameManager) {
@@ -138,7 +138,7 @@ export class PlayerPilot extends Pilot {
     /**
      * Updates the player's ship based on keyboard input and autopilot state.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
-     * @param {Object} gameManager - The game manager with keys and lastKeys properties.
+     * @param {GameManager} gameManager - The game manager with keys and lastKeys properties.
      */
     update(deltaTime, gameManager) {
         // Helper functions for key states
@@ -305,7 +305,7 @@ export class PlayerPilot extends Pilot {
 
 //     /**
 //      * Picks a random destination (planet or jump gate) in the star system, excluding a specified body.
-//      * @param {Object} starSystem - The star system containing potential destinations.
+//      * @param {StarSystem} starSystem - The star system containing potential destinations.
 //      * @param {CelestialBody} excludeBody - The body to exclude from selection.
 //      * @returns {CelestialBody|JumpGate} The chosen destination.
 //      */
@@ -321,7 +321,7 @@ export class PlayerPilot extends Pilot {
 //     /**
 //      * Updates the AI pilot's behavior based on the current state.
 //      * @param {number} deltaTime - Time elapsed since the last update in seconds.
-//      * @param {Object} gameManager - The game manager instance.
+//      * @param {GameManager} gameManager - The game manager instance.
 //      */
 //     update(deltaTime, gameManager) {
 //         if (this.ship && this.target && this.ship.starSystem === this.target.starSystem) {
@@ -340,7 +340,7 @@ export class PlayerPilot extends Pilot {
 //     /**
 //      * Handles the Idle state: initiates travel to a new target.
 //      * @param {number} deltaTime - Time elapsed since the last update in seconds.
-//      * @param {Object} gameManager - The game manager instance.
+//      * @param {GameManager} gameManager - The game manager instance.
 //      */
 //     updateIdle(deltaTime, gameManager) {
 //         if (!this.target) {
@@ -375,7 +375,7 @@ export class PlayerPilot extends Pilot {
 //     /**
 //      * Handles the FlyingToPlanet state: manages autopilot to reach a planet.
 //      * @param {number} deltaTime - Time elapsed since the last update in seconds.
-//      * @param {Object} gameManager - The game manager instance.
+//      * @param {GameManager} gameManager - The game manager instance.
 //      */
 //     updateFlyingToPlanet(deltaTime, gameManager) {
 //         if (!this.autopilot) {
@@ -410,7 +410,7 @@ export class PlayerPilot extends Pilot {
 //     /**
 //      * Handles the Landed state: waits on a planet before taking off.
 //      * @param {number} deltaTime - Time elapsed since the last update in seconds.
-//      * @param {Object} gameManager - The game manager instance.
+//      * @param {GameManager} gameManager - The game manager instance.
 //      */
 //     updateLanded(deltaTime, gameManager) {
 //         this.waitTime -= deltaTime;
@@ -429,7 +429,7 @@ export class PlayerPilot extends Pilot {
 //     /**
 //      * Handles the TakingOff state: waits for takeoff to complete.
 //      * @param {number} deltaTime - Time elapsed since the last update in seconds.
-//      * @param {Object} gameManager - The game manager instance.
+//      * @param {GameManager} gameManager - The game manager instance.
 //      */
 //     updateTakingOff(deltaTime, gameManager) {
 //         if (this.ship.state === 'Flying') {
@@ -440,7 +440,7 @@ export class PlayerPilot extends Pilot {
 //     /**
 //      * Handles the TraversingJumpGate state: manages autopilot to use a jump gate.
 //      * @param {number} deltaTime - Time elapsed since the last update in seconds.
-//      * @param {Object} gameManager - The game manager instance.
+//      * @param {GameManager} gameManager - The game manager instance.
 //      */
 //     updateTraversingJumpGate(deltaTime, gameManager) {
 //         if (!this.autopilot) {
@@ -574,7 +574,7 @@ export class PlayerPilot extends Pilot {
 //     /**
 //      * Updates the AI pilot's behavior based on the current state.
 //      * @param {number} deltaTime - Time elapsed since the last update in seconds.
-//      * @param {Object} gameManager - The game manager instance.
+//      * @param {GameManager} gameManager - The game manager instance.
 //      */
 //     update(deltaTime, gameManager) {
 //         if (this.target) {
@@ -595,7 +595,7 @@ export class PlayerPilot extends Pilot {
 //     /**
 //      * Handles the Idle state: randomly chooses to follow a ship, visit a body, or fly to a point.
 //      * @param {number} deltaTime - Time elapsed since the last update in seconds.
-//      * @param {Object} gameManager - The game manager instance.
+//      * @param {GameManager} gameManager - The game manager instance.
 //      */
 //     updateIdle(deltaTime, gameManager) {
 //         const taskRoll = Math.random();
@@ -646,7 +646,7 @@ export class PlayerPilot extends Pilot {
 //     /**
 //      * Handles the FollowingShip state: follows a target ship until time runs out or target is lost.
 //      * @param {number} deltaTime - Time elapsed since the last update in seconds.
-//      * @param {Object} gameManager - The game manager instance.
+//      * @param {GameManager} gameManager - The game manager instance.
 //      */
 //     updateFollowingShip(deltaTime, gameManager) {
 //         if (!this.autopilot) {
@@ -696,7 +696,7 @@ export class PlayerPilot extends Pilot {
 //     /**
 //      * Handles the VisitingBody state: flies near a celestial body.
 //      * @param {number} deltaTime - Time elapsed since the last update in seconds.
-//      * @param {Object} gameManager - The game manager instance.
+//      * @param {GameManager} gameManager - The game manager instance.
 //      */
 //     updateVisitingBody(deltaTime, gameManager) {
 //         if (!this.autopilot) {
@@ -729,7 +729,7 @@ export class PlayerPilot extends Pilot {
 //     /**
 //      * Handles the FlyingToRandomPoint state: flies to a random point in the system.
 //      * @param {number} deltaTime - Time elapsed since the last update in seconds.
-//      * @param {Object} gameManager - The game manager instance.
+//      * @param {GameManager} gameManager - The game manager instance.
 //      */
 //     updateFlyingToRandomPoint(deltaTime, gameManager) {
 //         if (!this.autopilot) {
@@ -754,7 +754,7 @@ export class PlayerPilot extends Pilot {
 //     /**
 //      * Handles the Waiting state: slows the ship to landing speed and waits.
 //      * @param {number} deltaTime - Time elapsed since the last update in seconds.
-//      * @param {Object} gameManager - The game manager instance.
+//      * @param {GameManager} gameManager - The game manager instance.
 //      */
 //     updateWaiting(deltaTime, gameManager) {
 //         const currentSpeed = this.ship.velocity.magnitude();
@@ -797,7 +797,7 @@ export class PlayerPilot extends Pilot {
 //     /**
 //      * Handles the TakingOff state: waits for takeoff to complete.
 //      * @param {number} deltaTime - Time elapsed since the last update in seconds.
-//      * @param {Object} gameManager - The game manager instance.
+//      * @param {GameManager} gameManager - The game manager instance.
 //      */
 //     updateTakingOff(deltaTime, gameManager) {
 //         if (this.ship.state === 'Flying') {
@@ -1019,7 +1019,7 @@ export class PlayerPilot extends Pilot {
 //     /**
 //      * Updates the AI pilot's behavior based on the current state.
 //      * @param {number} deltaTime - Time elapsed since the last update in seconds.
-//      * @param {Object} gameManager - The game manager instance.
+//      * @param {GameManager} gameManager - The game manager instance.
 //      */
 //     update(deltaTime, gameManager) {
 //         if (!this.homePlanet || this.homePlanet.isDespawned()) {
@@ -1047,7 +1047,7 @@ export class PlayerPilot extends Pilot {
 //     /**
 //      * Handles the Idle state: decides to mine an asteroid or return home.
 //      * @param {number} deltaTime - Time elapsed since the last update in seconds.
-//      * @param {Object} gameManager - The game manager instance.
+//      * @param {GameManager} gameManager - The game manager instance.
 //      */
 //     updateIdle(deltaTime, gameManager) {
 //         if (this.ship.state === 'Landed') {
@@ -1078,7 +1078,7 @@ export class PlayerPilot extends Pilot {
 //     /**
 //      * Handles the FlyingToAsteroid state: flies to the target asteroid.
 //      * @param {number} deltaTime - Time elapsed since the last update in seconds.
-//      * @param {Object} gameManager - The game manager instance.
+//      * @param {GameManager} gameManager - The game manager instance.
 //      */
 //     updateFlyingToAsteroid(deltaTime, gameManager) {
 //         if (!this.autopilot) {
@@ -1124,7 +1124,7 @@ export class PlayerPilot extends Pilot {
 //     /**
 //      * Handles the Mining state: waits on the asteroid while "mining".
 //      * @param {number} deltaTime - Time elapsed since the last update in seconds.
-//      * @param {Object} gameManager - The game manager instance.
+//      * @param {GameManager} gameManager - The game manager instance.
 //      */
 //     updateMining(deltaTime, gameManager) {
 //         this.waitTime -= deltaTime;
@@ -1137,7 +1137,7 @@ export class PlayerPilot extends Pilot {
 //     /**
 //      * Handles the TakingOffFromAsteroid state: waits for takeoff from the asteroid.
 //      * @param {number} deltaTime - Time elapsed since the last update in seconds.
-//      * @param {Object} gameManager - The game manager instance.
+//      * @param {GameManager} gameManager - The game manager instance.
 //      */
 //     updateTakingOffFromAsteroid(deltaTime, gameManager) {
 //         if (this.ship.state === 'Flying') {
@@ -1151,7 +1151,7 @@ export class PlayerPilot extends Pilot {
 //     /**
 //      * Handles the FlyingToHomePlanet state: flies back to the home planet.
 //      * @param {number} deltaTime - Time elapsed since the last update in seconds.
-//      * @param {Object} gameManager - The game manager instance.
+//      * @param {GameManager} gameManager - The game manager instance.
 //      */
 //     updateFlyingToHomePlanet(deltaTime, gameManager) {
 //         if (!this.autopilot) {
@@ -1186,7 +1186,7 @@ export class PlayerPilot extends Pilot {
 //     /**
 //      * Handles the LandingOnHomePlanet state: waits for landing on the home planet.
 //      * @param {number} deltaTime - Time elapsed since the last update in seconds.
-//      * @param {Object} gameManager - The game manager instance.
+//      * @param {GameManager} gameManager - The game manager instance.
 //      */
 //     updateLandingOnHomePlanet(deltaTime, gameManager) {
 //         if (!this.autopilot) {
@@ -1221,7 +1221,7 @@ export class PlayerPilot extends Pilot {
 //     /**
 //      * Handles the WaitingOnHomePlanet state: waits before taking off to mine again.
 //      * @param {number} deltaTime - Time elapsed since the last update in seconds.
-//      * @param {Object} gameManager - The game manager instance.
+//      * @param {GameManager} gameManager - The game manager instance.
 //      */
 //     updateWaitingOnHomePlanet(deltaTime, gameManager) {
 //         this.waitTime -= deltaTime;
@@ -1236,7 +1236,7 @@ export class PlayerPilot extends Pilot {
 //     /**
 //      * Handles the TakingOffFromHomePlanet state: waits for takeoff from the home planet.
 //      * @param {number} deltaTime - Time elapsed since the last update in seconds.
-//      * @param {Object} gameManager - The game manager instance.
+//      * @param {GameManager} gameManager - The game manager instance.
 //      */
 //     updateTakingOffFromHomePlanet(deltaTime, gameManager) {
 //         if (this.ship.state === 'Flying') {

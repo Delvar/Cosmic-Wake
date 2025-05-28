@@ -10,10 +10,11 @@ import { HeadsUpDisplay } from '/src/camera/headsUpDisplay.js';
 import { PlayerPilot } from '/src/pilot/pilot.js';
 import { createGalaxy } from '/src/core/galaxy.js';
 import { isValidTarget } from '/src/core/gameObject.js';
-import { AIPilot, CivilianAIPilot, PirateAIPilot } from '/src/pilot/aiPilot.js';
+import { AIPilot, CivilianAiPilot, PirateAiPilot, OfficerAiPilot } from '/src/pilot/aiPilot.js';
 import { WandererJob } from '/src/job/wandererJob.js';
 import { MinerJob } from '/src/job/minerJob.js';
 import { PirateJob } from '/src/job/pirateJob.js';
+import { OfficerJob } from '/src/job/officerJob.js';
 //import { wrapCanvasContext } from '/src/core/utils.js';
 
 /**
@@ -333,7 +334,7 @@ class GameManager {
         //this.escort01 = new Freighter(earth.position.x + earth.radius * 1.0, earth.position.y, starSystem);
         this.escort01 = new Shuttle(earth.position.x + earth.radius * 1.0, earth.position.y, starSystem);
         const job01 = new WandererJob(this.escort01);
-        const pilot01 = new CivilianAIPilot(this.escort01, job01);
+        const pilot01 = new CivilianAiPilot(this.escort01, job01);
         this.escort01.setPilot(pilot01);
         //this.escort01.pilot = new EscortAIPilot(this.escort01, this.playerShip);
         this.escort01.colors.cockpit = this.playerShip.colors.cockpit;
@@ -353,7 +354,7 @@ class GameManager {
 
         // this.escort02 = new Interceptor(earth.position.x + earth.radius * 1.0, earth.position.y, starSystem);
         // const job02 = new WandererJob(this.escort02);
-        // const pilot02 = new CivilianAIPilot(this.escort02, job02);
+        // const pilot02 = new CivilianAiPilot(this.escort02, job02);
         // this.escort02.setPilot(pilot02);
         // this.escort02.colors.cockpit = this.playerShip.colors.cockpit;
         // this.escort02.colors.wings = this.playerShip.colors.wings;
@@ -438,12 +439,21 @@ class GameManager {
 
                 const aiShip = createRandomShip(spawnPlanet.position.x, spawnPlanet.position.y, system);
                 if (aiShip instanceof Boxwing) {
-                    aiShip.pilot = new CivilianAIPilot(aiShip, new MinerJob(aiShip, spawnPlanet));
+                    aiShip.pilot = new CivilianAiPilot(aiShip, new MinerJob(aiShip, spawnPlanet));
                 } else if (aiShip instanceof Flivver || aiShip instanceof Arrow || aiShip instanceof Interceptor || aiShip instanceof Interceptor || aiShip instanceof Fighter) {
-                    //aiShip.pilot = new CivilianAIPilot(aiShip, new WandererJob(aiShip));
-                    aiShip.pilot = new PirateAIPilot(aiShip, new PirateJob(aiShip));
+                    if (Math.random() < 0.33) {
+                        aiShip.pilot = new PirateAiPilot(aiShip, new PirateJob(aiShip));
+                        aiShip.colors.wings.set(1, 0, 0, 1);
+                    } else if (Math.random() < 0.5) {
+                        aiShip.pilot = new OfficerAiPilot(aiShip, new OfficerJob(aiShip));
+                        aiShip.colors.wings.set(0, 0, 1, 1);
+                    } else {
+                        aiShip.pilot = new CivilianAiPilot(aiShip, new WandererJob(aiShip));
+                        aiShip.colors.wings.set(0, 1, 0, 1);
+                    }
                 } else {
-                    aiShip.pilot = new CivilianAIPilot(aiShip, new WandererJob(aiShip));
+                    aiShip.pilot = new CivilianAiPilot(aiShip, new WandererJob(aiShip));
+                    aiShip.colors.wings.set(0, 1, 0, 1);
                 }
 
                 // if (aiShip instanceof Flivver || aiShip instanceof Arrow || aiShip instanceof Interceptor) {

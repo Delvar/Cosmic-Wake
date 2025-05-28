@@ -3,10 +3,10 @@
 import { Job } from '/src/job/job.js';
 import { AttackAutopilot } from '/src/autopilot/attackAutopilot.js';
 import { isValidAttackTarget } from '/src/ship/ship.js';
-import { PirateAIPilot } from '/src/pilot/aiPilot.js';
+import { PirateAiPilot } from '/src/pilot/aiPilot.js';
 
 /**
- * Job for a ship to wander between planets, prioritizing different star systems.
+ * Job for a ship to attack other ships in the system.
  * @extends Job
  */
 export class PirateJob extends Job {
@@ -35,7 +35,7 @@ export class PirateJob extends Job {
         if (handler) {
             handler(deltaTime, gameManager);
         } else if (this.ship.debug) {
-            console.log(`PirateJob: Invalid state ${this.state}`);
+            console.log(`${this.constructor.name}: Invalid state ${this.state}`);
         }
     }
 
@@ -47,7 +47,7 @@ export class PirateJob extends Job {
     updateStarting(deltaTime, gameManager) {
         if (this.ship.state === 'Landed') {
             if (this.ship.debug) {
-                console.log('PirateJob: Initial start, initiating takeoff');
+                console.log(`${this.constructor.name}: Initial start, initiating takeoff`);
             }
             this.ship.initiateTakeoff();
         } else if (this.ship.state === 'Flying') {
@@ -60,7 +60,7 @@ export class PirateJob extends Job {
                 this.ship.target = target;
                 this.pilot.changeState('Attack', new AttackAutopilot(this.ship, target));
                 if (this.ship.debug) {
-                    console.log('PirateJob: Ship flying, found target, Attacking');
+                    console.log(`${this.constructor.name}: Ship flying, found target, Attacking`);
                 }
             }
         }
@@ -74,7 +74,7 @@ export class PirateJob extends Job {
      */
     isValidPirateTarget(source, target) {
         if (!isValidAttackTarget(source, target)) return false;
-        if (target.pilot instanceof PirateAIPilot) return false;
+        if (target.pilot instanceof PirateAiPilot) return false;
         return true;
     }
 

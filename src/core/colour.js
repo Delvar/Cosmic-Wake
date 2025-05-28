@@ -20,6 +20,20 @@ export class Colour {
     }
 
     /**
+     * Sets the components of this Colour.
+     * @param {number} r - The red component (0 to 1).
+     * @param {number} g - The green component (0 to 1).
+     * @param {number} b - The blue component (0 to 1).
+     * @param {number} [a=1] - The alpha component (0 to 1, default is 1 for fully opaque).
+     */
+    set(r, g, b, a = 1) {
+        this.r = r;
+        this.g = g;
+        this.b = b;
+        this.a = a;
+    }
+
+    /**
      * Creates a copy of this colour.
      * @returns {Colour} A new Colour with the same values.
      */

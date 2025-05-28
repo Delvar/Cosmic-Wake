@@ -181,8 +181,10 @@ export class StarSystem {
         while (attempts > 0) {
             const randomIndex = Math.floor(Math.random() * totalLength);
             item = arr1[randomIndex];
-            if (ship && item !== exclude && isValid(ship, item)) {
-                return item;
+            if (ship) {
+                if (item !== ship && item !== exclude && isValid(ship, item)) {
+                    return item;
+                }
             } else if (!item.isDespawned() && item !== exclude) {
                 return item;
             }
@@ -208,8 +210,10 @@ export class StarSystem {
         while (attempts > 0) {
             const randomIndex = Math.floor(Math.random() * totalLength);
             item = arr1[randomIndex];
-            if (ship && item !== exclude && isValidTarget(ship, item)) {
-                return item;
+            if (ship) {
+                if (item !== exclude && isValidTarget(ship, item)) {
+                    return item;
+                }
             } else if (!item.isDespawned() && item !== exclude) {
                 return item;
             }
@@ -235,8 +239,10 @@ export class StarSystem {
         while (attempts > 0) {
             const randomIndex = Math.floor(Math.random() * totalLength);
             item = arr1[randomIndex];
-            if (ship && item !== exclude && isValidTarget(ship, item)) {
-                return item;
+            if (ship) {
+                if (item !== exclude && isValidTarget(ship, item)) {
+                    return item;
+                }
             } else if (!item.isDespawned() && item !== exclude) {
                 return item;
             }
@@ -262,8 +268,10 @@ export class StarSystem {
         while (attempts > 0) {
             const randomIndex = Math.floor(Math.random() * totalLength);
             item = arr1[randomIndex];
-            if (ship && item !== exclude && isValidTarget(ship, item)) {
-                return item;
+            if (ship) {
+                if (item !== exclude && isValidTarget(ship, item)) {
+                    return item;
+                }
             } else if (!item.isDespawned() && item !== exclude) {
                 return item;
             }
@@ -289,8 +297,10 @@ export class StarSystem {
         while (attempts > 0) {
             const randomIndex = Math.floor(Math.random() * totalLength);
             item = arr1[randomIndex];
-            if (ship && item !== exclude && isValidTarget(ship, item)) {
-                return item;
+            if (ship) {
+                if (item !== exclude && isValidTarget(ship, item)) {
+                    return item;
+                }
             } else if (!item.isDespawned() && item !== exclude) {
                 return item;
             }
@@ -322,8 +332,10 @@ export class StarSystem {
             } else {
                 item = arr2[randomIndex - length1];
             }
-            if (ship && item !== exclude && isValidTarget(ship, item)) {
-                return item;
+            if (ship) {
+                if (item !== exclude && isValidTarget(ship, item)) {
+                    return item;
+                }
             } else if (!item.isDespawned() && item !== exclude) {
                 return item;
             }
@@ -355,8 +367,10 @@ export class StarSystem {
             } else {
                 item = arr2[randomIndex - length1];
             }
-            if (ship && item !== exclude && isValidTarget(ship, item)) {
-                return item;
+            if (ship) {
+                if (item !== exclude && isValidTarget(ship, item)) {
+                    return item;
+                }
             } else if (!item.isDespawned() && item !== exclude) {
                 return item;
             }
@@ -392,8 +406,10 @@ export class StarSystem {
             } else {
                 item = arr3[randomIndex - length1 - length2];
             }
-            if (ship && item !== exclude && isValidTarget(ship, item)) {
-                return item;
+            if (ship) {
+                if (item !== exclude && isValidTarget(ship, item)) {
+                    return item;
+                }
             } else if (!item.isDespawned() && item !== exclude) {
                 return item;
             }
@@ -506,7 +522,7 @@ export class StarSystem {
         let closestSquaredDistance = closestItem.position.distanceSquaredTo(ship.position);
         for (let i = 1; i < totalLength; i++) {
             item = arr1[i];
-            if (item !== exclude && isValidTarget(ship, item)) {
+            if (item !== ship && item !== exclude && isValidTarget(ship, item)) {
                 const squaredDistance = item.position.distanceSquaredTo(ship.position);
                 if (squaredDistance < closestSquaredDistance) {
                     closestItem = item;

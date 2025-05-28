@@ -49,24 +49,9 @@ function generateShipName() {
  * @returns {boolean} True if the target is valid, false otherwise.
  */
 export function isValidAttackTarget(source, target) {
-    if (!(target instanceof Ship)) {
-        if (source.debug) {
-            console.log('isValidAttackTarget: validateTarget, target not a Ship');
-        }
-        return false;
-    }
-    if (!isValidTarget(source, target)) {
-        if (source.debug) {
-            console.log('isValidAttackTarget: validateTarget, target not isValidTarget');
-        }
-        return false;
-    }
-    if (target.state !== 'Flying' && target.state !== 'Disabled') {
-        if (source.debug) {
-            console.log(`isValidAttackTarget: validateTarget, target state invalid ${target.state}`);
-        }
-        return false;
-    }
+    if (!(target instanceof Ship)) return false;
+    if (!isValidTarget(source, target)) return false;
+    if (target.state !== 'Flying' && target.state !== 'Disabled') return false;
     return true;
 }
 
@@ -85,7 +70,7 @@ export class Ship extends GameObject {
      * Creates a new Ship instance.
      * @param {number} x - Initial x-coordinate of the ship.
      * @param {number} y - Initial y-coordinate of the ship.
-     * @param {Object} starSystem - The star system the ship is in.
+     * @param {StarSystem} starSystem - The star system the ship is in.
      */
     constructor(x, y, starSystem) {
         super(new Vector2D(x, y), starSystem);

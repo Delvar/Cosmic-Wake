@@ -19,6 +19,7 @@ export class Pilot {
      * @param {Ship} ship - The ship this pilot controls.
      */
     constructor(ship) {
+        /** @type {Ship} The ship controlled by this pilot. */
         this.ship = ship;
     }
 
@@ -53,9 +54,8 @@ export class PlayerPilot extends Pilot {
      */
     constructor(ship) {
         super(ship);
-        /** @type {Object|null} Active autopilot instance, if any. */
+        /** @type {Autopilot|null} Active autopilot instance, if any. */
         this.autopilot = null;
-
         /** @type {Vector2D} Temporary vector for direction to target. */
         this._scratchDirectionToTarget = new Vector2D(0, 0);
         /** @type {Vector2D} Temporary vector for distance to target. */

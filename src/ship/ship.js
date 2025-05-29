@@ -109,7 +109,12 @@ export class Ship extends GameObject {
         this.lastJumpTime = 0;
         /** @type {Pilot|null} The pilot controlling the ship, if any. */
         this.pilot = null;
-        /** @type {Object} Colors for cockpit, wings, and hull. */
+        /** 
+         * @type {Object} Colors for cockpit, wings, and hull.
+         * @property {Colour} cockpit - The color of the ship's cockpit, generated randomly.
+         * @property {Colour} wings - The color of the ship's wings, generated randomly.
+         * @property {Colour} hull - The grayscale color of the ship's hull, generated randomly.
+         */
         this.colors = {
             cockpit: this.generateRandomWindowColour(),
             wings: this.generateRandomColor(),

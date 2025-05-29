@@ -133,11 +133,6 @@ export class Shield {
         if (!isFinite(shipPosition.x) || !isFinite(shipPosition.y) ||
             !isFinite(this.hitPosition.x) || !isFinite(this.hitPosition.y) ||
             !isFinite(shipRadius)) {
-            // console.warn('Invalid shield draw inputs:', {
-            //   shipPosition: [shipPosition.x, shipPosition.y],
-            //   hitPosition: [this.hitPosition.x, this.hitPosition.y],
-            //   shipRadius
-            // });
             return;
         }
 
@@ -222,10 +217,6 @@ export class Shield {
 
             if (!isFinite(this._scratchShieldCenter.x) || !isFinite(this._scratchShieldCenter.y) ||
                 !isFinite(this._scratchShieldHit.x) || !isFinite(this._scratchShieldHit.y)) {
-                // console.warn('Invalid shield screen coordinates:', {
-                //   shieldCenter: [this._scratchShieldCenter.x, this._scratchShieldCenter.y],
-                //   shieldHit: [this._scratchShieldHit.x, this._scratchShieldHit.y]
-                // });
                 return;
             }
 

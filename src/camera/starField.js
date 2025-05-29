@@ -8,38 +8,57 @@ import { Vector2D } from '/src/core/vector2d.js';
  * Uses a fixed colour palette per layer for efficient batch rendering.
  */
 export class StarField {
+    /**
+  * Creates a new StarField instance.
+  * @param {number} [starsPerCell=20] - Number of stars per grid cell.
+  * @param {number} [gridSize=1000] - Size of each grid cell in world coordinates.
+  * @param {number} [coloursPerLayer=10] - Number of colors per layer for rendering.
+  */
     constructor(starsPerCell = 20, gridSize = 1000, coloursPerLayer = 10) {
+        /** @type {number} Number of stars per grid cell. */
         this.starsPerCell = starsPerCell;
+        /** @type {number} Size of each grid cell in world coordinates. */
         this.gridSize = gridSize;
+        /** @type {number} Number of parallax layers in the starfield. */
         this.layers = 5;
+        /** @type {number[]} Array of parallax factors for each layer (affects scrolling speed). */
         this.parallaxFactors = [0.1, 0.3, 0.5, 0.7, 0.9];
+        /** @type {number} Number of colors per layer for rendering. */
         this.coloursPerLayer = coloursPerLayer;
 
-        // Store a cache of cells
+        /** @type {Map} Cache storing star data for grid cells to improve performance. */
         this.starCache = new Map();
-        // Cap at 500 cells (~30 KB with 20 stars/cell)
+        /** @type {number} Maximum number of cells to cache (~30 KB with 20 stars/cell). */
         this.maxCacheSize = 500;
 
-        // Scratch array for starsByColour
+        /** @type {Array<Array>} Scratch array for grouping stars by color during rendering. */
         this.starsByColourScratch = new Array(coloursPerLayer);
         for (let i = 0; i < coloursPerLayer; i++) {
             this.starsByColourScratch[i] = []; // Pre-allocate inner arrays
         }
 
-        // Dynamic Float32Array for star positions [x1, y1, x2, y2, ...]
-        this.initialVisibleStars = 2500; // Starting size
-        this.positionPool = new Float32Array(this.initialVisibleStars * 2); // 2 floats per star
+        /** @type {number} Initial number of visible stars for position buffer allocation. */
+        this.initialVisibleStars = 2500;
+        /** @type {Float32Array} Buffer storing star positions [x1, y1, x2, y2, ...]. */
+        this.positionPool = new Float32Array(this.initialVisibleStars * 2);
+        /** @type {number} Current index in the position pool for adding new stars. */
         this.positionIndex = 0;
 
         // Reusable Vector2D instances for coordinate transformations
-        this._scratchCellWorldPos = new Vector2D(); // World position of grid cell
-        this._scratchScreenCellPos = new Vector2D(); // Screen position of grid cell
-        this._scratchStarScreenPos = new Vector2D(); // Screen position of individual star
-        this._scratchScreenSize = new Vector2D(); // Full screen dimensions
-        this._scratchHalfScreenSize = new Vector2D(); // Half screen dimensions for centering
-        this._scratchStarRelPos = new Vector2D(); // Relative position of star within cell
+        /** @type {Vector2D} Scratch vector for the world position of a grid cell. */
+        this._scratchCellWorldPos = new Vector2D();
+        /** @type {Vector2D} Scratch vector for the screen position of a grid cell. */
+        this._scratchScreenCellPos = new Vector2D();
+        /** @type {Vector2D} Scratch vector for the screen position of an individual star. */
+        this._scratchStarScreenPos = new Vector2D();
+        /** @type {Vector2D} Scratch vector for the full screen dimensions. */
+        this._scratchScreenSize = new Vector2D();
+        /** @type {Vector2D} Scratch vector for half the screen dimensions for centering. */
+        this._scratchHalfScreenSize = new Vector2D();
+        /** @type {Vector2D} Scratch vector for the relative position of a star within a cell. */
+        this._scratchStarRelPos = new Vector2D();
 
-        // Pre-generate colour palettes for each layer
+        /** @type {Array<Array<string>>} Pre-generated color palettes for each layer, containing HSL color strings. */
         this.colourPalettes = this.generateColourPalettes();
     }
 

@@ -11,7 +11,9 @@ export class Vector2D {
      * @param {number} [y=0] - The y component of the vector.
      */
     constructor(x = 0, y = 0) {
+        /** @type {number} The x component of the vector. */
         this.x = x;
+        /** @type {number} The y component of the vector. */
         this.y = y;
     }
 

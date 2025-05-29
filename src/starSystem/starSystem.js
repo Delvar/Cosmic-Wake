@@ -26,39 +26,51 @@ export class StarSystem {
      * @param {Vector2D} position - Position of the star system in space.
      * @param {Array} stars - Array of stars in the system.
      * @param {Array} planets - Array of planets in the system.
-     * @param {AsteroidBelt} asteroidBelt - an optional asteroidBelt.
+     * @param {AsteroidBelt} [asteroidBelt=null] - An optional asteroid belt.
      */
     constructor(id, name, position, stars, planets, asteroidBelt = null) {
+        /** @type {string} Unique identifier for the star system. */
         this.id = id;
+        /** @type {string} Name of the star system. */
         this.name = name;
+        /** @type {Vector2D} Position of the star system in space. */
         this.position = position;
+        /** @type {ProjectileManager} Manager for handling projectiles in the star system. */
         this.projectileManager = new ProjectileManager(this);
+        /** @type {ParticleManager} Manager for handling particles in the star system. */
         this.particleManager = new ParticleManager(this);
+        /** @type {Array<CelestialBody>} Array of stars in the star system. */
+        this.stars = stars;
+        /** @type {Array<CelestialBody>} Array of planets in the star system. */
+        this.planets = planets;
+        /** @type {Array<JumpGate>} Array of jump gates in the star system. */
+        this.jumpGates = [];
+        /** @type {Array<Ship>} Array of ships in the star system. */
+        this.ships = [];
+        /** @type {number} Maximum number of AI-controlled ships allowed in the star system. */
+        this.maxAIShips = 20;
+        /** @type {Array<Hyperlane>} Array of hyperlane connections to other star systems. */
+        this.hyperlanes = [];
+        /** @type {AsteroidBelt|null} Optional asteroid belt in the star system. */
+        this.asteroidBelt = asteroidBelt;
+        /** @type {Array} Array of interactive asteroids from the asteroid belt, or empty if no belt exists. */
+        this.asteroids = asteroidBelt ? asteroidBelt.interactiveAsteroids : [];
 
         // Link each celestial body to this star system
-        this.stars = stars;
         const starsLength = stars.length;
         for (let i = 0; i < starsLength; i++) {
             stars[i].starSystem = this;
-        };
+        }
 
-        this.planets = planets;
         const planetsLength = planets.length;
         for (let i = 0; i < planetsLength; i++) {
             planets[i].starSystem = this;
-        };
+        }
 
-        this.jumpGates = [];
-        this.ships = []; // Array to hold ships in the system
-        this.maxAIShips = 20; // Maximum number of AI-controlled ships allowed
-        this.hyperlanes = []; // Array to hold hyperlane connections
-        this.asteroidBelt = asteroidBelt; // Optional asteroid belt
+        // Initialize asteroid belt if present
         if (asteroidBelt) {
             asteroidBelt.starSystem = this;
             asteroidBelt.init();
-            this.asteroids = asteroidBelt.interactiveAsteroids;
-        } else {
-            this.asteroids = [];
         }
     }
 
@@ -557,10 +569,15 @@ export class Hyperlane {
      * @param {StarSystem} target - The target star system.
      */
     constructor(source, target) {
+        /** @type {StarSystem} The source star system of the hyperlane. */
         this.source = source;
+        /** @type {StarSystem} The target star system of the hyperlane. */
         this.target = target;
+        /** @type {number} The squared distance between the source and target star systems. */
         this.distSquared = this.calculateDistSquared();
+        /** @type {JumpGate|null} The jump gate associated with the source star system. */
         this.sourceGate = null;
+        /** @type {JumpGate|null} The jump gate associated with the target star system. */
         this.targetGate = null;
     }
 

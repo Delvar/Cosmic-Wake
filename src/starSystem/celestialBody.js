@@ -58,23 +58,33 @@ export class CelestialBody extends GameObject {
      */
     constructor(distance, radius, color, parent = null, angle = 0, type = celestialTypes['planet'], subtype = null, name = '', starSystem = null, ring = null) {
         super(new Vector2D(0, 0), starSystem);
-        this.position.set(
+        /** @type {Vector2D} The position of the celestial body in world coordinates, calculated from parent and angle. */
+        this.position = new Vector2D(
             parent ? parent.position.x + Math.sin(angle) * distance : Math.sin(angle) * distance,
             parent ? parent.position.y - Math.cos(angle) * distance : -Math.cos(angle) * distance
         );
+        /** @type {number} The distance from the parent body or origin in world units. */
         this.distance = distance;
+        /** @type {number} The radius of the celestial body in world units. */
         this.radius = radius;
+        /** @type {Colour} The color of the celestial body. */
         this.color = color;
+        /** @type {CelestialBody|null} The parent celestial body (e.g., a planet for a moon). */
         this.parent = parent;
+        /** @type {number} The initial angle relative to the parent in radians. */
         this.angle = angle;
+        /** @type {Object} The type of celestial body, sourced from celestialTypes. */
         this.type = type;
+        /** @type {Object|null} The subtype of the celestial body (e.g., for planets). */
         this.subtype = subtype;
+        /** @type {string} The name of the celestial body. */
         this.name = name;
+        /** @type {PlanetaryRing|null} An optional ring around the celestial body. */
         this.ring = ring;
+        /** @type {Array<Ship>} Array of ships currently landed on the celestial body. */
         this.landedShips = [];
-
-        // Temporary scratch values to avoid allocations
-        this._scratchScreenPos = new Vector2D(); // For storing screen position in draw
+        /** @type {Vector2D} Scratch vector for storing screen position during drawing. */
+        this._scratchScreenPos = new Vector2D();
     }
 
     /**
@@ -159,10 +169,15 @@ export class PlanetaryRing {
      * @param {number} [tiltAngle=Math.PI / 2.5] - The tilt angle of the ring in radians.
      */
     constructor(innerRadius, outerRadius, color, tiltAngle = Math.PI / 2.5) {
+        /** @type {number} The inner radius of the ring as a fraction of the planet's radius. */
         this.innerRadius = innerRadius;
+        /** @type {number} The outer radius of the ring as a fraction of the planet's radius. */
         this.outerRadius = outerRadius;
+        /** @type {Colour} The color of the ring. */
         this.color = color;
+        /** @type {number} The tilt angle of the ring in radians. */
         this.tiltAngle = tiltAngle;
+        /** @type {number} The scaling factor for the ring, based on the ratio of inner to outer radius. */
         this.scalingFactor = 1 - 0.5 * (1 - this.innerRadius / this.outerRadius);
     }
 
@@ -283,6 +298,7 @@ export class JumpGate extends CelestialBody {
         const dist = 1000;
         const angle = Math.atan2(norm.x, norm.y);
         super(dist, radius, celestialTypes['jumpgate'].color, null, angle, celestialTypes['jumpgate'], null, `Jump To ${lane.target.name}`, lane.source);
+        /** @type {Hyperlane} The hyperlane connection between two star systems. */
         this.lane = lane;
     }
 

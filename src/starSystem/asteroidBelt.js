@@ -9,13 +9,18 @@ import { GameObject, isValidTarget } from '/src/core/gameObject.js';
  */
 class AsteroidShape {
     /**
+     * Creates a new AsteroidShape instance.
      * @param {number} numPoints - Number of points in the shape.
      * @returns {AsteroidShape} The created asteroid shape instance.
      */
     constructor(numPoints) {
+        /** @type {number} The number of points defining the asteroid shape. */
         this.numPoints = numPoints;
-        this.points = new Float32Array(numPoints * 2); // [x1, y1, x2, y2, ...]
-        this.path = new Path2D(); // Cached Path2D for drawing
+        /** @type {Float32Array} The array of points [x1, y1, x2, y2, ...] defining the asteroid shape. */
+        this.points = new Float32Array(numPoints * 2);
+        /** @type {Path2D} The cached Path2D object for drawing the asteroid shape. */
+        this.path = new Path2D();
+
         const angleStep = (Math.PI * 2) / numPoints;
         let centerPoint = new Vector2D(0, 0);
         for (let i = 0; i < numPoints; i++) {
@@ -27,7 +32,7 @@ class AsteroidShape {
             centerPoint.y += this.points[i * 2 + 1];
         }
 
-        //recenter the asteroid if one side sticks out too far
+        // Recenter the asteroid if one side sticks out too far
         centerPoint.divideInPlace(numPoints);
         for (let i = 0; i < numPoints; i++) {
             this.points[i * 2] -= centerPoint.x;
@@ -49,6 +54,7 @@ class AsteroidShape {
  */
 export class AsteroidBelt {
     /**
+     * Creates a new AsteroidBelt instance.
      * @param {number} innerRadius - Inner radius of the belt.
      * @param {number} outerRadius - Outer radius of the belt.
      * @param {number} backgroundDensity - Asteroids per 500x500 unit area.
@@ -57,16 +63,21 @@ export class AsteroidBelt {
      * @returns {AsteroidBelt} The created asteroid belt instance.
      */
     constructor(innerRadius, outerRadius, backgroundDensity, interactiveCount, layerCount = 10) {
+        /** @type {StarSystem|null} The star system the asteroid belt belongs to. */
         this.starSystem = null;
+        /** @type {number} The inner radius of the asteroid belt. */
         this.innerRadius = innerRadius;
+        /** @type {number} The outer radius of the asteroid belt. */
         this.outerRadius = outerRadius;
+        /** @type {number} The density of background asteroids per 500x500 unit area. */
         this.backgroundDensity = backgroundDensity;
+        /** @type {number} The number of interactive asteroids in the belt. */
         this.interactiveCount = interactiveCount;
+        /** @type {Array} Array of interactive asteroids in the belt. */
         this.interactiveAsteroids = [];
-
-        // Validate and set layer count
+        /** @type {number} The number of orbital layers in the belt, clamped between 1 and 10. */
         this.layerCount = clamp(Math.floor(layerCount), 1, 10);
-
+        /** @type {Float32Array} Array of orbital speeds for each layer, in radians per second. */
         this.orbitalSpeeds = new Float32Array(this.layerCount);
         for (let i = 0; i < this.layerCount; i++) {
             const speedRatio = this.layerCount > 1 ? i / (this.layerCount - 1) : 0;
@@ -74,34 +85,39 @@ export class AsteroidBelt {
             const maxTangentialVelocity = 95 / outerRadius;
             this.orbitalSpeeds[i] = remapRange01(speedRatio, minTangentialVelocity, maxTangentialVelocity);
         }
-        // Cell configuration: target ~500 units arc length at innerRadius
-        const targetArcLength = 500;
-        this.cellCount = Math.max(4, Math.ceil(TWO_PI * innerRadius / targetArcLength));
+        /** @type {number} The number of cells dividing the belt's circumference. */
+        this.cellCount = Math.max(4, Math.ceil(TWO_PI * innerRadius / 500));
+        /** @type {number} The angular size of each cell in radians. */
         this.cellAngleSize = TWO_PI / this.cellCount;
-        // Calculate asteroidsPerCell based on density and cell area
-        const cellArea = 0.5 * this.cellAngleSize * (outerRadius * outerRadius - innerRadius * innerRadius);
-        this.asteroidsPerCell = clamp(Math.ceil((backgroundDensity * cellArea) / (250000 * this.layerCount)), 1, 50);
+        /** @type {number} The number of asteroids per cell, based on density and cell area. */
+        this.asteroidsPerCell = clamp(Math.ceil((backgroundDensity * (0.5 * this.cellAngleSize * (outerRadius * outerRadius - innerRadius * innerRadius))) / (250000 * this.layerCount)), 1, 50);
+        /** @type {Map} Cache storing asteroid data for cells to improve performance. */
         this.cellCache = new Map();
+        /** @type {number} Maximum number of cells to cache. */
         this.maxCacheSize = 100;
+        /** @type {number} Timestamp of the last cache pruning operation. */
         this._lastCachePrune = performance.now();
-
-        // Precompute asteroid shapes
+        /** @type {number} The number of precomputed asteroid shapes. */
         this.shapeCount = 20;
+        /** @type {Array<AsteroidShape>} Array of precomputed asteroid shapes for rendering. */
         this.shapes = new Array(this.shapeCount);
         for (let i = 0; i < this.shapeCount; i++) {
             const numPoints = 5 + Math.floor(Math.random() * 4);
             this.shapes[i] = new AsteroidShape(numPoints);
         }
+        /** @type {number} Elapsed time for animating the asteroid belt. */
         this.elapsedTime = 0;
-
-        // Scratch variables
+        /** @type {Vector2D} Scratch vector for world position calculations. */
         this._scratchWorldPos = new Vector2D();
+        /** @type {Vector2D} Scratch vector for screen position calculations. */
         this._scratchScreenPos = new Vector2D();
+        /** @type {Vector2D} Scratch vector for vertex position calculations. */
         this._scratchVertex = new Vector2D();
+        /** @type {Vector2D} Scratch vector for corner position calculations. */
         this._scratchCorner = new Vector2D();
+        /** @type {DOMMatrix} Scratch matrix for transformation calculations. */
         this._scratchMatrix = new DOMMatrix();
-
-        // Debug colors for layers
+        /** @type {Array<string>} Array of debug colors for visualizing layers. */
         this._debugColors = [
             'red', 'blue', 'green', 'yellow', 'cyan',
             'magenta', 'purple', 'orange', 'pink', 'lime'
@@ -245,6 +261,10 @@ export class AsteroidBelt {
         //console.log(`Prune Cells: ${from} > ${to}`);
     }
 
+    /**
+     * Updates the visuals each frame.
+     * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     */
     update(deltaTime) {
         this.elapsedTime += deltaTime;
         for (const asteroid of this.interactiveAsteroids) {
@@ -252,6 +272,11 @@ export class AsteroidBelt {
         }
     }
 
+    /**
+     * Renders the asteroids to the canvas.
+     * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
+     * @param {Camera} camera - The camera object for world-to-screen conversion.
+     */
     draw(ctx, camera) {
         // Quick bounds check
         if (this.isBeltOffScreen(camera)) {
@@ -470,6 +495,9 @@ export class Asteroid extends GameObject {
         this._scratchScreenPos = new Vector2D();
     }
 
+    /**
+     * Marks the object as despawned, removing it from active gameplay.
+     */
     despawn() {
         super.despawn();
         if (this.belt) {
@@ -479,6 +507,10 @@ export class Asteroid extends GameObject {
         this.shape = null;
     }
 
+    /**
+     * Updates the visuals each frame.
+     * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     */
     update(deltaTime) {
         this.orbitAngle += this.orbitSpeed * deltaTime;
         this.spin += this.spinSpeed * deltaTime;

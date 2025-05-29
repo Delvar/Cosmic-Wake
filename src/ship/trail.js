@@ -334,15 +334,6 @@ export class Trail {
         ctx.save();
         ctx.fillStyle = this.color;
         ctx.beginPath();
-        //camera.worldToScreen(shipPosition, this._scratchScreenPos);
-        //ctx.moveTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
-        // const firstIdx = this.points.getIndex(0);
-        // this._scratchThisPositionPoint.set(this.points.data[firstIdx], this.points.data[firstIdx + 1]);
-        // camera.worldToScreen(this._scratchThisPositionPoint, this._scratchScreenPos);
-        // ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, startWidthInScreen, 0, Math.PI * 4);
-        // ctx.closePath();
-        // ctx.fill();
-        // ctx.beginPath();
         let lastPoint = this.points.count;
         let previousIdx = -1; // Store the previous point's index
 

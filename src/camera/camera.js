@@ -9,36 +9,52 @@ import { normalizeAngle, TWO_PI } from '/src/core/utils.js';
 export class Camera {
     /**
      * Creates a new Camera instance.
-     * @param {StarSystem} starSystem - The initial starSystem.
+     * @param {StarSystem} starSystem - The initial star system.
      * @param {Vector2D} position - The initial position of the camera in world coordinates.
      * @param {Vector2D} screenSize - The size of the screen in pixels.
      * @param {number} [zoom=1] - The initial zoom level (default is 1).
      */
     constructor(starSystem, position, screenSize, zoom = 1) {
+        /** @type {boolean} Enables or disables debug mode for the camera. */
         this.debug = false;
+        /** @type {StarSystem} The star system the camera is currently viewing. */
         this.starSystem = starSystem;
-        // Clone position and screenSize to ensure they aren't modified externally
+        /** @type {Vector2D} The position of the camera in world coordinates. */
         this.position = position.clone();
+        /** @type {Vector2D} The size of the screen in pixels. */
         this.screenSize = screenSize.clone();
+        /** @type {number} The current zoom level of the camera. */
         this.zoom = zoom;
-        this.zoomReciprocal = 1 / zoom; // Precompute reciprocal for faster division
+        /** @type {number} The reciprocal of the zoom level for faster calculations. */
+        this.zoomReciprocal = 1 / zoom;
+        /** @type {Vector2D} The size of the world view in world coordinates, based on screen size and zoom. */
         this.worldSize = new Vector2D(screenSize.x * this.zoomReciprocal, screenSize.y * this.zoomReciprocal);
-        // Precompute screen center
+        /** @type {Vector2D} The center of the screen in pixels. */
         this.screenCenter = new Vector2D(screenSize.x / 2, screenSize.y / 2);
-        // Initialize worldBounds object once to avoid allocations in _updateWorldBounds
+        /** @type {Object} The bounds of the camera's view in world coordinates, with angles for visibility. */
         this.worldBounds = {
+            /** @type {number} The left boundary of the camera's view in world coordinates. */
             left: 0,
+            /** @type {number} The right boundary of the camera's view in world coordinates. */
             right: 0,
+            /** @type {number} The top boundary of the camera's view in world coordinates. */
             top: 0,
+            /** @type {number} The bottom boundary of the camera's view in world coordinates. */
             bottom: 0,
-            minAngle: 0, // Cached min angle of camera corners
-            maxAngle: 0  // Cached max angle of camera corners
+            /** @type {number} The minimum angle of the camera's view corners. */
+            minAngle: 0,
+            /** @type {number} The maximum angle of the camera's view corners. */
+            maxAngle: 0
         };
-        this._updateWorldBounds(); // Set initial bounds
+        // Set initial bounds
+        this._updateWorldBounds();
 
         // Temporary scratch values to avoid allocations
-        this._scratchRelativePosition = new Vector2D(); // For world-to-screen relative position
-        this._scratchMin = new Vector2D(); // For cell visibility
+        /** @type {Vector2D} Scratch vector for world-to-screen relative position calculations. */
+        this._scratchRelativePosition = new Vector2D();
+        /** @type {Vector2D} Scratch vector for minimum cell visibility calculations. */
+        this._scratchMin = new Vector2D();
+        /** @type {Vector2D} Scratch vector for maximum cell visibility calculations. */
         this._scratchMax = new Vector2D();
     }
 
@@ -244,14 +260,16 @@ export class Camera {
 export class TargetCamera extends Camera {
     /**
      * Creates a new TargetCamera instance.
-     * @param {StarSystem} starSystem - The initial starSystem.
+     * @param {StarSystem} starSystem - The initial star system.
      * @param {Vector2D} position - The initial position of the camera in world coordinates.
      * @param {Vector2D} screenSize - The size of the screen in pixels.
      */
     constructor(starSystem, position, screenSize) {
         super(starSystem, position, screenSize, 1);
-        this.lastTargetSize = null; // Cache for target size to avoid recomputing zoom
-        this.lastZoom = this.zoom; // Cache for zoom to detect changes
+        /** @type {Vector2D|null} Cache for the last target size to avoid recomputing zoom. */
+        this.lastTargetSize = null;
+        /** @type {number} Cache for the last zoom level to detect changes. */
+        this.lastZoom = this.zoom;
     }
 
     /**

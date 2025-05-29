@@ -13,9 +13,13 @@ export class Colour {
      * @param {number} [a=1] - The alpha component (0 to 1, default is 1 for fully opaque).
      */
     constructor(r, g, b, a = 1) {
+        /** @type {number} The red component of the color (0 to 1). */
         this.r = r;
+        /** @type {number} The green component of the color (0 to 1). */
         this.g = g;
+        /** @type {number} The blue component of the color (0 to 1). */
         this.b = b;
+        /** @type {number} The alpha component of the color (0 to 1, default is 1 for fully opaque). */
         this.a = a;
     }
 

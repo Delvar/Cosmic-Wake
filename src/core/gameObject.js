@@ -27,11 +27,17 @@ export class GameObject {
      * @param {StarSystem} starSystem - The star system the object belongs to.
      */
     constructor(position, starSystem) {
+        /** @type {Vector2D} The position of the object in world coordinates. */
         this.position = position.clone();
+        /** @type {number} The radius of the object, used for collision or rendering. */
         this.radius = 0;
+        /** @type {Vector2D} The velocity of the object in world coordinates. */
         this.velocity = new Vector2D(0, 0);
+        /** @type {StarSystem} The star system the object belongs to. */
         this.starSystem = starSystem;
+        /** @type {boolean} Indicates whether the object is marked for despawning. */
         this.despawned = false;
+        /** @type {boolean} Enables or disables debug mode for the object. */
         this.debug = false;
     }
 

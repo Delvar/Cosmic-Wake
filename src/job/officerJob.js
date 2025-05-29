@@ -123,7 +123,6 @@ export class OfficerJob extends Job {
             this.state = 'Starting';
             return;
         }
-
         const target = this.ship.starSystem.getRandomShip(this.ship, null, this.isValidOfficerTarget);
         if (target) {
             this.pilot.threat = target;
@@ -132,7 +131,6 @@ export class OfficerJob extends Job {
             this.ship.initiateTakeoff();
             return;
         }
-
     }
 
     /**

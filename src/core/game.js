@@ -28,28 +28,42 @@ class Game {
      * @param {HTMLCanvasElement} targetCanvas - The canvas for the target view.
      */
     constructor(manager, canvas, targetCanvas) {
+        /** @type {GameManager} The game manager providing access to game state. */
         this.manager = manager;
+        /** @type {HTMLCanvasElement} The main game canvas for rendering. */
         this.canvas = canvas;
-        //this.ctx = wrapCanvasContext(this.canvas.getContext('2d'));
+        /** @type {CanvasRenderingContext2D} The 2D rendering context for the main canvas. */
         this.ctx = this.canvas.getContext('2d');
+        /** @type {Vector2D} The size of the main canvas in pixels. */
         this.canvasSize = new Vector2D(0, 0);
+        /** @type {HTMLCanvasElement} The canvas for rendering the target view. */
         this.targetCanvas = targetCanvas;
-        //this.targetCtx = wrapCanvasContext(this.targetCanvas.getContext('2d'));
+        /** @type {CanvasRenderingContext2D} The 2D rendering context for the target canvas. */
         this.targetCtx = this.targetCanvas.getContext('2d');
         this.targetCtx.font = 'bolder 16px "Century Gothic Paneuropean", "Century Gothic", "CenturyGothic", "AppleGothic", sans-serif';
 
+        /** @type {TargetCamera} The camera for the target view, managed by the game manager. */
         this.targetCamera = manager.targetCamera;
-
+        /** @type {Camera} The main camera for the game, managed by the game manager. */
         this.camera = manager.camera;
+        /** @type {StarField} The starfield for rendering background stars, managed by the game manager. */
         this.starField = manager.starField;
+        /** @type {HeadsUpDisplay} The HUD for displaying game information, managed by the game manager. */
         this.hud = manager.hud;
+        /** @type {number} The timestamp of the last frame, used for timing calculations. */
         this.lastTime = performance.now();
+        /** @type {number} The number of frames rendered since the last FPS update. */
         this.frameCount = 0;
+        /** @type {number} The calculated frames per second (FPS) for the game. */
         this.fps = 0;
+        /** @type {number} The timestamp of the last FPS update. */
         this.lastFpsUpdate = performance.now();
+        /** @type {number} Timer for controlling zoom text display duration. */
         this.zoomTextTimer = 0;
 
+        // Initialize canvas size
         this.resizeCanvas();
+        /** @type {Function} The bound game loop function for rendering and updating the game. */
         this.gameLoop = this.gameLoop.bind(this);
     }
 
@@ -211,45 +225,7 @@ class Game {
         if (cameraTarget && cameraTarget instanceof Ship && !cameraTarget.despawned && (cameraTarget.state === 'Flying' || cameraTarget.state === 'Disabled')) {
             this.drawShipStats(ctx, this.camera, cameraTarget);
         }
-
-        // ctx.save();
-        // ctx.fillStyle = 'white';
-        // ctx.strokeStyle = 'white';
-        // const up = new Vector2D(0, -100);
-        // up.addInPlace(this.camera.screenCenter);
-        // ctx.beginPath();
-        // ctx.moveTo(this.camera.screenCenter.x, this.camera.screenCenter.y);
-        // ctx.lineTo(up.x, up.y);
-        // ctx.closePath();
-        // ctx.stroke();
-
-        // ctx.beginPath();
-        // ctx.moveTo(up.x, up.y);
-        // ctx.arc(up.x, up.y, 3, 0, TWO_PI);
-        // ctx.closePath();
-        // ctx.fill();
-
-        // ctx.fillStyle = 'green';
-        // ctx.strokeStyle = 'green';
-        // up.setFromPolar(100,Math.PI/-2);
-        // up.addInPlace(this.camera.screenCenter);
-        // ctx.beginPath();
-        // ctx.moveTo(this.camera.screenCenter.x, this.camera.screenCenter.y);
-        // ctx.lineTo(up.x, up.y);
-        // ctx.closePath();
-        // ctx.stroke();
-
-        // ctx.beginPath();
-        // ctx.moveTo(up.x, up.y);
-        // ctx.arc(up.x, up.y, 3, 0, TWO_PI);
-        // ctx.closePath();
-        // ctx.fill();
-        // ctx.restore();
         ctx.restore();
-
-        // if (ctx.getStackSize() !== 0) {
-        //     console.warn(`Frame end: Stack size is ${ctx.getStackSize()}`);
-        // }
     }
 
     /**
@@ -312,76 +288,75 @@ class Game {
  * Manages the overall game state, including initialization, event handling, and updates.
  */
 class GameManager {
+
+
     /**
      * Creates a new GameManager instance.
      */
     constructor() {
+        /** @type {boolean} Enables or disables debug mode for the game. */
         this.debug = false;
+        /** @type {HTMLCanvasElement} The main game canvas for rendering. */
         this.canvas = document.getElementById('gameCanvas');
+        /** @type {HTMLCanvasElement} The canvas for rendering the target view. */
         this.targetCanvas = document.getElementById('targetCanvas');
+        /** @type {Object.<string, boolean>} Tracks the current state of keyboard inputs. */
         this.keys = {};
+        /** @type {Object.<string, boolean>} Tracks the previous state of keyboard inputs for detecting changes. */
         this.lastKeys = {};
+        /** @type {boolean} Indicates whether the game window is currently focused. */
         this.isFocused = true;
+        /** @type {Array.<StarSystem>} The galaxy containing star systems for the game. */
         this.galaxy = createGalaxy();
-        const starSystem = this.galaxy[0];
-        const earth = starSystem.planets[5];
-        //this.playerShip = createRandomShip(earth.position.x + earth.radius * 1.5, earth.position.y, starSystem);
-        this.playerShip = new Interceptor(earth.position.x + earth.radius * 1.5, earth.position.y, starSystem);
+        // The planet to spawn the player at
+        const spawnPlanet = this.galaxy[0].planets[2];
+        /** @type {Ship} The player's ship, positioned relative to a planet. */
+        this.playerShip = new Interceptor(spawnPlanet.position.x + spawnPlanet.radius * 1.5, spawnPlanet.position.y, this.galaxy[0]);
+        /** @type {Ship} The first escort ship, following the player or performing tasks. */
+        this.escort01 = new Shuttle(spawnPlanet.position.x + spawnPlanet.radius * 1.0, spawnPlanet.position.y, this.galaxy[0]);
+        /** @type {PlayerPilot} The pilot controlling the player's ship. */
+        this.playerPilot = new PlayerPilot(this.playerShip);
+        /** @type {Camera} The main camera tracking the player's ship. */
+        this.camera = new Camera(this.playerShip.starSystem, this.playerShip.position, new Vector2D(window.innerWidth, window.innerHeight), 1);
+        /** @type {Ship} The current target for the camera, typically the player's ship. */
+        this.cameraTarget = this.playerShip;
+        /** @type {TargetCamera} The camera for the target view, rendering a secondary perspective. */
+        this.targetCamera = new TargetCamera(this.playerShip.starSystem, new Vector2D(0, 0), new Vector2D(this.targetCanvas.width, this.targetCanvas.height));
+        /** @type {StarField} The starfield for rendering background stars. */
+        this.starField = new StarField(20, 1000, 10);
+        /** @type {HeadsUpDisplay} The HUD for displaying game information. */
+        this.hud = new HeadsUpDisplay(this, window.innerWidth, window.innerHeight);
+        /** @type {number} Timer for controlling zoom text display duration. */
+        this.zoomTextTimer = 0;
+        /** @type {number} Timestamp of the last AI ship spawn. */
+        this.lastSpawnTime = performance.now();
+        /** @type {number} Interval between AI ship spawns, randomized for variety. */
+        this.spawnInterval = this.randomSpawnInterval();
+        /** @type {Game} The game instance managing rendering and updates. */
+        this.game = new Game(this, this.canvas, this.targetCanvas);
 
-        //this.playerShip = new Freighter(earth.position.x + earth.radius * 1.5, earth.position.y, starSystem);
+        // Temporary scratch values to avoid allocations
+        /** @type {Vector2D} Scratch vector for calculating spawn positions in spawnAIShips. */
+        this._scratchSpawnPos = new Vector2D(0, 0);
 
-        //this.escort01 = new Interceptor(earth.position.x + earth.radius * 1.0, earth.position.y, starSystem);
-        //this.escort01 = new Freighter(earth.position.x + earth.radius * 1.0, earth.position.y, starSystem);
-        this.escort01 = new Shuttle(earth.position.x + earth.radius * 1.0, earth.position.y, starSystem);
+        // Initialize escort ship with AI pilot and matching colors
         const job01 = new WandererJob(this.escort01);
         const pilot01 = new CivilianAiPilot(this.escort01, job01);
         this.escort01.setPilot(pilot01);
-        //this.escort01.pilot = new EscortAIPilot(this.escort01, this.playerShip);
         this.escort01.colors.cockpit = this.playerShip.colors.cockpit;
         this.escort01.colors.wings = this.playerShip.colors.wings;
         this.escort01.colors.hull = this.playerShip.colors.hull;
         this.escort01.trail.color = this.playerShip.trail.color;
-        starSystem.addGameObject(this.escort01);
+        this.galaxy[0].addGameObject(this.escort01);
         this.playerShip.setTarget(this.escort01);
 
-        // this.escort02 = new Flivver(earth.position.x + 100, earth.position.y, starSystem);
-        // this.escort02.pilot = new EscortAIPilot(this.escort02, this.playerShip);
-        // this.escort02.colors.cockpit = this.playerShip.colors.cockpit;
-        // this.escort02.colors.wings = this.playerShip.colors.wings;
-        // this.escort02.colors.hull = this.playerShip.colors.hull;
-        // this.escort02.trail.color = this.playerShip.trail.color;
-        // starSystem.addGameObject(this.escort02);
-
-        // this.escort02 = new Interceptor(earth.position.x + earth.radius * 1.0, earth.position.y, starSystem);
-        // const job02 = new WandererJob(this.escort02);
-        // const pilot02 = new CivilianAiPilot(this.escort02, job02);
-        // this.escort02.setPilot(pilot02);
-        // this.escort02.colors.cockpit = this.playerShip.colors.cockpit;
-        // this.escort02.colors.wings = this.playerShip.colors.wings;
-        // this.escort02.colors.hull = this.playerShip.colors.hull;
-        // this.escort02.trail.color = this.playerShip.trail.color;
-        // starSystem.addGameObject(this.escort02);
-        //this.playerShip.setTarget(this.escort02);
-
-        this.playerPilot = new PlayerPilot(this.playerShip);
+        // Set player pilot
         this.playerShip.pilot = this.playerPilot;
         this.galaxy[0].ships.push(this.playerShip);
-        this.camera = new Camera(this.playerShip.starSystem, this.playerShip.position, new Vector2D(window.innerWidth, window.innerHeight), 1);
-        this.cameraTarget = this.playerShip;
-        this.targetCamera = new TargetCamera(this.playerShip.starSystem, new Vector2D(0, 0), new Vector2D(this.targetCanvas.width, this.targetCanvas.height));
-        this.starField = new StarField(20, 1000, 10);
-        this.hud = new HeadsUpDisplay(this, window.innerWidth, window.innerHeight);
-        this.zoomTextTimer = 0;
-        this.lastSpawnTime = performance.now();
-        this.spawnInterval = this.randomSpawnInterval();
-        this.game = new Game(this, this.canvas, this.targetCanvas);
 
-        // Temporary scratch values to avoid allocations
-        this._scratchSpawnPos = new Vector2D(0, 0); // For calculating spawn positions in spawnAIShips
-
+        // Initialize game systems
         this.spawnAIShips();
         this.setupEventListeners();
-
         this.game.start();
     }
 

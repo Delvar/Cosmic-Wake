@@ -13,6 +13,16 @@ import { FixedWeapon } from '/src/weapon/fixedWeapon.js';
 import { AIPilot } from '/src/pilot/aiPilot.js';
 import { PlayerPilot } from '/src/pilot/pilot.js';
 
+//Colours used for the lights
+const colourRed = new Colour(1.0, 0.0, 0.0);
+const colourGreen = new Colour(0.0, 1.0, 0.0);
+const colourBlue = new Colour(0.0, 0.0, 1.0);
+const colourWhite = new Colour(1.0, 1.0, 1.0);
+
+/**
+ * Generates a random, sometimes quirky, name for a ship.
+ * @returns {string} the generated name.
+ */
 function generateShipName() {
     const prefixes = [
         "Star", "Void", "Nova", "Astro", "Hyper", "Galacto", "Nebula",
@@ -186,6 +196,8 @@ export class Ship extends GameObject {
         this.turrets = [];
         /** @type {FixedWeapon[]} Array of fixed weapons. */
         this.fixedWeapons = [];
+        /** @type {string} Current mode for the lights (e.g., 'Normal', 'Flicker', 'Disabled', 'Warden'). */
+        this.lightMode = 'Normal';
 
         // Initialize feature points and bounding box
         this.setupFeaturePoints();
@@ -343,6 +355,13 @@ export class Ship extends GameObject {
             console.warn(`Invalid state transition attempted: ${newState}`);
             return;
         }
+
+        if (newState === 'Disabled' && this.lightMode !== 'Flicker') {
+            this.lightMode = 'Flicker';
+        } else if (this.lightMode !== 'Normal') {
+            this.lightMode = 'Normal';
+        }
+
         this.state = newState;
         this.animationTime = 0; // Reset animation timer for new state
     }
@@ -1237,52 +1256,72 @@ export class Ship extends GameObject {
      * @param {Camera} camera - The camera object.
      */
     drawLights(ctx, camera) {
+        if (this.state === 'Exploding') return;
+
+        // @type {string} Current mode for the lights (e.g., 'Normal', 'Flicker', 'Disabled', 'Warden'). */
+        //this.lightMode = 'Normal';
         for (let i = 0; i < this.featurePoints.lights.length; i++) {
             const light = this.featurePoints.lights[i];
-            let brightness = 0;
+            let brightness = 1;
+            let colour = colourWhite;
 
-            if (this.state === 'Disabled') {
+            if (this.lightMode === 'Flicker') {
                 let blink = Math.abs(Math.sin(107 + i * 0.3 + this.age * 1.3) * Math.cos(113 + i * 0.2 + this.age * 1.5));
                 blink = blink < 0.8 ? 0 : blink;
                 brightness = Math.abs(Math.sin(109 + i * 2.0 + this.age * 13) * Math.cos(127 + i * 3.5 + this.age * 7));
                 brightness = (brightness *= blink) > 0.50 ? 1 : brightness;
                 brightness *= blink;
-            } else if (this.state === 'Exploding') {
-                return;
+            } else if (this.lightMode === 'Warden') {
+                // Cycle time for two full cycles per second (0.5s per cycle)
+                const cycleTime = this.age % 0.5;
+                // Each phase lasts 1/16s (0.0625s)
+                const phaseDuration = 0.0625;
+                // Determine which phase we're in (0 to 7)
+                const phase = Math.floor(cycleTime / phaseDuration);
+
+                if (light.x < -3) {
+                    // Left side (red): On for phase 0 and 2, off for 1 and 3
+                    brightness = (phase === 0 || phase === 2) ? 1 : 0;
+                } else if (light.x > 3) {
+                    // Right side (blue): On for phase 4 and 6, off for 5 and 7
+                    brightness = (phase === 4 || phase === 6) ? 1 : 0;
+                } else {
+                    // Center lights: Off in Warden mode
+                    brightness = 0;
+                }
             } else {
                 const sinAge = Math.sin((this.age * 5) - (light.y / this.boundingBox.y));
                 brightness = Math.max(0, sinAge) ** 8;
             }
 
-            // Create radial gradient
-            ctx.save();
-            ctx.globalCompositeOperation = "lighter";
-            const gradient = ctx.createRadialGradient(light.x, light.y, 0, light.x, light.y, light.radius * 5 * brightness);
             if (light.x < -3) {
-                // Left: Red outer/middle, white inner
-                gradient.addColorStop(0, `rgba(255,255,255,${brightness * 0.75})`);
-                gradient.addColorStop(0.05, `rgba(255,255,255,${brightness * 0.5})`);
-                gradient.addColorStop(0.2, `rgba(255,0,0,${brightness * 0.25})`);
-                gradient.addColorStop(1, 'rgba(255,0,0,0)');
+                // Left: Red
+                colour = colourRed;
             } else if (light.x > 3) {
-                // Right: Green outer/middle, white inner
-                gradient.addColorStop(0, `rgba(255,255,255,${brightness * 0.75})`);
-                gradient.addColorStop(0.05, `rgba(255,255,255,${brightness * 0.5})`);
-                gradient.addColorStop(0.2, `rgba(0,255,0,${brightness * 0.25})`);
-                gradient.addColorStop(1, 'rgba(0,255,0,0)');
+                // Right: Green or Blue
+                if (this.lightMode === 'Warden') {
+                    colour = colourBlue;
+                } else {
+                    colour = colourGreen;
+                }
             } else {
-                // Center: White for all
-                gradient.addColorStop(0, `rgba(255,255,255,${brightness * 0.75})`);
-                gradient.addColorStop(0.05, `rgba(255,255,255,${brightness * 0.5})`);
-                gradient.addColorStop(0.2, `rgba(255,255,255,${brightness * 0.25})`);
-                gradient.addColorStop(1, 'rgba(255,255,255,0)');
+                // Center: White
+                colour = colourWhite;
             }
 
-            // Draw single circle with gradient
+            const lightRadius = light.radius * (this.lightMode === 'Warden' ? 20 : 5) * brightness;
+
+            ctx.save();
+            ctx.globalCompositeOperation = "lighter";
+            const gradient = ctx.createRadialGradient(light.x, light.y, 0, light.x, light.y, lightRadius);
+            gradient.addColorStop(0, colourWhite.toRGBA(brightness * 0.75));
+            gradient.addColorStop(0.05, colourWhite.toRGBA(brightness * 0.5));
+            gradient.addColorStop(0.2, colour.toRGBA(brightness * 0.25));
+            gradient.addColorStop(1, colour.toRGBA(0));
             ctx.fillStyle = gradient;
             ctx.beginPath();
             ctx.moveTo(light.x, light.y);
-            ctx.arc(light.x, light.y, light.radius * 5 * brightness, 0, TWO_PI);
+            ctx.arc(light.x, light.y, lightRadius, 0, TWO_PI);
             ctx.closePath();
             ctx.fill();
             ctx.restore();

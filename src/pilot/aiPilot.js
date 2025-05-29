@@ -589,6 +589,11 @@ export class OfficerAiPilot extends AIPilot {
             this.changeState('Flee', new FleeAutopilot(this.ship, this.threat));
             return;
         }
+        if (this.state === 'Attack') {
+            this.ship.lightMode = 'Warden';
+        } else {
+            this.ship.lightMode = 'Normal';
+        }
         super.update(deltaTime, gameManager);
     }
 
@@ -665,6 +670,22 @@ export class OfficerAiPilot extends AIPilot {
             }
             this.ship.target = this.threat;
             this.changeState('Attack', new AttackAutopilot(this.ship, this.threat));
+        }
+    }
+
+    /**
+     * Changes state and autopilot, handling cleanup.
+     * @param {string} newState - The new state ('Job', 'Flee', 'Avoid', 'Attack').
+     * @param {Autopilot} [newAutopilot=null] - The new autopilot, if any.
+     */
+    changeState(newState, newAutopilot = null) {
+        super.changeState(newState, newAutopilot);
+        if (this.state === newState) return;
+        // Pause job only when leaving Job state
+        if (this.state === 'Attack') {
+            this.ship.lightMode = 'Warden';
+        } else {
+            this.ship.lightMode = 'Normal';
         }
     }
 }

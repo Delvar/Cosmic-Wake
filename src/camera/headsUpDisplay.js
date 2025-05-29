@@ -18,32 +18,56 @@ export class HeadsUpDisplay {
      * @param {number} height - Initial height of the HUD in pixels.
      */
     constructor(gameManager, width, height) {
+        /** @type {GameManager} The game manager providing access to game state. */
         this.gameManager = gameManager;
+        /** @type {Vector2D} The size of the HUD in pixels (width, height). */
         this.size = new Vector2D(width, height);
 
-        this.shipRingRadius = 1;
-        this.threatRingRadius = 1;
-        this.asteroidRingRadius = 1;
-        this.planetRingRadius = 1;
+        /** @type {number} Radius of the jump gate ring in pixels. */
         this.jumpGateRingRadius = 1;
+        /** @type {Colour} Colour of the jump gate ring. */
+        this.jumpGateRingColour = new Colour(0.25, 0.25, 1.0);
 
+        /** @type {number} Radius of the planet ring in pixels. */
+        this.planetRingRadius = 1;
+        /** @type {Colour} Colour of the planet ring. */
+        this.planetRingColour = new Colour(0.25, 1.0, 1.25);
+
+        /** @type {number} Radius of the asteroid ring in pixels. */
+        this.asteroidRingRadius = 1;
+        /** @type {Colour} Colour of the asteroid ring. */
+        this.asteroidRingColour = new Colour(0.25, 1.0, 0.25);
+
+        /** @type {number} Radius of the ship ring in pixels. */
+        this.shipRingRadius = 1;
+        /** @type {Colour} Colour of the ship ring. */
+        this.shipRingColour = new Colour(1.0, 1.0, 0.25);
+
+        /** @type {number} Radius of the threat ring in pixels. */
+        this.threatRingRadius = 1;
+        /** @type {Colour} Colour of the threat ring. */
+        this.threatRingColour = new Colour(1.0, 0.25, 0.25);
+
+        /** @type {number} Line width for rings in pixels. */
         this.ringLineWidth = 4;
+        /** @type {number} Spacing between ring lines in pixels. */
         this.ringLineSpace = 12;
 
-        this.maxRadius = 5000; // Maximum distance for arrow visibility
-        this.resize(width, height);
-
-        this.threats = [];
+        /** @type {number} Maximum distance for arrow visibility in pixels. */
+        this.maxRadius = 5000;
 
         // Temporary scratch values to avoid allocations
-        this._scratchCenter = new Vector2D(0, 0); // For screen center in draw
-        this._scratchCameraPos = new Vector2D(0, 0); // For camera-relative position
-        this._scratchScreenPos = new Vector2D(0, 0); // For screen position of objects
-        // Additional scratch vectors for bounding box corners
-        this._scratchCorner1 = new Vector2D(0, 0);
-        this._scratchCorner2 = new Vector2D(0, 0);
-        this._scratchCorner3 = new Vector2D(0, 0);
-        this._scratchCorner4 = new Vector2D(0, 0);
+        /** @type {Vector2D} Scratch vector for camera-relative position calculations. */
+        this._scratchCameraPos = new Vector2D(0, 0);
+        /** @type {Vector2D} Scratch vector for screen position of objects. */
+        this._scratchScreenPos = new Vector2D(0, 0);
+        /** @type {Array<Ship>} Scratch buffer to store threats. */
+        this._scratchThreats = [];
+        /** @type {Array<Ship>} Scratch buffer to store flying ships. */
+        this._scratchShips = [];
+
+        // Call resize to initialize HUD dimensions
+        this.resize(width, height);
     }
 
     /**
@@ -83,103 +107,12 @@ export class HeadsUpDisplay {
         camera.worldToScreen(target.position, this._scratchScreenPos);
 
         ctx.save();
-        //ctx.shadowColor = 'rgba(255, 255, 64, 0.75)';
-        //ctx.shadowBlur = 4;
         ctx.strokeStyle = 'rgb(255, 255, 64)';
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, target.radius * 1.1, 0, TWO_PI);
         ctx.stroke();
         ctx.restore();
-
-        // if (target instanceof Ship) {
-        // // Compute the rotated bounding box corners in world space
-        // // Apply shipScale but ignore stretchFactor
-        // const halfWidth = (target.boundingBox.x * target.shipScale) / 2;
-        // const halfHeight = (target.boundingBox.y * target.shipScale) / 2;
-        // const cosAngle = Math.cos(target.angle);
-        // const sinAngle = Math.sin(target.angle);
-
-        // // Define the four corners of the bounding box in local space (before rotation)
-        // // Corner 1: Top-left
-        // this._scratchCorner1.set(-halfWidth, -halfHeight);
-        // // Corner 2: Top-right
-        // this._scratchCorner2.set(halfWidth, -halfHeight);
-        // // Corner 3: Bottom-right
-        // this._scratchCorner3.set(halfWidth, halfHeight);
-        // // Corner 4: Bottom-left
-        // this._scratchCorner4.set(-halfWidth, halfHeight);
-
-        // // Rotate each corner around the ship's center (which is at target.position)
-        // const rotatePoint = (point) => {
-        //     const x = point.x * cosAngle - point.y * sinAngle;
-        //     const y = point.x * sinAngle + point.y * cosAngle;
-        //     point.set(x, y).addInPlace(target.position);
-        // };
-        // rotatePoint(this._scratchCorner1);
-        // rotatePoint(this._scratchCorner2);
-        // rotatePoint(this._scratchCorner3);
-        // rotatePoint(this._scratchCorner4);
-
-        // // Convert corners to screen space
-        // camera.worldToScreen(this._scratchCorner1, this._scratchCorner1);
-        // camera.worldToScreen(this._scratchCorner2, this._scratchCorner2);
-        // camera.worldToScreen(this._scratchCorner3, this._scratchCorner3);
-        // camera.worldToScreen(this._scratchCorner4, this._scratchCorner4);
-
-        // // Compute the axis-aligned bounding box (AABB) in screen space
-        // const minX = Math.min(
-        //     this._scratchCorner1.x,
-        //     this._scratchCorner2.x,
-        //     this._scratchCorner3.x,
-        //     this._scratchCorner4.x
-        // );
-        // const maxX = Math.max(
-        //     this._scratchCorner1.x,
-        //     this._scratchCorner2.x,
-        //     this._scratchCorner3.x,
-        //     this._scratchCorner4.x
-        // );
-        // const minY = Math.min(
-        //     this._scratchCorner1.y,
-        //     this._scratchCorner2.y,
-        //     this._scratchCorner3.y,
-        //     this._scratchCorner4.y
-        // );
-        // const maxY = Math.max(
-        //     this._scratchCorner1.y,
-        //     this._scratchCorner2.y,
-        //     this._scratchCorner3.y,
-        //     this._scratchCorner4.y
-        // );
-
-        // // Draw the AABB as the yellow rectangle
-        // ctx.strokeStyle = 'rgba(255, 255, 0, 0.8)';
-        // ctx.lineWidth = 2;
-        // ctx.beginPath();
-        // const padding = 5; // Pixels of padding in screen space
-        // ctx.rect(
-        //     minX - padding,
-        //     minY - padding,
-        //     (maxX - minX) + 2 * padding,
-        //     (maxY - minY) + 2 * padding
-        // );
-        // ctx.stroke();
-        // } else {
-        // // For non-ships, use radius or size with padding, as before
-        // const size = target.radius + 10 || target.size + 10 || 20;
-        // const scaledSize = camera.worldToSize(size);
-        // ctx.strokeStyle = 'rgba(255, 255, 0, 0.8)';
-        // ctx.lineWidth = 2;
-        // ctx.beginPath();
-        // ctx.rect(
-        //     this._scratchScreenPos.x - scaledSize,
-        //     this._scratchScreenPos.y - scaledSize,
-        //     scaledSize * 2,
-        //     scaledSize * 2
-        // );
-        // ctx.stroke();
-        // }
     }
 
     /**
@@ -193,30 +126,10 @@ export class HeadsUpDisplay {
      */
     drawRing(ctx, camera, ringColour, ringRadius, showNames = true, objects, target) {
         ctx.save();
-        // Optional Glow efect without drop shadow,
-        // ctx.globalCompositeOperation = "screen";
-        // const steps = 8;
-        // for (let i = steps; i > 0; i--) {
-        //     const colourRatio = remapClamp(i, 0, steps, 0.3, 1.0) ** 2 * 0.1;
-        //     //ctx.strokeStyle = ringColour.toRGBA(1);//remapClamp(i, 0, steps, 0.3, 1.0) ** 2 * 0.1);
-        //     const r = Math.round(ringColour.r * colourRatio * 255);
-        //     const g = Math.round(ringColour.g * colourRatio * 255);
-        //     const b = Math.round(ringColour.b * colourRatio * 255);
-        //     ctx.strokeStyle = `rgb(${r}, ${g}, ${b})`;
-        //     ctx.lineWidth = this.ringLineWidth + remapClamp(i, 0, steps, steps * 4.0, 2);
-        //     ctx.beginPath();
-        //     ctx.arc(camera.screenCenter.x, camera.screenCenter.y, ringRadius, 0, TWO_PI);
-        //     ctx.closePath();
-        //     ctx.stroke();
-        // }
-        // ctx.globalCompositeOperation = "source-over";
-
-        let colour = ringColour.toRGB();
+        const colour = ringColour.toRGB();
         ctx.strokeStyle = colour;
+        ctx.fillStyle = colour;
         ctx.lineWidth = this.ringLineWidth;
-        //ctx.globalAlpha = 0.5;
-        //ctx.shadowColor = ringColour.toRGBA(0.75);
-        //ctx.shadowBlur = 8;
 
         ctx.beginPath();
         ctx.arc(camera.screenCenter.x, camera.screenCenter.y, ringRadius, 0, TWO_PI);
@@ -235,9 +148,7 @@ export class HeadsUpDisplay {
                 if (body.name && showNames) {
                     ctx.save();
                     ctx.beginPath();
-                    ctx.globalAlpha = 1.0;
                     ctx.fillStyle = 'white';
-                    //ctx.font = `${camera.worldToSize(16)}px Arial`;
                     ctx.textAlign = 'center';
                     const scaledRadius = camera.worldToSize(body.radius);
                     ctx.fillText(body.name, this._scratchScreenPos.x, this._scratchScreenPos.y + scaledRadius + camera.worldToSize(20));
@@ -245,13 +156,11 @@ export class HeadsUpDisplay {
                 }
             } else {
                 const angle = Math.atan2(this._scratchCameraPos.x, -this._scratchCameraPos.y);
-                const arrowX = this._scratchCenter.x + Math.sin(angle) * ringRadius;
-                const arrowY = this._scratchCenter.y - Math.cos(angle) * ringRadius;
+                const arrowX = camera.screenCenter.x + Math.sin(angle) * ringRadius;
+                const arrowY = camera.screenCenter.y - Math.cos(angle) * ringRadius;
 
                 ctx.save();
                 ctx.beginPath();
-                ctx.strokeStyle = colour;
-                ctx.fillStyle = colour;
                 ctx.translate(arrowX, arrowY);
                 ctx.rotate(angle);
                 if (body === target) {
@@ -260,7 +169,7 @@ export class HeadsUpDisplay {
                     ctx.lineTo(5, 0);    // Bottom right
                     ctx.lineTo(-5, 0);   // Bottom left
                 } else {
-                    const opacity = remapClamp(squareMagnitude, this.maxRadius * this.maxRadius, 0, 0.1, 1);
+                    const opacity = remapClamp(squareMagnitude, 0, this.maxRadius * this.maxRadius, 1.0, 0.0);
                     ctx.globalAlpha = opacity;
                     ctx.moveTo(0, -10);  // Tip up
                     ctx.lineTo(5, 0);    // Bottom right
@@ -280,7 +189,6 @@ export class HeadsUpDisplay {
      * @param {Camera} camera - The camera object for coordinate transformations.
      */
     draw(ctx, camera) {
-        this._scratchCenter.set(camera.screenCenter); // Use scratch for center
         ctx.save();
 
         // Draw autopilot status at top middle if the camera's target ship has an active autopilot
@@ -292,7 +200,6 @@ export class HeadsUpDisplay {
         }
         if (autopilotStatus) {
             ctx.fillStyle = "white";
-            //ctx.font = "16px Arial";
             ctx.textAlign = "center";
             ctx.fillText(autopilotStatus, this.size.width / 2, 20); // Top middle of screen
         }
@@ -307,24 +214,29 @@ export class HeadsUpDisplay {
             target = this.gameManager.cameraTarget.target;
         }
 
-        this.threats.length = 0;
+        this._scratchThreats.length = 0;
+        this._scratchShips.length = 0;
         for (let i = 0; i < camera.starSystem.ships.length; i++) {
-            if (camera.starSystem.ships[i].target == this.gameManager.cameraTarget) {
-                this.threats.push(camera.starSystem.ships[i]);
+            const ship = camera.starSystem.ships[i];
+            if (ship.target === this.gameManager.cameraTarget) {
+                this._scratchThreats.push(ship);
+            }
+            if (ship.state === 'Flying') {
+                this._scratchShips.push(ship);
             }
         }
 
         // Draw jumpGate
-        this.drawRing(ctx, camera, new Colour(0.25, 0.25, 1.0), this.jumpGateRingRadius, true, camera.starSystem.jumpGates, target);
+        this.drawRing(ctx, camera, this.jumpGateRingColour, this.jumpGateRingRadius, true, camera.starSystem.jumpGates, target);
         // Draw planet ring
-        this.drawRing(ctx, camera, new Colour(0.25, 1.0, 1.25), this.planetRingRadius, true, camera.starSystem.planets, target);
+        this.drawRing(ctx, camera, this.planetRingColour, this.planetRingRadius, true, camera.starSystem.planets, target);
         // Draw asteroid ring
-        this.drawRing(ctx, camera, new Colour(0.25, 1.0, 0.25), this.asteroidRingRadius, false, camera.starSystem.asteroids, target);
+        this.drawRing(ctx, camera, this.asteroidRingColour, this.asteroidRingRadius, false, camera.starSystem.asteroids, target);
         // Draw ship ring
-        this.drawRing(ctx, camera, new Colour(1.0, 1.0, 0.25), this.shipRingRadius, false, camera.starSystem.ships, target);
-        if (this.threats.length > 0) {
+        this.drawRing(ctx, camera, this.shipRingColour, this.shipRingRadius, false, this._scratchShips, target);
+        if (this._scratchThreats.length > 0) {
             // Draw threat ring
-            this.drawRing(ctx, camera, new Colour(1.0, 0.25, 0.25), this.threatRingRadius, false, this.threats, target);
+            this.drawRing(ctx, camera, this.threatRingColour, this.threatRingRadius, false, this._scratchThreats, target);
         }
 
         this.drawTargetRectangle(ctx, camera, target);

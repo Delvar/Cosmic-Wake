@@ -333,13 +333,14 @@ export class FlyToTargetAutopilot extends Autopilot {
         // Adjust desired velocity based on distance phase
         if (distance < this.arrivalDistance) {
             // Within arrival distance: match target velocity
-            this._scratchDesiredVelocity.set(this.target.velocity);
+            this._scratchDesiredVelocity.set(this._scratchLeadDirection)
+                .multiplyInPlace(this.arrivalSpeed * 0.5).addInPlace(this.target.velocity);
             errorThresholdRatio = 0.1; // Tighten thrust threshold
         } else if (distance < this.closeApproachDistance) {
             // Close approach: slow to arrival speed, face away from target
             this._scratchDesiredVelocity.set(this._scratchLeadDirection)
                 .multiplyInPlace(this.arrivalSpeed).addInPlace(this.target.velocity);
-            errorThresholdRatio = 0.5; // Moderate thrust threshold
+            errorThresholdRatio = remapClamp(distance, this.arrivalDistance, this.closeApproachDistance, 0.1, 1.0);
             failoverAngle = this._scratchDirectionToTarget.getAngle() + Math.PI; // Face away
         } else if (distance < this.farApproachDistance) {
             // Far approach: interpolate speed, face away from target

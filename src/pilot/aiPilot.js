@@ -11,9 +11,9 @@ import { remapClamp } from '/src/core/utils.js';
  * Base AI pilot with common states and reaction handling.
  * @extends Pilot
  */
-export class AIPilot extends Pilot {
+export class AiPilot extends Pilot {
     /**
-     * Creates a new AIPilot instance.
+     * Creates a new AiPilot instance.
      * @param {Ship} ship - The ship to control.
      * @param {Job} job - The job instance (e.g., WandererJob).
      */
@@ -77,7 +77,7 @@ export class AIPilot extends Pilot {
     updateJob(deltaTime, gameManager) {
         if (this.job.state === 'Failed') {
             if (this.ship.debug) {
-                console.log('AIPilot: Job failed, transitioning to Despawning');
+                console.log('AiPilot: Job failed, transitioning to Despawning');
             }
             this.changeState('Despawning', new LandOnPlanetDespawnAutopilot(this.ship));
             return;
@@ -185,16 +185,16 @@ export class AIPilot extends Pilot {
         if (!(this.autopilot instanceof AttackAutopilot) && this.ship.state === 'Flying') {
             this.setAutopilot(new AttackAutopilot(this.ship, this.threat));
             if (this.ship.debug) {
-                console.log("AIPilot: Set AttackAutopilot");
+                console.log("AiPilot: Set AttackAutopilot");
             }
         }
         if (this.autopilot) {
             if (!this.autopilot.active) {
                 if (this.ship.debug && this.autopilot.error) {
-                    console.log(`AIPilot: AttackAutopilot error ${this.autopilot.error}`);
+                    console.log(`AiPilot: AttackAutopilot error ${this.autopilot.error}`);
                 }
                 if (this.ship.debug && this.autopilot.isComplete()) {
-                    console.log(`AIPilot: AttackAutopilot completed`);
+                    console.log(`AiPilot: AttackAutopilot completed`);
                 }
                 this.changeState('Job');
             } else {
@@ -287,7 +287,7 @@ export class AIPilot extends Pilot {
         this.state = newState;
         this.setAutopilot(newAutopilot);
         if (this.ship.debug) {
-            console.log(`AIPilot: State changed to ${newState}`);
+            console.log(`AiPilot: State changed to ${newState}`);
         }
     }
 
@@ -316,9 +316,9 @@ export class AIPilot extends Pilot {
 
 /**
  * AI pilot for civilian ships with reaction logic.
- * @extends AIPilot
+ * @extends AiPilot
  */
-export class CivilianAiPilot extends AIPilot {
+export class CivilianAiPilot extends AiPilot {
     /**
      * Creates a new CivilianAiPilot instance.
      * @param {Ship} ship - The ship to control.
@@ -446,9 +446,9 @@ export class CivilianAiPilot extends AIPilot {
 
 /**
  * AI pilot for pirate ships with reaction logic.
- * @extends AIPilot
+ * @extends AiPilot
  */
-export class PirateAiPilot extends AIPilot {
+export class PirateAiPilot extends AiPilot {
     /**
      * Creates a new PirateAiPilot instance.
      * @param {Ship} ship - The ship to control.
@@ -559,9 +559,9 @@ export class PirateAiPilot extends AIPilot {
 
 /**
  * AI pilot for officers ships with reaction logic.
- * @extends AIPilot
+ * @extends AiPilot
  */
-export class OfficerAiPilot extends AIPilot {
+export class OfficerAiPilot extends AiPilot {
     /**
      * Creates a new OfficerAiPilot instance.
      * @param {Ship} ship - The ship to control.
@@ -589,6 +589,22 @@ export class OfficerAiPilot extends AIPilot {
             this.changeState('Flee', new FleeAutopilot(this.ship, this.threat));
             return;
         }
+
+        if (this.ship.target && this.ship.target instanceof Ship) {
+            if (!this.isValidOfficerTarget(this.ship, this.ship.target)) {
+                this.ship.target = null;
+                if (this.state === 'Attack') {
+                    this.changeState('Job');
+                }
+            }
+        }
+
+        if (this.threat && this.threat instanceof Ship) {
+            if (!this.isValidOfficerTarget(this.ship, this.threat)) {
+                this.threat = null;
+            }
+        }
+
         if (this.state === 'Attack') {
             this.ship.lightMode = 'Warden';
         } else {
@@ -687,5 +703,17 @@ export class OfficerAiPilot extends AIPilot {
         } else {
             this.ship.lightMode = 'Normal';
         }
+    }
+
+    /**
+     * Checks if a target is valid, normal checks and not Pirate.
+     * @param {GameObject} source - The source game object to validate.
+     * @param {GameObject} target - The target game object to validate.
+     * @returns {boolean} True if the target is valid, false otherwise.
+     */
+    isValidOfficerTarget(source, target) {
+        if (!isValidAttackTarget(source, target)) return false;
+        if (target.pilot instanceof PirateAiPilot) return true;
+        return false;
     }
 }

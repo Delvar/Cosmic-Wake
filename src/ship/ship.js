@@ -10,7 +10,7 @@ import { Asteroid } from '/src/starSystem/asteroidBelt.js';
 import { Shield } from '/src/ship/shield.js';
 import { Turret } from '/src/weapon/turret.js';
 import { FixedWeapon } from '/src/weapon/fixedWeapon.js';
-import { AIPilot } from '/src/pilot/aiPilot.js';
+import { AiPilot } from '/src/pilot/aiPilot.js';
 import { PlayerPilot } from '/src/pilot/pilot.js';
 
 //Colours used for the lights
@@ -568,7 +568,7 @@ export class Ship extends GameObject {
             }
             this.hullIntegrity = Math.max(this.hullIntegrity - excessDamage, -50);
         }
-        if (this.pilot instanceof AIPilot) {
+        if (this.pilot instanceof AiPilot) {
             this.pilot.onDamage(damage, source);
         }
     }

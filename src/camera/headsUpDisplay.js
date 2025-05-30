@@ -5,7 +5,7 @@ import { Ship } from '/src/ship/ship.js';
 import { TWO_PI, remapClamp } from '/src/core/utils.js';
 import { isValidTarget } from '/src/core/gameObject.js';
 import { Colour } from '/src/core/colour.js';
-import { AIPilot } from '/src/pilot/aiPilot.js';
+import { AiPilot } from '/src/pilot/aiPilot.js';
 
 /**
  * Manages the Heads-Up Display (HUD) showing rings and indicators for game objects.
@@ -85,12 +85,12 @@ export class HeadsUpDisplay {
     }
 
     /**
-     * Draws HUD elements like rings, arrows, and labels on the canvas.
+     * Draws a circle around the targetd ship.
      * @param {CanvasRenderingContext2D} ctx - The canvas rendering context.
      * @param {Camera} camera - The camera object for coordinate transformations.
      * @param {GameObject} [target=null] - The target object.
      */
-    drawTargetRectangle(ctx, camera, target = null) {
+    drawTargetCircle(ctx, camera, target = null) {
         // Draw rectangle around the target
         if (!target) {
             return;
@@ -110,7 +110,7 @@ export class HeadsUpDisplay {
         ctx.strokeStyle = 'rgb(255, 255, 64)';
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, target.radius * 1.1, 0, TWO_PI);
+        ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, camera.worldToSize(target.radius * target.shipScale) * 1.1, 0, TWO_PI);
         ctx.stroke();
         ctx.restore();
     }
@@ -193,7 +193,7 @@ export class HeadsUpDisplay {
 
         // Draw autopilot status at top middle if the camera's target ship has an active autopilot
         let autopilotStatus;
-        if (this.gameManager.cameraTarget?.pilot instanceof AIPilot) {
+        if (this.gameManager.cameraTarget?.pilot instanceof AiPilot) {
             autopilotStatus = this.gameManager.cameraTarget?.pilot?.getStatus();
         } else {
             autopilotStatus = this.gameManager.cameraTarget?.pilot?.autopilot?.getStatus();
@@ -239,7 +239,7 @@ export class HeadsUpDisplay {
             this.drawRing(ctx, camera, this.threatRingColour, this.threatRingRadius, false, this._scratchThreats, target);
         }
 
-        this.drawTargetRectangle(ctx, camera, target);
+        this.drawTargetCircle(ctx, camera, target);
         ctx.restore();
     }
 }

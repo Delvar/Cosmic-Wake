@@ -277,9 +277,9 @@ export class PlayerPilot extends Pilot {
 //  * A basic AI pilot that travels between planets and jump gates within a star system.
 //  * @extends Pilot
 //  */
-// export class AIPilot extends Pilot {
+// export class AiPilot extends Pilot {
 //     /**
-//      * Creates a new AIPilot instance.
+//      * Creates a new AiPilot instance.
 //      * @param {Ship} ship - The ship to control.
 //      * @param {Planet} spawnPlanet - The planet where the ship starts.
 //      */
@@ -356,7 +356,7 @@ export class PlayerPilot extends Pilot {
 //             } else if (this.ship.state === 'Flying') {
 //                 this.state = 'TraversingJumpGate';
 //             } else {
-//                 console.warn(`Invalid ship state '${this.ship.state}' in AIPilot updateIdle`);
+//                 console.warn(`Invalid ship state '${this.ship.state}' in AiPilot updateIdle`);
 //             }
 //         } else {
 //             this.autopilot = new LandOnPlanetAutopilot(this.ship, this.target);
@@ -367,7 +367,7 @@ export class PlayerPilot extends Pilot {
 //             } else if (this.ship.state === 'Flying') {
 //                 this.state = 'FlyingToPlanet';
 //             } else {
-//                 console.warn(`Invalid ship state '${this.ship.state}' in AIPilot updateIdle`);
+//                 console.warn(`Invalid ship state '${this.ship.state}' in AiPilot updateIdle`);
 //             }
 //         }
 //     }
@@ -490,9 +490,9 @@ export class PlayerPilot extends Pilot {
 //  * Does not leave the system via jump gates.
 //  * @extends Pilot
 //  */
-// export class InterdictionAIPilot extends Pilot {
+// export class InterdictionAiPilot extends Pilot {
 //     /**
-//      * Creates a new InterdictionAIPilot instance.
+//      * Creates a new InterdictionAiPilot instance.
 //      * @param {Ship} ship - The ship to control.
 //      * @param {GameObject} spawnPlanet - The planet where the ship starts.
 //      */
@@ -639,7 +639,7 @@ export class PlayerPilot extends Pilot {
 //         } else if (this.ship.state === 'Flying') {
 //             this.state = nextState;
 //         } else if (this.ship.state !== 'TakingOff') {
-//             console.warn(`Invalid ship state '${this.ship.state}' in InterdictionAIPilot updateIdle`);
+//             console.warn(`Invalid ship state '${this.ship.state}' in InterdictionAiPilot updateIdle`);
 //         }
 //     }
 
@@ -827,9 +827,9 @@ export class PlayerPilot extends Pilot {
 //  * An AI pilot that escorts a designated ship and despawns if the escorted ship is lost.
 //  * @extends Pilot
 //  */
-// export class EscortAIPilot extends Pilot {
+// export class EscortAiPilot extends Pilot {
 //     /**
-//      * Creates a new EscortAIPilot instance.
+//      * Creates a new EscortAiPilot instance.
 //      * @param {Ship} ship - The ship to control.
 //      * @param {Ship} escortedShip - The ship to escort.
 //      */
@@ -974,9 +974,9 @@ export class PlayerPilot extends Pilot {
 //  * An AI pilot that mines asteroids and returns to a home planet in a loop.
 //  * @extends Pilot
 //  */
-// export class MiningAIPilot extends Pilot {
+// export class MiningAiPilot extends Pilot {
 //     /**
-//      * Creates a new MiningAIPilot instance.
+//      * Creates a new MiningAiPilot instance.
 //      * @param {Ship} ship - The ship to control.
 //      * @param {Planet} homePlanet - The home planet to return to after mining.
 //      */
@@ -1071,7 +1071,7 @@ export class PlayerPilot extends Pilot {
 //         } else if (this.ship.state === 'TakingOff' || this.ship.state === 'Landing') {
 //             //wait for the animation to compelte
 //         } else {
-//             console.warn(`Invalid ship state '${this.ship.state}' in MiningAIPilot updateIdle`, this.ship.landedObject);
+//             console.warn(`Invalid ship state '${this.ship.state}' in MiningAiPilot updateIdle`, this.ship.landedObject);
 //         }
 //     }
 

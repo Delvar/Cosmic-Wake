@@ -7,12 +7,12 @@ export class Job {
     /**
      * Creates a new Job instance.
      * @param {Ship} ship - The ship to control.
-     * @param {AIPilot} [pilot=null] - The pilot controlling the ship (optional).
+     * @param {AiPilot} [pilot=null] - The pilot controlling the ship (optional).
      */
     constructor(ship, pilot = null) {
         /** @type {Ship} The ship controlled by this job. */
         this.ship = ship;
-        /** @type {AIPilot} The AIPilot using this job. */
+        /** @type {AiPilot} The AiPilot using this job. */
         this.pilot = pilot;
         /** @type {string} The current job state (e.g., 'Starting', 'Paused'). */
         this.state = 'Starting';

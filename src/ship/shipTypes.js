@@ -1838,3 +1838,10 @@ export function createRandomShip(x, y, starSystem) {
     const RandomShipClass = shipClasses[Math.floor(Math.random() * shipClasses.length)];
     return new RandomShipClass(x, y, starSystem);
 }
+
+// Factory function to create 'Fast' random ship type
+export function createRandomFastShip(x, y, starSystem) {
+    const shipClasses = [Flivver, Arrow, Interceptor, Fighter];
+    const RandomShipClass = shipClasses[Math.floor(Math.random() * shipClasses.length)];
+    return new RandomShipClass(x, y, starSystem);
+}

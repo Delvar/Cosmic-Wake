@@ -15,7 +15,7 @@ export class MinerJob extends Job {
      * Creates a new MinerJob instance.
      * @param {Ship} ship - The ship to control.
      * @param {Planet} [homePlanet=null] - The home planet to return to; if null, uses closest planet.
-     * @param {AIPilot} [pilot=null] - The pilot controlling the ship.
+     * @param {AiPilot} [pilot=null] - The pilot controlling the ship.
      */
     constructor(ship, homePlanet = null, pilot = null) {
         super(ship, pilot);

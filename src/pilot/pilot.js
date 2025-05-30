@@ -4,7 +4,7 @@ import { Vector2D } from '/src/core/vector2d.js';
 import { CelestialBody, JumpGate, Star, Planet } from '/src/starSystem/celestialBody.js';
 import { remapClamp, randomBetween, normalizeAngle } from '/src/core/utils.js';
 import { Ship } from '/src/ship/ship.js';
-import { TraverseJumpGateAutopilot, LandOnPlanetAutopilot, EscortAutopilot, LandOnAsteroidAutopilot, ApproachTargetAutopilot } from '/src/autopilot/autopilot.js';
+import { TraverseJumpGateAutopilot, LandOnPlanetAutopilot, EscortAutopilot, LandOnAsteroidAutopilot, FlyToTargetAutopilot } from '/src/autopilot/autopilot.js';
 import { AttackAutopilot } from '/src/autopilot/attackAutopilot.js';
 import { Asteroid } from '/src/starSystem/asteroidBelt.js';
 import { GameObject, isValidTarget } from '/src/core/gameObject.js';
@@ -209,36 +209,14 @@ export class PlayerPilot extends Pilot {
             }
         }
 
-        // Escort a targeted ship ('f' key)
-        if (pressed('f') && this.ship.state === 'Flying' && this.ship.target instanceof Ship) {
-            this.autopilot = new EscortAutopilot(this.ship, this.ship.target);
-            this.autopilot.start();
-        }
+        // // Escort a targeted ship ('f' key)
+        // if (pressed('f') && this.ship.state === 'Flying' && this.ship.target instanceof Ship) {
+        //     this.autopilot = new EscortAutopilot(this.ship, this.ship.target);
+        //     this.autopilot.start();
+        // }
 
-        // Approach a target with custom parameters ('F' key)
-        if (pressed('F') && this.ship.state === 'Flying' && this.ship.target instanceof GameObject) {
-            const ship = this.ship;
-            const target = this.ship.target;
-            const finalRadius = target.radius;
-            const arrivalSpeedMin = Ship.LANDING_SPEED * 0.5;
-            const arrivalSpeedMax = Ship.LANDING_SPEED;
-            const velocityTolerance = arrivalSpeedMin;
-            const thrustAngleLimit = Math.PI / 12;
-            const upperVelocityErrorThreshold = arrivalSpeedMin;
-            const lowerVelocityErrorThreshold = 1;
-            const maxTimeToIntercept = 2;
-            this.autopilot = new ApproachTargetAutopilot(
-                ship,
-                target,
-                finalRadius,
-                arrivalSpeedMin,
-                arrivalSpeedMax,
-                velocityTolerance,
-                thrustAngleLimit,
-                upperVelocityErrorThreshold,
-                lowerVelocityErrorThreshold,
-                maxTimeToIntercept
-            );
+        if ((pressed('f') || pressed('F')) && this.ship.state === 'Flying') {
+            this.autopilot = new FlyToTargetAutopilot(this.ship, this.ship.target, this.ship.target.radius, Ship.LANDING_SPEED);
             this.autopilot.start();
         }
 
@@ -614,7 +592,7 @@ export class PlayerPilot extends Pilot {
 //             this.target = this.pickBodyToVisit();
 //             if (this.target) {
 //                 const arrivalDistance = this.target.radius ? this.target.radius + this.visitDistance : this.visitDistance;
-//                 this.autopilot = new FlyToTargetAutopilot(this.ship, this.target, arrivalDistance, 50, 100);
+//                 this.autopilot = new FlyToTargetAutopilot(this.ship, this.target, arrivalDistance, 50);
 //                 this.autopilot.start();
 //                 this.transitionFromIdle('VisitingBody');
 //             } else {
@@ -622,7 +600,7 @@ export class PlayerPilot extends Pilot {
 //             }
 //         } else { // 30% chance to fly to a random point
 //             this.target = this.pickRandomPoint();
-//             this.autopilot = new FlyToTargetAutopilot(this.ship, { position: this.target }, 100, 50, 100);
+//             this.autopilot = new FlyToTargetAutopilot(this.ship, { position: this.target }, 100, 50);
 //             this.autopilot.start();
 //             this.transitionFromIdle('FlyingToRandomPoint');
 //         }

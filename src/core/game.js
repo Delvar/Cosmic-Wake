@@ -312,7 +312,7 @@ class GameManager {
         // The planet to spawn the player at
         const spawnPlanet = this.galaxy[0].planets[2];
         /** @type {Ship} The player's ship, positioned relative to a planet. */
-        this.playerShip = new Interceptor(spawnPlanet.position.x + spawnPlanet.radius * 1.5, spawnPlanet.position.y, this.galaxy[0]);
+        this.playerShip = new Arrow(spawnPlanet.position.x + spawnPlanet.radius * 1.5, spawnPlanet.position.y, this.galaxy[0]);
         /** @type {Ship} The first escort ship, following the player or performing tasks. */
         this.escort01 = new Shuttle(spawnPlanet.position.x + spawnPlanet.radius * 1.0, spawnPlanet.position.y, this.galaxy[0]);
         /** @type {PlayerPilot} The pilot controlling the player's ship. */
@@ -402,6 +402,7 @@ class GameManager {
      * @param {number} currentTime - Current time in milliseconds.
      */
     spawnAiShipsIfNeeded(currentTime) {
+        return;
         if (currentTime != 0 && (currentTime - this.lastSpawnTime < this.spawnInterval)) return;
 
         this.galaxy.forEach(system => {

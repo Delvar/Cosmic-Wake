@@ -1500,23 +1500,48 @@ export class Ship extends GameObject {
             ctx.fill();
         }
 
-        // Draw target approach distances
         if (this.target && this.target.position) {
-            camera.worldToScreen(this.target.position, this._scratchRadialOut);
-            if (this.farApproachDistance > 0) {
+            // Draw velocity error if available
+            let closeApproachDistance = null;
+            let farApproachDistance = null;
+            let arrivalDistance = null;
+            if (this.pilot && this.pilot.autopilot && this.pilot.autopilot.subAutopilot && this.pilot.autopilot.subAutopilot.active && this.pilot.autopilot.subAutopilot.closeApproachDistance) {
+                closeApproachDistance = this.pilot.autopilot.subAutopilot.closeApproachDistance;
+                farApproachDistance = this.pilot.autopilot.subAutopilot.farApproachDistance;
+                arrivalDistance = this.pilot.autopilot.subAutopilot.arrivalDistance;
+            } else if (this.pilot && this.pilot.autopilot && this.pilot.autopilot.active && this.pilot.autopilot.closeApproachDistance) {
+                closeApproachDistance = this.pilot.autopilot.closeApproachDistance;
+                farApproachDistance = this.pilot.autopilot.farApproachDistance;
+                arrivalDistance = this.pilot.autopilot.arrivalDistance;
+            } else if (this.pilot && this.pilot.closeApproachDistance) {
+                closeApproachDistance = this.pilot.closeApproachDistance;
+                farApproachDistance = this.pilot.farApproachDistance;
+                arrivalDistance = this.pilot.arrivalDistance;
+            }
+
+            if (farApproachDistance || closeApproachDistance || arrivalDistance) {
+                camera.worldToScreen(this.target.position, this._scratchScreenPos);
+            }
+
+            if (farApproachDistance > 0) {
                 ctx.beginPath();
                 ctx.fillStyle = 'rgba(0,255,0,0.1)';
-                ctx.arc(this._scratchRadialOut.x, this._scratchRadialOut.y, this.farApproachDistance * scale, 0, TWO_PI, false);
-                if (this.closeApproachDistance > 0) {
-                    ctx.arc(this._scratchRadialOut.x, this._scratchRadialOut.y, this.closeApproachDistance * scale, 0, TWO_PI, true);
-                }
+                ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, farApproachDistance * scale, 0, TWO_PI, false);
                 ctx.fill();
-                if (this.closeApproachDistance > 0) {
-                    ctx.beginPath();
-                    ctx.fillStyle = 'rgba(255,255,0,0.2)';
-                    ctx.arc(this._scratchRadialOut.x, this._scratchRadialOut.y, this.closeApproachDistance * scale, 0, TWO_PI);
-                    ctx.fill();
-                }
+            }
+
+            if (closeApproachDistance > 0) {
+                ctx.beginPath();
+                ctx.fillStyle = 'rgba(255,255,0,0.2)';
+                ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, closeApproachDistance * scale, 0, TWO_PI, false);
+                ctx.fill();
+            }
+
+            if (arrivalDistance > 0) {
+                ctx.beginPath();
+                ctx.fillStyle = 'rgba(255,255,255,0.2)';
+                ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, arrivalDistance * scale, 0, TWO_PI, false);
+                ctx.fill();
             }
         }
     }

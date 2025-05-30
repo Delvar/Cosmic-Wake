@@ -107,15 +107,17 @@ export class Autopilot {
 
     /**
      * Given a velocity error decide if we we should thrust or not including hysteresis.
+     * @param {number} velocityErrorMagnitude Magnitude of the error between teh current velocity and the desired velocity.
+     * @param {number} [errorThresholdRatio=1.0] The ratio for the error threshold, lofer is more accurate but can cause twitching.
      * @returns {boolean} True if should thrust, false if not.
      */
-    shouldThrust(velocityErrorMagnitude) {
+    shouldThrust(velocityErrorMagnitude, errorThresholdRatio = 1.0) {
         if (this.ship.isThrusting) {
-            if (velocityErrorMagnitude < this.lowerVelocityErrorThreshold) {
+            if (velocityErrorMagnitude < this.lowerVelocityErrorThreshold * errorThresholdRatio) {
                 return false;
             }
         } else {
-            if (velocityErrorMagnitude > this.upperVelocityErrorThreshold) {
+            if (velocityErrorMagnitude > this.upperVelocityErrorThreshold * errorThresholdRatio) {
                 return true;
             }
         }
@@ -194,15 +196,16 @@ export class Autopilot {
     * @param {Vector2D} desiredVelocity - Desired velocity vector.
     * @param {boolean} allowFailover - Whether to use failover direction when not thrusting.
     * @param {number|null} failoverAngle - Angle to face when not thrusting, or null.
+    * @param {number} [errorThresholdRatio=1.0] The ratio for the error threshold, lofer is more accurate but can cause twitching.
     * @param {Vector2D} outVelocityError - Output vector for velocity error.
     * @returns {boolean} True if thrusting, false otherwise.
     */
-    applyThrustLogic(ship, desiredVelocity, allowFailover, failoverAngle, outVelocityError) {
+    applyThrustLogic(ship, desiredVelocity, allowFailover, failoverAngle, errorThresholdRatio = 1.0, outVelocityError) {
         outVelocityError.set(desiredVelocity).subtractInPlace(ship.velocity);
         const velocityErrorMagnitude = outVelocityError.magnitude();
         const desiredAngle = outVelocityError.getAngle();
         const angleToDesired = normalizeAngle(desiredAngle - ship.angle);
-        const shouldThrust = this.shouldThrust(velocityErrorMagnitude);
+        const shouldThrust = this.shouldThrust(velocityErrorMagnitude, errorThresholdRatio);
 
         if (shouldThrust || !allowFailover || failoverAngle === null) {
             ship.setTargetAngle(desiredAngle);
@@ -234,202 +237,144 @@ export class Autopilot {
     }
 }
 
-//OLD Auto Pilots
-
-export class ApproachTargetAutopilot extends Autopilot {
+/**
+ * Autopilot that flies a ship to a target, slowing to a specified speed within a given distance.
+ * @extends Autopilot
+ */
+export class FlyToTargetAutopilot extends Autopilot {
     /**
-     * Creates a new ApproachTargetAutopilot instance.
+     * Creates a new FlyToTargetAutopilot instance.
      * @param {Ship} ship - The ship to control.
-     * @param {GameObject} target - The target to approach (static or moving).
-     * @param {number} finalRadius - Radius within which to settle and match velocity (in units).
-     * @param {number} arrivalSpeedMin - Minimum speed when near the target (in units/sec).
-     * @param {number} arrivalSpeedMax - Maximum speed during mid-range approach (in units/sec).
-     * @param {number} velocityTolerance - Tolerance for velocity matching completion (in units/sec).
-     * @param {number} thrustAngleLimit - Maximum angle deviation to apply thrust (in radians).
-     * @param {number} upperVelocityErrorThreshold - Upper threshold for thrust activation (in units/sec).
-     * @param {number} lowerVelocityErrorThreshold - Lower threshold for thrust hysteresis (in units/sec).
-     * @param {number} maxTimeToIntercept - Maximum time to predict target position (in seconds).
+     * @param {GameObject} target - The target to fly toward.
+     * @param {number} [arrivalDistance=100] - Distance from target center to achieve arrivalSpeed.
+     * @param {number} [arrivalSpeed=Ship.LANDING_SPEED] - Target speed when within arrivalDistance.
      */
-    constructor(ship, target, finalRadius, arrivalSpeedMin, arrivalSpeedMax, velocityTolerance, thrustAngleLimit, upperVelocityErrorThreshold, lowerVelocityErrorThreshold, maxTimeToIntercept) {
+    constructor(ship, target, arrivalDistance = 100, arrivalSpeed = Ship.LANDING_SPEED) {
         super(ship, target);
-        /** @type {number} Radius within which to settle and match velocity. */
-        this.finalRadius = finalRadius;
-        /** @type {number} Minimum speed when near the target. */
-        this.arrivalSpeedMin = arrivalSpeedMin;
-        /** @type {number} Maximum speed during mid-range approach. */
-        this.arrivalSpeedMax = arrivalSpeedMax;
-        /** @type {number} Tolerance for velocity matching completion. */
-        this.velocityTolerance = velocityTolerance;
-        /** @type {number} Maximum time to predict target position. */
-        this.maxTimeToIntercept = maxTimeToIntercept;
-        /** @type {number} Maximum angle deviation to apply thrust. */
-        this.thrustAngleLimit = thrustAngleLimit;
-        /** @type {number} Upper threshold for thrust activation. */
-        this.upperVelocityErrorThreshold = upperVelocityErrorThreshold;
-        /** @type {number} Lower threshold for thrust hysteresis. */
-        this.lowerVelocityErrorThreshold = lowerVelocityErrorThreshold;
-        /** @type {boolean} Whether the autopilot is active. */
-        this.active = false;
-        /** @type {boolean} Whether the autopilot has completed its task. */
-        this.completed = false;
-        /** @type {string|null} Error message if the autopilot fails, null if no error. */
-        this.error = null;
-        /** @type {number} Distance for far approach phase, computed dynamically. */
-        this.farApproachDistance = 0;
-        /** @type {number} Distance for mid approach phase, computed dynamically. */
-        this.midApproachDistance = 0;
+        /** @type {number} Distance from target center to achieve arrivalSpeed. */
+        this.arrivalDistance = arrivalDistance;
+        /** @type {number} Target speed when within arrivalDistance. */
+        this.arrivalSpeed = arrivalSpeed;
 
-        // Pre-allocated scratch vectors for allocation-free updates
-        /** @type {Vector2D} Predicted future position of the target. */
-        this._scratchFuturePosition = new Vector2D(0, 0);
-        /** @type {Vector2D} Direction from ship to target. */
+        // Precompute distances for approach phases based on ship dynamics
+        const timeToTurn = Math.PI / this.ship.rotationSpeed; // Time to rotate 180 degrees
+        const maxDecelerationDistance = (this.ship.maxVelocity * this.ship.maxVelocity - this.arrivalSpeed * this.arrivalSpeed) / (2 * this.ship.thrust); // Distance to decelerate
+        /** @type {number} Distance for far approach phase, computed dynamically. */
+        this.farApproachDistance = this.arrivalDistance + maxDecelerationDistance + (this.ship.maxVelocity * timeToTurn); // Start slowing down
+        /** @type {number} Distance for close approach phase, computed dynamically. */
+        this.closeApproachDistance = this.arrivalDistance + this.arrivalSpeed + (this.arrivalSpeed * timeToTurn); // Near target speed
+
+        // Initialize scratch vectors for calculations
+        /** @type {Vector2D} Scratch vector for delta to target. */
+        this._scratchDeltaToTarget = new Vector2D(0, 0);
+        /** @type {Vector2D} Scratch vector for target direction. */
         this._scratchDirectionToTarget = new Vector2D(0, 0);
-        /** @type {Vector2D} Difference between ship and target velocity. */
-        this._scratchVelocityDifference = new Vector2D(0, 0);
+        /** @type {Vector2D} Scratch vector for lead position. */
+        this._scratchLeadPosition = new Vector2D(0, 0);
+        /** @type {Vector2D} Scratch vector for lead offset. */
+        this._scratchLeadOffset = new Vector2D(0, 0);
+        /** @type {Vector2D} Scratch vector for lateral offset. */
+        this._scratchLateralOffset = new Vector2D(0, 0);
+        /** @type {Vector2D} Scratch vector for lead direction. */
+        this._scratchLeadDirection = new Vector2D(0, 0);
+        /** @type {Vector2D} Scratch vector for velocity error. */
+        this._scratchVelocityError = new Vector2D(0, 0);
     }
 
     /**
-     * Starts the autopilot, setting approach distances and validating the target.
-     * @override
+     * Starts the autopilot, ensuring the target is in the same star system.
      */
     start() {
-        if (!this.target || !this.target.position) {
-            this.error = 'No valid target specified';
-            this.completed = true;
-            this.stop();
-            return;
+        super.start(); // Initialize base autopilot state
+        if (!isValidTarget(this.ship, this.target)) { // Check target validity
+            this.error = 'Target not in same system';
+            this.active = false;
         }
-        // Precompute distance thresholds based on ship physics
-        const timeToTurn = Math.PI / this.ship.rotationSpeed;
-        const decelerationDistance = (this.ship.maxVelocity * this.ship.maxVelocity - this.arrivalSpeedMax * this.arrivalSpeedMax) / (2 * this.ship.thrust);
-        this.farApproachDistance = decelerationDistance + (this.ship.maxVelocity * timeToTurn);
-        this.midApproachDistance = this.finalRadius + this.arrivalSpeedMax * 10;
-        this.active = true;
-        this.completed = false;
-        this.error = null;
+        this.ship.target = this.target; // Set ship's target reference
     }
 
     /**
-     * Stops the autopilot, disabling thrust.
-     * @override
+     * Updates the autopilot, adjusting velocity to reach the target at the desired speed.
+     * @param {number} deltaTime - Time elapsed since last update (seconds).
+     * @param {GameManager} gameManager - The game manager instance for context.
      */
-    stop() {
-        this.active = false;
-        this.ship.applyThrust(false);
-    }
+    update(deltaTime, gameManager) {
+        // Compute distance and normalized direction to target
+        const distance = this.ship.position.getDirectionAndDistanceTo(
+            this.target.position,
+            this._scratchDeltaToTarget,
+            this._scratchDirectionToTarget
+        );
 
-    /**
-     * Updates the ship's trajectory to approach the target, blending velocity based on distance.
-     * Applies thrust using hysteresis and checks for task completion.
-     * @param {number} deltaTime - Time elapsed since the last update in seconds.
-     * @override
-     */
-    update(deltaTime) {
-        if (!this.active || !this.target || !this.target.position) {
-            this.error = 'Target lost or invalid';
-            this.completed = true;
-            this.stop();
+        // Check if arrived: within arrivalDistance and matching target speed
+        if (distance <= this.arrivalDistance && this.ship.velocity.distanceSquaredTo(this.target.velocity) <= this.arrivalSpeed * this.arrivalSpeed) {
+            this.completed = true; // Mark task complete
+            this.stop(); // Deactivate autopilot
             return;
         }
 
-        // Calculate direction and distance to current target position
-        this._scratchDirectionToTarget.set(this.target.position).subtractInPlace(this.ship.position);
-        const distanceToTarget = this._scratchDirectionToTarget.magnitude();
-        this._scratchDirectionToTarget.normalizeInPlace();
+        // Calculate lead position and angle to lead, using max velocity as projectile speed
+        const angleToLead = this.computeLeadPosition(
+            this.ship,
+            this.target,
+            this.ship.maxVelocity, // Use max velocity for lead aiming
+            this.target.velocity,
+            distance,
+            this._scratchDirectionToTarget,
+            this._scratchLeadPosition,
+            this._scratchLeadOffset,
+            this._scratchLateralOffset,
+            this._scratchLeadDirection,
+            this._scratchVelocityError
+        );
 
-        // Handle target velocity (default to zero if absent)
-        const targetVelocity = this.target.velocity || this._scratchTemp.set(0, 0);
-
-        // Compute relative velocity toward target
-        this._scratchVelocityDifference.set(this.ship.velocity).subtractInPlace(targetVelocity);
-        const relativeSpeedTowardTarget = this._scratchVelocityDifference.dot(this._scratchDirectionToTarget);
-
-        // Predict target position if far away
-        let targetPosition = this.target.position;
-        if (distanceToTarget > this.midApproachDistance) {
-            const closingSpeed = Math.max(relativeSpeedTowardTarget, 0.1); // Avoid division by zero
-            const timeToIntercept = Math.min(distanceToTarget / closingSpeed, this.maxTimeToIntercept);
-            this._scratchFuturePosition.set(targetVelocity)
-                .multiplyInPlace(timeToIntercept)
-                .addInPlace(this.target.position);
-            targetPosition = this._scratchFuturePosition;
-        }
-
-        // Update direction based on chosen target position
-        this._scratchDirectionToTarget.set(targetPosition).subtractInPlace(this.ship.position).normalizeInPlace();
-
-        // Set desired velocity based on distance zones
-        if (distanceToTarget > this.farApproachDistance) {
-            // Far phase: Full speed toward target
-            this._scratchDesiredVelocity.set(this._scratchDirectionToTarget).multiplyInPlace(this.ship.maxVelocity);
-        } else if (distanceToTarget > this.midApproachDistance) {
-            // Mid-far transition: Blend speed from max to approach max
-            const speed = remapClamp(distanceToTarget, this.midApproachDistance, this.farApproachDistance, this.arrivalSpeedMax * 10, this.ship.maxVelocity);
-            this._scratchDesiredVelocity.set(this._scratchDirectionToTarget).multiplyInPlace(speed);
-        } else if (distanceToTarget > this.finalRadius) {
-            // Mid phase: Blend approach speed with target velocity
-            const approachSpeed = remapClamp(distanceToTarget, this.finalRadius, this.midApproachDistance, this.arrivalSpeedMin, this.arrivalSpeedMax);
-            this._scratchTemp.set(this._scratchDirectionToTarget).multiplyInPlace(approachSpeed);
-            this._scratchDesiredVelocity.set(targetVelocity).addInPlace(this._scratchTemp);
+        let errorThresholdRatio = 1.0; // Default thrust error threshold multiplier
+        let failoverAngle = null; // Angle to face when not thrusting
+        // Adjust desired velocity based on distance phase
+        if (distance < this.arrivalDistance) {
+            // Within arrival distance: match target velocity
+            this._scratchDesiredVelocity.set(this.target.velocity);
+            errorThresholdRatio = 0.1; // Tighten thrust threshold
+        } else if (distance < this.closeApproachDistance) {
+            // Close approach: slow to arrival speed, face away from target
+            this._scratchDesiredVelocity.set(this._scratchLeadDirection)
+                .multiplyInPlace(this.arrivalSpeed).addInPlace(this.target.velocity);
+            errorThresholdRatio = 0.5; // Moderate thrust threshold
+            failoverAngle = this._scratchDirectionToTarget.getAngle() + Math.PI; // Face away
+        } else if (distance < this.farApproachDistance) {
+            // Far approach: interpolate speed, face away from target
+            const speed = remapClamp(distance, this.closeApproachDistance, this.farApproachDistance, this.arrivalSpeed, this.ship.maxVelocity);
+            this._scratchDesiredVelocity.set(this._scratchLeadDirection)
+                .multiplyInPlace(speed).addInPlace(this.target.velocity);
+            failoverAngle = this._scratchDirectionToTarget.getAngle() + Math.PI; // Face away
         } else {
-            // Close phase: Match target velocity with slight inward push
-            this._scratchTemp.set(this._scratchDirectionToTarget).multiplyInPlace(this.arrivalSpeedMin);
-            this._scratchDesiredVelocity.set(targetVelocity).addInPlace(this._scratchTemp);
+            // Beyond far approach: full speed toward lead position
+            this._scratchDesiredVelocity.set(this._scratchLeadDirection)
+                .multiplyInPlace(this.ship.maxVelocity);
+            failoverAngle = this._scratchLeadDirection.getAngle(); // Face lead
         }
 
-        // Calculate velocity error for thrust control
-        this._scratchVelocityError.set(this._scratchDesiredVelocity).subtractInPlace(this.ship.velocity);
-        const velocityErrorMagnitude = this._scratchVelocityError.magnitude();
-
-        // Determine thrust and angle with hysteresis
-        const desiredAngle = Math.atan2(this._scratchVelocityError.x, -this._scratchVelocityError.y);
-        const angleToDesired = normalizeAngle(desiredAngle - this.ship.angle);
-        const isAngleWithinLimit = Math.abs(angleToDesired) < this.thrustAngleLimit;
-
-        let shouldThrust = false;
-        if (isAngleWithinLimit && (
-            velocityErrorMagnitude > this.upperVelocityErrorThreshold ||
-            (velocityErrorMagnitude > this.lowerVelocityErrorThreshold && this.ship.isThrusting)
-        )) {
-            shouldThrust = true;
-        }
-
-        // Apply control inputs
-        this.ship.setTargetAngle(this.ship.angle + angleToDesired);
-        this.ship.applyThrust(shouldThrust);
-
-        // Check if completed (within radius and velocity matched)
-        if (distanceToTarget <= this.finalRadius) {
-            const speedDifference = this._scratchVelocityDifference.magnitude();
-            if (relativeSpeedTowardTarget > 0 && relativeSpeedTowardTarget < this.arrivalSpeedMin && speedDifference < this.arrivalSpeedMax) {
-                this.completed = true;
-                this.stop();
-            } else {
-                // Nudge toward center when close
-                this.ship.velocity.addInPlace(this._scratchTemp.set(this._scratchVelocityDifference).multiplyInPlace(0.1 * deltaTime));
-                this.ship.position.addInPlace(this._scratchTemp.set(this._scratchDirectionToTarget).multiplyInPlace(0.1 * deltaTime));
-            }
-        }
-    }
-
-    /**
-     * Checks if the autopilot has completed its task.
-     * @returns {boolean} True if the ship is within the final radius and velocity is matched, false otherwise.
-     * @override
-     */
-    isComplete() {
-        return this.completed;
+        // Apply thrust based on desired velocity and alignment
+        const shouldThrust = this.applyThrustLogic(
+            this.ship,
+            this._scratchDesiredVelocity,
+            failoverAngle !== null, // Allow failover if angle is set
+            failoverAngle,
+            errorThresholdRatio, // Adjust thrust sensitivity
+            this._scratchVelocityError
+        );
     }
 
     /**
      * Returns the current status of the autopilot for HUD display.
-     * @returns {string} A descriptive status string (e.g., "Approach Active" or "Approach Completed").
-     * @override
+     * @returns {string} A descriptive status string.
      */
     getStatus() {
-        return `Approach ${this.completed ? 'Completed' : 'Active'}`;
+        return `Flying to ${this.target.name || 'target'}`;
     }
 }
+
+//OLD Auto Pilots
 
 export class EscortAutopilot extends Autopilot {
     /**
@@ -749,7 +694,7 @@ export class LandOnPlanetAutopilot extends Autopilot {
             return;
         }
         // Initialize sub-pilot to approach the planet
-        this.subAutopilot = new FlyToTargetAutopilot(this.ship, this.target, this.target.radius, Ship.LANDING_SPEED * 0.9, Ship.LANDING_SPEED * 2);
+        this.subAutopilot = new FlyToTargetAutopilot(this.ship, this.target, this.target.radius, Ship.LANDING_SPEED * 0.9);
         this.subAutopilot.start();
     }
 
@@ -795,7 +740,7 @@ export class LandOnPlanetAutopilot extends Autopilot {
                 }
             } else {
                 // Overshot the planet; restart sub-pilot to re-approach
-                this.subAutopilot = new FlyToTargetAutopilot(this.ship, this.target, this.target.radius, Ship.LANDING_SPEED * 0.9, Ship.LANDING_SPEED * 2);
+                this.subAutopilot = new FlyToTargetAutopilot(this.ship, this.target, this.target.radius, Ship.LANDING_SPEED * 0.9);
                 this.subAutopilot.start();
             }
         } else if (this.ship.state === 'Landing') {
@@ -863,18 +808,13 @@ export class LandOnAsteroidAutopilot extends Autopilot {
             return;
         }
         // Initialize sub-pilot for approach
-        this.subAutopilot = new ApproachTargetAutopilot(
+        this.subAutopilot = new FlyToTargetAutopilot(
             this.ship,
             this.target,
-            this.target.radius,           // finalRadius
-            Ship.LANDING_SPEED * 0.9,     // arrivalSpeedMin
-            Ship.LANDING_SPEED * 4,       // arrivalSpeedMax
-            2,                            // velocityTolerance
-            Math.PI / 6,                  // thrustAngleLimit
-            Ship.LANDING_SPEED,           // upperVelocityErrorThreshold
-            2,                            // lowerVelocityErrorThreshold
-            2                             // maxTimeToIntercept
+            this.target.radius,
+            Ship.LANDING_SPEED,
         );
+
         this.subAutopilot.start();
     }
 
@@ -923,17 +863,11 @@ export class LandOnAsteroidAutopilot extends Autopilot {
                 if (this.ship.debug) {
                     console.log(`Overshot ${this.target.name || 'asteroid'}; restarting approach phase`);
                 }
-                this.subAutopilot = new ApproachTargetAutopilot(
+                this.subAutopilot = new FlyToTargetAutopilot(
                     this.ship,
                     this.target,
-                    this.target.radius,           // finalRadius
-                    Ship.LANDING_SPEED * 0.9,     // arrivalSpeedMin
-                    Ship.LANDING_SPEED * 4,       // arrivalSpeedMax
-                    2,                            // velocityTolerance
-                    Math.PI / 6,                  // thrustAngleLimit
-                    Ship.LANDING_SPEED,           // upperVelocityErrorThreshold
-                    2,                            // lowerVelocityErrorThreshold
-                    2                             // maxTimeToIntercept
+                    this.target.radius,
+                    Ship.LANDING_SPEED,
                 );
                 this.subAutopilot.start();
             }
@@ -1004,7 +938,7 @@ export class TraverseJumpGateAutopilot extends Autopilot {
             return;
         }
         // Initialize sub-pilot to fly to the gate
-        this.subAutopilot = new FlyToTargetAutopilot(this.ship, this.target, this.target.radius, Ship.LANDING_SPEED * 0.9, Ship.LANDING_SPEED * 2);
+        this.subAutopilot = new FlyToTargetAutopilot(this.ship, this.target, this.target.radius, Ship.LANDING_SPEED * 0.9);
         this.subAutopilot.start();
     }
 
@@ -1054,7 +988,7 @@ export class TraverseJumpGateAutopilot extends Autopilot {
                 if (this.ship.debug) {
                     console.log(`Not aligned with ${this.target.name || 'jump gate'}; restarting fly-to phase`);
                 }
-                this.subAutopilot = new FlyToTargetAutopilot(this.ship, this.target, this.target.radius, Ship.LANDING_SPEED * 0.9, Ship.LANDING_SPEED * 2);
+                this.subAutopilot = new FlyToTargetAutopilot(this.ship, this.target, this.target.radius, Ship.LANDING_SPEED * 0.9);
                 this.subAutopilot.start();
             }
         } else if (this.ship.state === 'JumpingOut' || this.ship.state === 'JumpingIn') {
@@ -1260,238 +1194,6 @@ export class LandOnPlanetDespawnAutopilot extends Autopilot {
     }
 }
 
-export class FlyToTargetAutopilot extends Autopilot {
-    /**
-     * Creates a new FlyToTargetAutopilot instance.
-     * @param {Ship} ship - The ship to control.
-     * @param {GameObject} target - The target to fly toward.
-     * @param {number} [arrivalDistance=100] - Distance from target center to achieve arrivalSpeed.
-     * @param {number} [arrivalSpeed=Ship.LANDING_SPEED] - Target speed when within arrivalDistance.
-     * @param {number} [closeApproachSpeed=30] - Speed at closeApproachDistance for smoother approach.
-     */
-    constructor(ship, target, arrivalDistance = 100, arrivalSpeed = Ship.LANDING_SPEED, closeApproachSpeed = 30) {
-        super(ship, target);
-        /** @type {number} Distance from target center to achieve arrivalSpeed. */
-        this.arrivalDistance = arrivalDistance;
-        /** @type {number} Target speed when within arrivalDistance. */
-        this.arrivalSpeed = arrivalSpeed;
-        /** @type {number} Speed at closeApproachDistance for smoother approach. */
-        this.closeApproachSpeed = closeApproachSpeed;
-        /** @type {number} Distance for far approach phase, computed dynamically. */
-        this.farApproachDistance = 0;
-        /** @type {number} Distance for close approach phase, computed dynamically. */
-        this.closeApproachDistance = 0;
-        /** @type {Vector2D} Direction from ship to target. */
-        this._scratchDirectionToTarget = new Vector2D(0, 0);
-        /** @type {Vector2D} Desired velocity toward target. */
-        this._scratchTargetVelocity = new Vector2D(0, 0);
-        /** @type {Vector2D} Correction for perpendicular velocity. */
-        this._scratchLateralCorrection = new Vector2D(0, 0);
-        /** @type {Vector2D} Perpendicular component of current velocity. */
-        this._scratchVelocityPerpendicular = new Vector2D(0, 0);
-        /** @type {Vector2D} Temporary vector for intermediate calculations. */
-        this._scratchTemp = new Vector2D(0, 0);
-        /** @type {Vector2D} Predicted future position of the target. */
-        this._scratchFuturePosition = new Vector2D(0, 0);
-    }
-
-    /**
-     * Starts the autopilot, ensuring the target is in the same star system.
-     */
-    start() {
-        super.start();
-        if (!this.target || this.target.starSystem !== this.ship.starSystem) {
-            this.error = 'Target not in same system';
-            this.active = false;
-        }
-    }
-
-    /**
-     * Updates the ship's trajectory to fly toward the target with velocity control.
-     * Adjusts speed and direction based on distance zones (far, mid, close).
-     * @param {number} deltaTime - Time elapsed since last update (seconds).
-     * @param {GameManager} gameManager - The game manager instance for context.
-     */
-    update(deltaTime, gameManager) {
-        if (!this.active || !this.target) return;
-
-        // Default to target's current position
-        let targetPosition = this.target.position;
-
-        // Predict future position if target is moving
-        if (this.target.velocity instanceof Vector2D) {
-            this._scratchDirectionToTarget.set(this.target.position).subtractInPlace(this.ship.position);
-            const distanceToTarget = this._scratchDirectionToTarget.magnitude();
-            this._scratchDirectionToTarget.normalizeInPlace();
-
-            const relativeVelocity = this._scratchTemp.set(this.ship.velocity)
-                .subtractInPlace(this.target.velocity)
-                .dot(this._scratchDirectionToTarget);
-            const closingSpeed = Math.max(this.ship.maxVelocity - relativeVelocity, 1); // Avoid division by zero
-            const timeToIntercept = distanceToTarget / closingSpeed;
-
-            targetPosition = this._scratchFuturePosition.set(this.target.velocity)
-                .multiplyInPlace(timeToIntercept)
-                .addInPlace(this.target.position);
-        }
-
-        // Calculate direction and distance to target
-        this._scratchDirectionToTarget.set(targetPosition).subtractInPlace(this.ship.position);
-        const distanceToTargetCenter = this._scratchDirectionToTarget.magnitude();
-        this._scratchDirectionToTarget.normalizeInPlace();
-        const currentSpeed = this.ship.velocity.magnitude();
-
-        // Decompose velocity into parallel and perpendicular components
-        const velocityTowardTarget = this.ship.velocity.dot(this._scratchDirectionToTarget);
-        this._scratchTemp.set(this._scratchDirectionToTarget).multiplyInPlace(velocityTowardTarget);
-        this._scratchVelocityPerpendicular.set(this.ship.velocity).subtractInPlace(this._scratchTemp);
-        const lateralSpeed = this._scratchVelocityPerpendicular.magnitude();
-        const decelerationDistance = currentSpeed > this.arrivalSpeed
-            ? (currentSpeed * currentSpeed - this.arrivalSpeed * this.arrivalSpeed) / (2 * this.ship.thrust)
-            : 0;
-
-        // Complete if within arrival distance
-        if (distanceToTargetCenter <= this.arrivalDistance) {
-            this.completed = true;
-            this.stop();
-            return;
-        }
-
-        // Precompute approach distances
-        const timeToTurn = Math.PI / this.ship.rotationSpeed;
-        const maxDecelerationDistance = (this.ship.maxVelocity * this.ship.maxVelocity - this.arrivalSpeed * this.arrivalSpeed) / (2 * this.ship.thrust);
-        this.farApproachDistance = maxDecelerationDistance + (this.ship.maxVelocity * timeToTurn);
-        this.closeApproachDistance = this.arrivalSpeed + this.arrivalDistance + (this.arrivalSpeed * timeToTurn);
-
-        let desiredAngle = this.ship.angle;
-        let shouldThrust = false;
-
-        if (distanceToTargetCenter > this.farApproachDistance) {
-            // Far phase: Full speed toward target
-            this._scratchTargetVelocity.set(this._scratchDirectionToTarget).multiplyInPlace(this.ship.maxVelocity);
-            this._scratchDesiredVelocity.set(this._scratchTargetVelocity);
-
-            if (lateralSpeed > 5) {
-                // Correct lateral drift
-                const lateralCorrectionFactor = Math.min(1, lateralSpeed / 10);
-                this._scratchLateralCorrection.set(this._scratchVelocityPerpendicular)
-                    .normalizeInPlace()
-                    .multiplyInPlace(-lateralSpeed * lateralCorrectionFactor);
-                this._scratchDesiredVelocity.addInPlace(this._scratchLateralCorrection)
-                    .normalizeInPlace()
-                    .multiplyInPlace(this.ship.maxVelocity);
-            }
-
-            this._scratchVelocityError.set(this._scratchDesiredVelocity).subtractInPlace(this.ship.velocity);
-            const velocityErrorMagnitude = this._scratchVelocityError.magnitude();
-
-            if (velocityErrorMagnitude > 5) {
-                desiredAngle = Math.atan2(this._scratchVelocityError.x, -this._scratchVelocityError.y);
-                const angleToDesired = normalizeAngle(desiredAngle - this.ship.angle);
-                desiredAngle = this.ship.angle + angleToDesired;
-                shouldThrust = Math.abs(angleToDesired) < Math.PI / 4;
-            } else {
-                desiredAngle = Math.atan2(this.ship.velocity.x, -this.ship.velocity.y);
-            }
-        } else if (distanceToTargetCenter > this.closeApproachDistance) {
-            // Mid phase: Adjust speed based on stopping distance
-            const distanceToClose = distanceToTargetCenter - this.closeApproachDistance;
-            const stoppingDistance = decelerationDistance + ((currentSpeed - this.closeApproachSpeed) * timeToTurn);
-            const angleToReverseVelocity = normalizeAngle(Math.atan2(-this.ship.velocity.x, this.ship.velocity.y) - this.ship.angle);
-            const isFacingAway = Math.abs(angleToReverseVelocity) < Math.PI / 6;
-
-            if (velocityTowardTarget > 0 && isFacingAway && decelerationDistance < (distanceToTargetCenter - this.arrivalDistance)) {
-                // Maintain current velocity if decelerating naturally
-                this._scratchDesiredVelocity.set(this.ship.velocity);
-                desiredAngle = Math.atan2(-this.ship.velocity.x, this.ship.velocity.y);
-            } else if (stoppingDistance > distanceToClose && currentSpeed > this.closeApproachSpeed * 1.2) {
-                // Reverse thrust to slow down
-                this._scratchTargetVelocity.set(this.ship.velocity)
-                    .normalizeInPlace()
-                    .multiplyInPlace(-currentSpeed);
-                this._scratchDesiredVelocity.set(this._scratchTargetVelocity);
-                if (lateralSpeed > 5) {
-                    const lateralCorrectionFactor = Math.min(1, lateralSpeed / 5);
-                    this._scratchLateralCorrection.set(this._scratchVelocityPerpendicular)
-                        .normalizeInPlace()
-                        .multiplyInPlace(-lateralSpeed * lateralCorrectionFactor);
-                    this._scratchDesiredVelocity.addInPlace(this._scratchLateralCorrection)
-                        .normalizeInPlace()
-                        .multiplyInPlace(currentSpeed);
-                }
-            } else {
-                // Blend speed toward closeApproachSpeed
-                const desiredSpeed = Math.max(this.closeApproachSpeed, this.closeApproachSpeed + (distanceToClose / maxDecelerationDistance) * (this.ship.maxVelocity - this.closeApproachSpeed));
-                this._scratchTargetVelocity.set(this._scratchDirectionToTarget).multiplyInPlace(desiredSpeed);
-                this._scratchDesiredVelocity.set(this._scratchTargetVelocity);
-                if (lateralSpeed > 5) {
-                    const lateralCorrectionFactor = Math.min(1, lateralSpeed / 5);
-                    this._scratchLateralCorrection.set(this._scratchVelocityPerpendicular)
-                        .normalizeInPlace()
-                        .multiplyInPlace(-lateralSpeed * lateralCorrectionFactor);
-                    this._scratchDesiredVelocity.addInPlace(this._scratchLateralCorrection)
-                        .normalizeInPlace()
-                        .multiplyInPlace(desiredSpeed);
-                }
-            }
-
-            this._scratchVelocityError.set(this._scratchDesiredVelocity).subtractInPlace(this.ship.velocity);
-            const velocityErrorMagnitude = this._scratchVelocityError.magnitude();
-
-            if (velocityErrorMagnitude > 5) {
-                desiredAngle = Math.atan2(this._scratchVelocityError.x, -this._scratchVelocityError.y);
-                const angleToDesired = normalizeAngle(desiredAngle - this.ship.angle);
-                desiredAngle = this.ship.angle + angleToDesired;
-                shouldThrust = Math.abs(angleToDesired) < Math.PI / 12 || velocityTowardTarget < -5;
-            } else if (!shouldThrust) {
-                desiredAngle = Math.atan2(-this.ship.velocity.x, this.ship.velocity.y);
-            }
-        } else {
-            // Close phase: Fine-tune speed to arrivalSpeed
-            const finalSpeed = remapClamp(distanceToTargetCenter, 0, this.closeApproachDistance, this.arrivalSpeed, this.closeApproachSpeed);
-            let desiredSpeed = finalSpeed;
-            if (currentSpeed < finalSpeed * 0.5) desiredSpeed = finalSpeed * 1.2;
-            else if (currentSpeed > finalSpeed * 1.2) desiredSpeed = -currentSpeed;
-
-            this._scratchTargetVelocity.set(this._scratchDirectionToTarget).multiplyInPlace(desiredSpeed);
-            this._scratchDesiredVelocity.set(this._scratchTargetVelocity);
-            if (lateralSpeed > 1) {
-                const lateralCorrectionFactor = Math.min(1, lateralSpeed / 5);
-                this._scratchLateralCorrection.set(this._scratchVelocityPerpendicular)
-                    .normalizeInPlace()
-                    .multiplyInPlace(-lateralSpeed * lateralCorrectionFactor);
-                this._scratchDesiredVelocity.addInPlace(this._scratchLateralCorrection)
-                    .normalizeInPlace()
-                    .multiplyInPlace(desiredSpeed);
-            }
-
-            this._scratchVelocityError.set(this._scratchDesiredVelocity).subtractInPlace(this.ship.velocity);
-            const velocityErrorMagnitude = this._scratchVelocityError.magnitude();
-
-            if (velocityErrorMagnitude > 1) {
-                desiredAngle = Math.atan2(this._scratchVelocityError.x, -this._scratchVelocityError.y);
-                const angleToDesired = normalizeAngle(desiredAngle - this.ship.angle);
-                desiredAngle = this.ship.angle + angleToDesired;
-                shouldThrust = Math.abs(angleToDesired) < Math.PI / 12;
-            } else {
-                desiredAngle = Math.atan2(-this.ship.velocity.x, this.ship.velocity.y);
-            }
-        }
-
-        // Apply control inputs
-        this.ship.setTargetAngle(desiredAngle);
-        this.ship.applyThrust(shouldThrust);
-    }
-
-    /**
-     * Returns the current status of the autopilot for HUD display.
-     * @returns {string} A descriptive status string.
-     */
-    getStatus() {
-        return `Flying to ${this.target.name || 'target'}`;
-    }
-}
-
 /**
  * Autopilot for avoiding a threat by moving away and toward the sector center.
  * @extends Autopilot
@@ -1559,6 +1261,7 @@ export class AvoidAutopilot extends Autopilot {
             this._scratchDesiredVelocity,
             true,
             this.ship.velocity.getAngle(),
+            1.0,
             this._scratchVelocityError
         );
     }

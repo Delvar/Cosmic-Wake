@@ -1,7 +1,7 @@
 // /src/autopilot/attackAutopilot.js
 
 import { Vector2D } from '/src/core/vector2d.js';
-import { Autopilot, ApproachTargetAutopilot } from '/src/autopilot/autopilot.js';
+import { Autopilot, FlyToTargetAutopilot } from '/src/autopilot/autopilot.js';
 import { remapClamp, randomBetween, clamp } from '/src/core/utils.js';
 import { isValidTarget } from '/src/core/gameObject.js';
 import { Ship, isValidAttackTarget } from '/src/ship/ship.js';
@@ -63,17 +63,11 @@ export class AttackAutopilot extends Autopilot {
         this.completed = false;
         this.error = null;
         this.state = "Approaching";
-        this.subAutopilot = new ApproachTargetAutopilot(
+        this.subAutopilot = new FlyToTargetAutopilot(
             this.ship,
             this.target,
-            this.approachRadius, // finalRadius
-            Ship.LANDING_SPEED, // arrivalSpeedMin
-            this.ship.maxVelocity, // arrivalSpeedMax
-            2, // velocityTolerance
-            Math.PI / 6, // thrustAngleLimit
-            Ship.LANDING_SPEED, // upperVelocityErrorThreshold
-            2, // lowerVelocityErrorThreshold
-            2 // maxTimeToIntercept
+            this.approachRadius,
+            this.ship.maxVelocity,
         );
         this.subAutopilot.start();
         if (this.ship.debug) {
@@ -95,7 +89,7 @@ export class AttackAutopilot extends Autopilot {
     }
 
     /**
-     * Handles the Approaching state, running ApproachTargetAutopilot until within approach radius.
+     * Handles the Approaching state, running FlyToTargetAutopilot until within approach radius.
      * @param {number} deltaTime - Time elapsed in seconds.
      * @param {GameManager} gameManager - The game manager instance for context.
      */
@@ -152,17 +146,11 @@ export class AttackAutopilot extends Autopilot {
                 this.subAutopilot.stop();
                 this.subAutopilot = null;
                 this.state = "Approaching";
-                this.subAutopilot = new ApproachTargetAutopilot(
+                this.subAutopilot = new FlyToTargetAutopilot(
                     this.ship,
                     this.target,
                     this.approachRadius,
-                    this.ship.maxVelocity * 0.5,
                     this.ship.maxVelocity,
-                    2,
-                    Math.PI / 6,
-                    Ship.LANDING_SPEED,
-                    2,
-                    2
                 );
                 this.subAutopilot.start();
                 if (this.ship.debug) {
@@ -298,11 +286,12 @@ export class OrbitAttackAutopilot extends Autopilot {
             .normalizeInPlace().multiplyInPlace(this.ship.maxVelocity);
 
         // Apply thrust with hysteresis
-        const shouldThrust = super.applyThrustLogic(
+        const shouldThrust = this.applyThrustLogic(
             this.ship,
             this._scratchDesiredVelocity,
             false,
             null,
+            1.0,
             this._scratchVelocityError
         );
 
@@ -351,6 +340,7 @@ export class OrbitAttackAutopilot extends Autopilot {
             this._scratchDesiredVelocity,
             this.ship.fixedWeapons.length !== 0,
             this._scratchLeadDirection.getAngle(),
+            1.0,
             this._scratchVelocityError
         );
 
@@ -490,13 +480,11 @@ export class FlybyAttackAutopilot extends Autopilot {
             this._scratchDirectionToTarget
         );
 
-        const targetVelocity = this.target.velocity || Vector2D.Zero;
-
-        const angleToLead = super.computeLeadPosition(
+        const angleToLead = this.computeLeadPosition(
             this.ship,
             this.target,
             this.projectileSpeed,
-            targetVelocity,
+            this.target.velocity,
             distance,
             this._scratchDirectionToTarget,
             this._scratchLeadPosition,
@@ -511,11 +499,12 @@ export class FlybyAttackAutopilot extends Autopilot {
             .multiplyInPlace(this.passSpeed);
 
         // Apply thrust
-        const shouldThrust = super.applyThrustLogic(
+        const shouldThrust = this.applyThrustLogic(
             this.ship,
             this._scratchDesiredVelocity,
             true,
             this._scratchLeadDirection.getAngle(),
+            1.0,
             this._scratchVelocityError
         );
 
@@ -783,6 +772,7 @@ export class InRangeAttackAutopilot extends Autopilot {
             this._scratchDesiredVelocity,
             true,
             this._scratchLeadDirection.getAngle(),
+            1.0,
             this._scratchVelocityError
         );
 

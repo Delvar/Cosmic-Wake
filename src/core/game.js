@@ -402,7 +402,6 @@ class GameManager {
      * @param {number} currentTime - Current time in milliseconds.
      */
     spawnAiShipsIfNeeded(currentTime) {
-        return;
         if (currentTime != 0 && (currentTime - this.lastSpawnTime < this.spawnInterval)) return;
 
         this.galaxy.forEach(system => {
@@ -480,7 +479,11 @@ class GameManager {
                     } else {
                         //spawn civilian
                         aiShip = createRandomShip(spawnPlanet.position.x, spawnPlanet.position.y, system);
-                        aiShip.pilot = new CivilianAiPilot(aiShip, new WandererJob(aiShip));
+                        if (aiShip instanceof Boxwing) {
+                            aiShip.pilot = new CivilianAiPilot(aiShip, new MinerJob(aiShip));
+                        } else {
+                            aiShip.pilot = new CivilianAiPilot(aiShip, new WandererJob(aiShip));
+                        }
                         //aiShip.colors.wings.set(0, 1, 0, 1);
                         civilianCount++;
                     }

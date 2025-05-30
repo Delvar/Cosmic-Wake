@@ -110,7 +110,8 @@ export class HeadsUpDisplay {
         ctx.strokeStyle = 'rgb(255, 255, 64)';
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, camera.worldToSize(target.radius * target.shipScale) * 1.1, 0, TWO_PI);
+        const scale = target instanceof Ship ? target.shipScale : 1.0;
+        ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, camera.worldToSize(target.radius * scale) * 1.1, 0, TWO_PI);
         ctx.stroke();
         ctx.restore();
     }

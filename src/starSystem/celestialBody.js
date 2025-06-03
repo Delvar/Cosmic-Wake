@@ -55,11 +55,11 @@ export class CelestialBody extends GameObject {
      * @param {number} [angle=0] - The initial angle relative to the parent in radians.
      * @param {Object} [type=celestialTypes['planet']] - The type of celestial body from celestialTypes.
      * @param {Object} [subtype=null] - The subtype of the celestial body (e.g., for planets).
-     * @param {string} [name=''] - The name of the celestial body.
+     * @param {string|null} [name=null] - The name of the celestial body.
      * @param {StarSystem} [starSystem=null] - The star system the body belongs to.
      * @param {PlanetaryRing} [ring=null] - An optional ring around the body.
      */
-    constructor(distance, radius, color, parent = null, angle = 0, type = celestialTypes['planet'], subtype = null, name = '', starSystem = null, ring = null) {
+    constructor(distance, radius, color, parent = null, angle = 0, type = celestialTypes['planet'], subtype = null, name = null, starSystem = null, ring = null) {
         super(new Vector2D(0, 0), starSystem);
         /** @type {Vector2D} The position of the celestial body in world coordinates, calculated from parent and angle. */
         this.position = new Vector2D(
@@ -86,6 +86,8 @@ export class CelestialBody extends GameObject {
         this.landedShips = [];
         /** @type {Vector2D} Scratch vector for storing screen position during drawing. */
         this._scratchScreenPos = new Vector2D();
+        /** @type {string|null} The name of the CelestialBody */
+        this.name = name;
     }
 
     /**

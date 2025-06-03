@@ -82,6 +82,8 @@ export class Shield {
             const isRapidRecharge = this.rapidRechargeEffectTime > 0;
             const rate = isRapidRecharge ? this.rapidRechargeRate : this.rechargeRate;
             this.strength = Math.min(this.strength + rate * deltaTime, this.maxStrength);
+        } else if (this.restartTime == null) {
+            this.strength = 0;
         } else if (currentTime >= this.restartTime) {
             // Restart shields
             this.isActive = true;

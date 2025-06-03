@@ -636,6 +636,7 @@ export class Ship extends GameObject {
             this.isBraking = false;
             this.shield.isActive = false;
             this.shield.strength = 0;
+            this.shield.restartTime = null;
             return;
         }
 

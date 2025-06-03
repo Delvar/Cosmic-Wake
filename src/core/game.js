@@ -296,9 +296,9 @@ export class GameManager {
     constructor() {
         /** @type {boolean} Enables or disables debug mode for the game. */
         this.debug = false;
-        /** @type {HTMLCanvasElement} The main game canvas for rendering. */
+        /** @type {HTMLElement} The main game canvas for rendering. */
         this.canvas = document.getElementById('gameCanvas');
-        /** @type {HTMLCanvasElement} The canvas for rendering the target view. */
+        /** @type {HTMLElement} The canvas for rendering the target view. */
         this.targetCanvas = document.getElementById('targetCanvas');
         /** @type {Object.<string, boolean>} Tracks the current state of keyboard inputs. */
         this.keys = {};

@@ -1,0 +1,26 @@
+{
+    "compilerOptions": {
+        "module": "ES2020",
+        "target": "ES2020",
+        "baseUrl": "src",
+        "paths": {
+            "/src/*": [
+                "*"
+            ]
+        },
+        "moduleResolution": "node",
+        "allowJs": true,
+        "checkJs": true,
+        "noEmit": true
+    },
+    "include": [
+        "src/**/*"
+    ],
+    "exclude": [
+        "node_modules",
+        ".vscode",
+        "Old Versions",
+        "SVG Converter",
+        "Test Bench"
+    ]
+}

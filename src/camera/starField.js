@@ -1,5 +1,6 @@
 // /src/camera/starField.js
 
+import { Camera } from '/src/camera/camera.js';
 import { TWO_PI, remapRange01, remapClamp, SimpleRNG, hash } from '/src/core/utils.js';
 import { Vector2D } from '/src/core/vector2d.js';
 
@@ -9,11 +10,11 @@ import { Vector2D } from '/src/core/vector2d.js';
  */
 export class StarField {
     /**
-  * Creates a new StarField instance.
-  * @param {number} [starsPerCell=20] - Number of stars per grid cell.
-  * @param {number} [gridSize=1000] - Size of each grid cell in world coordinates.
-  * @param {number} [coloursPerLayer=10] - Number of colors per layer for rendering.
-  */
+     * Creates a new StarField instance.
+     * @param {number} [starsPerCell=20] - Number of stars per grid cell.
+     * @param {number} [gridSize=1000] - Size of each grid cell in world coordinates.
+     * @param {number} [coloursPerLayer=10] - Number of colors per layer for rendering.
+     */
     constructor(starsPerCell = 20, gridSize = 1000, coloursPerLayer = 10) {
         /** @type {number} Number of stars per grid cell. */
         this.starsPerCell = starsPerCell;

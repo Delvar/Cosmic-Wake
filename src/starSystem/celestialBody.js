@@ -4,6 +4,9 @@ import { Vector2D } from '/src/core/vector2d.js';
 import { Colour } from '/src/core/colour.js';
 import { GameObject } from '/src/core/gameObject.js';
 import { TWO_PI, removeObjectFromArrayInPlace } from '/src/core/utils.js';
+import { Hyperlane, StarSystem } from '/src/starSystem/starSystem.js';
+import { Ship } from '/src/ship/ship.js';
+import { Camera } from '/src/camera/camera.js';
 
 /**
  * Defines the types and colors for celestial bodies in the game.
@@ -77,8 +80,6 @@ export class CelestialBody extends GameObject {
         this.type = type;
         /** @type {Object|null} The subtype of the celestial body (e.g., for planets). */
         this.subtype = subtype;
-        /** @type {string} The name of the celestial body. */
-        this.name = name;
         /** @type {PlanetaryRing|null} An optional ring around the celestial body. */
         this.ring = ring;
         /** @type {Array<Ship>} Array of ships currently landed on the celestial body. */
@@ -116,7 +117,7 @@ export class CelestialBody extends GameObject {
         const lightX = screenX + Math.sin(sunAngle) * scaledRadius * 0.7;
         const lightY = screenY - Math.cos(sunAngle) * scaledRadius * 0.7;
 
-        let fillStyle = this.color.toRGB();
+        let fillStyle;
         if (this.type.type !== 'star') {
             const gradient = ctx.createRadialGradient(
                 lightX, lightY, 0,
@@ -125,6 +126,8 @@ export class CelestialBody extends GameObject {
             gradient.addColorStop(0, this.color.toRGB());
             gradient.addColorStop(1, 'rgb(0, 0, 0)');
             fillStyle = gradient;
+        } else {
+            fillStyle = this.color.toRGB();
         }
 
         ctx.beginPath();
@@ -261,6 +264,7 @@ export class Planet extends CelestialBody {
  */
 export class Star extends CelestialBody {
     /**
+     * Creates a new Star instance.
      * @param {number} distance - The distance from the parent body or origin in world units.
      * @param {number} radius - The radius of the celestial body in world units.
      * @param {Colour} color - The color of the celestial body.

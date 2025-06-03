@@ -4,6 +4,8 @@ import { Vector2D } from '/src/core/vector2d.js';
 import { Weapon } from '/src/weapon/weapon.js';
 import { normalizeAngle } from '/src/core/utils.js';
 import { ProjectileManager } from '/src/starSystem/projectileManager.js';
+import { Ship } from '/src/ship/ship.js';
+import { GameObject } from '/src/core/gameObject.js';
 /**
  * Represents an auto-aiming turret on a ship.
  */
@@ -77,7 +79,7 @@ export class Turret {
             this._scratchDirectionToTarget.normalizeInPlace();
 
             // Compute lead position
-            const projectileSpeed = this.weapon.projectileSpeed || 1000; // Default if undefined
+            const projectileSpeed = 1000; // Default if undefined
             this.computeLeadPosition(
                 ship,
                 ship.target,

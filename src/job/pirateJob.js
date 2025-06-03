@@ -2,8 +2,10 @@
 
 import { Job } from '/src/job/job.js';
 import { AttackAutopilot } from '/src/autopilot/attackAutopilot.js';
-import { isValidAttackTarget } from '/src/ship/ship.js';
-import { PirateAiPilot } from '/src/pilot/aiPilot.js';
+import { isValidAttackTarget, Ship } from '/src/ship/ship.js';
+import { AiPilot, PirateAiPilot } from '/src/pilot/aiPilot.js';
+import { GameManager } from '/src/core/game.js';
+import { GameObject } from '/src/core/gameObject.js';
 
 /**
  * Job for a ship to attack other ships in the system.
@@ -74,7 +76,7 @@ export class PirateJob extends Job {
      */
     isValidPirateTarget(source, target) {
         if (!isValidAttackTarget(source, target)) return false;
-        if (target.pilot instanceof PirateAiPilot) return false;
+        if (target instanceof Ship && target.pilot instanceof PirateAiPilot) return false;
         return true;
     }
 

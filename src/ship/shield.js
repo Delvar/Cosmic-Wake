@@ -2,6 +2,7 @@
 
 import { Vector2D } from '/src/core/vector2d.js';
 import { TWO_PI, remapClamp } from '/src/core/utils.js';
+import { Camera } from '/src/camera/camera.js';
 
 /**
  * Manages a ship's energy shield, handling damage absorption, recharge, collapse/restart, and visual effects.

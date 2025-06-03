@@ -1,15 +1,41 @@
 // /src/ship/shipTypes.js
 
+import { Camera } from '/src/camera/camera.js';
 import { Ship } from '/src/ship/ship.js';
+import { StarSystem } from '/src/starSystem/starSystem.js';
 
+/**
+ * Represents a Flivver, a fast and agile spaceship type optimized for quick maneuvers.
+ * Extends Ship to inherit core navigation, landing, and jumping functionality.
+ * @extends Ship
+ */
 export class Flivver extends Ship {
+    /**
+     * Creates a new Flivver instance.
+     * @param {number} x - Initial x-coordinate of the ship.
+     * @param {number} y - Initial y-coordinate of the ship.
+     * @param {StarSystem} starSystem - The star system the ship is in.
+     */
     constructor(x, y, starSystem) {
         super(x, y, starSystem);
+
+        /**
+         * @type {number} Rotation speed in radians per second, increased for agility.
+         */
         this.rotationSpeed = Math.PI * 2.5;
+        /**
+         * @type {number} Thrust acceleration in units per second squared, enhanced for speed.
+         */
         this.thrust = 800;
+        /**
+         * @type {number} Maximum velocity in units per second, higher for faster travel.
+         */
         this.maxVelocity = 700;
+
+        // Initialize the particle trail for visual effects
         this.setupTrail();
     }
+
     /**
      * Sets up the bounding box
      */
@@ -162,14 +188,35 @@ export class Flivver extends Ship {
     }
 }
 
+/**
+ * Represents a Shuttle, a lightweight spaceship designed for short-range transport.
+ * Extends Ship to inherit core navigation, landing, and jumping functionality.
+ * @extends Ship
+ */
 export class Shuttle extends Ship {
+    /**
+     * Creates a new Shuttle instance.
+     * @param {number} x - Initial x-coordinate of the ship.
+     * @param {number} y - Initial y-coordinate of the ship.
+     * @param {StarSystem} starSystem - The star system the ship is in.
+     */
     constructor(x, y, starSystem) {
         super(x, y, starSystem);
+        /**
+         * @type {number} Rotation speed in radians per second, moderate for efficient transport.
+         */
         this.rotationSpeed = Math.PI * 1.2;
+        /**
+         * @type {number} Thrust acceleration in units per second squared, balanced for short trips.
+         */
         this.thrust = 200;
+        /**
+         * @type {number} Maximum velocity in units per second, suitable for quick shuttling.
+         */
         this.maxVelocity = 400;
         this.setupTrail();
     }
+
     /**
      * Sets up the bounding box
      */
@@ -294,14 +341,35 @@ export class Shuttle extends Ship {
     }
 }
 
+/**
+ * Represents a HeavyShuttle, a robust spaceship for transporting larger payloads.
+ * Extends Ship to inherit core navigation, landing, and jumping functionality.
+ * @extends Ship
+ */
 export class HeavyShuttle extends Ship {
+    /**
+     * Creates a new HeavyShuttle instance.
+     * @param {number} x - Initial x-coordinate of the ship.
+     * @param {number} y - Initial y-coordinate of the ship.
+     * @param {StarSystem} starSystem - The star system the ship is in.
+     */
     constructor(x, y, starSystem) {
         super(x, y, starSystem);
+        /**
+         * @type {number} Rotation speed in radians per second, slightly reduced due to mass.
+         */
         this.rotationSpeed = Math.PI * 1.1;
+        /**
+         * @type {number} Thrust acceleration in units per second squared, moderate for heavy loads.
+         */
         this.thrust = 150;
+        /**
+         * @type {number} Maximum velocity in units per second, lower for stability.
+         */
         this.maxVelocity = 350;
         this.setupTrail();
     }
+
     /**
      * Sets up the bounding box
      */
@@ -435,14 +503,35 @@ export class HeavyShuttle extends Ship {
     }
 }
 
+/**
+ * Represents a StarBarge, a large, slow spaceship for bulk cargo transport.
+ * Extends Ship to inherit core navigation, landing, and jumping functionality.
+ * @extends Ship
+ */
 export class StarBarge extends Ship {
+    /**
+     * Creates a new StarBarge instance.
+     * @param {number} x - Initial x-coordinate of the ship.
+     * @param {number} y - Initial y-coordinate of the ship.
+     * @param {StarSystem} starSystem - The star system the ship is in.
+     */
     constructor(x, y, starSystem) {
         super(x, y, starSystem);
+        /**
+         * @type {number} Rotation speed in radians per second, low due to large size.
+         */
         this.rotationSpeed = Math.PI * 0.5;
+        /**
+         * @type {number} Thrust acceleration in units per second squared, minimal for efficiency.
+         */
         this.thrust = 25;
+        /**
+         * @type {number} Maximum velocity in units per second, slow for heavy cargo.
+         */
         this.maxVelocity = 100;
         this.setupTrail();
     }
+
     /**
      * Sets up the bounding box
      */
@@ -632,14 +721,35 @@ export class StarBarge extends Ship {
     }
 }
 
+/**
+ * Represents a Freighter, a heavy spaceship optimized for long-range cargo hauling.
+ * Extends Ship to inherit core navigation, landing, and jumping functionality.
+ * @extends Ship
+ */
 export class Freighter extends Ship {
+    /**
+     * Creates a new Freighter instance.
+     * @param {number} x - Initial x-coordinate of the ship.
+     * @param {number} y - Initial y-coordinate of the ship.
+     * @param {StarSystem} starSystem - The star system the ship is in.
+     */
     constructor(x, y, starSystem) {
         super(x, y, starSystem);
+        /**
+         * @type {number} Rotation speed in radians per second, very low due to mass.
+         */
         this.rotationSpeed = Math.PI * 0.25;
+        /**
+         * @type {number} Thrust acceleration in units per second squared, low for fuel efficiency.
+         */
         this.thrust = 25;
+        /**
+         * @type {number} Maximum velocity in units per second, slow for stability.
+         */
         this.maxVelocity = 100;
         this.setupTrail();
     }
+
     /**
      * Sets up the bounding box
      */
@@ -1160,14 +1270,35 @@ export class Freighter extends Ship {
     }
 }
 
+/**
+ * Represents an Arrow, a sleek spaceship designed for speed and precision.
+ * Extends Ship to inherit core navigation, landing, and jumping functionality.
+ * @extends Ship
+ */
 export class Arrow extends Ship {
+    /**
+     * Creates a new Arrow instance.
+     * @param {number} x - Initial x-coordinate of the ship.
+     * @param {number} y - Initial y-coordinate of the ship.
+     * @param {StarSystem} starSystem - The star system the ship is in.
+     */
     constructor(x, y, starSystem) {
         super(x, y, starSystem);
+        /**
+         * @type {number} Rotation speed in radians per second, moderate for precise control.
+         */
         this.rotationSpeed = Math.PI * 0.5;
+        /**
+         * @type {number} Thrust acceleration in units per second squared, high for rapid acceleration.
+         */
         this.thrust = 300;
+        /**
+         * @type {number} Maximum velocity in units per second, high for fast travel.
+         */
         this.maxVelocity = 600;
         this.setupTrail();
     }
+
     /**
      * Sets up the bounding box
      */
@@ -1295,11 +1426,31 @@ export class Arrow extends Ship {
     }
 }
 
+/**
+ * Represents a Boxwing, a sturdy spaceship with a focus on durability over speed.
+ * Extends Ship to inherit core navigation, landing, and jumping functionality.
+ * @extends Ship
+ */
 export class Boxwing extends Ship {
+    /**
+     * Creates a new Boxwing instance.
+     * @param {number} x - Initial x-coordinate of the ship.
+     * @param {number} y - Initial y-coordinate of the ship.
+     * @param {StarSystem} starSystem - The star system the ship is in.
+     */
     constructor(x, y, starSystem) {
         super(x, y, starSystem);
+        /**
+         * @type {number} Rotation speed in radians per second, low due to robust design.
+         */
         this.rotationSpeed = Math.PI * 0.25;
+        /**
+         * @type {number} Thrust acceleration in units per second squared, low for stability.
+         */
         this.thrust = 25;
+        /**
+         * @type {number} Maximum velocity in units per second, slow for durability.
+         */
         this.maxVelocity = 100;
         this.setupTrail();
     }
@@ -1455,14 +1606,35 @@ export class Boxwing extends Ship {
     }
 }
 
+/**
+ * Represents an Interceptor, a high-speed spaceship built for rapid response and combat.
+ * Extends Ship to inherit core navigation, landing, and jumping functionality.
+ * @extends Ship
+ */
 export class Interceptor extends Ship {
+    /**
+     * Creates a new Interceptor instance.
+     * @param {number} x - Initial x-coordinate of the ship.
+     * @param {number} y - Initial y-coordinate of the ship.
+     * @param {StarSystem} starSystem - The star system the ship is in.
+     */
     constructor(x, y, starSystem) {
         super(x, y, starSystem);
+        /**
+         * @type {number} Rotation speed in radians per second, high for agile combat.
+         */
         this.rotationSpeed = Math.PI * 2;
+        /**
+         * @type {number} Thrust acceleration in units per second squared, very high for quick response.
+         */
         this.thrust = 1000;
+        /**
+         * @type {number} Maximum velocity in units per second, very high for pursuit.
+         */
         this.maxVelocity = 1000;
         this.setupTrail();
     }
+
     /**
      * Sets up the bounding box
      */
@@ -1599,14 +1771,35 @@ export class Interceptor extends Ship {
     }
 }
 
+/**
+ * Represents a Fighter, a fast and maneuverable spaceship designed for combat.
+ * Extends Ship to inherit core navigation, landing, and jumping functionality.
+ * @extends Ship
+ */
 export class Fighter extends Ship {
+    /**
+     * Creates a new Fighter instance.
+     * @param {number} x - Initial x-coordinate of the ship.
+     * @param {number} y - Initial y-coordinate of the ship.
+     * @param {StarSystem} starSystem - The star system the ship is in.
+     */
     constructor(x, y, starSystem) {
         super(x, y, starSystem);
+        /**
+         * @type {number} Rotation speed in radians per second, very high for dogfighting.
+         */
         this.rotationSpeed = Math.PI * 2.5;
+        /**
+         * @type {number} Thrust acceleration in units per second squared, high for combat agility.
+         */
         this.thrust = 800;
+        /**
+         * @type {number} Maximum velocity in units per second, high for fast engagements.
+         */
         this.maxVelocity = 700;
         this.setupTrail();
     }
+
     /**
      * Sets up the bounding box
      */

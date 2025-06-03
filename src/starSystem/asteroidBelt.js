@@ -3,6 +3,8 @@
 import { Vector2D } from '/src/core/vector2d.js';
 import { TWO_PI, remapRange01, removeObjectFromArrayInPlace, SimpleRNG, hash, normalizeAngle, clamp } from '/src/core/utils.js';
 import { GameObject, isValidTarget } from '/src/core/gameObject.js';
+import { StarSystem } from '/src/starSystem/starSystem.js';
+import { Camera } from '/src/camera/camera.js';
 
 /**
  * A precomputed asteroid shape, stored as a Float32Array of [x1, y1, x2, y2, ...].
@@ -11,7 +13,6 @@ class AsteroidShape {
     /**
      * Creates a new AsteroidShape instance.
      * @param {number} numPoints - Number of points in the shape.
-     * @returns {AsteroidShape} The created asteroid shape instance.
      */
     constructor(numPoints) {
         /** @type {number} The number of points defining the asteroid shape. */
@@ -60,7 +61,6 @@ export class AsteroidBelt {
      * @param {number} backgroundDensity - Asteroids per 500x500 unit area.
      * @param {number} interactiveCount - Number of interactive asteroids.
      * @param {number} [layerCount=10] - Number of orbital layers.
-     * @returns {AsteroidBelt} The created asteroid belt instance.
      */
     constructor(innerRadius, outerRadius, backgroundDensity, interactiveCount, layerCount = 10) {
         /** @type {StarSystem|null} The star system the asteroid belt belongs to. */
@@ -312,7 +312,7 @@ export class AsteroidBelt {
                 const cellAngle = baseCellAngle + layerAngle;
                 const cellEndAngle = cellAngle + this.cellAngleSize;
                 // Optional: Verify cell is in view (for safety)
-                if (camera.isCellInView(cellAngle, cellEndAngle, this.innerRadius, this.outerRadius)) {
+                if (camera.isCellInView(cellAngle, cellEndAngle)) {
                     //renderedCells++;
                     const asteroids = this.getCellAsteroids(layerIdx, baseCellAngle, time);
                     for (let j = 0; j < asteroids.length; j += 5) {
@@ -457,10 +457,11 @@ export class AsteroidBelt {
 
 /**
  * Represents an individual interactive asteroid within a belt.
+ * @extends GameObject
  */
 export class Asteroid extends GameObject {
     /**
-     * @extends GameObject
+     * Creates an instance of Asteroid.
      * @param {AsteroidBelt} belt - The asteroid belt this asteroid belongs to.
      */
     constructor(belt) {
@@ -469,7 +470,7 @@ export class Asteroid extends GameObject {
         this.belt = belt;
         /** @type {number} Index of the shape used for rendering. */
         this.shapeIndex = Math.floor(Math.random() * belt.shapeCount);
-        /** @type {Shape} The shape used for rendering this asteroid. */
+        /** @type {AsteroidShape} The shape used for rendering this asteroid. */
         this.shape = belt.shapes[this.shapeIndex];
         /** @type {number} The radius of the asteroid (world units). */
         this.radius = remapRange01(Math.random(), 15, 30);

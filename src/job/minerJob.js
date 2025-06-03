@@ -5,6 +5,11 @@ import { LandOnAsteroidAutopilot, LandOnPlanetAutopilot } from '/src/autopilot/a
 import { randomBetween } from '/src/core/utils.js';
 import { Vector2D } from '/src/core/vector2d.js';
 import { isValidTarget } from '/src/core/gameObject.js';
+import { Ship } from '/src/ship/ship.js';
+import { Planet } from '/src/starSystem/celestialBody.js';
+import { AiPilot } from '/src/pilot/aiPilot.js';
+import { Asteroid } from '/src/starSystem/asteroidBelt.js';
+import { GameManager } from '/src/core/game.js';
 
 /**
  * Job for a ship to mine asteroids and return to a home planet.
@@ -106,7 +111,7 @@ export class MinerJob extends Job {
             } else {
                 this.ship.initiateTakeoff();
                 if (this.ship.debug) {
-                    console.log(`MinerJob: Found asteroid ${this.targetAsteroid.name}, initiating takeoff`);
+                    console.log('MinerJob: Found asteroid, initiating takeoff');
                 }
                 // Stay in Starting; next update handles Flying
             }
@@ -114,7 +119,7 @@ export class MinerJob extends Job {
             this.pilot.setAutopilot(new LandOnAsteroidAutopilot(this.ship, this.targetAsteroid));
             this.state = 'FlyingToAsteroid';
             if (this.ship.debug) {
-                console.log(`MinerJob: Flying to asteroid ${this.targetAsteroid.name}`);
+                console.log('MinerJob: Flying to asteroid');
             }
         }
         // Wait if TakingOff
@@ -237,7 +242,7 @@ export class MinerJob extends Job {
             return `Mining (${(this.waitTime).toFixed(1)}s)`;
         }
         if (this.targetAsteroid) {
-            return `Mining ${this.targetAsteroid.name}`;
+            return 'Mining';
         }
         if (this.homePlanet) {
             return `Returning to ${this.homePlanet.name}`;

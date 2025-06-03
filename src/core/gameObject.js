@@ -1,6 +1,7 @@
 // /src/core/gameObject.js
 
 import { Vector2D } from '/src/core/vector2d.js';
+import { StarSystem } from '/src/starSystem/starSystem.js';
 
 /**
  * Checks if a target is still valid (not despawned and exists in the galaxy).
@@ -39,6 +40,8 @@ export class GameObject {
         this.despawned = false;
         /** @type {boolean} Enables or disables debug mode for the object. */
         this.debug = false;
+        /** @type {string|null} The name of the game object */
+        this.name = null;
     }
 
     /**

@@ -1,5 +1,6 @@
 // /src/ship/trail.js
 
+import { Camera } from '/src/camera/camera.js';
 import { Vector2D } from '/src/core/vector2d.js';
 
 /**

@@ -4,10 +4,11 @@ import { Vector2D } from '/src/core/vector2d.js';
 import { CelestialBody, JumpGate, Star, Planet } from '/src/starSystem/celestialBody.js';
 import { remapClamp, randomBetween, normalizeAngle } from '/src/core/utils.js';
 import { Ship } from '/src/ship/ship.js';
-import { TraverseJumpGateAutopilot, LandOnPlanetAutopilot, EscortAutopilot, LandOnAsteroidAutopilot, FlyToTargetAutopilot } from '/src/autopilot/autopilot.js';
+import { TraverseJumpGateAutopilot, LandOnPlanetAutopilot, EscortAutopilot, LandOnAsteroidAutopilot, FlyToTargetAutopilot, Autopilot } from '/src/autopilot/autopilot.js';
 import { AttackAutopilot } from '/src/autopilot/attackAutopilot.js';
 import { Asteroid } from '/src/starSystem/asteroidBelt.js';
 import { GameObject, isValidTarget } from '/src/core/gameObject.js';
+import { GameManager } from '/src/core/game.js';
 
 /**
  * Base class for AI and player pilots, providing a common interface for ship control.
@@ -158,7 +159,7 @@ export class PlayerPilot extends Pilot {
 
         // Update autopilot if active
         if (this.autopilot?.active) {
-            this.autopilot.update(deltaTime);
+            this.autopilot.update(deltaTime, gameManager);
             if (this.autopilot.isComplete()) {
                 if (this.autopilot.error) {
                     console.warn(`Autopilot failed: ${this.autopilot.error}`);

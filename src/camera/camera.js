@@ -2,6 +2,8 @@
 
 import { Vector2D } from '/src/core/vector2d.js';
 import { normalizeAngle, TWO_PI } from '/src/core/utils.js';
+import { StarSystem } from '/src/starSystem/starSystem.js';
+import { GameObject } from '/src/core/gameObject.js';
 
 /**
  * Represents a camera that handles rendering and coordinate transformations in a 2D space.
@@ -65,8 +67,7 @@ export class Camera {
      */
     update(starSystem, position) {
         if (!starSystem) {
-            console.log(this.camera);
-            throw new Error('No starSystem on this.camera');
+            throw new Error('No starSystem on camera');
         }
         this.starSystem = starSystem;
         this.position.set(position); // Reuse position vector
@@ -107,7 +108,6 @@ export class Camera {
 
     /**
      * Updates the world-space bounds for visibility checks without allocation.
-     * @private
      */
     _updateWorldBounds() {
         const halfWidth = this.worldSize.width / 2;
@@ -254,7 +254,6 @@ export class Camera {
 
 /**
  * Represents a camera that follows a target object, typically used for a target view.
- * Extends the base Camera class.
  * @extends Camera
  */
 export class TargetCamera extends Camera {
@@ -266,7 +265,7 @@ export class TargetCamera extends Camera {
      */
     constructor(starSystem, position, screenSize) {
         super(starSystem, position, screenSize, 1);
-        /** @type {Vector2D|null} Cache for the last target size to avoid recomputing zoom. */
+        /** @type {number} Cache for the last target size to avoid recomputing zoom. */
         this.lastTargetSize = null;
         /** @type {number} Cache for the last zoom level to detect changes. */
         this.lastZoom = this.zoom;

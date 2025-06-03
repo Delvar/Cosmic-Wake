@@ -5,10 +5,9 @@
  * The StarSystem class represents a star system with celestial bodies, ships, and hyperlanes.
  * The Hyperlane class represents a connection between two star systems.
  */
-
 import { Vector2D } from '/src/core/vector2d.js';
 import { GameObject, isValidTarget } from '/src/core/gameObject.js';
-import { CelestialBody, Planet, Star, JumpGate } from '/src/starSystem/celestialBody.js';
+import { Planet, Star, JumpGate, CelestialBody } from '/src/starSystem/celestialBody.js';
 import { Ship } from '/src/ship/ship.js';
 import { Asteroid, AsteroidBelt } from '/src/starSystem/asteroidBelt.js';
 import { removeObjectFromArrayInPlace } from '/src/core/utils.js';

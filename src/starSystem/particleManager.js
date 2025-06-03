@@ -2,7 +2,9 @@
 
 import { Vector2D } from '/src/core/vector2d.js';
 import { Particle } from '/src/starSystem/particle.js';
-import { removeObjectFromArrayInPlace, TWO_PI, randomBetween, remapClamp, clamp } from '../core/utils.js';
+import { removeObjectFromArrayInPlace, TWO_PI, randomBetween, remapClamp, clamp } from '/src/core/utils.js';
+import { StarSystem } from '/src/starSystem/starSystem.js';
+import { Camera } from '/src/camera/camera.js';
 
 /**
  * Manages active particles in a star system, handling updates, rendering, and lifecycle.
@@ -92,10 +94,6 @@ export class ParticleManager {
         const lifetime = clamp(shockwaveRadius / speed, 0.5, 3);
         particle.reset(position, velocity, 1, this.currentTime, lifetime, shockwaveRadius);
         this.particles.push(particle);
-
-        if (this.starSystem.debug) {
-            console.log(`Spawned ${sparkCount} spark lines and 1 explosion at (${position.x.toFixed(2)}, ${position.y.toFixed(2)}), radius: ${radius.toFixed(2)}`);
-        }
     }
 
     /**

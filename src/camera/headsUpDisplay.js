@@ -3,9 +3,12 @@
 import { Vector2D } from '/src/core/vector2d.js';
 import { Ship } from '/src/ship/ship.js';
 import { TWO_PI, remapClamp } from '/src/core/utils.js';
-import { isValidTarget } from '/src/core/gameObject.js';
+import { GameObject, isValidTarget } from '/src/core/gameObject.js';
 import { Colour } from '/src/core/colour.js';
 import { AiPilot } from '/src/pilot/aiPilot.js';
+import { GameManager } from '/src/core/game.js';
+import { Camera } from '/src/camera/camera.js';
+import { CelestialBody } from '/src/starSystem/celestialBody.js';
 
 /**
  * Manages the Heads-Up Display (HUD) showing rings and indicators for game objects.
@@ -117,15 +120,18 @@ export class HeadsUpDisplay {
     }
 
     /**
-     * Draws a ring with arrows and optional name tags
-     * @param {CanvasRenderingContext2D} ctx - The canvas rendering context.
-     * @param {Camera} camera - The camera object for coordinate transformations.
-     * @param {Colour} ringColour - The colour of the ring
-     * @param {Number} ringRadius - The radius in screen space for the ring
-     * @param {Boolean} [showNames = true] - Show object names
-     * @param {GameObject} target - The target gets a bigger arrow
+     * Draws a navigational ring with arrows and optional name tags for objects in the star system.
+     * The ring is centered on the camera's screen center, with arrows indicating objects outside the ring
+     * and name tags for objects inside it.
+     * @param {CanvasRenderingContext2D} ctx - The canvas rendering context for drawing.
+     * @param {Camera} camera - The camera object for world-to-screen coordinate transformations.
+     * @param {Colour} ringColour - The color of the ring and arrows.
+     * @param {number} ringRadius - The radius of the ring in screen space.
+     * @param {boolean} [showNames=true] - Whether to show object names for objects inside the ring.
+     * @param {GameObject[]} [objects=[]] - Array of game objects (e.g., planets, ships) to draw arrows or names for.
+     * @param {GameObject|null} [target=null] - The target object, which gets a larger arrow if outside the ring.
      */
-    drawRing(ctx, camera, ringColour, ringRadius, showNames = true, objects, target) {
+    drawRing(ctx, camera, ringColour, ringRadius, showNames = true, objects = [], target = null) {
         ctx.save();
         const colour = ringColour.toRGB();
         ctx.strokeStyle = colour;
@@ -146,7 +152,7 @@ export class HeadsUpDisplay {
 
             // Label for bodies inside their ring
             if (squareMagnitude < ringRadius * ringRadius) {
-                if (body.name && showNames) {
+                if (showNames && (body instanceof Ship || body instanceof CelestialBody)) {
                     ctx.save();
                     ctx.beginPath();
                     ctx.fillStyle = 'white';

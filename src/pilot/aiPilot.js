@@ -3,9 +3,12 @@
 import { Pilot } from '/src/pilot/pilot.js';
 import { Ship, isValidAttackTarget } from '/src/ship/ship.js';
 import { Vector2D } from '/src/core/vector2d.js';
-import { AvoidAutopilot, FleeAutopilot, LandOnPlanetDespawnAutopilot } from '/src/autopilot/autopilot.js';
+import { Autopilot, AvoidAutopilot, FleeAutopilot, LandOnPlanetDespawnAutopilot } from '/src/autopilot/autopilot.js';
 import { AttackAutopilot } from '/src/autopilot/attackAutopilot.js';
 import { remapClamp } from '/src/core/utils.js';
+import { Job } from '/src/job/job.js';
+import { GameManager } from '/src/core/game.js';
+import { GameObject } from '/src/core/gameObject.js';
 
 /**
  * Base AI pilot with common states and reaction handling.
@@ -132,7 +135,7 @@ export class AiPilot extends Pilot {
 
         // Execute autopilot
         if (this.autopilot && !this.autopilot.isComplete()) {
-            this.autopilot.update(deltaTime);
+            this.autopilot.update(deltaTime, gameManager);
         }
 
         // Transition to Job if safe
@@ -160,7 +163,7 @@ export class AiPilot extends Pilot {
 
         // Execute autopilot
         if (this.autopilot && !this.autopilot.isComplete()) {
-            this.autopilot.update(deltaTime);
+            this.autopilot.update(deltaTime, gameManager);
             if (this.autopilot.isComplete()) {
                 this.changeState('Job');
             }
@@ -198,7 +201,7 @@ export class AiPilot extends Pilot {
                 }
                 this.changeState('Job');
             } else {
-                this.autopilot.update(deltaTime);
+                this.autopilot.update(deltaTime, gameManager);
             }
         }
     }
@@ -213,7 +216,7 @@ export class AiPilot extends Pilot {
             this.setAutopilot(new LandOnPlanetDespawnAutopilot(this.ship));
         }
         if (this.autopilot && !this.autopilot.isComplete()) {
-            this.autopilot.update(deltaTime);
+            this.autopilot.update(deltaTime, gameManager);
             if (this.autopilot.isComplete()) {
                 this.setAutopilot(null);
             }
@@ -403,7 +406,7 @@ export class CivilianAiPilot extends AiPilot {
         }
 
         // Check for timeout fleeing
-        if ((!this.autopilot || this.autopilot.timeElapsed >= this.autopilot.timeout) && !this.isSafe()) {
+        if ((!this.autopilot || (this.autopilot instanceof AvoidAutopilot && this.autopilot.timeElapsed >= this.autopilot.timeout)) && !this.isSafe()) {
             if (this.ship.debug) {
                 console.log('Avoid: Timeout or complete and not safe, switching to Flee');
             }
@@ -514,7 +517,7 @@ export class PirateAiPilot extends AiPilot {
         super.updateAvoid(deltaTime, gameManager);
 
         // Check for timeout fleeing
-        if ((!this.autopilot || this.autopilot.timeElapsed >= this.autopilot.timeout) && !this.isSafe()) {
+        if ((!this.autopilot || (this.autopilot instanceof AvoidAutopilot && this.autopilot.timeElapsed >= this.autopilot.timeout)) && !this.isSafe()) {
             if (this.ship.debug) {
                 console.log('Avoid: Timeout or complete and not safe, switching to Flee');
             }
@@ -647,7 +650,7 @@ export class OfficerAiPilot extends AiPilot {
     updateAvoid(deltaTime, gameManager) {
         super.updateAvoid(deltaTime, gameManager);
         // Check for timeout fleeing
-        if ((!this.autopilot || this.autopilot.timeElapsed >= this.autopilot.timeout) && !this.isSafe()) {
+        if ((!this.autopilot || (this.autopilot instanceof AvoidAutopilot && this.autopilot.timeElapsed >= this.autopilot.timeout)) && !this.isSafe()) {
             if (this.ship.debug) {
                 console.log('Avoid: Timeout or complete and not safe, switching to Flee');
             }
@@ -713,7 +716,7 @@ export class OfficerAiPilot extends AiPilot {
      */
     isValidOfficerTarget(source, target) {
         if (!isValidAttackTarget(source, target)) return false;
-        if (target.pilot instanceof PirateAiPilot) return true;
+        if (target instanceof Ship && target.pilot instanceof PirateAiPilot) return true;
         return false;
     }
 }

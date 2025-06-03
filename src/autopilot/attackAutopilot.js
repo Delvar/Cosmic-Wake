@@ -3,8 +3,9 @@
 import { Vector2D } from '/src/core/vector2d.js';
 import { Autopilot, FlyToTargetAutopilot } from '/src/autopilot/autopilot.js';
 import { remapClamp, randomBetween, clamp } from '/src/core/utils.js';
-import { isValidTarget } from '/src/core/gameObject.js';
+import { GameObject, isValidTarget } from '/src/core/gameObject.js';
 import { Ship, isValidAttackTarget } from '/src/ship/ship.js';
+import { GameManager } from '/src/core/game.js';
 
 /**
  * Coordinates attack behavior, selecting a pattern-specific sub-autopilot based on ship velocity.
@@ -289,8 +290,7 @@ export class OrbitAttackAutopilot extends Autopilot {
         const shouldThrust = this.applyThrustLogic(
             this.ship,
             this._scratchDesiredVelocity,
-            false,
-            null,
+            this._scratchDirectionToTarget,
             1.0,
             this._scratchVelocityError
         );
@@ -317,7 +317,7 @@ export class OrbitAttackAutopilot extends Autopilot {
         const targetVelocity = this.target.velocity || Vector2D.Zero;
 
         // Compute lead position and angles
-        const angleToLead = super.computeLeadPosition(
+        const angleToLead = this.computeLeadPosition(
             this.ship,
             this.target,
             this.projectileSpeed,
@@ -335,11 +335,10 @@ export class OrbitAttackAutopilot extends Autopilot {
         this.computeOrbitalVelocity(targetVelocity, distance, this._scratchLeadDirection);
 
         // Apply thrust logic
-        const shouldThrust = super.applyThrustLogic(
+        const shouldThrust = this.applyThrustLogic(
             this.ship,
             this._scratchDesiredVelocity,
-            this.ship.fixedWeapons.length !== 0,
-            this._scratchLeadDirection.getAngle(),
+            this.ship.fixedWeapons.length !== 0 ? this._scratchLeadDirection : null,
             1.0,
             this._scratchVelocityError
         );
@@ -502,8 +501,7 @@ export class FlybyAttackAutopilot extends Autopilot {
         const shouldThrust = this.applyThrustLogic(
             this.ship,
             this._scratchDesiredVelocity,
-            true,
-            this._scratchLeadDirection.getAngle(),
+            this._scratchLeadDirection,
             1.0,
             this._scratchVelocityError
         );
@@ -533,7 +531,7 @@ export class FlybyAttackAutopilot extends Autopilot {
         const targetVelocity = this.target.velocity || Vector2D.Zero;
 
         // Compute lead position and angles
-        const angleToLead = super.computeLeadPosition(
+        const angleToLead = this.computeLeadPosition(
             this.ship,
             this.target,
             this.projectileSpeed,
@@ -615,7 +613,7 @@ export class FlybyAttackAutopilot extends Autopilot {
         const targetVelocity = this.target.velocity || Vector2D.Zero;
 
         // Compute lead position and angles
-        const angleToLead = super.computeLeadPosition(
+        const angleToLead = this.computeLeadPosition(
             this.ship,
             this.target,
             this.projectileSpeed,
@@ -741,7 +739,7 @@ export class InRangeAttackAutopilot extends Autopilot {
         const targetVelocity = this.target.velocity || Vector2D.Zero;
 
         // Compute lead position and angles
-        const angleToLead = super.computeLeadPosition(
+        const angleToLead = this.computeLeadPosition(
             this.ship,
             this.target,
             this.projectileSpeed,
@@ -767,11 +765,10 @@ export class InRangeAttackAutopilot extends Autopilot {
         this._scratchDesiredVelocity.addInPlace(targetVelocity);
 
         // Apply thrust
-        const shouldThrust = super.applyThrustLogic(
+        const shouldThrust = this.applyThrustLogic(
             this.ship,
             this._scratchDesiredVelocity,
-            true,
-            this._scratchLeadDirection.getAngle(),
+            this._scratchLeadDirection,
             1.0,
             this._scratchVelocityError
         );

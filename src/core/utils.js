@@ -97,7 +97,14 @@ export function hash(i, j, layer) {
  * A simple seeded random number generator for consistent star properties across frames.
  */
 export class SimpleRNG {
+    /**
+     * Creates an instance of SimpleRNG with a given seed.
+     * @param {number} seed - The initial seed value for the random number generator.
+     */
     constructor(seed) {
+        /**
+         * @type {number} The current seed value, adjusted to ensure positive values within range.
+         */
         this.seed = (seed * 16807) % 2147483647;
         if (this.seed <= 0) {
             this.seed += 2147483646;
@@ -105,6 +112,10 @@ export class SimpleRNG {
         }
     }
 
+    /**
+     * Generates the next random number in the sequence.
+     * @returns {number} A random number between 0 (inclusive) and 1 (exclusive).
+     */
     next() {
         this.seed = (this.seed * 16807) % 2147483647;
         return (this.seed - 1) / 2147483646;

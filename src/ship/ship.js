@@ -4,14 +4,16 @@ import { Vector2D } from '/src/core/vector2d.js';
 import { Trail } from '/src/ship/trail.js';
 import { Colour } from '/src/core/colour.js';
 import { GameObject, isValidTarget } from '/src/core/gameObject.js';
-import { CelestialBody } from '/src/starSystem/celestialBody.js';
+import { CelestialBody, JumpGate } from '/src/starSystem/celestialBody.js';
 import { TWO_PI, clamp, remapClamp, normalizeAngle, randomBetween } from '/src/core/utils.js';
 import { Asteroid } from '/src/starSystem/asteroidBelt.js';
 import { Shield } from '/src/ship/shield.js';
 import { Turret } from '/src/weapon/turret.js';
 import { FixedWeapon } from '/src/weapon/fixedWeapon.js';
 import { AiPilot } from '/src/pilot/aiPilot.js';
-import { PlayerPilot } from '/src/pilot/pilot.js';
+import { Pilot, PlayerPilot } from '/src/pilot/pilot.js';
+import { StarSystem } from '/src/starSystem/starSystem.js';
+import { Camera } from '/src/camera/camera.js';
 
 //Colours used for the lights
 const colourRed = new Colour(1.0, 0.0, 0.0);
@@ -68,9 +70,7 @@ export function isValidAttackTarget(source, target) {
 /**
  * Represents a spaceship that can navigate, land, and jump between star systems.
  * Extends GameObject to inherit position, velocity, and star system properties.
- * @export
- * @class Ship
- * @extends {GameObject}
+ * @extends GameObject
  */
 export class Ship extends GameObject {
     /** @static {number} Maximum speed for initiating landing (units/second). */
@@ -109,7 +109,7 @@ export class Ship extends GameObject {
         this.lastJumpTime = 0;
         /** @type {Pilot|null} The pilot controlling the ship, if any. */
         this.pilot = null;
-        /** 
+        /**
          * @type {Object} Colors for cockpit, wings, and hull.
          * @property {Colour} cockpit - The color of the ship's cockpit, generated randomly.
          * @property {Colour} wings - The color of the ship's wings, generated randomly.
@@ -595,6 +595,11 @@ export class Ship extends GameObject {
             fixedWeapon.update(deltaTime);
         }
 
+        // Update shield
+        if (this.shield) {
+            this.shield.update(deltaTime, this.age);
+        }
+
         // Call the appropriate state handler
         const handler = this.stateHandlers[this.state];
         if (handler) {
@@ -634,16 +639,6 @@ export class Ship extends GameObject {
             return;
         }
 
-        // Update shield (skip if disabled)
-        if (this.shield) {
-            this.shield.update(deltaTime, this.age);
-        }
-
-        // Update weapon (skip if disabled)
-        if (this.weapon) {
-            this.weapon.update(deltaTime);
-        }
-
         // Rotate towards target angle
         const angleDiff = normalizeAngle(this.targetAngle - this.angle);
         this.angle += Math.min(Math.max(angleDiff, -this.rotationSpeed * deltaTime), this.rotationSpeed * deltaTime);
@@ -681,11 +676,6 @@ export class Ship extends GameObject {
     updateLanding(deltaTime) {
         this.animationTime += deltaTime;
         const t = Math.min(this.animationTime / this.animationDuration, 1);
-
-        // Log error if landedObject is missing
-        if (!this.landedObject) {
-            console.warn('!this.landedObject', this, this.ship);
-        }
 
         // Interpolate position from start to target
         this.position.lerpInPlace(this.landingStartPosition, this.landedObject.position, t);
@@ -1208,7 +1198,7 @@ export class Ship extends GameObject {
      * @param {Camera} camera - Camera for transform.
      */
     drawTurrets(ctx, camera) {
-        if (!this.turrets || this.turrets == 0) return;
+        if (!this.turrets || this.turrets.length == 0) return;
 
         ctx.save();
         ctx.fillStyle = 'rgb(100, 100, 100)';
@@ -1385,7 +1375,7 @@ export class Ship extends GameObject {
         ctx.lineWidth = 2;
 
         // Draw autopilot future position and target distances
-        if (this.pilot && this.pilot.autopilot && (this.pilot.autopilot._scratchFuturePosition ||
+        if (this.pilot instanceof AiPilot && this.pilot.autopilot && (this.pilot.autopilot._scratchFuturePosition ||
             (this.pilot.autopilot.subAutopilot && this.pilot.autopilot.subAutopilot._scratchFuturePosition))) {
             const autopilot = this.pilot.autopilot.subAutopilot || this.pilot.autopilot;
             camera.worldToScreen(autopilot._scratchFuturePosition, this._scratchScreenPos);
@@ -1428,12 +1418,10 @@ export class Ship extends GameObject {
 
         // Draw velocity error if available
         let velocityError = null;
-        if (this.pilot && this.pilot.autopilot && this.pilot.autopilot.subAutopilot && this.pilot.autopilot.subAutopilot.active && this.pilot.autopilot.subAutopilot._scratchVelocityError) {
+        if (this.pilot instanceof AiPilot && this.pilot.autopilot && this.pilot.autopilot.subAutopilot && this.pilot.autopilot.subAutopilot.active && this.pilot.autopilot.subAutopilot._scratchVelocityError) {
             velocityError = this.pilot.autopilot.subAutopilot._scratchVelocityError;
-        } else if (this.pilot && this.pilot.autopilot && this.pilot.autopilot.active && this.pilot.autopilot._scratchVelocityError) {
+        } else if (this.pilot instanceof AiPilot && this.pilot.autopilot && this.pilot.autopilot.active && this.pilot.autopilot._scratchVelocityError) {
             velocityError = this.pilot.autopilot._scratchVelocityError;
-        } else if (this.pilot && this.pilot._scratchVelocityError) {
-            velocityError = this.pilot._scratchVelocityError;
         }
 
         if (velocityError) {
@@ -1505,18 +1493,14 @@ export class Ship extends GameObject {
             let closeApproachDistance = null;
             let farApproachDistance = null;
             let arrivalDistance = null;
-            if (this.pilot && this.pilot.autopilot && this.pilot.autopilot.subAutopilot && this.pilot.autopilot.subAutopilot.active && this.pilot.autopilot.subAutopilot.closeApproachDistance) {
+            if (this.pilot instanceof AiPilot && this.pilot.autopilot && this.pilot.autopilot.subAutopilot && this.pilot.autopilot.subAutopilot.active && this.pilot.autopilot.subAutopilot.closeApproachDistance) {
                 closeApproachDistance = this.pilot.autopilot.subAutopilot.closeApproachDistance;
                 farApproachDistance = this.pilot.autopilot.subAutopilot.farApproachDistance;
                 arrivalDistance = this.pilot.autopilot.subAutopilot.arrivalDistance;
-            } else if (this.pilot && this.pilot.autopilot && this.pilot.autopilot.active && this.pilot.autopilot.closeApproachDistance) {
+            } else if (this.pilot instanceof AiPilot && this.pilot.autopilot && this.pilot.autopilot.active && this.pilot.autopilot.closeApproachDistance) {
                 closeApproachDistance = this.pilot.autopilot.closeApproachDistance;
                 farApproachDistance = this.pilot.autopilot.farApproachDistance;
                 arrivalDistance = this.pilot.autopilot.arrivalDistance;
-            } else if (this.pilot && this.pilot.closeApproachDistance) {
-                closeApproachDistance = this.pilot.closeApproachDistance;
-                farApproachDistance = this.pilot.farApproachDistance;
-                arrivalDistance = this.pilot.arrivalDistance;
             }
 
             if (farApproachDistance || closeApproachDistance || arrivalDistance) {

@@ -3,8 +3,13 @@
 import { Job } from '/src/job/job.js';
 import { Vector2D } from '/src/core/vector2d.js';
 import { LandOnPlanetAutopilot, TraverseJumpGateAutopilot } from '/src/autopilot/autopilot.js';
-import { JumpGate } from '/src/starSystem/celestialBody.js';
+import { CelestialBody, JumpGate, Planet } from '/src/starSystem/celestialBody.js';
 import { isValidTarget } from '/src/core/gameObject.js';
+import { Ship } from '/src/ship/ship.js';
+import { AiPilot } from '/src/pilot/aiPilot.js';
+import { GameManager } from '/src/core/game.js';
+import { StarSystem } from '/src/starSystem/starSystem.js';
+import { Asteroid } from '/src/starSystem/asteroidBelt.js';
 
 /**
  * Job for a ship to wander between planets, prioritizing different star systems.
@@ -20,9 +25,9 @@ export class WandererJob extends Job {
         super(ship, pilot);
         /** @type {string} The current job state ('Starting', 'Planning', 'Traveling', 'Waiting'). */
         this.state = 'Starting';
-        /** @type {JumpGate|Planet|null} The current navigation target (jump gate or planet). */
+        /** @type {CelestialBody|Asteroid|null} The current navigation target (jump gate or planet). */
         this.target = null;
-        /** @type {Planet|null} The final destination planet. */
+        /** @type {CelestialBody|Asteroid|null} The final destination planet. */
         this.finalTarget = null;
         /** @type {JumpGate[]} Array of jump gates to reach finalTarget. */
         this.route = [];
@@ -216,7 +221,7 @@ export class WandererJob extends Job {
      */
     planRoute() {
         const currentSystem = this.ship.starSystem;
-        const excludePlanet = this.ship.state === 'Landed' ? this.ship.landedBody : null;
+        const excludePlanet = this.ship.state === 'Landed' ? this.ship.landedObject : null;
         if (this.ship.debug) {
             console.log(`WandererJob: Planning route, current system: ${currentSystem.name}, exclude: ${excludePlanet?.name || 'none'}`);
         }
@@ -243,7 +248,7 @@ export class WandererJob extends Job {
     /**
      * Plans a route to a planet in a different star system.
      * @param {StarSystem} currentSystem - The current star system.
-     * @param {Planet|null} excludePlanet - The planet to exclude (if landed).
+     * @param {CelestialBody|Asteroid|null} excludePlanet - The CelestialBody or Asteroid to exclude (if landed).
      */
     planCrossSystemRoute(currentSystem, excludePlanet) {
         const jumpGate = currentSystem.getRandomJumpGate(this.ship);

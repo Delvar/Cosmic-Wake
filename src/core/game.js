@@ -4,7 +4,7 @@ import { remapClamp } from '/src/core/utils.js';
 import { Vector2D } from '/src/core/vector2d.js';
 import { Camera, TargetCamera } from '/src/camera/camera.js';
 import { Ship } from '/src/ship/ship.js';
-import { createRandomShip, createRandomFastShip, Flivver, Shuttle, HeavyShuttle, StarBarge, Freighter, Arrow, Boxwing, Interceptor, Fighter } from '../ship/shipTypes.js';
+import { createRandomShip, createRandomFastShip, Flivver, Shuttle, HeavyShuttle, StarBarge, Freighter, Arrow, Boxwing, Interceptor, Fighter } from '/src/ship/shipTypes.js';
 import { StarField } from '/src/camera/starField.js';
 import { HeadsUpDisplay } from '/src/camera/headsUpDisplay.js';
 import { PlayerPilot } from '/src/pilot/pilot.js';
@@ -15,13 +15,14 @@ import { WandererJob } from '/src/job/wandererJob.js';
 import { MinerJob } from '/src/job/minerJob.js';
 import { PirateJob } from '/src/job/pirateJob.js';
 import { OfficerJob } from '/src/job/officerJob.js';
-import { Planet } from '/src/starSystem/celestialBody.js';
+import { CelestialBody, Planet } from '/src/starSystem/celestialBody.js';
+import { StarSystem } from '/src/starSystem/starSystem.js';
 //import { wrapCanvasContext } from '/src/core/utils.js';
 
 /**
  * Handles the game loop, rendering, and updates for the game.
  */
-class Game {
+export class Game {
     /**
      * Creates a new Game instance.
      * @param {GameManager} manager - The game manager providing game state.
@@ -274,7 +275,7 @@ class Game {
         }
         starSystem.projectileManager.draw(ctx, this.targetCamera);
         starSystem.particleManager.draw(ctx, this.targetCamera);
-        const targetName = target.name || "Unnamed Object";
+        const targetName = (target instanceof Ship || target instanceof CelestialBody) ? target.name : "Unnamed Object";
         ctx.fillStyle = "white";
         ctx.textAlign = "center";
         ctx.fillText(targetName, this.targetCanvas.width / 2, 20);
@@ -288,9 +289,7 @@ class Game {
 /**
  * Manages the overall game state, including initialization, event handling, and updates.
  */
-class GameManager {
-
-
+export class GameManager {
     /**
      * Creates a new GameManager instance.
      */
@@ -468,13 +467,14 @@ class GameManager {
                         //spawn officer
                         aiShip = createRandomFastShip(spawnPlanet.position.x, spawnPlanet.position.y, system);
                         aiShip.pilot = new OfficerAiPilot(aiShip, new OfficerJob(aiShip));
-                        aiShip.colors.wings.set(0.25, 0.25, 1, 1);
+                        aiShip.colors.wings.set(0.25, 0.25, 0.9, 1);
+                        aiShip.colors.hull.set(0.9, 0.9, 0.9, 1);
                         officerCount++;
                     } else if (pirateCount < 4 && Math.random() < 0.25) {
                         //spawn pirate
                         aiShip = createRandomFastShip(spawnPlanet.position.x, spawnPlanet.position.y, system);
                         aiShip.pilot = new PirateAiPilot(aiShip, new PirateJob(aiShip));
-                        aiShip.colors.wings.set(1, 0, 0, 1);
+                        aiShip.colors.wings.set(0.9, 0, 0, 1);
                         pirateCount++;
                     } else {
                         //spawn civilian
@@ -598,4 +598,5 @@ class GameManager {
 }
 
 // Initialize the game manager and expose it to the window object
+// @ts-ignore
 window.gameManager = new GameManager();

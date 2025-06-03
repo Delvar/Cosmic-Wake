@@ -1,6 +1,8 @@
 // /src/weapon/fixedWeapon.js
 
 import { Vector2D } from '/src/core/vector2d.js';
+import { Ship } from '/src/ship/ship.js';
+import { ProjectileManager } from '/src/starSystem/projectileManager.js';
 import { Weapon } from '/src/weapon/weapon.js';
 
 /**
@@ -8,6 +10,7 @@ import { Weapon } from '/src/weapon/weapon.js';
  */
 export class FixedWeapon {
     /**
+     * Creates a new FixedWeapon instance.
      * @param {Vector2D} relativePosition - Position relative to ship center.
      * @param {number} radius - Weapon size from featurePoints.
      */
@@ -47,7 +50,7 @@ export class FixedWeapon {
 
     /**
      * Returns true if the weapon is read to fire
-     * @returns {boolean} True if it is ready to fired, false if on cooldown. 
+     * @returns {boolean} True if it is ready to fired, false if on cooldown.
      */
     canFire() {
         return this.weapon.canFire();

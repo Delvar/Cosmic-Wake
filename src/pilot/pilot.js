@@ -4,7 +4,7 @@ import { Vector2D } from '/src/core/vector2d.js';
 import { CelestialBody, JumpGate, Star, Planet } from '/src/starSystem/celestialBody.js';
 import { remapClamp, randomBetween, normalizeAngle } from '/src/core/utils.js';
 import { Ship } from '/src/ship/ship.js';
-import { TraverseJumpGateAutopilot, LandOnPlanetAutopilot, EscortAutopilot, LandOnAsteroidAutopilot, FlyToTargetAutopilot, Autopilot } from '/src/autopilot/autopilot.js';
+import { TraverseJumpGateAutopilot, LandOnPlanetAutopilot, EscortAutopilot, LandOnAsteroidAutopilot, FlyToTargetAutopilot, Autopilot, FollowShipAutopilot } from '/src/autopilot/autopilot.js';
 import { AttackAutopilot } from '/src/autopilot/attackAutopilot.js';
 import { Asteroid } from '/src/starSystem/asteroidBelt.js';
 import { GameObject, isValidTarget } from '/src/core/gameObject.js';
@@ -22,6 +22,8 @@ export class Pilot {
     constructor(ship) {
         /** @type {Ship} The ship controlled by this pilot. */
         this.ship = ship;
+        /** @type {Autopilot|null} The active autopilot controlling ship navigation (e.g., FlyToTargetAutopilot). */
+        this.autopilot = null;
     }
 
     /**
@@ -55,8 +57,6 @@ export class PlayerPilot extends Pilot {
      */
     constructor(ship) {
         super(ship);
-        /** @type {Autopilot|null} Active autopilot instance, if any. */
-        this.autopilot = null;
         /** @type {Vector2D} Temporary vector for direction to target. */
         this._scratchDirectionToTarget = new Vector2D(0, 0);
         /** @type {Vector2D} Temporary vector for distance to target. */
@@ -216,8 +216,13 @@ export class PlayerPilot extends Pilot {
         //     this.autopilot.start();
         // }
 
-        if ((pressed('f') || pressed('F')) && this.ship.state === 'Flying') {
+        if (pressed('F') && this.ship.state === 'Flying') {
             this.autopilot = new FlyToTargetAutopilot(this.ship, this.ship.target, this.ship.target.radius, Ship.LANDING_SPEED);
+            this.autopilot.start();
+        }
+
+        if (pressed('f') && this.ship.state === 'Flying') {
+            this.autopilot = new FollowShipAutopilot(this.ship, this.ship.target, 100, 500);
             this.autopilot.start();
         }
 

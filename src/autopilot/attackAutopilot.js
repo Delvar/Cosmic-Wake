@@ -3,7 +3,7 @@
 import { Vector2D } from '/src/core/vector2d.js';
 import { Autopilot, FlyToTargetAutopilot } from '/src/autopilot/autopilot.js';
 import { remapClamp, randomBetween, clamp } from '/src/core/utils.js';
-import { GameObject, isValidTarget } from '/src/core/gameObject.js';
+import { GameObject } from '/src/core/gameObject.js';
 import { Ship, isValidAttackTarget } from '/src/ship/ship.js';
 import { GameManager } from '/src/core/game.js';
 
@@ -82,10 +82,12 @@ export class AttackAutopilot extends Autopilot {
      * @param {GameManager} gameManager - The game manager instance for context.
      */
     update(deltaTime, gameManager) {
+        if (!this.active) return;
         if (!isValidAttackTarget(this.ship, this.target)) {
             this.stop();
             return;
         }
+
         super.update(deltaTime, gameManager);
     }
 
@@ -96,7 +98,7 @@ export class AttackAutopilot extends Autopilot {
      */
     updateApproaching(deltaTime, gameManager) {
         if (this.subAutopilot && this.subAutopilot.active) {
-            this.subAutopilot.update(deltaTime);
+            this.subAutopilot.update(deltaTime, gameManager);
             // Check distance to target
             const distanceSq = this.ship.position.distanceSquaredTo(this.target.position);
             if (distanceSq <= this.approachRadius * this.approachRadius || this.subAutopilot.isComplete()) {
@@ -135,7 +137,7 @@ export class AttackAutopilot extends Autopilot {
      */
     updateAttacking(deltaTime, gameManager) {
         if (this.subAutopilot && this.subAutopilot.active) {
-            this.subAutopilot.update(deltaTime);
+            this.subAutopilot.update(deltaTime, gameManager);
             if (this.subAutopilot.isComplete() || this.subAutopilot.error) {
                 this.error = this.subAutopilot.error || "Sub-autopilot completed unexpectedly";
                 this.stop();
@@ -260,6 +262,12 @@ export class OrbitAttackAutopilot extends Autopilot {
      * @param {GameManager} gameManager - The game manager instance for context.
      */
     update(deltaTime, gameManager) {
+        if (!this.active) return;
+        if (!this.target || !isValidAttackTarget(this.ship, this.target) || (this.target instanceof Ship && this.target.state !== 'Flying' && this.target.state !== 'Disabled')) {
+            this.error = "Target lost or invalid";
+            this.stop();
+            return;
+        }
         super.update(deltaTime, gameManager);
     }
 
@@ -463,6 +471,12 @@ export class FlybyAttackAutopilot extends Autopilot {
      * @param {GameManager} gameManager - The game manager instance for context.
      */
     update(deltaTime, gameManager) {
+        if (!this.active) return;
+        if (!this.target || !isValidAttackTarget(this.ship, this.target) || (this.target instanceof Ship && this.target.state !== 'Flying' && this.target.state !== 'Disabled')) {
+            this.error = "Target lost or invalid";
+            this.stop();
+            return;
+        }
         super.update(deltaTime, gameManager);
     }
 
@@ -705,7 +719,7 @@ export class InRangeAttackAutopilot extends Autopilot {
      * Starts the autopilot, validating the target.
      */
     start() {
-        if (!this.target || !isValidTarget(this.ship, this.target) || this.target.starSystem !== this.ship.starSystem) {
+        if (!this.target || !isValidAttackTarget(this.ship, this.target) || this.target.starSystem !== this.ship.starSystem) {
             this.error = "Invalid or unreachable target";
             this.active = false;
             return;
@@ -723,9 +737,10 @@ export class InRangeAttackAutopilot extends Autopilot {
      * @param {number} deltaTime - Time elapsed in seconds.
      */
     update(deltaTime) {
-        if (!this.active || !this.target || !isValidTarget(this.ship, this.target) || (this.target.state !== 'Flying' && this.target.state !== 'Disabled')) {
+        if (!this.active) return;
+        if (!this.target || !isValidAttackTarget(this.ship, this.target) || (this.target instanceof Ship && this.target.state !== 'Flying' && this.target.state !== 'Disabled')) {
             this.error = "Target lost or invalid";
-            this.active = false;
+            this.stop();
             return;
         }
 

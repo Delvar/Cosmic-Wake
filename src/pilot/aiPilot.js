@@ -26,8 +26,6 @@ export class AiPilot extends Pilot {
         this.job = job;
         // set the job pilot so it can update back to us
         this.job.pilot = this;
-        /** @type {Autopilot|null} The active autopilot controlling ship navigation (e.g., FlyToTargetAutopilot). */
-        this.autopilot = null;
         /** @type {Ship|null} The current threat triggering reactions (e.g., player ship). */
         this.threat = null;
         /** @type {string} The current state ('Job', 'Flee', 'Avoid', 'Attack'). */

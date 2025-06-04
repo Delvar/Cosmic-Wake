@@ -200,11 +200,12 @@ export class HeadsUpDisplay {
 
         // Draw autopilot status at top middle if the camera's target ship has an active autopilot
         let autopilotStatus;
-        if (this.gameManager.cameraTarget?.pilot instanceof AiPilot) {
-            autopilotStatus = this.gameManager.cameraTarget?.pilot?.getStatus();
+        if (this.gameManager.cameraTarget.pilot.autopilot) {
+            autopilotStatus = this.gameManager.cameraTarget.pilot.autopilot.getStatus();
         } else {
-            autopilotStatus = this.gameManager.cameraTarget?.pilot?.autopilot?.getStatus();
+            autopilotStatus = this.gameManager.cameraTarget.pilot.getStatus();
         }
+
         if (autopilotStatus) {
             ctx.fillStyle = "white";
             ctx.textAlign = "center";

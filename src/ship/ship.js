@@ -1391,9 +1391,9 @@ export class Ship extends GameObject {
 
         // Draw velocity error if available
         let velocityError = null;
-        if (this.pilot instanceof AiPilot && this.pilot.autopilot && this.pilot.autopilot.subAutopilot && this.pilot.autopilot.subAutopilot.active && this.pilot.autopilot.subAutopilot._scratchVelocityError) {
+        if (this.pilot && this.pilot.autopilot && this.pilot.autopilot.subAutopilot && this.pilot.autopilot.subAutopilot.active && this.pilot.autopilot.subAutopilot._scratchVelocityError) {
             velocityError = this.pilot.autopilot.subAutopilot._scratchVelocityError;
-        } else if (this.pilot instanceof AiPilot && this.pilot.autopilot && this.pilot.autopilot.active && this.pilot.autopilot._scratchVelocityError) {
+        } else if (this.pilot && this.pilot.autopilot && this.pilot.autopilot.active && this.pilot.autopilot._scratchVelocityError) {
             velocityError = this.pilot.autopilot._scratchVelocityError;
         }
 
@@ -1466,11 +1466,11 @@ export class Ship extends GameObject {
             let closeApproachDistance = null;
             let farApproachDistance = null;
             let arrivalDistance = null;
-            if (this.pilot instanceof AiPilot && this.pilot.autopilot && this.pilot.autopilot.subAutopilot instanceof FlyToTargetAutopilot && this.pilot.autopilot.subAutopilot.active && this.pilot.autopilot.subAutopilot.closeApproachDistance) {
+            if (this.pilot && this.pilot.autopilot && this.pilot.autopilot.subAutopilot instanceof FlyToTargetAutopilot && this.pilot.autopilot.subAutopilot.active && this.pilot.autopilot.subAutopilot.closeApproachDistance) {
                 closeApproachDistance = this.pilot.autopilot.subAutopilot.closeApproachDistance;
                 farApproachDistance = this.pilot.autopilot.subAutopilot.farApproachDistance;
                 arrivalDistance = this.pilot.autopilot.subAutopilot.arrivalDistance;
-            } else if (this.pilot instanceof AiPilot && this.pilot.autopilot instanceof FlyToTargetAutopilot && this.pilot.autopilot.active && this.pilot.autopilot.closeApproachDistance) {
+            } else if (this.pilot && this.pilot.autopilot instanceof FlyToTargetAutopilot && this.pilot.autopilot.active && this.pilot.autopilot.closeApproachDistance) {
                 closeApproachDistance = this.pilot.autopilot.closeApproachDistance;
                 farApproachDistance = this.pilot.autopilot.farApproachDistance;
                 arrivalDistance = this.pilot.autopilot.arrivalDistance;

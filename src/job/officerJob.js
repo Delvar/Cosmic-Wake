@@ -73,21 +73,19 @@ export class OfficerJob extends Job {
             return;
         }
         if (this.ship.state === 'Flying') {
-            if (!this.ship.target) {
-                const target = this.ship.starSystem.getRandomShip(this.ship, null, this.isValidOfficerTarget);
-                if (target) {
-                    this.pilot.threat = target;
-                    this.ship.target = target;
-                    this.pilot.changeState('Attack', new AttackAutopilot(this.ship, this.ship.target));
+            const target = this.ship.starSystem.getRandomShip(this.ship, null, this.isValidOfficerTarget);
+            if (target) {
+                this.pilot.threat = target;
+                this.ship.target = target;
+                this.pilot.changeState('Attack', new AttackAutopilot(this.ship, this.ship.target));
+                return;
+            } else {
+                const targetPlanet = this.ship.starSystem.getClosestPlanet(this.ship);
+                if (targetPlanet) {
+                    this.ship.target = targetPlanet;
+                    this.pilot.setAutopilot(new LandOnPlanetAutopilot(this.ship, targetPlanet));
+                    this.state = 'Landing';
                     return;
-                } else {
-                    const targetPlanet = this.ship.starSystem.getClosestPlanet(this.ship);
-                    if (targetPlanet) {
-                        this.ship.target = targetPlanet;
-                        this.pilot.setAutopilot(new LandOnPlanetAutopilot(this.ship, targetPlanet));
-                        this.state = 'Landing';
-                        return;
-                    }
                 }
             }
         }

@@ -47,7 +47,7 @@ export class StarSystem {
         /** @type {Array<Ship>} Array of ships in the star system. */
         this.ships = [];
         /** @type {number} Maximum number of AI-controlled ships allowed in the star system. */
-        this.maxAiShips = 40;
+        this.maxAiShips = planets.length * 2;
         /** @type {Array<Hyperlane>} Array of hyperlane connections to other star systems. */
         this.hyperlanes = [];
         /** @type {AsteroidBelt|null} Optional asteroid belt in the star system. */

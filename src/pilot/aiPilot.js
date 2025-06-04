@@ -59,6 +59,15 @@ export class AiPilot extends Pilot {
             return;
         }
 
+        if (this.threat && isValidAttackTarget(this.ship, this.threat)) {
+            if (this.ship.target !== this.threat) {
+                this.ship.target = this.threat;
+            }
+            if (this.ship.position.distanceSquaredTo(this.threat.position) < 1000 * 1000) {
+                this.ship.fireTurrets();
+            }
+        }
+
         // Run state handler
         const handler = this.stateHandlers[this.state];
         if (handler) {
@@ -117,6 +126,12 @@ export class AiPilot extends Pilot {
      * @param {GameManager} gameManager - The game manager instance for context.
      */
     updateAvoid(deltaTime, gameManager) {
+        if (!this.threat || this.safeTime > 5 || !isValidAttackTarget(this.ship, this.threat)) {
+            this.ship.target = this.threat = null;
+            this.changeState('Job');
+            return;
+        }
+
         // Ensure correct autopilot
         if (!(this.autopilot instanceof AvoidAutopilot) && this.ship.state === 'Flying') {
             if (this.ship.debug) {
@@ -129,6 +144,7 @@ export class AiPilot extends Pilot {
                 if (this.ship.debug) {
                     console.log('Avoid: No threat, switching to Job');
                 }
+                this.ship.target = this.threat = null;
                 this.changeState('Job');
             }
         }
@@ -136,14 +152,10 @@ export class AiPilot extends Pilot {
         // Execute autopilot
         if (this.autopilot && !this.autopilot.isComplete()) {
             this.autopilot.update(deltaTime, gameManager);
-        }
-
-        // Transition to Job if safe
-        if (this.safeTime > 5) {
-            if (this.ship.debug) {
-                console.log('Avoid: Safe, switching to Job');
+            if (this.autopilot.isComplete()) {
+                this.ship.target = this.threat = null;
+                this.changeState('Job');
             }
-            this.changeState('Job');
         }
     }
 
@@ -153,8 +165,14 @@ export class AiPilot extends Pilot {
      * @param {GameManager} gameManager - The game manager instance for context.
      */
     updateFlee(deltaTime, gameManager) {
+        if (!this.threat || this.safeTime > 5 || !isValidAttackTarget(this.ship, this.threat)) {
+            this.ship.target = this.threat = null;
+            this.changeState('Job');
+            return;
+        }
+
         // Ensure correct autopilot
-        if (!(this.autopilot instanceof FleeAutopilot) && this.ship.state === 'Flying' && this.threat) {
+        if (!(this.autopilot instanceof FleeAutopilot) && this.ship.state === 'Flying') {
             if (this.ship.debug) {
                 console.log('Flee: Incorrect autopilot, setting FleeAutopilot');
             }
@@ -165,13 +183,9 @@ export class AiPilot extends Pilot {
         if (this.autopilot && !this.autopilot.isComplete()) {
             this.autopilot.update(deltaTime, gameManager);
             if (this.autopilot.isComplete()) {
+                this.ship.target = this.threat = null;
                 this.changeState('Job');
             }
-        }
-
-        // Transition to Job if safe
-        if (this.safeTime > 10) {
-            this.changeState('Job');
         }
     }
 
@@ -182,6 +196,7 @@ export class AiPilot extends Pilot {
      */
     updateAttack(deltaTime, gameManager) {
         if (!this.threat || !isValidAttackTarget(this.ship, this.threat)) {
+            this.ship.target = this.threat = null;
             this.changeState('Job');
             return;
         }
@@ -199,6 +214,7 @@ export class AiPilot extends Pilot {
                 if (this.ship.debug && this.autopilot.isComplete()) {
                     console.log(`AiPilot: AttackAutopilot completed`);
                 }
+                this.ship.target = this.threat = null;
                 this.changeState('Job');
             } else {
                 this.autopilot.update(deltaTime, gameManager);
@@ -342,14 +358,6 @@ export class CivilianAiPilot extends AiPilot {
      */
     update(deltaTime, gameManager) {
         super.update(deltaTime, gameManager);
-        if (this.threat && isValidAttackTarget(this.ship, this.threat)) {
-            if (this.ship.target !== this.threat) {
-                this.ship.target = this.threat;
-            }
-            if (this.ship.position.distanceSquaredTo(this.threat.position) < 1000 * 1000) {
-                this.ship.fireTurrets();
-            }
-        }
     }
 
     /**
@@ -593,20 +601,25 @@ export class OfficerAiPilot extends AiPilot {
             return;
         }
 
-        if (this.ship.target && this.ship.target instanceof Ship) {
-            if (!this.isValidOfficerTarget(this.ship, this.ship.target)) {
-                this.ship.target = null;
-                if (this.state === 'Attack') {
-                    this.changeState('Job');
-                }
-            }
-        }
-
         if (this.threat && this.threat instanceof Ship) {
-            if (!this.isValidOfficerTarget(this.ship, this.threat)) {
+            if (this.isValidOfficerTarget(this.ship, this.threat)) {
+                if (this.ship.target !== this.threat) {
+                    this.ship.target = this.threat;
+                }
+            } else {
                 this.threat = null;
             }
         }
+
+        // if (this.ship.target && this.ship.target instanceof Ship) {
+        //     if (!this.isValidOfficerTarget(this.ship, this.ship.target)) {
+        //         this.ship.target = null;
+        //         if (this.state === 'Attack') {
+        //             this.ship.target = this.threat = null;
+        //             this.changeState('Job');
+        //         }
+        //     }
+        // }
 
         if (this.state === 'Attack') {
             this.ship.lightMode = 'Warden';

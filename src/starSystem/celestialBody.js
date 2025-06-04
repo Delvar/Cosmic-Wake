@@ -37,7 +37,7 @@ export const celestialTypes = {
     'satellite': { type: 'satellite', color: new Colour(0.5, 0.5, 0.5) },
     'comet': { type: 'comet', color: new Colour(1, 1, 1) },
     'asteroid': { type: 'asteroid', color: new Colour(0.55, 0.27, 0.07) },
-    'jumpgate': { type: 'jumpgate', color: new Colour(0, 1, 0) }
+    'jumpgate': { type: 'jumpgate', color: new Colour(0.25, 0.25, 1.0) }
 };
 
 /**

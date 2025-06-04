@@ -14,6 +14,7 @@ import { AiPilot } from '/src/pilot/aiPilot.js';
 import { Pilot, PlayerPilot } from '/src/pilot/pilot.js';
 import { StarSystem } from '/src/starSystem/starSystem.js';
 import { Camera } from '/src/camera/camera.js';
+import { FlyToTargetAutopilot } from '/src/autopilot/autopilot.js';
 
 //Colours used for the lights
 const colourRed = new Colour(1.0, 0.0, 0.0);
@@ -174,12 +175,6 @@ export class Ship extends GameObject {
         this.boundingBox = new Vector2D(0, 0);
         /** @type {Object|null} Positions of engines, turrets, and lights. */
         this.featurePoints = null;
-        /** @type {Shield} The ship's energy shield. */
-        this.shield = new Shield(100, 20, 3, 50, 1);
-        /** @type {number} Current hull health. */
-        this.hullIntegrity = 100;
-        /** @type {number} Maximum hull health. */
-        this.maxHull = 100;
         /** @type {number} Hull percentage below which the ship becomes disabled. */
         this.disabledThreshold = 10;
 
@@ -209,6 +204,15 @@ export class Ship extends GameObject {
         this.setupBoundingBox();
         this.setupTurrets();
         this.setupFixedWeapons();
+
+        //Calculate hull and shields, bigger ships have higher hull and shields
+        const area = (this.radius ** 2) * Math.PI * 0.1;
+        /** @type {Shield} The ship's energy shield. */
+        this.shield = new Shield(area * 2.0, 1, 10, area * 0.1, 4);
+        /** @type {number} Maximum hull health. */
+        this.maxHull = area;
+        /** @type {number} Current hull health. */
+        this.hullIntegrity = this.maxHull;
 
         // Scratch vectors to avoid memory allocations in main loop
         /** @type {Vector2D} Temporary vector for thrust calculations. */
@@ -637,6 +641,7 @@ export class Ship extends GameObject {
             this.shield.isActive = false;
             this.shield.strength = 0;
             this.shield.restartTime = null;
+            this.target = null;
             return;
         }
 
@@ -702,6 +707,9 @@ export class Ship extends GameObject {
             if (this.landedObject instanceof CelestialBody) {
                 this.shipScale = 0;
                 this.landedObject.addLandedShip(this);
+                this.hullIntegrity = this.maxHull;
+                this.shield.isActive = true;
+                this.shield.strength = this.shield.maxStrength;
             } else if (this.landedObject instanceof Asteroid) {
                 this.shipScale = 0.8;
             }
@@ -877,13 +885,16 @@ export class Ship extends GameObject {
         if (this.hullIntegrity <= 0) {
             this.setState('Exploding');
             this.pilot = null; // Disable pilot controls!
+            this.explosionTime = 0; // Initialize explosion timer
             this.isThrusting = false;
             this.isBraking = false;
             this.shield.isActive = false;
             this.shield.strength = 0;
-            this.explosionTime = 0; // Initialize explosion timer
+            this.shield.restartTime = null;
+            this.target = null;
             return;
         }
+
         // Decelerate: reduce velocity if significant
         if (this.velocity.squareMagnitude() > 1) {
             this.velocity.multiplyInPlace(1 - (0.1 * deltaTime)); // 10% loss per second
@@ -942,12 +953,6 @@ export class Ship extends GameObject {
             // Calculate scaled force and torque
             const currentForce = this.explosionForce * explosionSizeRatio;
             const currentTorque = this.explosionTorque * explosionSizeRatio;
-
-            // Generate random explosion position on hull
-            // const radius = randomBetween(0, this.radius);
-            // const angle = randomBetween(0, TWO_PI);
-            // this._scratchExplosionPos.setFromPolar(radius, angle).addInPlace(this.position);
-            //this._applyExplosionImpulse(this._scratchExplosionPos, currentForce, currentTorque);
 
             // Generate random explosion position within rotated bounding box
             this._getRandomPointInBoundingBox(this._scratchExplosionPos);
@@ -1254,8 +1259,6 @@ export class Ship extends GameObject {
     drawLights(ctx, camera) {
         if (this.state === 'Exploding') return;
 
-        // @type {string} Current mode for the lights (e.g., 'Normal', 'Flicker', 'Disabled', 'Warden'). */
-        //this.lightMode = 'Normal';
         for (let i = 0; i < this.featurePoints.lights.length; i++) {
             const light = this.featurePoints.lights[i];
             let brightness = 1;
@@ -1375,37 +1378,6 @@ export class Ship extends GameObject {
         this.trail.drawDebug(ctx, camera, this.position);
         ctx.lineWidth = 2;
 
-        // Draw autopilot future position and target distances
-        if (this.pilot instanceof AiPilot && this.pilot.autopilot && (this.pilot.autopilot._scratchFuturePosition ||
-            (this.pilot.autopilot.subAutopilot && this.pilot.autopilot.subAutopilot._scratchFuturePosition))) {
-            const autopilot = this.pilot.autopilot.subAutopilot || this.pilot.autopilot;
-            camera.worldToScreen(autopilot._scratchFuturePosition, this._scratchScreenPos);
-            ctx.save();
-            ctx.lineWidth = 2;
-            ctx.fillStyle = 'rgba(255,0,255,0.5)';
-            ctx.strokeStyle = 'rgb(255,0,255)';
-
-            // Draw future position as a circle
-            ctx.beginPath();
-            ctx.moveTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
-            ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, 5 * scale, 0, TWO_PI);
-            ctx.fill();
-            ctx.closePath();
-
-            // Draw target approach distances (final, mid, far)
-            ctx.beginPath();
-            camera.worldToScreen(autopilot.target.position, this._scratchScreenPos);
-            ctx.moveTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
-            ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, autopilot.finalRadius * scale, 0, TWO_PI);
-            ctx.moveTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
-            ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, autopilot.midApproachDistance * scale, 0, TWO_PI);
-            ctx.moveTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
-            ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, autopilot.farApproachDistance * scale, 0, TWO_PI);
-            ctx.closePath();
-            ctx.stroke();
-            ctx.restore();
-        }
-
         // Convert world positions to screen coordinates
         camera.worldToScreen(this.position, this._scratchScreenPos);
 
@@ -1494,11 +1466,11 @@ export class Ship extends GameObject {
             let closeApproachDistance = null;
             let farApproachDistance = null;
             let arrivalDistance = null;
-            if (this.pilot instanceof AiPilot && this.pilot.autopilot && this.pilot.autopilot.subAutopilot && this.pilot.autopilot.subAutopilot.active && this.pilot.autopilot.subAutopilot.closeApproachDistance) {
+            if (this.pilot instanceof AiPilot && this.pilot.autopilot && this.pilot.autopilot.subAutopilot instanceof FlyToTargetAutopilot && this.pilot.autopilot.subAutopilot.active && this.pilot.autopilot.subAutopilot.closeApproachDistance) {
                 closeApproachDistance = this.pilot.autopilot.subAutopilot.closeApproachDistance;
                 farApproachDistance = this.pilot.autopilot.subAutopilot.farApproachDistance;
                 arrivalDistance = this.pilot.autopilot.subAutopilot.arrivalDistance;
-            } else if (this.pilot instanceof AiPilot && this.pilot.autopilot && this.pilot.autopilot.active && this.pilot.autopilot.closeApproachDistance) {
+            } else if (this.pilot instanceof AiPilot && this.pilot.autopilot instanceof FlyToTargetAutopilot && this.pilot.autopilot.active && this.pilot.autopilot.closeApproachDistance) {
                 closeApproachDistance = this.pilot.autopilot.closeApproachDistance;
                 farApproachDistance = this.pilot.autopilot.farApproachDistance;
                 arrivalDistance = this.pilot.autopilot.arrivalDistance;

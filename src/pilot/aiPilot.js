@@ -57,11 +57,8 @@ export class AiPilot extends Pilot {
             return;
         }
 
-        if (this.threat && isValidAttackTarget(this.ship, this.threat)) {
-            if (this.ship.target !== this.threat) {
-                this.ship.target = this.threat;
-            }
-            if (this.ship.position.distanceSquaredTo(this.threat.position) < 1000 * 1000) {
+        if (this.ship.target === this.threat && isValidAttackTarget(this.ship, this.ship.target)) {
+            if (this.ship.position.distanceSquaredTo(this.ship.target.position) < 1000 * 1000) {
                 this.ship.fireTurrets();
             }
         }
@@ -136,7 +133,6 @@ export class AiPilot extends Pilot {
                 console.log('Avoid: Incorrect autopilot, setting AvoidAutopilot');
             }
             if (this.threat) {
-                this.ship.target = this.threat;
                 this.changeState('Avoid', new AvoidAutopilot(this.ship, this.threat));
             } else {
                 if (this.ship.debug) {
@@ -270,8 +266,8 @@ export class AiPilot extends Pilot {
         if (!isValidAttackTarget(this.ship, this.threat)) return true;
         if (this.ship.state === 'Landed') return true;
         const distanceSq = this.ship.position.distanceSquaredTo(this.threat.position);
-        const threatSpeed = this.threat.maxVelocity;
-        return distanceSq > threatSpeed * threatSpeed; // Safe if mopre than 1 second away from the threat
+        const threatSpeed = this.threat.maxVelocity * 5; //Safe distance is 5 seconds away from threat
+        return distanceSq > threatSpeed * threatSpeed;
     }
 
     /**
@@ -447,7 +443,6 @@ export class CivilianAiPilot extends AiPilot {
             if (this.ship.debug) {
                 console.log('onDamage: Threat detected, switching to Avoid');
             }
-            this.ship.target = this.threat;
             this.changeState('Avoid', new AvoidAutopilot(this.ship, this.threat));
         }
     }
@@ -505,7 +500,6 @@ export class PirateAiPilot extends AiPilot {
                     if (this.ship.debug) {
                         console.log('Job: Threat within 500 units, switching to Avoid');
                     }
-                    this.ship.target = this.threat;
                     this.changeState('Avoid', new AttackAutopilot(this.ship, this.threat));
                     return;
                 }
@@ -560,7 +554,6 @@ export class PirateAiPilot extends AiPilot {
             if (this.ship.debug) {
                 console.log('onDamage: Threat detected, switching to Attack');
             }
-            this.ship.target = this.threat;
             this.changeState('Attack', new AttackAutopilot(this.ship, this.threat));
         }
     }
@@ -603,21 +596,15 @@ export class OfficerAiPilot extends AiPilot {
             if (this.isValidOfficerTarget(this.ship, this.threat)) {
                 if (this.ship.target !== this.threat) {
                     this.ship.target = this.threat;
+                    if (this.autopilot instanceof AttackAutopilot) {
+                        this.autopilot.target = this.threat;
+                        this.autopilot.start();
+                    }
                 }
             } else {
                 this.threat = null;
             }
         }
-
-        // if (this.ship.target && this.ship.target instanceof Ship) {
-        //     if (!this.isValidOfficerTarget(this.ship, this.ship.target)) {
-        //         this.ship.target = null;
-        //         if (this.state === 'Attack') {
-        //             this.ship.target = this.threat = null;
-        //             this.changeState('Job');
-        //         }
-        //     }
-        // }
 
         if (this.state === 'Attack') {
             this.ship.lightMode = 'Warden';
@@ -642,7 +629,7 @@ export class OfficerAiPilot extends AiPilot {
                     .subtractInPlace(this.ship.position).squareMagnitude();
                 if (distanceSq < 500 * 500) {
                     if (this.ship.debug) {
-                        console.log('Job: Threat within 500 units, switching to Avoid');
+                        console.log('Job: Threat within 500 units, switching to AttackAutopilot');
                     }
                     this.ship.target = this.threat;
                     this.changeState('Avoid', new AttackAutopilot(this.ship, this.threat));
@@ -698,7 +685,6 @@ export class OfficerAiPilot extends AiPilot {
             if (this.ship.debug) {
                 console.log('onDamage: Threat detected, switching to Attack');
             }
-            this.ship.target = this.threat;
             this.changeState('Attack', new AttackAutopilot(this.ship, this.threat));
         }
     }

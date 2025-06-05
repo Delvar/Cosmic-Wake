@@ -413,6 +413,11 @@ export class FollowShipAutopilot extends Autopilot {
         /** @type {number} Distance for far approach phase, computed dynamically. */
         this.farApproachDistance = this.maxFollowDistance + maxDecelerationDistance + (this.ship.maxVelocity * timeToTurn); // Start slowing down
 
+        /** @type {number} Upper threshold for thrust activation. */
+        this.upperVelocityErrorThreshold = this.ship.thrust * 0.25;
+        /** @type {number} Lower threshold for thrust hysteresis. */
+        this.lowerVelocityErrorThreshold = 5.0;
+
         // Initialize scratch vectors for calculations
         /** @type {Vector2D} Scratch vector for delta to target. */
         this._scratchDeltaToTarget = new Vector2D(0, 0);
@@ -492,13 +497,13 @@ export class FollowShipAutopilot extends Autopilot {
                 remapClamp(Math.max(1.0, distance), 0.0, this.minFollowDistance, -this.ship.maxVelocity, -1.0)
             ).addInPlace(this.target.velocity);
             failoverAngle = this.target.velocity;
-            errorThresholdRatio = remapClamp(distance, 0.0, this.minFollowDistance, 0.0, 0.01); // Tighten thrust threshold
+            errorThresholdRatio = remapClamp(distance, 0.0, this.minFollowDistance, 0.0, 0.1); // Tighten thrust threshold
         } else if (distance >= this.minFollowDistance && distance < this.maxFollowDistance) {
             //FIXME: implement manuver speed here, -20.0, 20.0
-            const speed = remapClamp(distance, this.minFollowDistance, this.maxFollowDistance, -20.0, 20.0);
+            const speed = remapClamp(distance, this.minFollowDistance, this.maxFollowDistance, -Ship.LANDING_SPEED, Ship.LANDING_SPEED);
             this._scratchDesiredVelocity.set(this._scratchLeadDirection).multiplyInPlace(speed).addInPlace(this.target.velocity);
             failoverAngle = this.target.velocity;
-            errorThresholdRatio = remapClamp(distance, this.minFollowDistance, this.maxFollowDistance, 0.01, 0.25); // Tighten thrust threshold
+            errorThresholdRatio = remapClamp(distance, this.minFollowDistance, this.maxFollowDistance, 0.1, 0.5); // Tighten thrust threshold
         } else if (distance >= this.maxFollowDistance && distance < this.farApproachDistance) {
             const speed = remapClamp(distance, this.maxFollowDistance, this.farApproachDistance, 0.0, this.ship.maxVelocity);
             this._scratchDesiredVelocity.set(this._scratchLeadDirection).multiplyInPlace(speed).addInPlace(this.target.velocity);

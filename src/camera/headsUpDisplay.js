@@ -121,18 +121,23 @@ export class HeadsUpDisplay {
 
     /**
      * Draws a navigational ring with arrows and optional name tags for objects in the star system.
-     * The ring is centered on the camera's screen center, with arrows indicating objects outside the ring
-     * and name tags for objects inside it.
+     * The ring is centered on the camera's screen center, with arrows indicating objects outside the ring.
      * @param {CanvasRenderingContext2D} ctx - The canvas rendering context for drawing.
      * @param {Camera} camera - The camera object for world-to-screen coordinate transformations.
      * @param {Colour} ringColour - The color of the ring and arrows.
      * @param {number} ringRadius - The radius of the ring in screen space.
-     * @param {boolean} [showNames=true] - Whether to show object names for objects inside the ring.
      * @param {GameObject[]} [objects=[]] - Array of game objects (e.g., planets, ships) to draw arrows or names for.
      * @param {GameObject|null} [target=null] - The target object, which gets a larger arrow if outside the ring.
      */
-    drawRing(ctx, camera, ringColour, ringRadius, showNames = true, objects = [], target = null) {
+    drawRing(ctx, camera, ringColour, ringRadius, objects = [], target = null) {
         ctx.save();
+
+        ctx.strokeStyle = 'rgba(0.0,0.0,0.0,0.5)';
+        ctx.lineWidth = this.ringLineWidth + 1.0;
+        ctx.beginPath();
+        ctx.arc(camera.screenCenter.x, camera.screenCenter.y, ringRadius, 0, TWO_PI);
+        ctx.stroke();
+
         const colour = ringColour.toRGB();
         ctx.strokeStyle = colour;
         ctx.fillStyle = colour;
@@ -140,9 +145,10 @@ export class HeadsUpDisplay {
 
         ctx.beginPath();
         ctx.arc(camera.screenCenter.x, camera.screenCenter.y, ringRadius, 0, TWO_PI);
-        ctx.closePath();
         ctx.stroke();
 
+        ctx.strokeStyle = 'rgba(0.0,0.0,0.0,0.5)';
+        ctx.lineWidth = 1.0;
         for (let i = 0; i < objects.length; i++) {
             const body = objects[i];
             if (body === this.gameManager.cameraTarget) continue;
@@ -150,18 +156,7 @@ export class HeadsUpDisplay {
             const squareMagnitude = this._scratchCameraPos.squareMagnitude();
             camera.worldToScreen(body.position, this._scratchScreenPos);
 
-            // Label for bodies inside their ring
-            if (squareMagnitude < ringRadius * ringRadius) {
-                if (showNames && (body instanceof Ship || body instanceof CelestialBody)) {
-                    ctx.save();
-                    ctx.beginPath();
-                    ctx.fillStyle = 'white';
-                    ctx.textAlign = 'center';
-                    const scaledRadius = camera.worldToSize(body.radius);
-                    ctx.fillText(body.name, this._scratchScreenPos.x, this._scratchScreenPos.y + scaledRadius + camera.worldToSize(20));
-                    ctx.restore();
-                }
-            } else {
+            if (squareMagnitude > ringRadius * ringRadius) {
                 const angle = Math.atan2(this._scratchCameraPos.x, -this._scratchCameraPos.y);
                 const arrowX = camera.screenCenter.x + Math.sin(angle) * ringRadius;
                 const arrowY = camera.screenCenter.y - Math.cos(angle) * ringRadius;
@@ -170,21 +165,52 @@ export class HeadsUpDisplay {
                 ctx.beginPath();
                 ctx.translate(arrowX, arrowY);
                 ctx.rotate(angle);
+                const base = (Math.floor(this.ringLineWidth * 0.5) * -1) + 1;
                 if (body === target) {
                     ctx.globalAlpha = 1;
-                    ctx.moveTo(0, -20);  // Tip up
-                    ctx.lineTo(5, 0);    // Bottom right
-                    ctx.lineTo(-5, 0);   // Bottom left
+                    ctx.moveTo(5, base);  // Bottom right
+                    ctx.lineTo(0, -20);   // Tip up
+                    ctx.lineTo(-5, base); // Bottom left
                 } else {
                     const opacity = remapClamp(squareMagnitude, 0, this.maxRadius * this.maxRadius, 1.0, 0.0);
                     ctx.globalAlpha = opacity;
-                    ctx.moveTo(0, -10);  // Tip up
-                    ctx.lineTo(5, 0);    // Bottom right
-                    ctx.lineTo(-5, 0);   // Bottom left
+                    ctx.moveTo(5, base);  // Bottom right
+                    ctx.lineTo(0, -10);   // Tip up
+                    ctx.lineTo(-5, base); // Bottom left
                 }
-                ctx.closePath();
+                ctx.stroke();
                 ctx.fill();
                 ctx.restore();
+            }
+        }
+        ctx.restore();
+    }
+
+    /**
+     * Draws name tags for objects inside the given ring.
+     * @param {CanvasRenderingContext2D} ctx - The canvas rendering context for drawing.
+     * @param {Camera} camera - The camera object for world-to-screen coordinate transformations.
+     * @param {number} ringRadius - The radius of the ring in screen space.
+     * @param {GameObject[]} [objects=[]] - Array of game objects (e.g., planets, ships) to draw arrows or names for.
+     */
+    drawNames(ctx, camera, ringRadius, objects = []) {
+        ctx.save();
+        ctx.fillStyle = 'white';
+        ctx.textAlign = 'center';
+        ctx.strokeStyle = 'rgba(0.0,0.0,0.0,1.0)';
+        ctx.lineWidth = 2.0;
+
+        for (let i = 0; i < objects.length; i++) {
+            const body = objects[i];
+            camera.worldToCamera(body.position, this._scratchCameraPos);
+            const squareMagnitude = this._scratchCameraPos.squareMagnitude();
+            // Label for bodies inside their ring
+            if (squareMagnitude < ringRadius * ringRadius) {
+                ctx.beginPath();
+                camera.worldToScreen(body.position, this._scratchScreenPos);
+                const scaledRadius = camera.worldToSize(body.radius);
+                ctx.strokeText(body.name, this._scratchScreenPos.x, this._scratchScreenPos.y + scaledRadius + camera.worldToSize(20));
+                ctx.fillText(body.name, this._scratchScreenPos.x, this._scratchScreenPos.y + scaledRadius + camera.worldToSize(20));
             }
         }
         ctx.restore();
@@ -200,10 +226,10 @@ export class HeadsUpDisplay {
 
         // Draw autopilot status at top middle if the camera's target ship has an active autopilot
         let autopilotStatus;
-        if (this.gameManager.cameraTarget.pilot.autopilot) {
-            autopilotStatus = this.gameManager.cameraTarget.pilot.autopilot.getStatus();
-        } else {
-            autopilotStatus = this.gameManager.cameraTarget.pilot.getStatus();
+        if (this.gameManager.cameraTarget?.pilot?.autopilot) {
+            autopilotStatus = this.gameManager.cameraTarget?.pilot?.autopilot.getStatus();
+        } else if (this.gameManager.cameraTarget?.pilot) {
+            autopilotStatus = this.gameManager.cameraTarget?.pilot.getStatus();
         }
 
         if (autopilotStatus) {
@@ -235,17 +261,22 @@ export class HeadsUpDisplay {
         }
 
         // Draw jumpGate
-        this.drawRing(ctx, camera, this.jumpGateRingColour, this.jumpGateRingRadius, true, camera.starSystem.jumpGates, target);
+        this.drawRing(ctx, camera, this.jumpGateRingColour, this.jumpGateRingRadius, camera.starSystem.jumpGates, target);
         // Draw planet ring
-        this.drawRing(ctx, camera, this.planetRingColour, this.planetRingRadius, true, camera.starSystem.planets, target);
+        this.drawRing(ctx, camera, this.planetRingColour, this.planetRingRadius, camera.starSystem.planets, target);
         // Draw asteroid ring
-        this.drawRing(ctx, camera, this.asteroidRingColour, this.asteroidRingRadius, false, camera.starSystem.asteroids, target);
+        this.drawRing(ctx, camera, this.asteroidRingColour, this.asteroidRingRadius, camera.starSystem.asteroids, target);
         // Draw ship ring
-        this.drawRing(ctx, camera, this.shipRingColour, this.shipRingRadius, false, this._scratchShips, target);
+        this.drawRing(ctx, camera, this.shipRingColour, this.shipRingRadius, this._scratchShips, target);
         if (this._scratchThreats.length > 0) {
             // Draw threat ring
-            this.drawRing(ctx, camera, this.threatRingColour, this.threatRingRadius, false, this._scratchThreats, target);
+            this.drawRing(ctx, camera, this.threatRingColour, this.threatRingRadius, this._scratchThreats, target);
         }
+
+        // Draw jumpGate names
+        this.drawNames(ctx, camera, this.jumpGateRingRadius, camera.starSystem.jumpGates);
+        // Draw planet names
+        this.drawNames(ctx, camera, this.planetRingRadius, camera.starSystem.planets);
 
         this.drawTargetCircle(ctx, camera, target);
         ctx.restore();

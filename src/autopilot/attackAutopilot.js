@@ -64,6 +64,9 @@ export class AttackAutopilot extends Autopilot {
         this.completed = false;
         this.error = null;
         this.state = "Approaching";
+        if (this.subAutopilot?.active) {
+            this.subAutopilot.stop();
+        }
         this.subAutopilot = new FlyToTargetAutopilot(
             this.ship,
             this.target,

@@ -23,7 +23,8 @@ export class PirateJob extends Job {
         this.state = 'Starting';
         /** @type {Object.<string, Function>} Map of state names to handler methods. */
         this.stateHandlers = {
-            'Starting': this.updateStarting.bind(this)
+            'Starting': this.updateStarting.bind(this),
+            'Failed': () => { }
         };
     }
 

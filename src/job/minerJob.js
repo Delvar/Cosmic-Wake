@@ -46,7 +46,8 @@ export class MinerJob extends Job {
             'FlyingToAsteroid': this.updateFlyingToAsteroid.bind(this),
             'Mining': this.updateMining.bind(this),
             'FlyingToHomePlanet': this.updateFlyingToHomePlanet.bind(this),
-            'WaitingOnHomePlanet': this.updateWaitingOnHomePlanet.bind(this)
+            'WaitingOnHomePlanet': this.updateWaitingOnHomePlanet.bind(this),
+            'Failed': () => { }
         };
     }
 

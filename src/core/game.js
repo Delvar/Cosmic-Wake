@@ -17,6 +17,7 @@ import { PirateJob } from '/src/job/pirateJob.js';
 import { OfficerJob } from '/src/job/officerJob.js';
 import { CelestialBody, Planet } from '/src/starSystem/celestialBody.js';
 import { StarSystem } from '/src/starSystem/starSystem.js';
+import { EscortJob } from '/src/job/escortJob.js';
 //import { wrapCanvasContext } from '/src/core/utils.js';
 
 /**
@@ -314,8 +315,6 @@ export class GameManager {
         const spawnPlanet = this.galaxy[0].planets[2];
         /** @type {Ship} The player's ship, positioned relative to a planet. */
         this.playerShip = new Interceptor(spawnPlanet.position.x + spawnPlanet.radius * 1.5, spawnPlanet.position.y, this.galaxy[0]);
-        /** @type {Ship} The first escort ship, following the player or performing tasks. */
-        this.escort01 = new Shuttle(spawnPlanet.position.x + spawnPlanet.radius * 1.0, spawnPlanet.position.y, this.galaxy[0]);
         /** @type {PlayerPilot} The pilot controlling the player's ship. */
         this.playerPilot = new PlayerPilot(this.playerShip);
         /** @type {Camera} The main camera tracking the player's ship. */
@@ -342,15 +341,24 @@ export class GameManager {
         this._scratchSpawnPos = new Vector2D(0, 0);
 
         // Initialize escort ship with AI pilot and matching colors
-        const job01 = new WandererJob(this.escort01);
-        const pilot01 = new CivilianAiPilot(this.escort01, job01);
-        this.escort01.setPilot(pilot01);
-        this.escort01.colors.cockpit = this.playerShip.colors.cockpit;
-        this.escort01.colors.wings = this.playerShip.colors.wings;
-        this.escort01.colors.hull = this.playerShip.colors.hull;
-        this.escort01.trail.color = this.playerShip.trail.color;
-        this.galaxy[0].addGameObject(this.escort01);
-        this.playerShip.setTarget(this.escort01);
+        const escort01 = new Interceptor(spawnPlanet.position.x - spawnPlanet.radius * 1.0, spawnPlanet.position.y, this.galaxy[0]);
+        const pilot01 = new OfficerAiPilot(escort01, new EscortJob(escort01, this.playerShip));
+        escort01.setPilot(pilot01);
+        escort01.colors.cockpit = this.playerShip.colors.cockpit;
+        escort01.colors.wings = this.playerShip.colors.wings;
+        escort01.colors.hull = this.playerShip.colors.hull;
+        escort01.trail.color = this.playerShip.trail.color;
+        this.galaxy[0].addGameObject(escort01);
+        this.playerShip.setTarget(escort01);
+
+        // const pirate01 = new Fighter(spawnPlanet.position.x + spawnPlanet.radius * 50.0, spawnPlanet.position.y, this.galaxy[0]);
+        // const pilot02 = new PirateAiPilot(pirate01, new PirateJob(pirate01));
+        // pirate01.setPilot(pilot02);
+        // this.galaxy[0].addGameObject(pirate01);
+        //pilot02.threat = this.playerShip;
+        //this.playerShip.lastAttacker = pirate01;
+        //this.cameraTarget = escort01;
+        //escort01.debug = true;
 
         // Set player pilot
         this.playerShip.pilot = this.playerPilot;
@@ -496,6 +504,28 @@ export class GameManager {
                     aiShip.landedObject = spawnPlanet;
                     spawnPlanet.addLandedShip(aiShip);
                     system.addGameObject(aiShip);
+
+                    //spawn escorts
+                    if (aiShip instanceof Freighter || aiShip instanceof StarBarge) {
+                        const escortCount = Math.round(Math.random() * (aiShip instanceof Freighter?4:2));
+                        for (let i = 0; i < escortCount; i++) {
+                            const escort = new Fighter(spawnPlanet.position.x, spawnPlanet.position.y, system);
+                            const pilot = new OfficerAiPilot(escort, new EscortJob(escort, aiShip));
+                            escort.setPilot(pilot);
+                            escort.colors.cockpit = aiShip.colors.cockpit;
+                            escort.colors.wings = aiShip.colors.wings;
+                            escort.colors.hull = aiShip.colors.hull;
+                            escort.trail.color = aiShip.trail.color;
+                            escort.setState('Landed');
+                            escort.shipScale = 0;
+                            escort.velocity.set(0, 0);
+                            escort.landedObject = spawnPlanet;
+                            spawnPlanet.addLandedShip(escort);
+                            system.addGameObject(escort);
+                            officerCount++;
+                            aiCount++;
+                        }
+                    }
                 }
             } while (system.ships.length < system.maxAiShips * 0.5);
         });

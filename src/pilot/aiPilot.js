@@ -93,7 +93,6 @@ export class AiPilot extends Pilot {
         // Execute active autopilot
         if (this.autopilot && !this.autopilot.isComplete()) {
             this.autopilot.update(deltaTime, gameManager);
-            return;
         }
 
         // Run job to set next autopilot

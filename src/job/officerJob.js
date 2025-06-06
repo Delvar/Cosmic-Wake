@@ -28,7 +28,8 @@ export class OfficerJob extends Job {
         this.stateHandlers = {
             'Starting': this.updateStarting.bind(this),
             'Waiting': this.updateWaiting.bind(this),
-            'Landing': this.updateLanding.bind(this)
+            'Landing': this.updateLanding.bind(this),
+            'Failed': () => { }
         };
     }
 

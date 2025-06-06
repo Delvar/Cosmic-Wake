@@ -124,6 +124,8 @@ export class Ship extends GameObject {
 
         /** @type {GameObject|null} Current target (e.g., planet, asteroid, ship). */
         this.target = null;
+        /** @type {Ship|null} the last Ship to cause damage. */
+        this.lastAttacker = null;
         /** @type {CelestialBody|Asteroid|null} Object the ship is landed on. */
         this.landedObject = null;
         /** @type {Asteroid|null} Asteroid being mined (not used after landing merge). */
@@ -575,6 +577,7 @@ export class Ship extends GameObject {
         if (this.pilot instanceof AiPilot) {
             this.pilot.onDamage(damage, source);
         }
+        this.lastAttacker = source;
     }
 
     /**

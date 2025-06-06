@@ -39,7 +39,8 @@ export class WandererJob extends Job {
         this.stateHandlers = {
             Starting: this.updateStarting.bind(this),
             Traveling: this.updateTraveling.bind(this),
-            Waiting: this.updateWaiting.bind(this)
+            Waiting: this.updateWaiting.bind(this),
+            'Failed': () => { }
         };
     }
 

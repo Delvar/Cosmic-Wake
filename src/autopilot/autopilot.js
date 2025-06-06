@@ -373,7 +373,7 @@ export class FlyToTargetAutopilot extends Autopilot {
             this._scratchDesiredVelocity.set(this._scratchLeadDirection)
                 .multiplyInPlace(this.arrivalSpeed).addInPlace(this.target.velocity);
             const approachSpeed = this.ship.velocity.dot(this._scratchLeadDirection);
-            if (approachSpeed < this.arrivalSpeed) {
+            if (approachSpeed < this.arrivalSpeed * 0.5) {
                 errorThresholdRatio = 0;
             } else {
                 errorThresholdRatio = remapClamp(distance, this.arrivalDistance, this.closeApproachDistance, 0.25, 0.5);
@@ -385,7 +385,7 @@ export class FlyToTargetAutopilot extends Autopilot {
             this._scratchDesiredVelocity.set(this._scratchLeadDirection)
                 .multiplyInPlace(speed).addInPlace(this.target.velocity);
             const approachSpeed = this.ship.velocity.dot(this._scratchLeadDirection);
-            if (approachSpeed < this.arrivalSpeed) {
+            if (approachSpeed < this.arrivalSpeed * 0.5) {
                 errorThresholdRatio = 0;
             } else {
                 errorThresholdRatio = remapClamp(distance, this.closeApproachDistance, this.farApproachDistance, 0.5, 1.0);
@@ -1612,7 +1612,7 @@ export class TraverseJumpGateAutopilot extends Autopilot {
             return;
         }
 
-        this.subAutopilot = new FlyToTargetAutopilot(this.ship, this.target, this.target.radius, Ship.LANDING_SPEED);
+        this.subAutopilot = new FlyToTargetAutopilot(this.ship, this.target, this.target.radius, this.ship.maxVelocity);
         this.subAutopilot.start();
     }
 

@@ -1162,7 +1162,8 @@ export class Ship extends GameObject {
      */
     drawEngines(ctx, camera) {
         if (this.thrustTime <= 0) return; // Skip if no thrust effect
-
+        ctx.save()
+        ctx.globalCompositeOperation = "hard-light";
         // Draw layered thrust effects with varying colors and sizes
         ctx.fillStyle = new Colour(1, 0, 0, 0.5).toRGBA();
         ctx.beginPath();
@@ -1196,6 +1197,7 @@ export class Ship extends GameObject {
             ctx.closePath();
         }
         ctx.fill();
+        ctx.restore();
     }
 
     /**

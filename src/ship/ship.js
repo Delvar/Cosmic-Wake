@@ -1434,7 +1434,6 @@ export class Ship extends GameObject {
         if (this.pilot) {
             const state = this.pilot.getStatus();
             ctx.fillStyle = 'white';
-            //ctx.font = `${10 * scale}px Arial`;
             const textMetrics = ctx.measureText(state);
             const textX = this._scratchScreenPos.x - textMetrics.width / 2;
             const textY = this._scratchScreenPos.y + 20 * scale;
@@ -1496,7 +1495,7 @@ export class Ship extends GameObject {
 
             if (arrivalDistance > 0) {
                 ctx.beginPath();
-                ctx.fillStyle = 'rgba(255,255,255,0.2)';
+                ctx.fillStyle = 'rgba(255,255,255,0.5)';
                 ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, arrivalDistance * scale, 0, TWO_PI, false);
                 ctx.fill();
             }

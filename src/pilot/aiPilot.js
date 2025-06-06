@@ -305,24 +305,34 @@ export class AiPilot extends Pilot {
     }
 
     /**
-     * Returns the pilot's status for HUD display and debugging.
-     * @returns {string} Status string.
+     * Returns the action name by processing the class name, removing 'Pilot' and adding spaces before capital letters.
+     * @returns {string} The action name.
+     */
+    getActionName() {
+        const className = this.constructor.name;
+        if (className.endsWith('Pilot')) {
+            const baseName = className.slice(0, -5); // Remove 'Pilot'
+            // Insert space before each capital letter (except first) and trim
+            return baseName.replace(/([A-Z])/g, ' $1').trim();
+        }
+        return className; // Fallback if no 'Pilot' suffix
+    }
+
+    /**
+     * Returns the current status of the player pilot for HUD display.
+     * @returns {string} A descriptive status string.
      */
     getStatus() {
-        if (this.ship.debug) {
-            let status = `${this.constructor.name}: ${this.state}, `;
-            if (this.state === 'Job') {
-                status += `${this.job.constructor.name}: ${this.job.getStatus()}, `;
+        if (this.state === 'Job') {
+            if (this.autopilot?.active) {
+                return `${this.getActionName()}: ${this.job.getStatus()}: ${this.autopilot.getStatus()}`;
+            } else {
+                return `${this.getActionName()}: ${this.job.getStatus()}`;
             }
-            if (this.autopilot) {
-                status += `${this.autopilot.constructor.name}: ${this.autopilot.getStatus()}`;
-            }
-            return status;
+        } else if (this.autopilot?.active) {
+            return `${this.getActionName()}: ${this.autopilot.getStatus()}`;
         } else {
-            if (this.autopilot) {
-                return this.autopilot.getStatus();
-            }
-            return 'idle';
+            return `${this.getActionName()}: Idle`;
         }
     }
 }

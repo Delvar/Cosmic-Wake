@@ -198,9 +198,9 @@ export class WandererJob extends Job {
     updateWaiting(deltaTime, gameManager) {
         if (this.ship.state !== 'Landed') {
             if (this.ship.debug) {
-                console.log('WandererJob: Waiting but not landed, transitioning to Planning');
+                console.log('WandererJob: Waiting but not landed, transitioning to Starting');
             }
-            this.state = 'Planning';
+            this.state = 'Starting';
             this.waitTime = 0;
             this.waitDuration = 0;
             return;
@@ -317,22 +317,5 @@ export class WandererJob extends Job {
             this.finalTarget = null;
             this.route = [];
         }
-    }
-
-    /**
-     * Returns the job's status for HUD display.
-     * @returns {string} A descriptive status message.
-     */
-    getStatus() {
-        if (this.ship.debug && (!this.target || !isValidTarget(this.ship, this.target))) {
-            return `Invalid route, re-planning`;
-        }
-        if (this.ship.debug && this.state === 'Waiting') {
-            return `Waiting (${(this.waitDuration - this.waitTime).toFixed(1)}s)`;
-        }
-        if (this.state === 'Paused') return 'Paused';
-        if (this.state === 'Completed') return 'Landed';
-        if (this.finalTarget) return `Traveling to ${this.finalTarget.name}`;
-        return 'Planning route';
     }
 }

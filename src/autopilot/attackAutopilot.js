@@ -20,7 +20,7 @@ export class AttackAutopilot extends Autopilot {
     constructor(ship, target) {
         super(ship, target);
         /** @type {string} Attack pattern: "orbit", "flyby", or "inrange". */
-        this.pattern = this.determinePattern(ship.maxVelocity);
+        this.pattern
         /** @type {string} Current state: "Approaching" or "Attacking". */
         this.state = "Approaching";
         /** @type {Autopilot|null} Sub-autopilot for specific attack behavior. */
@@ -36,6 +36,8 @@ export class AttackAutopilot extends Autopilot {
             Approaching: this.updateApproaching.bind(this),
             Attacking: this.updateAttacking.bind(this)
         };
+        /** @type {number} the remaining time to execute the selected attack patern. */
+        this.attackTime = 0;
     }
 
     /**
@@ -59,7 +61,11 @@ export class AttackAutopilot extends Autopilot {
      * Starts the autopilot, initializing the approach sub-autopilot.
      */
     start() {
-        if (!isValidAttackTarget(this.ship, this.target)) return;
+        if (!isValidAttackTarget(this.ship, this.target)) {
+            this.error = "Invalid or unreachable target";
+            this.stop();
+            return;
+        }
         this.active = true;
         this.completed = false;
         this.error = null;
@@ -112,23 +118,32 @@ export class AttackAutopilot extends Autopilot {
                 }
                 this.subAutopilot.stop();
                 this.subAutopilot = null;
-                this.state = "Attacking";
-                // Initialize pattern-specific sub-autopilot
-                if (this.pattern === "inrange") {
-                    this.subAutopilot = new InRangeAttackAutopilot(this.ship, this.target);
-                } else if (this.pattern === "orbit") {
-                    this.subAutopilot = new OrbitAttackAutopilot(this.ship, this.target);
-                } else {
-                    this.subAutopilot = new FlybyAttackAutopilot(this.ship, this.target);
-                }
-                this.subAutopilot.start();
-                if (this.ship.debug) {
-                    console.log(`AttackAutopilot: Transitioned to Attacking, pattern=${this.pattern}`);
-                }
+                this.startAttack();
             }
         } else {
             this.error = "No sub-autopilot in Approaching state";
             this.stop();
+        }
+    }
+
+    /**
+     * Initiates the attack auto pilot
+     */
+    startAttack() {
+        this.state = "Attacking";
+        this.attackTime = Math.random() * 5.0 + 5.0;
+        this.pattern = this.determinePattern(this.ship.maxVelocity);
+        // Initialize pattern-specific sub-autopilot
+        if (this.pattern === "inrange") {
+            this.subAutopilot = new InRangeAttackAutopilot(this.ship, this.target);
+        } else if (this.pattern === "orbit") {
+            this.subAutopilot = new OrbitAttackAutopilot(this.ship, this.target);
+        } else {
+            this.subAutopilot = new FlybyAttackAutopilot(this.ship, this.target);
+        }
+        this.subAutopilot.start();
+        if (this.ship.debug) {
+            console.log(`AttackAutopilot: Transitioned to Attacking, pattern=${this.pattern}`);
         }
     }
 
@@ -139,6 +154,12 @@ export class AttackAutopilot extends Autopilot {
      * @param {GameManager} gameManager - The game manager instance for context.
      */
     updateAttacking(deltaTime, gameManager) {
+        this.attackTime -= deltaTime;
+
+        if (this.attackTime <= 0.0) {
+            this.startAttack();
+        }
+
         if (this.subAutopilot && this.subAutopilot.active) {
             this.subAutopilot.update(deltaTime, gameManager);
             if (this.subAutopilot.isComplete() || this.subAutopilot.error) {
@@ -182,17 +203,6 @@ export class AttackAutopilot extends Autopilot {
         if (this.ship.debug) {
             console.log("AttackAutopilot: Stopped");
         }
-    }
-
-    /**
-     * Returns the current status for HUD display.
-     * @returns {string} The status string.
-     */
-    getStatus() {
-        if (this.subAutopilot && this.subAutopilot.active) {
-            return this.subAutopilot.getStatus();
-        }
-        return `Attack (${this.state})`;
     }
 }
 
@@ -391,14 +401,6 @@ export class OrbitAttackAutopilot extends Autopilot {
         if (this.ship.debug) {
             console.log("OrbitAttackAutopilot: Stopped");
         }
-    }
-
-    /**
-     * Returns the current status for HUD display.
-     * @returns {string} The status string, including target and state.
-     */
-    getStatus() {
-        return `Attacking ${this.target.name || "target"} (${this.state})`;
     }
 }
 
@@ -672,14 +674,6 @@ export class FlybyAttackAutopilot extends Autopilot {
             console.log("FlybyAttackAutopilot: Stopped");
         }
     }
-
-    /**
-     * Returns the current status for HUD display.
-     * @returns {string} The status string, including target and state.
-     */
-    getStatus() {
-        return `Attacking ${this.target.name || "target"} (Flyby - ${this.state})`;
-    }
 }
 
 /**
@@ -812,13 +806,5 @@ export class InRangeAttackAutopilot extends Autopilot {
         if (this.ship.debug) {
             console.log("InRangeAttackAutopilot: Stopped");
         }
-    }
-
-    /**
-     * Returns the current status for HUD display.
-     * @returns {string} The status string.
-     */
-    getStatus() {
-        return `Attacking ${this.target.name || "target"} (In-Range)`;
     }
 }

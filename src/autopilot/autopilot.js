@@ -94,11 +94,31 @@ export class Autopilot {
     }
 
     /**
-     * Returns the current status of the autopilot for HUD display.
-     * @returns {string} A descriptive status string.
+     * Returns the action name by processing the class name, removing 'Autopilot' and adding spaces before capital letters.
+     * @returns {string} The action name.
+     */
+    getActionName() {
+        const className = this.constructor.name;
+        if (className.endsWith('Autopilot')) {
+            const baseName = className.slice(0, -9); // Remove 'Autopilot'
+            // Insert space before each capital letter (except first) and trim
+            return baseName.replace(/([A-Z])/g, ' $1').trim();
+        }
+        return className; // Fallback if no 'Autopilot' suffix
+    }
+
+    /**
+     * Returns the current status for HUD display.
+     * @returns {string} The status string.
      */
     getStatus() {
-        return "Idle";
+        if (this.subAutopilot?.active) {
+            return `${this.getActionName()}: ${this.subAutopilot.getStatus()}`;
+        }
+
+        const targetName = this.target?.name || (this.target instanceof Ship ? 'ship' : this.target instanceof Planet ? 'planet' : this.target instanceof Asteroid ? 'asteroid' : 'target');
+        const baseStatus = this.state ? `${this.getActionName()} ${targetName} (${this.state})` : `${this.getActionName()} ${targetName}`;
+        return this.error ? `${baseStatus}, Error: ${this.error}` : baseStatus;
     }
 
     /**
@@ -181,7 +201,7 @@ export class Autopilot {
         outVelocityError
     ) {
         outVelocityError.set(targetVelocity).subtractInPlace(ship.velocity);
-        const timeToImpact = distance / projectileSpeed;
+        const timeToImpact = Math.min(distance / projectileSpeed, 3.0); // Maximum 3 second lead
         outLeadPosition.set(outVelocityError).multiplyInPlace(timeToImpact).addInPlace(target.position);
         outLeadOffset.set(outLeadPosition).subtractInPlace(target.position);
         const longitudinalComponent = outLeadOffset.dot(directionToTarget);
@@ -265,7 +285,7 @@ export class FlyToTargetAutopilot extends Autopilot {
         /** @type {number} Distance for far approach phase, computed dynamically. */
         this.farApproachDistance = this.arrivalDistance + maxDecelerationDistance + (this.ship.maxVelocity * timeToTurn); // Start slowing down
         /** @type {number} Distance for close approach phase, computed dynamically. */
-        this.closeApproachDistance = this.arrivalDistance + this.arrivalSpeed + (this.arrivalSpeed * timeToTurn); // Near target speed
+        this.closeApproachDistance = this.arrivalDistance + this.arrivalSpeed + (this.arrivalSpeed * timeToTurn * 2.0); // Near target speed
 
         // Initialize scratch vectors for calculations
         /** @type {Vector2D} Scratch vector for delta to target. */
@@ -347,18 +367,29 @@ export class FlyToTargetAutopilot extends Autopilot {
             // Within arrival distance: match target velocity
             this._scratchDesiredVelocity.set(this._scratchLeadDirection)
                 .multiplyInPlace(remapClamp(distance, 0.0, this.arrivalDistance, 0.0, this.arrivalSpeed)).addInPlace(this.target.velocity);
-            errorThresholdRatio = remapClamp(distance, 0.0, this.arrivalDistance, 0.0, 0.01); // Tighten thrust threshold
+            errorThresholdRatio = 0;
         } else if (distance < this.closeApproachDistance) {
             // Close approach: slow to arrival speed, face away from target
             this._scratchDesiredVelocity.set(this._scratchLeadDirection)
                 .multiplyInPlace(this.arrivalSpeed).addInPlace(this.target.velocity);
-            errorThresholdRatio = remapClamp(distance, this.arrivalDistance, this.closeApproachDistance, 0.1, 1.0);
+            const approachSpeed = this.ship.velocity.dot(this._scratchLeadDirection);
+            if (approachSpeed < this.arrivalSpeed) {
+                errorThresholdRatio = 0;
+            } else {
+                errorThresholdRatio = remapClamp(distance, this.arrivalDistance, this.closeApproachDistance, 0.25, 0.5);
+            }
             failoverAngle = this._scratchTemp.set(this._scratchDirectionToTarget).multiplyInPlace(-1); // Face away
         } else if (distance < this.farApproachDistance) {
             // Far approach: interpolate speed, face away from target
             const speed = remapClamp(distance, this.closeApproachDistance, this.farApproachDistance, this.arrivalSpeed, this.ship.maxVelocity);
             this._scratchDesiredVelocity.set(this._scratchLeadDirection)
                 .multiplyInPlace(speed).addInPlace(this.target.velocity);
+            const approachSpeed = this.ship.velocity.dot(this._scratchLeadDirection);
+            if (approachSpeed < this.arrivalSpeed) {
+                errorThresholdRatio = 0;
+            } else {
+                errorThresholdRatio = remapClamp(distance, this.closeApproachDistance, this.farApproachDistance, 0.5, 1.0);
+            }
             failoverAngle = this._scratchTemp.set(this._scratchDirectionToTarget).multiplyInPlace(-1); // Face away
         } else {
             // Beyond far approach: full speed toward lead position
@@ -375,14 +406,6 @@ export class FlyToTargetAutopilot extends Autopilot {
             errorThresholdRatio,
             this._scratchVelocityError
         );
-    }
-
-    /**
-     * Returns the current status of the autopilot for HUD display.
-     * @returns {string} A descriptive status string.
-     */
-    getStatus() {
-        return `Flying to ${this.target instanceof Ship ? this.target.name : 'target'}`;
     }
 }
 
@@ -522,14 +545,6 @@ export class FollowShipAutopilot extends Autopilot {
             this._scratchVelocityError
         );
     }
-
-    /**
-     * Returns the current status of the autopilot for HUD display.
-     * @returns {string} A descriptive status string.
-     */
-    getStatus() {
-        return `Following ${this.target.name ? this.target.name : 'target'}`;
-    }
 }
 
 /**
@@ -544,7 +559,7 @@ export class EscortAutopilot extends Autopilot {
      * @param {number} [minFollowDistance=100] - Minimum distance from target center.
      * @param {number} [maxFollowDistance=500] - Maximum distance from target center.
      */
-    constructor(ship, target, minFollowDistance = 100, maxFollowDistance = 50) {
+    constructor(ship, target, minFollowDistance = 100, maxFollowDistance = 500) {
         super(ship, target);
         /** @type {Ship} The target to follow. */
         this.target = target;
@@ -555,39 +570,17 @@ export class EscortAutopilot extends Autopilot {
         /** @type {Object.<string, Function>} Map of state names to their respective handler methods. */
         this.stateHandlers = {
             'Starting': this.updateStarting.bind(this),
-            // Idle: this.updateIdle.bind(this),
-            // Following: this.updateFollowing.bind(this),
-            // TakingOff: this.updateTakingOff.bind(this),
-            // Landing: this.updateLanding.bind(this),
-            // TraversingJumpGate: this.updateTraversingJumpGate.bind(this),
-            // Waiting: this.updateWaiting.bind(this)
+            'Following': this.updateFollowing.bind(this),
+            'Landing': this.updateLanding.bind(this),
+            'TraversingJumpGate': this.updateTraversingJumpGate.bind(this),
+            'Waiting': this.updateWaiting.bind(this)
         };
-
-        // /** @type {Ship} The target ship to escort. */
-        // this.target = escortedShip;
-        // /** @type {number} The distance to maintain while following the escorted ship. */
-        // this.followDistance = followDistance;
-        // /** @type {string} The current state of the autopilot (e.g., 'Idle', 'Following'). */
-        // this.state = 'Idle';
-        // /** @type {number} Time (seconds) remaining to wait in the 'Waiting' state. */
-        // this.waitTime = 0;
-        // /** @type {Vector2D} Pre-allocated vector for direction calculations to avoid allocations. */
-        // this._scratchDirectionToTarget = new Vector2D(0, 0);
-        // /** @type {Vector2D} Pre-allocated vector for distance (unused but retained for consistency). */
-        // this._scratchDistanceToTarget = new Vector2D(0, 0);
-        // /** @type {number} Minimum wait time (seconds) after landing before taking off. */
-        // this.waitTimeMin = 2;
-        // /** @type {number} Maximum wait time (seconds) after landing before taking off. */
-        // this.waitTimeMax = 5;
-        // /** @type {Object.<string, Function>} Map of state names to their respective handler methods. */
-        // this.stateHandlers = {
-        //     Idle: this.updateIdle.bind(this),
-        //     Following: this.updateFollowing.bind(this),
-        //     TakingOff: this.updateTakingOff.bind(this),
-        //     Landing: this.updateLanding.bind(this),
-        //     TraversingJumpGate: this.updateTraversingJumpGate.bind(this),
-        //     Waiting: this.updateWaiting.bind(this)
-        // };
+        /** @type {number} Minimum wait time (seconds) */
+        this.waitTimeMin = 5;
+        /** @type {number} Maximum wait time (seconds) */
+        this.waitTimeMax = 10;
+        /** @type {number} Time (seconds) remaining to wait in the 'Waiting' state. */
+        this.waitTime = 0;
     }
 
     /**
@@ -616,240 +609,442 @@ export class EscortAutopilot extends Autopilot {
         }
 
         this.ship.target = this.target;
+        this.state = 'Starting';
     }
 
-    // /**
-    //  * Updates the autopilot's behavior based on its current state.
-    //  * @param {number} deltaTime - Time elapsed since the last update in seconds.
-    //  */
-    // update(deltaTime) {
-    //     if (!this.active) return;
+    /**
+     * Updates the autopilot, delegating to the base class.
+     * @param {number} deltaTime - Time elapsed in seconds.
+     * @param {GameManager} gameManager - The game manager instance for context.
+     */
+    update(deltaTime, gameManager) {
+        if (!this.active) return;
+        if (this.ship.state !== "Landed" && this.ship.state !== "Flying") {
+            return;
+        }
+        // Check if the escorted ship still exists
+        if (!this.target || this.target.isDespawned() || !(this.target instanceof Ship)) {
+            this.stop();
+            this.error = 'Escorted ship despawned';
+            return;
+        }
+        super.update(deltaTime, gameManager);
+    }
 
-    //     // Check if the escorted ship still exists
-    //     if (!this.target || this.target.isDespawned()) {
-    //         this.stop();
-    //         this.error = 'Escorted ship despawned';
-    //         console.warn('Escorted ship despawned');
-    //         return;
-    //     }
+    /**
+     * Handles the 'Starting' state: figure out where we are in relation to the target and switch to whatver state is required.
+     * @param {number} deltaTime - Time elapsed in seconds.
+     * @param {GameManager} gameManager - The game manager instance for context.
+     */
+    updateStarting(deltaTime, gameManager) {
+        // Check if target is in another star system
+        if (this.target.starSystem !== this.ship.starSystem) {
+            const jumpGate = this.ship.starSystem.getJumpGateToSystem(this.target.starSystem);
+            if (jumpGate && !jumpGate.isDespawned()) {
+                this.subAutopilot = new TraverseJumpGateAutopilot(this.ship, jumpGate);
+                this.subAutopilot.start();
+                this.state = "TraversingJumpGate";
+                if (this.ship.debug) {
+                    console.log(`EscortAutopilot: Transitioned to TraversingJumpGate for system ${this.target.starSystem.name}`);
+                }
+            } else {
+                if (this.ship.state === "Landed") {
+                    this.waitTime = randomBetween(this.waitTimeMin, this.waitTimeMax);
+                    this.state = "Waiting";
+                    if (this.ship.debug) {
+                        console.log("EscortAutopilot: No jump gate found, transitioned to Waiting");
+                    }
+                } else {
+                    // Find the closest planet in the current system to land on
+                    const closestPlanet = this.ship.starSystem.getClosestPlanet(this.ship);
+                    if (closestPlanet) {
+                        this.subAutopilot = new LandOnPlanetAutopilot(this.ship, closestPlanet);
+                        this.subAutopilot.start();
+                        this.state = "Landing";
+                        if (this.ship.debug) {
+                            console.log(`EscortAutopilot: No jump gate found, transitioned to Landing on ${closestPlanet.name}`);
+                        }
+                    } else {
+                        this.error = "No landable planets found in current system";
+                        this.stop();
+                        if (this.ship.debug) {
+                            console.log("EscortAutopilot: Stopped due to no landable planets");
+                        }
+                    }
+                }
+            }
+            return;
+        }
 
-    //     const handler = this.stateHandlers[this.state];
-    //     if (handler) {
-    //         handler(deltaTime);
-    //     } else {
-    //         console.warn(`No handler for state: ${this.state}`);
-    //         this.state = 'Idle';
-    //     }
-    // }
+        // Target is in the same system
+        if (this.target.state === "Landed" || this.target.state === "Landing") {
+            const targetPlanet = this.target.landedObject || this.target.targetPlanet;
+            if (!targetPlanet) {
+                this.error = "Target planet not found";
+                this.stop();
+                return;
+            }
+            if (this.ship.state === "Landed") {
+                if (this.ship.landedObject === targetPlanet) {
+                    this.waitTime = randomBetween(this.waitTimeMin, this.waitTimeMax);
+                    this.state = "Waiting";
+                    if (this.ship.debug) {
+                        console.log(`EscortAutopilot: Transitioned to Waiting on ${targetPlanet.name}`);
+                    }
+                } else {
+                    this.ship.initiateTakeoff();
+                    if (this.ship.debug) {
+                        console.log(`EscortAutopilot: Taking Off to land on ${targetPlanet.name}`);
+                    }
+                }
+            } else if (this.ship.state === "Flying") {
+                this.subAutopilot = new LandOnPlanetAutopilot(this.ship, targetPlanet);
+                this.subAutopilot.start();
+                this.state = "Landing";
+                if (this.ship.debug) {
+                    console.log(`EscortAutopilot: Transitioned to Landing on ${targetPlanet.name}`);
+                }
+            }
+            // If ship is in TakingOff or Landing, let those states complete naturally
+        } else if (this.target.state === "Flying" || this.target.state === "TakingOff") {
+            if (this.ship.state === "Landed") {
+                this.ship.initiateTakeoff();
+                if (this.ship.debug) {
+                    console.log("EscortAutopilot: Taking Off to follow target");
+                }
+            } else if (this.ship.state === "Flying") {
+                this.subAutopilot = new FollowShipAutopilot(this.ship, this.target, this.minFollowDistance, this.maxFollowDistance);
+                this.subAutopilot.start();
+                this.state = "Following";
+                if (this.ship.debug) {
+                    console.log(`EscortAutopilot: Transitioned to Following target ${this.target.name}`);
+                }
+            }
+            // If ship is in TakingOff or Landing, let those states complete naturally
+        } else {
+            this.error = `Invalid target state '${this.target.state}' in updateStarting`;
+            this.stop();
+            if (this.ship.debug) {
+                console.log(`EscortAutopilot: Stopped due to invalid target state '${this.target.state}'`);
+            }
+        }
+    }
 
-    // /**
-    //  * Handles the 'Idle' state: initiates following or takeoff based on the escorted ship's state.
-    //  * @param {number} deltaTime - Time elapsed since the last update in seconds.
-    //  * @private
-    //  */
-    // updateIdle(deltaTime) {
-    //     if (this.ship.state === 'Landed') {
-    //         // Take off if the escorted ship is moving
-    //         if (this.target.state === 'TakingOff' || this.target.state === 'Flying') {
-    //             this.ship.initiateTakeoff();
-    //             this.state = 'TakingOff';
-    //         }
-    //     } else if (this.ship.state === 'Flying') {
-    //         // Begin following the escorted ship
-    //         this.subAutopilot = new FollowShipAutopilot(this.ship, this.target, this.followDistance, 100);
-    //         this.subAutopilot.start();
-    //         this.state = 'Following';
-    //     } else if (this.ship.state === 'TakingOff' || this.ship.state === 'Landing') {
-    //         // Wait for transitional states to complete
-    //     } else {
-    //         console.warn(`Invalid ship state '${this.ship.state}' in EscortAutopilot updateIdle`);
-    //     }
-    // }
+    /**
+     * Handles the 'Waiting' state: pauses after landing before resuming escort duties, with early takeoff if the target takes off or is flying in the same system.
+     * @param {number} deltaTime - Time elapsed in seconds.
+     * @param {GameManager} gameManager - The game manager instance for context.
+     */
+    updateWaiting(deltaTime, gameManager) {
+        // Validate target
+        if (!this.target || this.target.isDespawned() || !(this.target instanceof Ship)) {
+            this.error = "Target is invalid or despawned";
+            this.stop();
+            if (this.ship.debug) {
+                console.log('EscortAutopilot: Stopped due to invalid or despawned target');
+            }
+            return;
+        }
 
-    // /**
-    //  * Handles the 'Following' state: follows the escorted ship and reacts to its actions (landing, jumping).
-    //  * @param {number} deltaTime - Time elapsed since the last update in seconds.
-    //  * @private
-    //  */
-    // updateFollowing(deltaTime) {
-    //     if (!this.subAutopilot) {
-    //         console.warn('Sub-autopilot not set during Following state');
-    //         this.state = 'Idle';
-    //         return;
-    //     }
+        // Ensure ship is landed (should always be true in Waiting state)
+        if (this.ship.state !== 'Landed') {
+            console.warn(`Unexpected ship state '${this.ship.state}' in Waiting state; resetting`);
+            this.state = 'Starting';
+            if (this.ship.debug) {
+                console.log(`EscortAutopilot: Reset to Starting due to unexpected ship state '${this.ship.state}'`);
+            }
+            return;
+        }
 
-    //     // Handle the escorted ship jumping out
-    //     if (this.target.state === 'JumpingOut') {
-    //         this.subAutopilot.stop();
-    //         const jumpGate = this.target.jumpGate;
-    //         if (jumpGate && jumpGate instanceof JumpGate && !jumpGate.isDespawned()) {
-    //             this.subAutopilot = new TraverseJumpGateAutopilot(this.ship, jumpGate);
-    //             this.subAutopilot.start();
-    //             this.state = 'TraversingJumpGate';
-    //         } else {
-    //             console.warn('Jump gate invalid or not found; entering wait mode');
-    //             this.subAutopilot = null;
-    //             this.waitTime = randomBetween(this.waitTimeMin, this.waitTimeMax);
-    //             this.state = 'Waiting';
-    //         }
-    //         return;
-    //     }
+        // Handle target in the same system
+        if (this.target.starSystem === this.ship.starSystem) {
+            // Early takeoff if target is flying or taking off
+            if (this.target.state === 'Flying' || this.target.state === 'TakingOff') {
+                this.ship.initiateTakeoff();
+                this.state = 'Starting';
+                if (this.ship.debug) {
+                    console.log(`EscortAutopilot: Early takeoff triggered, transitioned to Starting due to target ${this.target.state}`);
+                }
+                return;
+            }
 
-    //     // Handle the escorted ship landing
-    //     if (this.target.state === 'Landed' || this.target.state === 'Landing') {
-    //         this.subAutopilot.stop();
-    //         this.subAutopilot = new LandOnPlanetAutopilot(this.ship, this.target.landedObject);
-    //         this.subAutopilot.start();
-    //         this.state = 'Landing';
-    //         return;
-    //     }
+            // Handle target landed on a different planet
+            if (this.target.state === 'Landed' || this.target.state === 'Landing') {
+                const targetPlanet = this.target.landedObject || this.target.targetPlanet;
+                if (targetPlanet && this.ship.landedObject !== targetPlanet) {
+                    this.ship.initiateTakeoff();
+                    this.state = 'Starting';
+                    if (this.ship.debug) {
+                        console.log(`EscortAutopilot: Transitioned to Starting to land on target's planet ${targetPlanet.name}`);
+                    }
+                    return;
+                }
+            }
+        }
 
-    //     // Handle the escorted ship moving to another star system
-    //     if (this.target.starSystem !== this.ship.starSystem) {
-    //         this.subAutopilot.stop();
-    //         const targetSystem = this.target.starSystem;
-    //         const jumpGate = this.ship.starSystem.getJumpGateToSystem(targetSystem);
-    //         if (jumpGate) {
-    //             this.subAutopilot = new TraverseJumpGateAutopilot(this.ship, jumpGate);
-    //             this.subAutopilot.start();
-    //             this.state = 'TraversingJumpGate';
-    //         } else {
-    //             console.warn('No jump gate found to target system; entering wait mode');
-    //             this.subAutopilot = null;
-    //             this.waitTime = randomBetween(this.waitTimeMin, this.waitTimeMax);
-    //             this.state = 'Waiting';
-    //         }
-    //         return;
-    //     }
+        // Continue waiting
+        this.waitTime -= deltaTime;
+        if (this.waitTime <= 0) {
+            this.state = 'Starting';
+            if (this.ship.debug) {
+                console.log('EscortAutopilot: Wait time expired, transitioned to Starting');
+            }
+        }
+    }
 
-    //     // Continue following the escorted ship
-    //     this.subAutopilot.update(deltaTime);
-    //     if (!this.subAutopilot.active) {
-    //         console.warn('Sub-autopilot inactive during Following state; resetting');
-    //         this.subAutopilot = null;
-    //         this.state = 'Idle';
-    //     }
-    // }
+    /**
+     * Handles the 'Following' state: follows the escorted ship and reacts to its actions (landing, jumping).
+     * @param {number} deltaTime - Time elapsed in seconds.
+     * @param {GameManager} gameManager - The game manager instance for context.
+     */
+    updateFollowing(deltaTime, gameManager) {
+        if (!this.subAutopilot || !this.subAutopilot.active) {
+            console.warn('Sub-autopilot not set or inactive during Following state');
+            this.subAutopilot = null;
+            this.state = 'Starting';
+            if (this.ship.debug) {
+                console.log('EscortAutopilot: Reset to Starting due to missing or inactive sub-autopilot');
+            }
+            return;
+        }
 
-    // /**
-    //  * Handles the 'TakingOff' state: waits for the ship to complete takeoff.
-    //  * @param {number} deltaTime - Time elapsed since the last update in seconds.
-    //  * @private
-    //  */
-    // updateTakingOff(deltaTime) {
-    //     if (this.ship.state === 'Flying') {
-    //         this.state = 'Idle'; // Transition to determine the next action
-    //     }
-    // }
+        // Handle the escorted ship jumping out
+        if (this.target.state === 'JumpingOut') {
+            this.subAutopilot.stop();
+            this.subAutopilot = null;
+            const jumpGate = this.target.jumpGate;
+            if (jumpGate && !jumpGate.isDespawned()) {
+                this.subAutopilot = new TraverseJumpGateAutopilot(this.ship, jumpGate);
+                this.subAutopilot.start();
+                this.state = 'TraversingJumpGate';
+                if (this.ship.debug) {
+                    console.log(`EscortAutopilot: Transitioned to TraversingJumpGate for jump gate ${jumpGate.name}`);
+                }
+            } else {
+                this.waitTime = randomBetween(this.waitTimeMin, this.waitTimeMax);
+                this.state = 'Waiting';
+                if (this.ship.debug) {
+                    console.log('EscortAutopilot: No jump gate found, transitioned to Waiting');
+                }
+            }
+            return;
+        }
 
-    // /**
-    //  * Handles the 'Landing' state: lands on the same body as the escorted ship, aborting if it takes off.
-    //  * @param {number} deltaTime - Time elapsed since the last update in seconds.
-    //  * @private
-    //  */
-    // updateLanding(deltaTime) {
-    //     if (!this.subAutopilot) {
-    //         console.warn('Sub-autopilot not set during Landing state');
-    //         this.state = 'Idle';
-    //         return;
-    //     }
+        // Handle the escorted ship landing or landed
+        if (this.target.state === 'Landing' || this.target.state === 'Landed') {
+            const targetPlanet = this.target.landedObject || this.target.targetPlanet;
+            if (!targetPlanet) {
+                this.error = 'Target planet not found';
+                this.subAutopilot.stop();
+                this.subAutopilot = null;
+                this.state = 'Starting';
+                if (this.ship.debug) {
+                    console.log('EscortAutopilot: Reset to Starting due to missing target planet');
+                }
+                return;
+            }
+            this.subAutopilot.stop();
+            this.subAutopilot = new LandOnPlanetAutopilot(this.ship, targetPlanet);
+            this.subAutopilot.start();
+            this.state = 'Landing';
+            if (this.ship.debug) {
+                console.log(`EscortAutopilot: Transitioned to Landing on ${targetPlanet.name}`);
+            }
+            return;
+        }
 
-    //     // Abort landing if the escorted ship takes off
-    //     if (this.target.state === 'TakingOff' || this.target.state === 'Flying') {
-    //         this.subAutopilot.stop();
-    //         this.subAutopilot = null;
-    //         this.state = 'Idle';
-    //         return;
-    //     }
+        // Handle the escorted ship moving to another star system
+        if (this.target.starSystem !== this.ship.starSystem) {
+            this.subAutopilot.stop();
+            this.subAutopilot = null;
+            const jumpGate = this.ship.starSystem.getJumpGateToSystem(this.target.starSystem);
+            if (jumpGate && !jumpGate.isDespawned()) {
+                this.subAutopilot = new TraverseJumpGateAutopilot(this.ship, jumpGate);
+                this.subAutopilot.start();
+                this.state = 'TraversingJumpGate';
+                if (this.ship.debug) {
+                    console.log(`EscortAutopilot: Transitioned to TraversingJumpGate for system ${this.target.starSystem.name}`);
+                }
+            } else {
+                // Land on the closest planet if no jump gate is found
+                const closestPlanet = this.ship.starSystem.getClosestPlanet(this.ship);
+                if (closestPlanet) {
+                    this.subAutopilot = new LandOnPlanetAutopilot(this.ship, closestPlanet);
+                    this.subAutopilot.start();
+                    this.state = 'Landing';
+                    if (this.ship.debug) {
+                        console.log(`EscortAutopilot: No jump gate found, transitioned to Landing on ${closestPlanet.name}`);
+                    }
+                } else {
+                    this.waitTime = randomBetween(this.waitTimeMin, this.waitTimeMax);
+                    this.state = 'Waiting';
+                    if (this.ship.debug) {
+                        console.log('EscortAutopilot: No jump gate or planets found, transitioned to Waiting');
+                    }
+                }
+            }
+            return;
+        }
 
-    //     // Process landing
-    //     this.subAutopilot.update(deltaTime);
-    //     if (this.subAutopilot.isComplete()) {
-    //         if (this.subAutopilot.error) {
-    //             console.warn(`Landing failed: ${this.subAutopilot.error}`);
-    //             this.subAutopilot = null;
-    //             this.state = 'Idle';
-    //         } else if (this.ship.state === 'Landed') {
-    //             this.subAutopilot = null;
-    //             this.waitTime = randomBetween(this.waitTimeMin, this.waitTimeMax);
-    //             this.state = 'Waiting';
-    //         } else {
-    //             console.warn('Landing completed but ship not landed; resetting');
-    //             this.subAutopilot = null;
-    //             this.state = 'Idle';
-    //         }
-    //     } else if (!this.subAutopilot.active) {
-    //         console.warn('Sub-autopilot inactive but not complete during Landing state');
-    //         this.subAutopilot = null;
-    //         this.state = 'Idle';
-    //     }
-    // }
+        // Continue following the escorted ship
+        this.subAutopilot.update(deltaTime, gameManager);
+        if (!this.subAutopilot.active || this.subAutopilot.error) {
+            console.warn(`Sub-autopilot inactive or errored during Following state: ${this.subAutopilot.error || 'unknown error'}`);
+            this.subAutopilot.stop();
+            this.subAutopilot = null;
+            this.state = 'Starting';
+            if (this.ship.debug) {
+                console.log('EscortAutopilot: Reset to Starting due to sub-autopilot failure');
+            }
+        }
+    }
 
-    // /**
-    //  * Handles the 'TraversingJumpGate' state: jumps to the escorted ship's star system.
-    //  * @param {number} deltaTime - Time elapsed since the last update in seconds.
-    //  * @private
-    //  */
-    // updateTraversingJumpGate(deltaTime) {
-    //     if (!this.subAutopilot) {
-    //         console.warn('Sub-autopilot not set during TraversingJumpGate state');
-    //         this.state = 'Idle';
-    //         return;
-    //     }
+    /**
+     * Handles the 'Landing' state: lands on the same body as the escorted ship, aborting if it takes off.
+     * @param {number} deltaTime - Time elapsed in seconds.
+     * @param {GameManager} gameManager - The game manager instance for context.
+     */
+    updateLanding(deltaTime, gameManager) {
+        if (!this.subAutopilot || !this.subAutopilot.active) {
+            console.warn('Sub-autopilot not set or inactive during Landing state');
+            this.subAutopilot = null;
+            this.state = 'Starting';
+            if (this.ship.debug) {
+                console.log('EscortAutopilot: Reset to Starting due to missing or inactive sub-autopilot');
+            }
+            return;
+        }
 
-    //     // Process the jump
-    //     this.subAutopilot.update(deltaTime);
-    //     if (this.subAutopilot.isComplete()) {
-    //         if (this.subAutopilot.error) {
-    //             console.warn(`Jump failed: ${this.subAutopilot.error}`);
-    //             this.subAutopilot = null;
-    //             this.state = 'Idle';
-    //         } else if (this.ship.state === 'Flying' && this.ship.starSystem === this.target.starSystem) {
-    //             this.subAutopilot = null;
-    //             this.state = 'Idle'; // Transition to resume following
-    //         } else {
-    //             console.warn('Jump completed but not in target system; resetting');
-    //             this.subAutopilot = null;
-    //             this.state = 'Idle';
-    //         }
-    //     } else if (!this.subAutopilot.active) {
-    //         console.warn('Sub-autopilot inactive but not complete during TraversingJumpGate state');
-    //         this.subAutopilot = null;
-    //         this.state = 'Idle';
-    //     }
-    // }
+        // Abort landing if the escorted ship takes off or is flying
+        if (this.target.state === 'TakingOff' || this.target.state === 'Flying') {
+            this.subAutopilot.stop();
+            this.subAutopilot = new FollowShipAutopilot(this.ship, this.target, this.minFollowDistance, this.maxFollowDistance);
+            this.subAutopilot.start();
+            this.state = 'Following';
+            if (this.ship.debug) {
+                console.log(`EscortAutopilot: Aborted landing, transitioned to Following target ${this.target.name}`);
+            }
+            return;
+        }
 
-    // /**
-    //  * Handles the 'Waiting' state: pauses after landing before resuming escort duties.
-    //  * @param {number} deltaTime - Time elapsed since the last update in seconds.
-    //  * @private
-    //  */
-    // updateWaiting(deltaTime) {
-    //     this.waitTime -= deltaTime;
-    //     if (this.waitTime <= 0) {
-    //         this.state = 'Idle'; // Check the escorted ship's state next update
-    //     }
-    // }
+        // Handle target moving to another star system
+        if (this.target.starSystem !== this.ship.starSystem) {
+            this.subAutopilot.stop();
+            this.subAutopilot = null;
+            const jumpGate = this.ship.starSystem.getJumpGateToSystem(this.target.starSystem);
+            if (jumpGate && !jumpGate.isDespawned()) {
+                this.subAutopilot = new TraverseJumpGateAutopilot(this.ship, jumpGate);
+                this.subAutopilot.start();
+                this.state = 'TraversingJumpGate';
+                if (this.ship.debug) {
+                    console.log(`EscortAutopilot: Target moved to another system, transitioned to TraversingJumpGate for system ${this.target.starSystem.name}`);
+                }
+            } else {
+                // Land on the closest planet if no jump gate is found
+                const closestPlanet = this.ship.starSystem.getClosestPlanet(this.ship);
+                if (closestPlanet) {
+                    this.subAutopilot = new LandOnPlanetAutopilot(this.ship, closestPlanet);
+                    this.subAutopilot.start();
+                    this.state = 'Landing';
+                    if (this.ship.debug) {
+                        console.log(`EscortAutopilot: No jump gate found, continuing Landing on ${closestPlanet.name}`);
+                    }
+                } else {
+                    this.waitTime = randomBetween(this.waitTimeMin, this.waitTimeMax);
+                    this.state = 'Waiting';
+                    if (this.ship.debug) {
+                        console.log('EscortAutopilot: No jump gate or planets found, transitioned to Waiting');
+                    }
+                }
+            }
+            return;
+        }
 
-    // /**
-    //  * Returns the current status of the autopilot for display (e.g., on a HUD).
-    //  * @returns {string} A descriptive status string based on the current state.
-    //  */
-    // getStatus() {
-    //     if (this.state === 'Following' && this.subAutopilot?.active) {
-    //         return `Escorting ${this.target.name || 'ship'}`;
-    //     }
-    //     if (this.state === 'Landing' && this.subAutopilot?.active) {
-    //         return `Landing on ${this.target.landedOn?.name || 'body'}`;
-    //     }
-    //     if (this.state === 'TraversingJumpGate' && this.subAutopilot?.active) {
-    //         return `Jumping to ${this.target.starSystem?.name || 'system'}`;
-    //     }
-    //     if (this.state === 'Waiting') {
-    //         return 'Waiting';
-    //     }
-    //     return `Escorting (${this.state})`;
-    // }
+        // Process landing
+        this.subAutopilot.update(deltaTime, gameManager);
+        if (this.subAutopilot.isComplete()) {
+            if (this.subAutopilot.error) {
+                console.warn(`Landing failed: ${this.subAutopilot.error}`);
+                this.subAutopilot = null;
+                this.state = 'Starting';
+                if (this.ship.debug) {
+                    console.log(`EscortAutopilot: Reset to Starting due to landing failure: ${this.subAutopilot.error}`);
+                }
+            } else if (this.ship.state === 'Landed') {
+                this.subAutopilot = null;
+                this.waitTime = randomBetween(this.waitTimeMin, this.waitTimeMax);
+                this.state = 'Waiting';
+                if (this.ship.debug) {
+                    console.log(`EscortAutopilot: Landing complete, transitioned to Waiting on ${this.ship.landedObject.name}`);
+                }
+            } else {
+                console.warn('Landing completed but ship not landed; resetting');
+                this.subAutopilot = null;
+                this.state = 'Starting';
+                if (this.ship.debug) {
+                    console.log('EscortAutopilot: Reset to Starting due to unexpected ship state after landing');
+                }
+            }
+        } else if (!this.subAutopilot.active) {
+            console.warn('Sub-autopilot inactive but not complete during Landing state');
+            this.subAutopilot = null;
+            this.state = 'Starting';
+            if (this.ship.debug) {
+                console.log('EscortAutopilot: Reset to Starting due to inactive sub-autopilot');
+            }
+        }
+    }
+
+    /**
+     * Handles the 'TraversingJumpGate' state: jumps to the escorted ship's star system.
+     * @param {number} deltaTime - Time elapsed in seconds.
+     * @param {GameManager} gameManager - The game manager instance for context.
+     */
+    updateTraversingJumpGate(deltaTime, gameManager) {
+        if (!this.subAutopilot || !this.subAutopilot.active) {
+            console.warn('Sub-autopilot not set or inactive during TraversingJumpGate state');
+            this.subAutopilot = null;
+            this.state = 'Starting';
+            if (this.ship.debug) {
+                console.log('EscortAutopilot: Reset to Starting due to missing or inactive sub-autopilot');
+            }
+            return;
+        }
+
+        // Process the jump
+        this.subAutopilot.update(deltaTime, gameManager);
+        if (this.subAutopilot.isComplete()) {
+            if (this.subAutopilot.error) {
+                console.warn(`Jump failed: ${this.subAutopilot.error}`);
+                this.subAutopilot = null;
+                this.state = 'Starting';
+                if (this.ship.debug) {
+                    console.log(`EscortAutopilot: Reset to Starting due to jump failure: ${this.subAutopilot.error}`);
+                }
+            } else if (this.ship.state === 'Flying' && this.ship.starSystem === this.target.starSystem) {
+                this.subAutopilot = new FollowShipAutopilot(this.ship, this.target, this.minFollowDistance, this.maxFollowDistance);
+                this.subAutopilot.start();
+                this.state = 'Following';
+                if (this.ship.debug) {
+                    console.log(`EscortAutopilot: Jump complete, transitioned to Following target ${this.target.name} in system ${this.ship.starSystem.name}`);
+                }
+            } else {
+                console.warn('Jump completed but not in target system or not flying; resetting');
+                this.subAutopilot = null;
+                this.state = 'Starting';
+                if (this.ship.debug) {
+                    console.log('EscortAutopilot: Reset to Starting due to unexpected state or system mismatch after jump');
+                }
+            }
+        } else if (!this.subAutopilot.active) {
+            console.warn('Sub-autopilot inactive but not complete during TraversingJumpGate state');
+            this.subAutopilot = null;
+            this.state = 'Starting';
+            if (this.ship.debug) {
+                console.log('EscortAutopilot: Reset to Starting due to inactive sub-autopilot');
+            }
+        }
+    }
 }
 
 /**
@@ -962,20 +1157,6 @@ export class LandOnPlanetAutopilot extends Autopilot {
     stop() {
         if (this.subAutopilot) this.subAutopilot.stop();
         super.stop();
-    }
-
-    /**
-     * Returns the current status of the autopilot for HUD display.
-     * @returns {string} A descriptive status string indicating landing or sub-autopilot state.
-     */
-    getStatus() {
-        if (this.subAutopilot && this.subAutopilot.active) {
-            return this.subAutopilot.getStatus();
-        }
-        if (this.ship.state === 'Landing') {
-            return `Landing on ${this.target instanceof Planet ? this.target.name : 'planet'} (Animating)`;
-        }
-        return `Landing on ${this.target instanceof Planet ? this.target.name : 'planet'}`;
     }
 }
 
@@ -1388,20 +1569,6 @@ export class LandOnAsteroidAutopilot extends Autopilot {
         if (this.subAutopilot) this.subAutopilot.stop();
         super.stop();
     }
-
-    /**
-     * Returns the current status of the autopilot for HUD display.
-     * @returns {string} A descriptive status string indicating mining or sub-autopilot state.
-     */
-    getStatus() {
-        if (this.subAutopilot && this.subAutopilot.active) {
-            return this.subAutopilot.getStatus();
-        }
-        if (this.ship.state === 'Landing') {
-            return `Landing on ${this.target.name || 'asteroid'} (Animating)`;
-        }
-        return `Mining ${this.target.name || 'asteroid'}`;
-    }
 }
 
 /**
@@ -1506,30 +1673,6 @@ export class TraverseJumpGateAutopilot extends Autopilot {
             this.stop();
         }
     }
-
-    /**
-     * Stops the autopilot and any active sub-autopilot.
-     */
-    stop() {
-        if (this.subAutopilot) this.subAutopilot.stop();
-        super.stop();
-    }
-
-    /**
-     * Returns the current status of the autopilot for HUD display.
-     * @returns {string} A descriptive status string indicating jump progress or sub-autopilot state.
-     */
-    getStatus() {
-        if (this.ship.debug) {
-            let status = `${this.target.name || 'jump gate'}`;
-            if (this.subAutopilot && this.subAutopilot.active) {
-                status += `, ${this.subAutopilot.constructor.name}: ${this.subAutopilot.getStatus()}`;
-            }
-            return status;
-        } else {
-            return `Traversing ${this.target.name || 'jump gate'}`;
-        }
-    }
 }
 
 /**
@@ -1608,34 +1751,24 @@ export class FleeAutopilot extends Autopilot {
             }
             this.subAutopilot.start();
         } else {
-            this.subAutopilot.update(deltaTime);
-            // if (this.subAutopilot.isComplete()) {
-            //     this.subAutopilot = null;
-            //     if (this.ship.state === 'Landed') {
-            //         this.completed = true;
-            //         this.stop();
-            //     } else {
-            //         console.log('Auto pilot complete looking for a new planet');
-            //         this.target = this.ship.starSystem.getClosestPlanet(this.ship);
-            //     }
-            // }
+            this.subAutopilot.update(deltaTime, gameManager);
             return;
         }
     }
 
     /**
-     * Returns the current status of the autopilot for HUD display.
-     * @returns {string} A descriptive status string including threat and target names.
+     * Returns the current status for HUD display.
+     * @returns {string} The status string.
      */
     getStatus() {
-        if (this.ship.debug) {
-            let status = `${this.constructor.name}: ${this.threat.name} to ${this.target.name}, `;
-            if (this.subAutopilot) {
-                status += `${this.subAutopilot.constructor.name}: ${this.subAutopilot.getStatus()}`;
-            }
-            return status;
+        if (this.subAutopilot?.active) {
+            return `${this.getActionName()}: ${this.subAutopilot.getStatus()}`;
         }
-        return `Fleeing ${this.threat.name} to ${this.target.name}`;
+
+        const targetName = this.target?.name || (this.target instanceof Ship ? 'ship' : this.target instanceof Planet ? 'planet' : this.target instanceof Asteroid ? 'asteroid' : 'target');
+        const threatName = this.threat?.name || (this.target instanceof Ship ? 'ship' : 'threat');
+        const baseStatus = this.state ? `${this.getActionName()} from ${threatName} to ${targetName} (${this.state})` : `${this.getActionName()} from ${threatName} to ${targetName}`;
+        return this.error ? `${baseStatus}, Error: ${this.error}` : baseStatus;
     }
 }
 
@@ -1719,22 +1852,6 @@ export class LandOnPlanetDespawnAutopilot extends Autopilot {
             this.subAutopilot = new LandOnPlanetAutopilot(this.ship, this.target);
             this.subAutopilot.start();
         }
-    }
-
-    /**
-     * Stops the autopilot and any active sub-autopilot.
-     */
-    stop() {
-        if (this.subAutopilot) this.subAutopilot.stop();
-        super.stop();
-    }
-
-    /**
-     * Returns the current status of the autopilot for HUD display.
-     * @returns {string} A descriptive status string.
-     */
-    getStatus() {
-        return `Despawning on ${this.target?.name || 'planet'}`;
     }
 }
 
@@ -1830,11 +1947,17 @@ export class AvoidAutopilot extends Autopilot {
     }
 
     /**
-     * Returns the current status of the autopilot for HUD display.
-     * @returns {string} A descriptive status string including threat name and time remaining.
+     * Returns the current status for HUD display.
+     * @returns {string} The status string.
      */
     getStatus() {
-        return `Avoiding ${this.threat.name} (${(this.timeout - this.timeElapsed).toFixed(1)})`;
+        if (this.subAutopilot?.active) {
+            return `${this.getActionName()}: ${this.subAutopilot.getStatus()}`;
+        }
+
+        const threatName = this.threat?.name || (this.target instanceof Ship ? 'ship' : 'threat');
+        const baseStatus = this.state ? `${this.getActionName()} ${threatName} (${this.state})` : `${this.getActionName()} ${threatName}`;
+        return this.error ? `${baseStatus}, Error: ${this.error}` : baseStatus;
     }
 }
 

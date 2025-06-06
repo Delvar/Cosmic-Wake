@@ -144,12 +144,4 @@ export class OfficerJob extends Job {
         if (target instanceof Ship && target.pilot instanceof PirateAiPilot) return true;
         return false;
     }
-
-    /**
-     * Returns the job's status for HUD display.
-     * @returns {string} A descriptive status message.
-     */
-    getStatus() {
-        return this.state;
-    }
 }

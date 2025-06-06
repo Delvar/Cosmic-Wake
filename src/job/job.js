@@ -54,10 +54,26 @@ export class Job {
     }
 
     /**
-     * Returns the job's status for HUD display.
-     * @returns {string} The current state or 'Paused' if paused.
+     * Returns the action name by processing the class name, removing 'Job' and adding spaces before capital letters.
+     * @returns {string} The action name.
+     */
+    getActionName() {
+        const className = this.constructor.name;
+        if (className.endsWith('Job')) {
+            const baseName = className.slice(0, -3); // Remove 'Job'
+            // Insert space before each capital letter (except first) and trim
+            return baseName.replace(/([A-Z])/g, ' $1').trim();
+        }
+        return className; // Fallback if no 'Job' suffix
+    }
+
+    /**
+     * Returns the current status for HUD display.
+     * @returns {string} The status string.
      */
     getStatus() {
-        return this.state === 'Paused' ? 'Paused' : this.state;
+        const baseStatus = this.state ? `${this.getActionName()} (${this.state})` : this.getActionName();
+        return baseStatus;
     }
+
 }

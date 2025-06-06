@@ -226,27 +226,4 @@ export class MinerJob extends Job {
             }
         }
     }
-
-    /**
-     * Returns the job's status for HUD display.
-     * @returns {string} A descriptive status message.
-     */
-    getStatus() {
-        if (this.state === 'Paused') return 'Paused';
-        if (this.state === 'Failed') return 'Failed';
-        if (this.ship.state === 'TakingOff') return 'Taking off';
-        if (this.state === 'WaitingOnHomePlanet') {
-            return `Waiting (${(this.waitTime).toFixed(1)}s)`;
-        }
-        if (this.state === 'Mining') {
-            return `Mining (${(this.waitTime).toFixed(1)}s)`;
-        }
-        if (this.targetAsteroid) {
-            return 'Mining';
-        }
-        if (this.homePlanet) {
-            return `Returning to ${this.homePlanet.name}`;
-        }
-        return this.state;
-    }
 }

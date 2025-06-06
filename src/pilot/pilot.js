@@ -37,12 +37,14 @@ export class Pilot {
     }
 
     /**
-     * Returns a string describing the pilot's current status for HUD display.
-     * @returns {string} The current status description.
-     * @throws {Error} Must be implemented by subclasses.
+     * Returns the current status of the player pilot for HUD display.
+     * @returns {string} A descriptive status string.
      */
     getStatus() {
-        throw new Error("getStatus() must be implemented by subclass");
+        if (this.autopilot?.active) {
+            return this.autopilot.getStatus();
+        }
+        return null;
     }
 }
 
@@ -211,10 +213,10 @@ export class PlayerPilot extends Pilot {
         }
 
         // // Escort a targeted ship ('f' key)
-        // if (pressed('f') && this.ship.state === 'Flying' && this.ship.target instanceof Ship) {
-        //     this.autopilot = new EscortAutopilot(this.ship, this.ship.target);
-        //     this.autopilot.start();
-        // }
+        if (pressed('e') && this.ship.state === 'Flying' && this.ship.target instanceof Ship) {
+            this.autopilot = new EscortAutopilot(this.ship, this.ship.target, this.ship.target.radius * 1.5, 500);
+            this.autopilot.start();
+        }
 
         if (pressed('F') && this.ship.state === 'Flying') {
             this.autopilot = new FlyToTargetAutopilot(this.ship, this.ship.target, this.ship.target.radius, Ship.LANDING_SPEED);
@@ -243,17 +245,6 @@ export class PlayerPilot extends Pilot {
                 this.ship.shield.strength > 0 ? this.ship.shield.strength : this.ship.hullIntegrity,
                 this.ship.position, this.ship);
         }
-    }
-
-    /**
-     * Returns the current status of the player pilot for HUD display.
-     * @returns {string} A descriptive status string.
-     */
-    getStatus() {
-        if (this.autopilot?.active) {
-            return this.autopilot.getStatus();
-        }
-        return 'Flying free!';
     }
 }
 

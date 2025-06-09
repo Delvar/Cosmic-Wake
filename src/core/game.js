@@ -18,6 +18,7 @@ import { OfficerJob } from '/src/job/officerJob.js';
 import { CelestialBody, Planet } from '/src/starSystem/celestialBody.js';
 import { StarSystem } from '/src/starSystem/starSystem.js';
 import { EscortJob } from '/src/job/escortJob.js';
+import { FactionManager, FactionRelationship } from './faction.js';
 //import { wrapCanvasContext } from '/src/core/utils.js';
 
 /**
@@ -313,8 +314,11 @@ export class GameManager {
         this.galaxy = createGalaxy();
         // The planet to spawn the player at
         const spawnPlanet = this.galaxy[0].planets[2];
+        /** @type {FactionManager} The faction manager instance. */
+        this.factionManager = new FactionManager();
+        this.initializeFactions();
         /** @type {Ship} The player's ship, positioned relative to a planet. */
-        this.playerShip = new Interceptor(spawnPlanet.position.x + spawnPlanet.radius * 1.5, spawnPlanet.position.y, this.galaxy[0]);
+        this.playerShip = new Interceptor(spawnPlanet.position.x + spawnPlanet.radius * 1.5, spawnPlanet.position.y, this.galaxy[0], this.factionManager.getFaction('Player'));
         /** @type {PlayerPilot} The pilot controlling the player's ship. */
         this.playerPilot = new PlayerPilot(this.playerShip);
         /** @type {Camera} The main camera tracking the player's ship. */
@@ -341,7 +345,7 @@ export class GameManager {
         this._scratchSpawnPos = new Vector2D(0, 0);
 
         // Initialize escort ship with AI pilot and matching colors
-        const escort01 = new Interceptor(spawnPlanet.position.x - spawnPlanet.radius * 1.0, spawnPlanet.position.y, this.galaxy[0]);
+        const escort01 = new Interceptor(spawnPlanet.position.x - spawnPlanet.radius * 1.0, spawnPlanet.position.y, this.galaxy[0], this.playerShip.faction);
         const pilot01 = new OfficerAiPilot(escort01, new EscortJob(escort01, this.playerShip));
         escort01.setPilot(pilot01);
         escort01.colors.cockpit = this.playerShip.colors.cockpit;
@@ -407,6 +411,28 @@ export class GameManager {
     }
 
     /**
+     * initialises the factions and faction relationships
+     */
+    initializeFactions() {
+        this.factionManager.addFaction('Player');
+        this.factionManager.addFaction('Civilian');
+        this.factionManager.addFaction('Officer');
+        this.factionManager.addFaction('Pirate');
+
+        this.factionManager.setRelationship('Player', 'Civilian', FactionRelationship.Neutral);
+        this.factionManager.setRelationship('Player', 'Officer', FactionRelationship.Neutral);
+        this.factionManager.setRelationship('Player', 'Pirate', FactionRelationship.Hostile);
+        this.factionManager.setRelationship('Player', 'Player', FactionRelationship.Allied);
+
+        this.factionManager.setRelationship('Civilian', 'Officer', FactionRelationship.Allied);
+        this.factionManager.setRelationship('Civilian', 'Pirate', FactionRelationship.Hostile);
+        this.factionManager.setRelationship('Civilian', 'Civilian', FactionRelationship.Allied);
+
+        this.factionManager.setRelationship('Officer', 'Pirate', FactionRelationship.Hostile);
+        this.factionManager.setRelationship('Officer', 'Officer', FactionRelationship.Allied);
+    }
+
+    /**
      * Spawns or despawns AI ships based on system limits and timing.
      * @param {number} currentTime - Current time in milliseconds.
      */
@@ -420,15 +446,19 @@ export class GameManager {
             let pirateCount = 0;
             let officerCount = 0;
 
+            const civilianFaction = this.factionManager.getFaction('Civilian');
+            const pirateFaction = this.factionManager.getFaction('Pirate');
+            const officerFaction = this.factionManager.getFaction('Officer');
+
             for (let i = 0; i < systemShipsLength; i++) {
                 const ship = system.ships[i];
                 if (ship.pilot instanceof AiPilot) {
                     aiCount++;
-                    if (ship.pilot instanceof CivilianAiPilot) {
+                    if (ship.faction === civilianFaction) {
                         civilianCount++;
-                    } else if (ship.pilot instanceof PirateAiPilot) {
+                    } else if (ship.faction === pirateFaction) {
                         pirateCount++;
-                    } else if (ship.pilot instanceof OfficerAiPilot) {
+                    } else if (ship.faction === officerFaction) {
                         officerCount++;
                     }
                 }
@@ -440,15 +470,14 @@ export class GameManager {
                 for (let i = 0; i < systemShipsLength && excessCount > 0; i++) {
                     const ship = system.ships[i];
                     if (ship.pilot instanceof AiPilot && ship.state === 'Landed' && ship.landedObject instanceof Planet) {
-
                         let despawn = false;
-                        if (ship.pilot instanceof CivilianAiPilot) {
+                        if (ship.faction === civilianFaction) {
                             civilianCount--;
                             despawn = true;
-                        } else if (ship.pilot instanceof PirateAiPilot) {
+                        } else if (ship.faction === pirateFaction) {
                             pirateCount--;
                             despawn = true;
-                        } else if (ship.pilot instanceof OfficerAiPilot) {
+                        } else if (ship.faction === officerFaction) {
                             if (officerCount > 1) {
                                 officerCount--;
                                 despawn = true;
@@ -475,20 +504,20 @@ export class GameManager {
                     }
                     if (officerCount < 1) {
                         //spawn officer
-                        aiShip = createRandomFastShip(spawnPlanet.position.x, spawnPlanet.position.y, system);
+                        aiShip = createRandomFastShip(spawnPlanet.position.x, spawnPlanet.position.y, system, officerFaction);
                         aiShip.pilot = new OfficerAiPilot(aiShip, new OfficerJob(aiShip));
                         aiShip.colors.wings.set(0.25, 0.25, 0.9, 1);
                         aiShip.colors.hull.set(0.9, 0.9, 0.9, 1);
                         officerCount++;
                     } else if (pirateCount < 4 && Math.random() < 0.25) {
                         //spawn pirate
-                        aiShip = createRandomFastShip(spawnPlanet.position.x, spawnPlanet.position.y, system);
+                        aiShip = createRandomFastShip(spawnPlanet.position.x, spawnPlanet.position.y, system, pirateFaction);
                         aiShip.pilot = new PirateAiPilot(aiShip, new PirateJob(aiShip));
                         aiShip.colors.wings.set(0.9, 0, 0, 1);
                         pirateCount++;
                     } else {
                         //spawn civilian
-                        aiShip = createRandomShip(spawnPlanet.position.x, spawnPlanet.position.y, system);
+                        aiShip = createRandomShip(spawnPlanet.position.x, spawnPlanet.position.y, system, civilianFaction);
                         if (aiShip instanceof Boxwing) {
                             aiShip.pilot = new CivilianAiPilot(aiShip, new MinerJob(aiShip));
                         } else {
@@ -507,9 +536,9 @@ export class GameManager {
 
                     //spawn escorts
                     if (aiShip instanceof Freighter || aiShip instanceof StarBarge) {
-                        const escortCount = Math.round(Math.random() * (aiShip instanceof Freighter?4:2));
+                        const escortCount = Math.round(Math.random() * (aiShip instanceof Freighter ? 4 : 2));
                         for (let i = 0; i < escortCount; i++) {
-                            const escort = new Fighter(spawnPlanet.position.x, spawnPlanet.position.y, system);
+                            const escort = new Fighter(spawnPlanet.position.x, spawnPlanet.position.y, system, aiShip.faction);
                             const pilot = new OfficerAiPilot(escort, new EscortJob(escort, aiShip));
                             escort.setPilot(pilot);
                             escort.colors.cockpit = aiShip.colors.cockpit;
@@ -522,7 +551,13 @@ export class GameManager {
                             escort.landedObject = spawnPlanet;
                             spawnPlanet.addLandedShip(escort);
                             system.addGameObject(escort);
-                            officerCount++;
+                            if (escort.faction === civilianFaction) {
+                                civilianCount++;
+                            } else if (escort.faction === pirateFaction) {
+                                pirateCount++;
+                            } else if (escort.faction === officerFaction) {
+                                officerCount++;
+                            }
                             aiCount++;
                         }
                     }

@@ -1,6 +1,7 @@
 // /src/ship/shipTypes.js
 
 import { Camera } from '/src/camera/camera.js';
+import { Faction } from '/src/core/faction.js';
 import { Ship } from '/src/ship/ship.js';
 import { StarSystem } from '/src/starSystem/starSystem.js';
 
@@ -15,9 +16,10 @@ export class Flivver extends Ship {
      * @param {number} x - Initial x-coordinate of the ship.
      * @param {number} y - Initial y-coordinate of the ship.
      * @param {StarSystem} starSystem - The star system the ship is in.
+     * @param {Faction} faction - The faction the ship belongs to.
      */
-    constructor(x, y, starSystem) {
-        super(x, y, starSystem);
+    constructor(x, y, starSystem, faction) {
+        super(x, y, starSystem, faction);
 
         /**
          * @type {number} Rotation speed in radians per second, increased for agility.
@@ -199,9 +201,10 @@ export class Shuttle extends Ship {
      * @param {number} x - Initial x-coordinate of the ship.
      * @param {number} y - Initial y-coordinate of the ship.
      * @param {StarSystem} starSystem - The star system the ship is in.
+     * @param {Faction} faction - The faction the ship belongs to.
      */
-    constructor(x, y, starSystem) {
-        super(x, y, starSystem);
+    constructor(x, y, starSystem, faction) {
+        super(x, y, starSystem, faction);
         /**
          * @type {number} Rotation speed in radians per second, moderate for efficient transport.
          */
@@ -352,9 +355,10 @@ export class HeavyShuttle extends Ship {
      * @param {number} x - Initial x-coordinate of the ship.
      * @param {number} y - Initial y-coordinate of the ship.
      * @param {StarSystem} starSystem - The star system the ship is in.
+     * @param {Faction} faction - The faction the ship belongs to.
      */
-    constructor(x, y, starSystem) {
-        super(x, y, starSystem);
+    constructor(x, y, starSystem, faction) {
+        super(x, y, starSystem, faction);
         /**
          * @type {number} Rotation speed in radians per second, slightly reduced due to mass.
          */
@@ -514,9 +518,10 @@ export class StarBarge extends Ship {
      * @param {number} x - Initial x-coordinate of the ship.
      * @param {number} y - Initial y-coordinate of the ship.
      * @param {StarSystem} starSystem - The star system the ship is in.
+     * @param {Faction} faction - The faction the ship belongs to.
      */
-    constructor(x, y, starSystem) {
-        super(x, y, starSystem);
+    constructor(x, y, starSystem, faction) {
+        super(x, y, starSystem, faction);
         /**
          * @type {number} Rotation speed in radians per second, low due to large size.
          */
@@ -732,9 +737,10 @@ export class Freighter extends Ship {
      * @param {number} x - Initial x-coordinate of the ship.
      * @param {number} y - Initial y-coordinate of the ship.
      * @param {StarSystem} starSystem - The star system the ship is in.
+     * @param {Faction} faction - The faction the ship belongs to.
      */
-    constructor(x, y, starSystem) {
-        super(x, y, starSystem);
+    constructor(x, y, starSystem, faction) {
+        super(x, y, starSystem, faction);
         /**
          * @type {number} Rotation speed in radians per second, very low due to mass.
          */
@@ -1281,9 +1287,10 @@ export class Arrow extends Ship {
      * @param {number} x - Initial x-coordinate of the ship.
      * @param {number} y - Initial y-coordinate of the ship.
      * @param {StarSystem} starSystem - The star system the ship is in.
+     * @param {Faction} faction - The faction the ship belongs to.
      */
-    constructor(x, y, starSystem) {
-        super(x, y, starSystem);
+    constructor(x, y, starSystem, faction) {
+        super(x, y, starSystem, faction);
         /**
          * @type {number} Rotation speed in radians per second, moderate for precise control.
          */
@@ -1437,9 +1444,10 @@ export class Boxwing extends Ship {
      * @param {number} x - Initial x-coordinate of the ship.
      * @param {number} y - Initial y-coordinate of the ship.
      * @param {StarSystem} starSystem - The star system the ship is in.
+     * @param {Faction} faction - The faction the ship belongs to.
      */
-    constructor(x, y, starSystem) {
-        super(x, y, starSystem);
+    constructor(x, y, starSystem, faction) {
+        super(x, y, starSystem, faction);
         /**
          * @type {number} Rotation speed in radians per second, low due to robust design.
          */
@@ -1617,9 +1625,10 @@ export class Interceptor extends Ship {
      * @param {number} x - Initial x-coordinate of the ship.
      * @param {number} y - Initial y-coordinate of the ship.
      * @param {StarSystem} starSystem - The star system the ship is in.
+     * @param {Faction} faction - The faction the ship belongs to.
      */
-    constructor(x, y, starSystem) {
-        super(x, y, starSystem);
+    constructor(x, y, starSystem, faction) {
+        super(x, y, starSystem, faction);
         /**
          * @type {number} Rotation speed in radians per second, high for agile combat.
          */
@@ -1782,9 +1791,10 @@ export class Fighter extends Ship {
      * @param {number} x - Initial x-coordinate of the ship.
      * @param {number} y - Initial y-coordinate of the ship.
      * @param {StarSystem} starSystem - The star system the ship is in.
+     * @param {Faction} faction - The faction the ship belongs to.
      */
-    constructor(x, y, starSystem) {
-        super(x, y, starSystem);
+    constructor(x, y, starSystem, faction) {
+        super(x, y, starSystem, faction);
         /**
          * @type {number} Rotation speed in radians per second, very high for dogfighting.
          */
@@ -2025,16 +2035,30 @@ export class Fighter extends Ship {
     }
 }
 
-// Factory function to create a random ship type
-export function createRandomShip(x, y, starSystem) {
+/**
+ * Factory function to create a random ship type
+ * @param {number} x the x position of the ship within teh starSystem.
+ * @param {number} y the y position of the ship within teh starSystem.
+ * @param {StarSystem} starSystem The star system the ship is in.
+ * @param {Faction} faction - The faction the ship belongs to.
+ * @returns {Flivver|Shuttle|HeavyShuttle|StarBarge|Freighter|Arrow|Boxwing|Interceptor|Fighter}
+ */
+export function createRandomShip(x, y, starSystem, faction) {
     const shipClasses = [Flivver, Shuttle, HeavyShuttle, StarBarge, Freighter, Arrow, Boxwing, Interceptor, Fighter];
     const RandomShipClass = shipClasses[Math.floor(Math.random() * shipClasses.length)];
-    return new RandomShipClass(x, y, starSystem);
+    return new RandomShipClass(x, y, starSystem, faction);
 }
 
-// Factory function to create 'Fast' random ship type
-export function createRandomFastShip(x, y, starSystem) {
+/**
+ * Factory function to create 'Fast' random ship type
+ * @param {number} x the x position of the ship within teh starSystem.
+ * @param {number} y the y position of the ship within teh starSystem.
+ * @param {StarSystem} starSystem The star system the ship is in.
+ * @param {Faction} faction - The faction the ship belongs to.
+ * @returns {Flivver|Arrow|Interceptor|Fighter}
+ */
+export function createRandomFastShip(x, y, starSystem, faction) {
     const shipClasses = [Flivver, Arrow, Interceptor, Fighter];
     const RandomShipClass = shipClasses[Math.floor(Math.random() * shipClasses.length)];
-    return new RandomShipClass(x, y, starSystem);
+    return new RandomShipClass(x, y, starSystem, faction);
 }

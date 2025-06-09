@@ -15,6 +15,7 @@ import { Pilot, PlayerPilot } from '/src/pilot/pilot.js';
 import { StarSystem } from '/src/starSystem/starSystem.js';
 import { Camera } from '/src/camera/camera.js';
 import { FlyToTargetAutopilot } from '/src/autopilot/autopilot.js';
+import { Faction, FactionRelationship } from '/src/core/faction.js';
 
 //Colours used for the lights
 const colourRed = new Colour(1.0, 0.0, 0.0);
@@ -57,14 +58,16 @@ function generateShipName() {
 
 /**
  * Checks if a target is still valid (not despawned and exists in the galaxy).
- * @param {GameObject} source - The source game object to validate.
- * @param {GameObject} target - The target game object to validate.
+ * @param {Ship} source - The source game object to validate.
+ * @param {Ship} target - The target game object to validate.
  * @returns {boolean} True if the target is valid, false otherwise.
  */
 export function isValidAttackTarget(source, target) {
+    if (!(source instanceof Ship)) return false;
     if (!(target instanceof Ship)) return false;
     if (!isValidTarget(source, target)) return false;
     if (target.state !== 'Flying' && target.state !== 'Disabled') return false;
+    if (source.faction.getRelationship(target.faction) === FactionRelationship.Allied) return false;
     return true;
 }
 
@@ -82,10 +85,13 @@ export class Ship extends GameObject {
      * @param {number} x - Initial x-coordinate of the ship.
      * @param {number} y - Initial y-coordinate of the ship.
      * @param {StarSystem} starSystem - The star system the ship is in.
+     * @param {Faction} faction - The faction the ship belongs to.
      */
-    constructor(x, y, starSystem) {
+    constructor(x, y, starSystem, faction) {
         super(new Vector2D(x, y), starSystem);
 
+        /** @type {Faction} The faction the ship belongs to. */
+        this.faction = faction;
         /** @type {string} Unique name for the ship, generated randomly. */
         this.name = generateShipName();
         /** @type {number} Rotation speed in radians per second. */

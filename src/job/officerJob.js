@@ -3,12 +3,13 @@
 import { Job } from '/src/job/job.js';
 import { AttackAutopilot } from '/src/autopilot/attackAutopilot.js';
 import { isValidAttackTarget } from '/src/ship/ship.js';
-import { AiPilot, PirateAiPilot } from '/src/pilot/aiPilot.js';
+import { AiPilot, OfficerAiPilot, PirateAiPilot } from '/src/pilot/aiPilot.js';
 import { PlayerPilot } from '/src/pilot/pilot.js';
 import { LandOnPlanetAutopilot } from '/src/autopilot/autopilot.js';
 import { Ship } from '/src/ship/ship.js';
 import { GameManager } from '/src/core/game.js';
 import { GameObject } from '/src/core/gameObject.js';
+import { FactionRelationship } from '/src/core/faction.js';
 
 /**
  * Job for a ship to attack pirats in the system.
@@ -40,13 +41,13 @@ export class OfficerJob extends Job {
      */
     update(deltaTime, gameManager) {
         if (this.ship.target && this.ship.target instanceof Ship) {
-            if (!this.isValidOfficerTarget(this.ship, this.ship.target)) {
+            if (!isValidAttackTarget(this.ship, this.ship.target)) {
                 this.ship.target = null;
             }
         }
 
         if (this.pilot.threat && this.pilot.threat instanceof Ship) {
-            if (!this.isValidOfficerTarget(this.ship, this.pilot.threat)) {
+            if (!isValidAttackTarget(this.ship, this.pilot.threat)) {
                 this.pilot.threat = null;
             }
         }
@@ -74,7 +75,7 @@ export class OfficerJob extends Job {
             return;
         }
         if (this.ship.state === 'Flying') {
-            const target = this.ship.starSystem.getRandomShip(this.ship, null, this.isValidOfficerTarget);
+            const target = this.ship.starSystem.getRandomShip(this.ship, null, OfficerJob.prototype.isValidHostileTarget);
             if (target) {
                 this.pilot.threat = target;
                 this.ship.target = target;
@@ -124,7 +125,7 @@ export class OfficerJob extends Job {
             this.state = 'Starting';
             return;
         }
-        const target = this.ship.starSystem.getRandomShip(this.ship, null, this.isValidOfficerTarget);
+        const target = this.ship.starSystem.getRandomShip(this.ship, null, OfficerJob.prototype.isValidHostileTarget);
         if (target) {
             this.pilot.threat = target;
             this.ship.target = target;
@@ -136,13 +137,13 @@ export class OfficerJob extends Job {
 
     /**
      * Checks if a target is valid, normal checks and not Pirate.
-     * @param {GameObject} source - The source game object to validate.
-     * @param {GameObject} target - The target game object to validate.
+     * @param {Ship} source - The source game object to validate.
+     * @param {Ship} target - The target game object to validate.
      * @returns {boolean} True if the target is valid, false otherwise.
      */
-    isValidOfficerTarget(source, target) {
+    isValidHostileTarget(source, target) {
         if (!isValidAttackTarget(source, target)) return false;
-        if (target instanceof Ship && target.pilot instanceof PirateAiPilot) return true;
+        if (source.faction.getRelationship(target.faction) === FactionRelationship.Hostile) return true;
         return false;
     }
 }

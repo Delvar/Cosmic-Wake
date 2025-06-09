@@ -9,6 +9,7 @@ import { remapClamp } from '/src/core/utils.js';
 import { Job } from '/src/job/job.js';
 import { GameManager } from '/src/core/game.js';
 import { GameObject } from '/src/core/gameObject.js';
+import { FactionRelationship } from '/src/core/faction.js';
 
 /**
  * Base AI pilot with common states and reaction handling.
@@ -602,7 +603,7 @@ export class OfficerAiPilot extends AiPilot {
         }
 
         if (this.threat && this.threat instanceof Ship) {
-            if (this.isValidOfficerTarget(this.ship, this.threat)) {
+            if (isValidAttackTarget(this.ship, this.threat)) {
                 if (this.ship.target !== this.threat) {
                     this.ship.target = this.threat;
                     if (this.autopilot instanceof AttackAutopilot) {
@@ -712,17 +713,5 @@ export class OfficerAiPilot extends AiPilot {
         } else {
             this.ship.lightMode = 'Normal';
         }
-    }
-
-    /**
-     * Checks if a target is valid, normal checks and not Pirate.
-     * @param {GameObject} source - The source game object to validate.
-     * @param {GameObject} target - The target game object to validate.
-     * @returns {boolean} True if the target is valid, false otherwise.
-     */
-    isValidOfficerTarget(source, target) {
-        if (!isValidAttackTarget(source, target)) return false;
-        if (target instanceof Ship && target.pilot instanceof PirateAiPilot) return true;
-        return false;
     }
 }

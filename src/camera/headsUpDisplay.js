@@ -158,23 +158,23 @@ export class HeadsUpDisplay {
     drawRing(ctx, camera, ringColour, ringRadius, objects = [], target = null) {
         ctx.save();
 
+        //Draw ring outline
         ctx.strokeStyle = 'rgba(0.0,0.0,0.0,0.5)';
         ctx.lineWidth = this.ringLineWidth + 1.0;
         ctx.beginPath();
         ctx.arc(camera.screenCenter.x, camera.screenCenter.y, ringRadius, 0, TWO_PI);
         ctx.stroke();
 
+        //Draw all the arrows
         const colour = ringColour.toRGB();
-        ctx.strokeStyle = colour;
         ctx.fillStyle = colour;
-        ctx.lineWidth = this.ringLineWidth;
-
-        ctx.beginPath();
-        ctx.arc(camera.screenCenter.x, camera.screenCenter.y, ringRadius, 0, TWO_PI);
-        ctx.stroke();
-
-        ctx.strokeStyle = 'rgba(0.0,0.0,0.0,0.5)';
         ctx.lineWidth = 1.0;
+
+        // Calculate base to align arrow's left/right points with ring's outer edge
+        const outerRadius = ringRadius + this.ringLineWidth / 2;
+        const arrowWidth = 5; // Half-width of arrow base
+        const base = ringRadius - Math.sqrt(outerRadius * outerRadius - arrowWidth * arrowWidth) + 1.0;
+
         for (let i = 0; i < objects.length; i++) {
             const body = objects[i];
             if (body === this.gameManager.cameraTarget) continue;
@@ -191,24 +191,30 @@ export class HeadsUpDisplay {
                 ctx.beginPath();
                 ctx.translate(arrowX, arrowY);
                 ctx.rotate(angle);
-                const base = (Math.floor(this.ringLineWidth * 0.5) * -1) + 1;
+
                 if (body === target) {
-                    //ctx.globalAlpha = 1;
-                    ctx.moveTo(5, base);  // Bottom right
-                    ctx.lineTo(0, -20);   // Tip up
-                    ctx.lineTo(-5, base); // Bottom left
+                    ctx.moveTo(arrowWidth, base);  // Bottom right
+                    ctx.lineTo(0, -20);            // Tip up
+                    ctx.lineTo(-arrowWidth, base); // Bottom left
                 } else {
-                    //const opacity = remapClamp(squareMagnitude, 0, this.maxRadius * this.maxRadius, 1.0, 0.0);
-                    //ctx.globalAlpha = opacity;
-                    ctx.moveTo(5, base);  // Bottom right
-                    ctx.lineTo(0, -10);   // Tip up
-                    ctx.lineTo(-5, base); // Bottom left
+                    const length = remapClamp(squareMagnitude, 0, this.maxRadius * this.maxRadius, -10.0, base);
+                    ctx.moveTo(arrowWidth, base);  // Bottom right
+                    ctx.lineTo(0, length);         // Tip up
+                    ctx.lineTo(-arrowWidth, base); // Bottom left
                 }
                 ctx.stroke();
                 ctx.fill();
                 ctx.restore();
             }
         }
+
+        //draw the ring last to cover any artifacts
+        ctx.lineWidth = this.ringLineWidth;
+        ctx.beginPath();
+        ctx.arc(camera.screenCenter.x, camera.screenCenter.y, ringRadius, 0, TWO_PI);
+        ctx.strokeStyle = colour;
+        ctx.stroke();
+
         ctx.restore();
     }
 

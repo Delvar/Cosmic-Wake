@@ -143,7 +143,7 @@ export class OfficerJob extends Job {
      */
     isValidHostileTarget(source, target) {
         if (!isValidAttackTarget(source, target)) return false;
-        if (source.faction.getRelationship(target.faction) === FactionRelationship.Hostile) return true;
+        if (source.getRelationship(target) === FactionRelationship.Hostile) return true;
         return false;
     }
 }

@@ -5,7 +5,7 @@ import { Trail } from '/src/ship/trail.js';
 import { Colour } from '/src/core/colour.js';
 import { GameObject, isValidTarget } from '/src/core/gameObject.js';
 import { CelestialBody, JumpGate } from '/src/starSystem/celestialBody.js';
-import { TWO_PI, clamp, remapClamp, normalizeAngle, randomBetween } from '/src/core/utils.js';
+import { TWO_PI, clamp, remapClamp, normalizeAngle, randomBetween, removeAtIndexInPlace } from '/src/core/utils.js';
 import { Asteroid } from '/src/starSystem/asteroidBelt.js';
 import { Shield } from '/src/ship/shield.js';
 import { Turret } from '/src/weapon/turret.js';
@@ -67,7 +67,7 @@ export function isValidAttackTarget(source, target) {
     if (!(target instanceof Ship)) return false;
     if (!isValidTarget(source, target)) return false;
     if (target.state !== 'Flying' && target.state !== 'Disabled') return false;
-    if (source.faction.getRelationship(target.faction) === FactionRelationship.Allied) return false;
+    if (source.getRelationship(target) === FactionRelationship.Allied) return false;
     return true;
 }
 
@@ -92,6 +92,8 @@ export class Ship extends GameObject {
 
         /** @type {Faction} The faction the ship belongs to. */
         this.faction = faction;
+        /** @type {Ship[]} List of hostile ships. */
+        this.hostiles = [];
         /** @type {string} Unique name for the ship, generated randomly. */
         this.name = generateShipName();
         /** @type {number} Rotation speed in radians per second. */
@@ -247,6 +249,21 @@ export class Ship extends GameObject {
         this._scratchExplosionPos = new Vector2D(0, 0);
         /** @type {Vector2D} Temporary vector for explosion force. */
         this._scratchForce = new Vector2D(0, 0);
+    }
+
+    /**
+     * Gets the effective relationship with another ship, considering faction and hostiles list.
+     * @param {Ship} otherShip - The other ship to check.
+     * @returns {number} The relationship (FactionRelationship value).
+     */
+    getRelationship(otherShip) {
+        if (!(otherShip instanceof Ship)) {
+            return FactionRelationship.Neutral;
+        }
+        if (this.hostiles.includes(otherShip) || otherShip.hostiles.includes(this)) {
+            return FactionRelationship.Hostile;
+        }
+        return this.faction.getRelationship(otherShip.faction);
     }
 
     /**
@@ -566,24 +583,35 @@ export class Ship extends GameObject {
      * @param {Ship} source - Ship causing damage.
      */
     takeDamage(damage, hitPosition, source) {
+        if (source instanceof Ship && isValidAttackTarget(this, source)) {
+            this.lastAttacker = source;
+            // Add to hostiles if Hostile or deliberately targeted (ensured by projectile logic)
+            const relationship = this.getRelationship(source);
+            if ((relationship === FactionRelationship.Hostile || source.target === this) && !this.hostiles.includes(source)) {
+                this.hostiles.push(source);
+            }
+        }
+
         let excessDamage = damage;
         if (this.shield && this.shield.isActive) {
             excessDamage = this.shield.takeDamage(damage, hitPosition, this.position, this.age);
         }
+
         //Debug: player takes no hull damage
         if (this.pilot instanceof PlayerPilot) {
             excessDamage = 0;
         }
+
         if (excessDamage > 0) {
             if (this.hullIntegrity < 0) {
                 excessDamage = 1;
             }
             this.hullIntegrity = Math.max(this.hullIntegrity - excessDamage, -50);
         }
+
         if (this.pilot instanceof AiPilot) {
             this.pilot.onDamage(damage, source);
         }
-        this.lastAttacker = source;
     }
 
     /**
@@ -598,6 +626,25 @@ export class Ship extends GameObject {
         // Log NaN position errors in debug mode
         if (isNaN(this.position.x) && this.debug) {
             console.log('Position became NaN');
+        }
+
+        // Remove despawned ships from hostiles without allocations
+        for (let i = this.hostiles.length - 1; i >= 0; i--) {
+            if (!isValidAttackTarget(this, this.hostiles[i])) {
+                removeAtIndexInPlace(i, this.hostiles);
+            }
+        }
+
+        if (!isValidAttackTarget(this, this.lastAttacker)) {
+            if (this.hostiles.length > 0) {
+                this.lastAttacker = this.hostiles[0];
+            } else {
+                this.lastAttacker = null;
+            }
+        }
+
+        if (this.target?.isDespawned()) {
+            this.clearTarget();
         }
 
         // Update turrets and fixed weapons

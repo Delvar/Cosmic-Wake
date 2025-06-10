@@ -120,13 +120,13 @@ export class HeadsUpDisplay {
         ctx.save();
         ctx.beginPath();
         const scale = target instanceof Ship ? target.shipScale : 1.0;
-        ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, camera.worldToSize(target.radius * scale) * 1.1, 0, TWO_PI);
+        ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, camera.worldToSize(target.radius * scale) + 5.0, 0, TWO_PI);
         ctx.lineWidth = 2.5;
         ctx.strokeStyle = 'rgba(0.0,0.0,0.0,0.5)';
         ctx.stroke();
         ctx.lineWidth = 2;
         if (target instanceof Ship) {
-            switch (this.gameManager.cameraTarget.faction.getRelationship(target.faction)) {
+            switch (this.gameManager.cameraTarget.getRelationship(target)) {
                 case FactionRelationship.Allied:
                     ctx.strokeStyle = Colour.Allied.toRGB();
                     break;
@@ -281,22 +281,26 @@ export class HeadsUpDisplay {
         this._scratchNeutralShips.length = 0;
         this._scratchHostileShips.length = 0;
 
-        for (let i = 0; i < camera.starSystem.ships.length; i++) {
-            const ship = camera.starSystem.ships[i];
-            if (ship.state !== 'Flying' && ship.state !== 'Disabled') {
-                continue;
+        if (this.gameManager.cameraTarget && this.gameManager.cameraTarget instanceof Ship) {
+            for (let i = 0; i < camera.starSystem.ships.length; i++) {
+                const ship = camera.starSystem.ships[i];
+                if (ship.state !== 'Flying' && ship.state !== 'Disabled') {
+                    continue;
+                }
+                switch (this.gameManager.cameraTarget.getRelationship(ship)) {
+                    case FactionRelationship.Allied:
+                        this._scratchAlliedShips.push(ship);
+                        break;
+                    case FactionRelationship.Neutral:
+                        this._scratchNeutralShips.push(ship);
+                        break;
+                    case FactionRelationship.Hostile:
+                        this._scratchHostileShips.push(ship);
+                        break;
+                }
             }
-            switch (this.gameManager.cameraTarget.faction.getRelationship(ship.faction)) {
-                case FactionRelationship.Allied:
-                    this._scratchAlliedShips.push(ship);
-                    break;
-                case FactionRelationship.Neutral:
-                    this._scratchNeutralShips.push(ship);
-                    break;
-                case FactionRelationship.Hostile:
-                    this._scratchHostileShips.push(ship);
-                    break;
-            }
+        } else {
+            this._scratchNeutralShips.push(...camera.starSystem.ships);
         }
 
         // Draw jumpGate

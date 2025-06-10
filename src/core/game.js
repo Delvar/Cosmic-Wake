@@ -258,7 +258,7 @@ export class Game {
         }
 
         if (this.manager.cameraTarget.target instanceof Ship) {
-            switch (this.manager.cameraTarget.faction.getRelationship(this.manager.cameraTarget.target.faction)) {
+            switch (this.manager.cameraTarget.getRelationship(this.manager.cameraTarget.target)) {
                 case FactionRelationship.Allied:
                     this.targetCanvas.style.borderColor = Colour.Allied.toRGB();
                     break;

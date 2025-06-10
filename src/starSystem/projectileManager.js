@@ -86,7 +86,7 @@ export class ProjectileManager {
             const type = ProjectileManager.projectileTypes[p.typeIndex];
             for (const ship of this.starSystem.ships) {
                 if (ship === p.owner || !(ship.state === 'Flying' || ship.state === 'Disabled' || ship.state === 'Exploding') || ship.despawned) continue;
-                const relationship = p.owner.faction.getRelationship(ship.faction);
+                const relationship = p.owner.getRelationship(ship);
                 //skip Allied or Neatural ships that are not targeted
                 if (relationship !== FactionRelationship.Hostile && ship !== p.owner.target) continue;
 

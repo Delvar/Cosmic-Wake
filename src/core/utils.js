@@ -83,6 +83,24 @@ export function removeObjectFromArrayInPlace(object, array) {
 }
 
 /**
+ * Removes an item from an array in place at the specified index without allocating new arrays.
+ * @param {number} index - The index of the item to remove.
+ * @param {Array} array - The array to remove the item from.
+ * @returns {Array} The modified array.
+ */
+export function removeAtIndexInPlace(index, array) {
+    if (index < 0 || index >= array.length) {
+        return array;
+    }
+    const lastIndex = array.length - 1;
+    if (index !== lastIndex) {
+        array[index] = array[lastIndex];
+    }
+    array.pop();
+    return array;
+}
+
+/**
  * Generates a hash value from grid coordinates and layer index for consistent RNG seeding.
  * @param {number} i - The x-index of the grid cell.
  * @param {number} j - The y-index of the grid cell.

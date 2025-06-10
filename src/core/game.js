@@ -19,6 +19,7 @@ import { CelestialBody, Planet } from '/src/starSystem/celestialBody.js';
 import { StarSystem } from '/src/starSystem/starSystem.js';
 import { EscortJob } from '/src/job/escortJob.js';
 import { FactionManager, FactionRelationship } from './faction.js';
+import { Colour } from '/src/core/colour.js';
 //import { wrapCanvasContext } from '/src/core/utils.js';
 
 /**
@@ -149,21 +150,21 @@ export class Game {
         let top = camera.screenSize.height - barGap - barHeight;
         let width = Math.round(barWidth * shieldRatio * 0.5);
         //ctx.shadowBlur = 0;
-        ctx.fillStyle = 'rgb(32, 32, 128)';
+        ctx.fillStyle = Colour.BlueDark.toRGB();
         ctx.fillRect(barGap, top, barWidth, barHeight);
         //ctx.shadowBlur = 8;
         //ctx.shadowColor = 'rgba(64, 64, 255, 0.75)';
-        ctx.fillStyle = 'rgb(64, 64, 255)';
+        ctx.fillStyle = Colour.Blue.toRGB();
         ctx.fillRect(centerX - width, top, width * 2.0, barHeight);
 
         top = top - barGap - barHeight;
         width = Math.round(barWidth * hullRatio * 0.5);
         //ctx.shadowBlur = 0;
-        ctx.fillStyle = 'rgb(32, 128, 32)';
+        ctx.fillStyle = Colour.GreenDark.toRGB();
         ctx.fillRect(barGap, top, barWidth, barHeight);
         //ctx.shadowColor = 'rgba(64, 255, 64, 0.75)';
         //ctx.shadowBlur = 8;
-        ctx.fillStyle = 'rgb(64, 255, 64)';
+        ctx.fillStyle = Colour.Green.toRGB();
         ctx.fillRect(centerX - width, top, width * 2.0, barHeight);
         ctx.restore();
     }
@@ -254,6 +255,22 @@ export class Game {
             if (this.targetCanvas.style.display !== 'block') {
                 this.targetCanvas.style.display = 'block';
             }
+        }
+
+        if (this.manager.cameraTarget.target instanceof Ship) {
+            switch (this.manager.cameraTarget.faction.getRelationship(this.manager.cameraTarget.target.faction)) {
+                case FactionRelationship.Allied:
+                    this.targetCanvas.style.borderColor = Colour.Allied.toRGB();
+                    break;
+                case FactionRelationship.Neutral:
+                    this.targetCanvas.style.borderColor = Colour.Neutral.toRGB();
+                    break;
+                case FactionRelationship.Hostile:
+                    this.targetCanvas.style.borderColor = Colour.Hostile.toRGB();
+                    break;
+            }
+        } else {
+            this.targetCanvas.style.borderColor = Colour.Neutral.toRGB();
         }
 
         const ctx = this.targetCtx;

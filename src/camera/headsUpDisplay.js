@@ -9,6 +9,7 @@ import { AiPilot } from '/src/pilot/aiPilot.js';
 import { GameManager } from '/src/core/game.js';
 import { Camera } from '/src/camera/camera.js';
 import { CelestialBody } from '/src/starSystem/celestialBody.js';
+import { FactionRelationship } from '/src/core/faction.js';
 
 /**
  * Manages the Heads-Up Display (HUD) showing rings and indicators for game objects.
@@ -29,27 +30,32 @@ export class HeadsUpDisplay {
         /** @type {number} Radius of the jump gate ring in pixels. */
         this.jumpGateRingRadius = 1;
         /** @type {Colour} Colour of the jump gate ring. */
-        this.jumpGateRingColour = new Colour(0.25, 0.25, 1.0);
+        this.jumpGateRingColour = Colour.Purple;
 
         /** @type {number} Radius of the planet ring in pixels. */
         this.planetRingRadius = 1;
         /** @type {Colour} Colour of the planet ring. */
-        this.planetRingColour = new Colour(0.25, 1.0, 1.25);
+        this.planetRingColour = Colour.Blue;
 
         /** @type {number} Radius of the asteroid ring in pixels. */
         this.asteroidRingRadius = 1;
         /** @type {Colour} Colour of the asteroid ring. */
-        this.asteroidRingColour = new Colour(0.25, 1.0, 0.25);
+        this.asteroidRingColour = Colour.Green;
 
         /** @type {number} Radius of the ship ring in pixels. */
-        this.shipRingRadius = 1;
+        this.shipAlliedRingRadius = 1;
         /** @type {Colour} Colour of the ship ring. */
-        this.shipRingColour = new Colour(1.0, 1.0, 0.25);
+        this.shipAlliedRingColour = Colour.Allied;
+
+        /** @type {number} Radius of the ship ring in pixels. */
+        this.shipNeutralRingRadius = 1;
+        /** @type {Colour} Colour of the ship ring. */
+        this.shipNeutralRingColour = Colour.Neutral;
 
         /** @type {number} Radius of the threat ring in pixels. */
-        this.threatRingRadius = 1;
+        this.shipHostileRingRadius = 1;
         /** @type {Colour} Colour of the threat ring. */
-        this.threatRingColour = new Colour(1.0, 0.25, 0.25);
+        this.shipHostileRingColour = Colour.Hostile;
 
         /** @type {number} Line width for rings in pixels. */
         this.ringLineWidth = 4;
@@ -64,11 +70,12 @@ export class HeadsUpDisplay {
         this._scratchCameraPos = new Vector2D(0, 0);
         /** @type {Vector2D} Scratch vector for screen position of objects. */
         this._scratchScreenPos = new Vector2D(0, 0);
-        /** @type {Array<Ship>} Scratch buffer to store threats. */
-        this._scratchThreats = [];
-        /** @type {Array<Ship>} Scratch buffer to store flying ships. */
-        this._scratchShips = [];
-
+        /** @type {Array<Ship>} Scratch buffer to Allied ships. */
+        this._scratchAlliedShips = [];
+        /** @type {Array<Ship>} Scratch buffer to store Neutral ships. */
+        this._scratchNeutralShips = [];
+        /** @type {Array<Ship>} Scratch buffer to store Hostile ships. */
+        this._scratchHostileShips = [];
         // Call resize to initialize HUD dimensions
         this.resize(width, height);
     }
@@ -80,8 +87,9 @@ export class HeadsUpDisplay {
      */
     resize(width, height) {
         this.size.set(width, height);
-        this.threatRingRadius = Math.min(width, height) * 0.2;
-        this.shipRingRadius = this.threatRingRadius + this.ringLineSpace;
+        this.shipHostileRingRadius = Math.min(width, height) * 0.2;
+        this.shipNeutralRingRadius = this.shipHostileRingRadius + this.ringLineSpace;
+        this.shipAlliedRingRadius = this.shipNeutralRingRadius + this.ringLineSpace;
         this.jumpGateRingRadius = Math.min(width, height) * 0.42;
         this.planetRingRadius = this.jumpGateRingRadius - this.ringLineSpace;
         this.asteroidRingRadius = this.planetRingRadius - this.ringLineSpace;
@@ -110,11 +118,29 @@ export class HeadsUpDisplay {
         camera.worldToScreen(target.position, this._scratchScreenPos);
 
         ctx.save();
-        ctx.strokeStyle = 'rgb(255, 255, 64)';
-        ctx.lineWidth = 2;
         ctx.beginPath();
         const scale = target instanceof Ship ? target.shipScale : 1.0;
         ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, camera.worldToSize(target.radius * scale) * 1.1, 0, TWO_PI);
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = 'rgba(0.0,0.0,0.0,0.5)';
+        ctx.stroke();
+        ctx.lineWidth = 2;
+        if (target instanceof Ship) {
+            switch (this.gameManager.cameraTarget.faction.getRelationship(target.faction)) {
+                case FactionRelationship.Allied:
+                    ctx.strokeStyle = Colour.Allied.toRGB();
+                    break;
+                case FactionRelationship.Neutral:
+                    ctx.strokeStyle = Colour.Neutral.toRGB();
+                    break;
+                case FactionRelationship.Hostile:
+                    ctx.strokeStyle = Colour.Hostile.toRGB();
+                    break;
+            }
+        } else {
+            ctx.strokeStyle = Colour.Neutral.toRGB();
+        }
+
         ctx.stroke();
         ctx.restore();
     }
@@ -167,13 +193,13 @@ export class HeadsUpDisplay {
                 ctx.rotate(angle);
                 const base = (Math.floor(this.ringLineWidth * 0.5) * -1) + 1;
                 if (body === target) {
-                    ctx.globalAlpha = 1;
+                    //ctx.globalAlpha = 1;
                     ctx.moveTo(5, base);  // Bottom right
                     ctx.lineTo(0, -20);   // Tip up
                     ctx.lineTo(-5, base); // Bottom left
                 } else {
-                    const opacity = remapClamp(squareMagnitude, 0, this.maxRadius * this.maxRadius, 1.0, 0.0);
-                    ctx.globalAlpha = opacity;
+                    //const opacity = remapClamp(squareMagnitude, 0, this.maxRadius * this.maxRadius, 1.0, 0.0);
+                    //ctx.globalAlpha = opacity;
                     ctx.moveTo(5, base);  // Bottom right
                     ctx.lineTo(0, -10);   // Tip up
                     ctx.lineTo(-5, base); // Bottom left
@@ -197,7 +223,7 @@ export class HeadsUpDisplay {
         ctx.save();
         ctx.fillStyle = 'white';
         ctx.textAlign = 'center';
-        ctx.strokeStyle = 'rgba(0.0,0.0,0.0,1.0)';
+        ctx.strokeStyle = 'rgba(0.0,0.0,0.0,0.5)';
         ctx.lineWidth = 2.0;
 
         for (let i = 0; i < objects.length; i++) {
@@ -241,16 +267,29 @@ export class HeadsUpDisplay {
         ) {
             target = this.gameManager.cameraTarget.target;
         }
+        if (target) {
+            this.drawTargetCircle(ctx, camera, target);
+        }
 
-        this._scratchThreats.length = 0;
-        this._scratchShips.length = 0;
+        this._scratchAlliedShips.length = 0;
+        this._scratchNeutralShips.length = 0;
+        this._scratchHostileShips.length = 0;
+
         for (let i = 0; i < camera.starSystem.ships.length; i++) {
             const ship = camera.starSystem.ships[i];
-            if (ship.target === this.gameManager.cameraTarget) {
-                this._scratchThreats.push(ship);
+            if (ship.state !== 'Flying' && ship.state !== 'Disabled') {
+                continue;
             }
-            if (ship.state === 'Flying') {
-                this._scratchShips.push(ship);
+            switch (this.gameManager.cameraTarget.faction.getRelationship(ship.faction)) {
+                case FactionRelationship.Allied:
+                    this._scratchAlliedShips.push(ship);
+                    break;
+                case FactionRelationship.Neutral:
+                    this._scratchNeutralShips.push(ship);
+                    break;
+                case FactionRelationship.Hostile:
+                    this._scratchHostileShips.push(ship);
+                    break;
             }
         }
 
@@ -260,11 +299,15 @@ export class HeadsUpDisplay {
         this.drawRing(ctx, camera, this.planetRingColour, this.planetRingRadius, camera.starSystem.planets, target);
         // Draw asteroid ring
         this.drawRing(ctx, camera, this.asteroidRingColour, this.asteroidRingRadius, camera.starSystem.asteroids, target);
-        // Draw ship ring
-        this.drawRing(ctx, camera, this.shipRingColour, this.shipRingRadius, this._scratchShips, target);
-        if (this._scratchThreats.length > 0) {
-            // Draw threat ring
-            this.drawRing(ctx, camera, this.threatRingColour, this.threatRingRadius, this._scratchThreats, target);
+        // Draw ship rings
+        if (this._scratchAlliedShips.length > 0) {
+            this.drawRing(ctx, camera, this.shipAlliedRingColour, this.shipAlliedRingRadius, this._scratchAlliedShips, target);
+        }
+        if (this._scratchNeutralShips.length > 0) {
+            this.drawRing(ctx, camera, this.shipNeutralRingColour, this.shipNeutralRingRadius, this._scratchNeutralShips, target);
+        }
+        if (this._scratchHostileShips.length > 0) {
+            this.drawRing(ctx, camera, this.shipHostileRingColour, this.shipHostileRingRadius, this._scratchHostileShips, target);
         }
 
         // Draw jumpGate names
@@ -272,7 +315,6 @@ export class HeadsUpDisplay {
         // Draw planet names
         this.drawNames(ctx, camera, this.planetRingRadius, camera.starSystem.planets);
 
-        this.drawTargetCircle(ctx, camera, target);
         ctx.restore();
     }
 }

@@ -6,6 +6,7 @@ import { removeObjectFromArrayInPlace, TWO_PI } from '/src/core/utils.js';
 import { StarSystem } from '/src/starSystem/starSystem.js';
 import { Ship } from '/src/ship/ship.js';
 import { Camera } from '/src/camera/camera.js';
+import { FactionRelationship } from '/src/core/faction.js';
 
 /**
  * Manages active projectiles in a star system, handling updates, rendering, collisions, and lifecycle.
@@ -85,6 +86,10 @@ export class ProjectileManager {
             const type = ProjectileManager.projectileTypes[p.typeIndex];
             for (const ship of this.starSystem.ships) {
                 if (ship === p.owner || !(ship.state === 'Flying' || ship.state === 'Disabled' || ship.state === 'Exploding') || ship.despawned) continue;
+                const relationship = p.owner.faction.getRelationship(ship.faction);
+                //skip Allied or Neatural ships that are not targeted
+                if (relationship !== FactionRelationship.Hostile && ship !== p.owner.target) continue;
+
                 if (!isFinite(ship.position.x) || !isFinite(ship.position.y) || !isFinite(ship.radius)) {
                     // console.warn('Invalid ship position or radius:', {
                     //   position: [ship.position.x, ship.position.y],

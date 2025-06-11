@@ -987,7 +987,7 @@ export class Ship extends GameObject {
             explosionEntry.force = this.explosionForce * 5;
             this._recentExplosions.push(explosionEntry);
 
-            this.starSystem.particleManager.spawnExplosion(this._scratchExplosionPos, this.radius * 2);
+            this.starSystem.particleManager.spawnExplosion(this._scratchExplosionPos, this.radius * 2, this.velocity);
 
             // Despawn the ship
             this.despawn();
@@ -1024,7 +1024,7 @@ export class Ship extends GameObject {
             this._recentExplosions.push(explosionEntry);
 
             // Spawn particles with scaled radius
-            this.starSystem.particleManager.spawnExplosion(this._scratchExplosionPos, explosionRadius);
+            this.starSystem.particleManager.spawnExplosion(this._scratchExplosionPos, explosionRadius, this.velocity);
 
             // Reduce hull integrity
             const hullReduction = 1 + (2 * explosionSizeRatio);

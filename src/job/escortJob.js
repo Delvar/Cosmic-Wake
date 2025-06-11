@@ -86,7 +86,6 @@ export class EscortJob extends Job {
                 if (this.ship.debug) {
                     console.log(`EscortJob: Escorted ship attacked by ${this.target.lastAttacker.name}, switching to Attack state`);
                 }
-                this.pilot.threat = this.target.lastAttacker;
                 this.pilot.changeState('Attack', new AttackAutopilot(this.ship, this.target.lastAttacker));
             } else if (!this.pilot.autopilot || !this.pilot.autopilot.active) {
                 if (this.ship.debug) {

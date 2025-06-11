@@ -5,10 +5,10 @@ import { AttackAutopilot } from '/src/autopilot/attackAutopilot.js';
 import { isValidAttackTarget, Ship } from '/src/ship/ship.js';
 import { AiPilot, PirateAiPilot } from '/src/pilot/aiPilot.js';
 import { GameManager } from '/src/core/game.js';
-import { GameObject } from '/src/core/gameObject.js';
+import { FactionRelationship } from '/src/core/faction.js';
 
 /**
- * Job for a ship to attack other ships in the system.
+ * Job for pirate ships to take off and attack non-pirate targets.
  * @extends Job
  */
 export class PirateJob extends Job {
@@ -19,13 +19,18 @@ export class PirateJob extends Job {
      */
     constructor(ship, pilot = null) {
         super(ship, pilot);
-        /** @type {string} The current job state ('Starting'). */
+        /** @type {string} The current job state ('Starting', 'Hunting', 'Failed'). */
         this.state = 'Starting';
         /** @type {Object.<string, Function>} Map of state names to handler methods. */
         this.stateHandlers = {
             'Starting': this.updateStarting.bind(this),
+            'Hunting': this.updateHunting.bind(this),
             'Failed': () => { }
         };
+        /** @type {number} Interval (seconds) between target scans in Hunting state. */
+        this.targetScanInterval = 1.0;
+        /** @type {number} Ship age (seconds) when the next target scan is due. */
+        this.nextTargetScan = 0;
     }
 
     /**
@@ -38,7 +43,7 @@ export class PirateJob extends Job {
         if (handler) {
             handler(deltaTime, gameManager);
         } else if (this.ship.debug) {
-            console.log(`${this.constructor.name}: Invalid state ${this.state}`);
+            console.warn(`${this.constructor.name}: Invalid state ${this.state}`);
         }
     }
 
@@ -54,30 +59,61 @@ export class PirateJob extends Job {
             }
             this.ship.initiateTakeoff();
         } else if (this.ship.state === 'Flying') {
+            if (this.ship.debug) {
+                console.log(`${this.constructor.name}: Ship flying, transitioning to Hunting`);
+            }
+            this.state = 'Hunting';
+            this.nextTargetScan = this.ship.age;
+        }
+    }
 
-            //const target = this.ship.starSystem.getClosestShip(this.ship, null);
-            const target = this.ship.starSystem.getRandomShip(this.ship, null, this.isValidPirateTarget);
+    /**
+     * Handles the 'Hunting' state, scanning for targets to attack.
+     * @param {number} deltaTime - Time elapsed since last update (seconds).
+     * @param {GameManager} gameManager - The game manager instance for context.
+     */
+    updateHunting(deltaTime, gameManager) {
+        if (this.ship.state !== 'Flying') return;
+
+        if (this.pilot.state === 'Attack') {
+            // Already attacking, let PirateAiPilot handle
+            return;
+        }
+
+        if (this.ship.age >= this.nextTargetScan) {
+            this.nextTargetScan = this.ship.age + this.targetScanInterval;
+
+            // Prioritize hostiles
+            let target = this.ship.hostiles.find(s => this.ship.getRelationship(s) === FactionRelationship.Hostile && isValidAttackTarget(this.ship, s));
+
+            // Fallback to random non-pirate ship
+            if (!target) {
+                target = this.ship.starSystem.getRandomShip(this.ship, null, PirateJob.isValidPirateTarget);
+            }
 
             if (target) {
-                this.pilot.threat = target;
                 this.ship.target = target;
                 this.pilot.changeState('Attack', new AttackAutopilot(this.ship, target));
                 if (this.ship.debug) {
-                    console.log(`${this.constructor.name}: Ship flying, found target, Attacking`);
+                    console.log(`${this.constructor.name}: Found target ${target.name}, initiating Attack`);
                 }
+            } else if (this.ship.debug) {
+                console.log(`${this.constructor.name}: No valid target found`);
             }
         }
     }
 
     /**
-     * Checks if a target is valid, normal checks and not Pirate.
-     * @param {GameObject} source - The source game object to validate.
-     * @param {GameObject} target - The target game object to validate.
+     * Checks if a target is valid: not Pirate, not Allied, and passes isValidAttackTarget.
+     * @static
+     * @param {Ship} source - The source ship.
+     * @param {Ship} target - The target ship.
      * @returns {boolean} True if the target is valid, false otherwise.
      */
-    isValidPirateTarget(source, target) {
+    static isValidPirateTarget(source, target) {
         if (!isValidAttackTarget(source, target)) return false;
         if (target instanceof Ship && target.pilot instanceof PirateAiPilot) return false;
+        if (target instanceof Ship && source.getRelationship(target) === FactionRelationship.Allied) return false;
         return true;
     }
 }

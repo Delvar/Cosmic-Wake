@@ -15,10 +15,12 @@ export class AttackAutopilot extends Autopilot {
     /**
      * Creates a new AttackAutopilot instance.
      * @param {Ship} ship - The ship to control.
-     * @param {GameObject} target - The target to attack.
+     * @param {Ship} target - The target to attack.
      */
     constructor(ship, target) {
         super(ship, target);
+        /** @type {Ship} The Ship to target. */
+        this.target = target;
         /** @type {string} Attack pattern: "orbit", "flyby", or "inrange". */
         this.pattern
         /** @type {string} Current state: "Approaching" or "Attacking". */
@@ -93,6 +95,7 @@ export class AttackAutopilot extends Autopilot {
     update(deltaTime, gameManager) {
         if (!this.active) return;
         if (!isValidAttackTarget(this.ship, this.target)) {
+            this.completed = true;
             this.stop();
             return;
         }
@@ -214,10 +217,12 @@ export class OrbitAttackAutopilot extends Autopilot {
     /**
      * Creates a new OrbitAttackAutopilot instance.
      * @param {Ship} ship - The ship to control.
-     * @param {GameObject} target - The target to orbit and attack.
+     * @param {Ship} target - The target to orbit and attack.
      */
     constructor(ship, target) {
         super(ship, target);
+        /** @type {Ship} The Ship to target. */
+        this.target = target;
         /** @type {number} Desired orbital radius around the target. */
         this.orbitRadius = randomBetween(250, 500);
         /** @type {number} Minimum allowed orbital radius. */
@@ -277,7 +282,7 @@ export class OrbitAttackAutopilot extends Autopilot {
     update(deltaTime, gameManager) {
         if (!this.active) return;
         if (!this.target || !isValidAttackTarget(this.ship, this.target) || (this.target instanceof Ship && this.target.state !== 'Flying' && this.target.state !== 'Disabled')) {
-            this.error = "Target lost or invalid";
+            this.completed = true;
             this.stop();
             return;
         }
@@ -412,10 +417,12 @@ export class FlybyAttackAutopilot extends Autopilot {
     /**
      * Creates a new FlybyAttackAutopilot instance.
      * @param {Ship} ship - The ship to control.
-     * @param {GameObject} target - The target to attack.
+     * @param {Ship} target - The target to attack.
      */
     constructor(ship, target) {
         super(ship, target);
+        /** @type {Ship} The Ship to target. */
+        this.target = target;
         /** @type {number} Speed for flyby passes. */
         this.passSpeed = this.ship.maxVelocity * 0.5;
         /** @type {number} Minimum distance to avoid collision. */
@@ -478,7 +485,7 @@ export class FlybyAttackAutopilot extends Autopilot {
     update(deltaTime, gameManager) {
         if (!this.active) return;
         if (!this.target || !isValidAttackTarget(this.ship, this.target) || (this.target instanceof Ship && this.target.state !== 'Flying' && this.target.state !== 'Disabled')) {
-            this.error = "Target lost or invalid";
+            this.completed = true;
             this.stop();
             return;
         }
@@ -684,10 +691,12 @@ export class InRangeAttackAutopilot extends Autopilot {
     /**
      * Creates a new InRangeAttackAutopilot instance.
      * @param {Ship} ship - The ship to control.
-     * @param {GameObject} target - The target to attack.
+     * @param {Ship} target - The target to attack.
      */
     constructor(ship, target) {
         super(ship, target);
+        /** @type {Ship} The Ship to target. */
+        this.target = target;
         /** @type {number} Minimum distance to avoid collision. */
         this.minRange = 100;
         /** @type {number} Maximum distance to loop back for another pass. */
@@ -736,7 +745,7 @@ export class InRangeAttackAutopilot extends Autopilot {
     update(deltaTime) {
         if (!this.active) return;
         if (!this.target || !isValidAttackTarget(this.ship, this.target) || (this.target instanceof Ship && this.target.state !== 'Flying' && this.target.state !== 'Disabled')) {
-            this.error = "Target lost or invalid";
+            this.completed = true;
             this.stop();
             return;
         }

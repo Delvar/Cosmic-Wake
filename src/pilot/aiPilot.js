@@ -25,10 +25,8 @@ export class AiPilot extends Pilot {
         super(ship);
         /** @type {Object} The job instance controlling high-level behavior (e.g., WandererJob). */
         this.job = job;
-        // set the job pilot so it can update back to us
+        // Set the job pilot so it can update back to us
         this.job.pilot = this;
-        /** @type {Ship|null} The current threat triggering reactions (e.g., player ship). */
-        this.threat = null;
         /** @type {string} The current state ('Job', 'Flee', 'Avoid', 'Attack'). */
         this.state = 'Job';
         /** @type {Object.<string, Function>} Map of state names to handler methods. */
@@ -58,7 +56,8 @@ export class AiPilot extends Pilot {
             return;
         }
 
-        if (this.ship.target === this.threat && isValidAttackTarget(this.ship, this.ship.target)) {
+        // Fire turrets at target if in hostiles and close
+        if (this.ship.target && this.ship.target instanceof Ship && this.ship.hostiles.includes(this.ship.target) && isValidAttackTarget(this.ship, this.ship.target)) {
             if (this.ship.position.distanceSquaredTo(this.ship.target.position) < 1000 * 1000) {
                 this.ship.fireTurrets();
             }
@@ -101,14 +100,14 @@ export class AiPilot extends Pilot {
             this.job.update(deltaTime, gameManager);
         }
 
-        // If autopilot is compelte null it, this ensures Job gets to see the compelte autopilot first
+        // If autopilot is complete null it, this ensures Job gets to see the complete autopilot first
         if (this.autopilot) {
             if (this.autopilot.error && this.ship.debug) {
                 console.warn(`autopilot ${this.autopilot.constructor.name} has an error: ${this.autopilot.error}`);
             }
             if (this.autopilot.isComplete()) {
                 if (this.ship.debug) {
-                    console.log(`${this.autopilot.constructor.name} is compelte, nulling`);
+                    console.log(`${this.autopilot.constructor.name} is complete, nulling`);
                 }
                 this.setAutopilot(null);
             }
@@ -121,8 +120,10 @@ export class AiPilot extends Pilot {
      * @param {GameManager} gameManager - The game manager instance for context.
      */
     updateAvoid(deltaTime, gameManager) {
-        if (!this.threat || this.safeTime > 5 || !isValidAttackTarget(this.ship, this.threat)) {
-            this.ship.target = this.threat = null;
+        // Select a target from hostiles
+        const target = this.ship.hostiles.find(s => this.ship.getRelationship(s) === FactionRelationship.Hostile && isValidAttackTarget(this.ship, s));
+        if (!target || this.safeTime > 5) {
+            this.ship.target = null;
             this.changeState('Job');
             return;
         }
@@ -132,22 +133,14 @@ export class AiPilot extends Pilot {
             if (this.ship.debug) {
                 console.log('Avoid: Incorrect autopilot, setting AvoidAutopilot');
             }
-            if (this.threat) {
-                this.changeState('Avoid', new AvoidAutopilot(this.ship, this.threat));
-            } else {
-                if (this.ship.debug) {
-                    console.log('Avoid: No threat, switching to Job');
-                }
-                this.ship.target = this.threat = null;
-                this.changeState('Job');
-            }
+            this.changeState('Avoid', new AvoidAutopilot(this.ship, target));
         }
 
         // Execute autopilot
         if (this.autopilot && !this.autopilot.isComplete()) {
             this.autopilot.update(deltaTime, gameManager);
             if (this.autopilot.isComplete()) {
-                this.ship.target = this.threat = null;
+                this.ship.target = null;
                 this.changeState('Job');
             }
         }
@@ -159,8 +152,10 @@ export class AiPilot extends Pilot {
      * @param {GameManager} gameManager - The game manager instance for context.
      */
     updateFlee(deltaTime, gameManager) {
-        if (!this.threat || this.safeTime > 5 || !isValidAttackTarget(this.ship, this.threat)) {
-            this.ship.target = this.threat = null;
+        // Select a target from hostiles
+        const target = this.ship.hostiles.find(s => this.ship.getRelationship(s) === FactionRelationship.Hostile && isValidAttackTarget(this.ship, s));
+        if (!target || this.safeTime > 5) {
+            this.ship.target = null;
             this.changeState('Job');
             return;
         }
@@ -168,51 +163,59 @@ export class AiPilot extends Pilot {
         // Ensure correct autopilot
         if (!(this.autopilot instanceof FleeAutopilot) && this.ship.state === 'Flying') {
             if (this.ship.debug) {
-                console.log('Flee: Incorrect autopilot, setting FleeAutopilot');
+                console.log('Flee: Setting FleeAutopilot');
             }
-            this.setAutopilot(new FleeAutopilot(this.ship, this.threat));
+            this.setAutopilot(new FleeAutopilot(this.ship, target));
         }
 
         // Execute autopilot
         if (this.autopilot && !this.autopilot.isComplete()) {
             this.autopilot.update(deltaTime, gameManager);
             if (this.autopilot.isComplete()) {
-                this.ship.target = this.threat = null;
+                this.ship.target = null;
                 this.changeState('Job');
             }
         }
     }
 
     /**
-     * Handles the 'Attack' state, managing attack behavior and reactions.
-     * @param {number} deltaTime - Time elapsed since last update (seconds).
+     * Handles the 'Attack' state, managing attack behavior.
+     * @param {number} deltaTime - Time elapsed in seconds.
      * @param {GameManager} gameManager - The game manager instance for context.
      */
     updateAttack(deltaTime, gameManager) {
-        if (!this.threat || !isValidAttackTarget(this.ship, this.threat)) {
-            this.ship.target = this.threat = null;
+        if (this.ship.state !== 'Flying') {
+            if (this.ship.debug) {
+                console.log(`AiPilot: Not Flying (${this.ship.state}), reverting to Job`);
+            }
             this.changeState('Job');
             return;
         }
-        if (!(this.autopilot instanceof AttackAutopilot) && this.ship.state === 'Flying') {
-            this.setAutopilot(new AttackAutopilot(this.ship, this.threat));
-            if (this.ship.debug) {
-                console.log("AiPilot: Set AttackAutopilot");
+
+        if (this.autopilot && this.autopilot.active && this.autopilot instanceof AttackAutopilot && !this.autopilot.error) {
+            this.autopilot.update(deltaTime, gameManager);
+        } else {
+            // Log error if present
+            if (this.autopilot && this.autopilot.error && this.ship.debug) {
+                console.warn(`AiPilot: AttackAutopilot error: ${this.autopilot.error}`);
             }
-        }
-        if (this.autopilot) {
-            if (!this.autopilot.active) {
-                if (this.ship.debug && this.autopilot.error) {
-                    console.log(`AiPilot: AttackAutopilot error ${this.autopilot.error}`);
+
+            // Select a target from hostiles
+            const target = this.ship.hostiles.find(s => this.ship.getRelationship(s) === FactionRelationship.Hostile && isValidAttackTarget(this.ship, s));
+            if (!target) {
+                if (this.ship.debug) {
+                    console.log(`AiPilot: No valid hostile target, reverting to Job`);
                 }
-                if (this.ship.debug && this.autopilot.isComplete()) {
-                    console.log(`AiPilot: AttackAutopilot completed`);
-                }
-                this.ship.target = this.threat = null;
+                this.ship.target = null;
                 this.changeState('Job');
-            } else {
-                this.autopilot.update(deltaTime, gameManager);
+                return;
             }
+
+            if (this.ship.debug) {
+                console.log(`AiPilot: Setting AttackAutopilot for target ${target.name}`);
+            }
+            this.ship.target = target; // Set for turret firing
+            this.setAutopilot(new AttackAutopilot(this.ship, target));
         }
     }
 
@@ -247,6 +250,9 @@ export class AiPilot extends Pilot {
     setAutopilot(newAutopilot) {
         if (this.ship.debug) {
             console.log(`setAutopilot ${this.ship.name}: ${this.autopilot?.constructor?.name} >> ${newAutopilot?.constructor?.name}`);
+            if (this.autopilot?.constructor?.name === 'AttackAutopilot' && newAutopilot?.constructor?.name == undefined) {
+                throw new Error("dewad");
+            }
         }
         if (this.autopilot) {
             this.autopilot.stop();
@@ -259,26 +265,29 @@ export class AiPilot extends Pilot {
     }
 
     /**
-     * Checks if the ship is safe from the threat.
+     * Checks if the ship is safe from any hostile ships.
      * @returns {boolean} True if safe.
      */
     isSafe() {
-        if (!isValidAttackTarget(this.ship, this.threat)) return true;
         if (this.ship.state === 'Landed') return true;
-        const distanceSq = this.ship.position.distanceSquaredTo(this.threat.position);
-        const threatSpeed = this.threat.maxVelocity * 5; //Safe distance is 5 seconds away from threat
-        return distanceSq > threatSpeed * threatSpeed;
+        for (const hostile of this.ship.hostiles) {
+            if (!isValidAttackTarget(this.ship, hostile)) continue;
+            const distanceSq = this.ship.position.distanceSquaredTo(hostile.position);
+            const threatSpeed = hostile.maxVelocity * 5; // Safe distance is 5 seconds away
+            if (distanceSq <= threatSpeed * threatSpeed) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
      * Notified when the ship takes damage.
      * @param {number} damage - Amount of damage received.
-     * @param {Ship} source - Ship causing the damage.
+     * @param {Ship} source - Ship causing damage.
      */
     onDamage(damage, source) {
-        if (source instanceof Ship && source !== this.ship) {
-            this.threat = source;
-        }
+
     }
 
     /**
@@ -319,7 +328,7 @@ export class AiPilot extends Pilot {
     }
 
     /**
-     * Returns the current status of the player pilot for HUD display.
+     * Returns the current status of the pilot for HUD display.
      * @returns {string} A descriptive status string.
      */
     getStatus() {
@@ -338,7 +347,7 @@ export class AiPilot extends Pilot {
 }
 
 /**
- * AI pilot for civilian ships with reaction logic.
+ * AI pilot for civilian ships, focusing on avoidance and fleeing.
  * @extends AiPilot
  */
 export class CivilianAiPilot extends AiPilot {
@@ -371,28 +380,33 @@ export class CivilianAiPilot extends AiPilot {
      */
     updateJob(deltaTime, gameManager) {
         // Check shields for immediate flee
-        if (this.ship.shield && this.ship.shield.strength <= 0 && this.threat) {
-            if (this.ship.debug) {
-                console.log('Job: Shields down, switching to Flee');
+        if (this.ship.shield && this.ship.shield.strength <= 0) {
+            const target = this.ship.hostiles.find(s => this.ship.getRelationship(s) === FactionRelationship.Hostile && isValidAttackTarget(this.ship, s));
+            if (target) {
+                if (this.ship.debug) {
+                    console.log('Job: Shields down, switching to Flee');
+                }
+                this.changeState('Flee', new FleeAutopilot(this.ship, target));
+                return;
             }
-            this.changeState('Flee', new FleeAutopilot(this.ship, this.threat));
-            return;
         }
 
         // Check reactions
         if (this.ship.age >= this.nextThreatScan) {
             this.nextThreatScan = this.ship.age + this.threatScanInterval;
-
-            // Check for nearby threat
-            if (this.threat && this.ship.state === 'Flying') {
-                const distanceSq = this._scratchDistance.set(this.threat.position)
-                    .subtractInPlace(this.ship.position).squareMagnitude();
-                if (distanceSq < 500 * 500) {
-                    if (this.ship.debug) {
-                        console.log('Job: Threat within 500 units, switching to Avoid');
+            // Check for nearby hostile
+            if (this.ship.state === 'Flying') {
+                for (const hostile of this.ship.hostiles) {
+                    if (!isValidAttackTarget(this.ship, hostile) || this.ship.getRelationship(hostile) !== FactionRelationship.Hostile) continue;
+                    const distanceSq = this._scratchDistance.set(hostile.position)
+                        .subtractInPlace(this.ship.position).squareMagnitude();
+                    if (distanceSq < 500 * 500) {
+                        if (this.ship.debug) {
+                            console.log('Job: Hostile within 500 units, switching to Avoid');
+                        }
+                        this.changeState('Avoid', new AvoidAutopilot(this.ship, hostile));
+                        return;
                     }
-                    this.changeState('Avoid', new AvoidAutopilot(this.ship, this.threat));
-                    return;
                 }
             }
         }
@@ -408,22 +422,28 @@ export class CivilianAiPilot extends AiPilot {
     updateAvoid(deltaTime, gameManager) {
         super.updateAvoid(deltaTime, gameManager);
 
-        //Check if the shilds have gone down
-        if (this.ship.shield && this.ship.shield.strength <= 0 && this.threat) {
-            if (this.ship.debug) {
-                console.log('Avoid: Shields down, switching to Flee');
+        // Check if shields have gone down
+        if (this.ship.shield && this.ship.shield.strength <= 0) {
+            const target = this.ship.hostiles.find(s => this.ship.getRelationship(s) === FactionRelationship.Hostile && isValidAttackTarget(this.ship, s));
+            if (target) {
+                if (this.ship.debug) {
+                    console.log('Avoid: Shields down, switching to Flee');
+                }
+                this.changeState('Flee', new FleeAutopilot(this.ship, target));
+                return;
             }
-            this.changeState('Flee', new FleeAutopilot(this.ship, this.threat));
-            return;
         }
 
         // Check for timeout fleeing
         if ((!this.autopilot || (this.autopilot instanceof AvoidAutopilot && this.autopilot.timeElapsed >= this.autopilot.timeout)) && !this.isSafe()) {
-            if (this.ship.debug) {
-                console.log('Avoid: Timeout or complete and not safe, switching to Flee');
+            const target = this.ship.hostiles.find(s => this.ship.getRelationship(s) === FactionRelationship.Hostile && isValidAttackTarget(this.ship, s));
+            if (target) {
+                if (this.ship.debug) {
+                    console.log('Avoid: Timeout or complete and not safe, switching to Flee');
+                }
+                this.changeState('Flee', new FleeAutopilot(this.ship, target));
+                return;
             }
-            this.changeState('Flee', new FleeAutopilot(this.ship, this.threat));
-            return;
         }
     }
 
@@ -439,27 +459,31 @@ export class CivilianAiPilot extends AiPilot {
     /**
      * Handles damage, updating state based on shields.
      * @param {number} damage - Amount of damage received.
-     * @param {Ship} source - The ship causing the damage.
+     * @param {Ship} source - The ship causing damage.
      */
     onDamage(damage, source) {
         super.onDamage(damage, source);
         this.safeTime = 0;
-        if (this.ship.shield && this.ship.shield.strength <= 0 && this.threat) {
-            if (this.ship.debug) {
-                console.log('onDamage: Shields down, switching to Flee');
+        if (this.ship.shield && this.ship.shield.strength <= 0) {
+            if (this.ship.hostiles.includes(source) && isValidAttackTarget(this.ship, source)) {
+                if (this.ship.debug) {
+                    console.log('onDamage: Shields down, switching to Flee');
+                }
+                this.changeState('Flee', new FleeAutopilot(this.ship, source));
             }
-            this.changeState('Flee', new FleeAutopilot(this.ship, this.threat));
-        } else if (this.state !== 'Avoid' && this.state !== 'Flee' && this.threat) {
-            if (this.ship.debug) {
-                console.log('onDamage: Threat detected, switching to Avoid');
+        } else if (this.state !== 'Avoid' && this.state !== 'Flee') {
+            if (this.ship.hostiles.includes(source) && isValidAttackTarget(this.ship, source)) {
+                if (this.ship.debug) {
+                    console.log('onDamage: Hostile detected, switching to Avoid');
+                }
+                this.changeState('Avoid', new AvoidAutopilot(this.ship, source));
             }
-            this.changeState('Avoid', new AvoidAutopilot(this.ship, this.threat));
         }
     }
 }
 
 /**
- * AI pilot for pirate ships with reaction logic.
+ * AI pilot for pirate ships, focusing on attacking and fleeing.
  * @extends AiPilot
  */
 export class PirateAiPilot extends AiPilot {
@@ -482,13 +506,16 @@ export class PirateAiPilot extends AiPilot {
      * @param {GameManager} gameManager - The game manager instance for context.
      */
     update(deltaTime, gameManager) {
-        // Check shields for immediate flee
-        if (this.ship.state === 'Flying' && this.threat && ((this.ship.shield && this.ship.shield.strength <= 0) || !this.ship.shield) && remapClamp(this.ship.hullIntegrity, 0, this.ship.maxHull, 0, 1) < 0.5) {
-            if (this.ship.debug) {
-                console.log('Shields down, switching to Flee');
+        // Check shields/hull for immediate flee
+        if (this.ship.state === 'Flying' && ((this.ship.shield && this.ship.shield.strength <= 0) || !this.ship.shield) && remapClamp(this.ship.hullIntegrity, 0, this.ship.maxHull, 0, 1) < 0.5) {
+            const target = this.ship.hostiles.find(s => this.ship.getRelationship(s) === FactionRelationship.Hostile && isValidAttackTarget(this.ship, s));
+            if (target) {
+                if (this.ship.debug) {
+                    console.log('Shields down or low hull, switching to Flee');
+                }
+                this.changeState('Flee', new FleeAutopilot(this.ship, target));
+                return;
             }
-            this.changeState('Flee', new FleeAutopilot(this.ship, this.threat));
-            return;
         }
         super.update(deltaTime, gameManager);
     }
@@ -502,16 +529,19 @@ export class PirateAiPilot extends AiPilot {
         // Check reactions
         if (this.ship.age >= this.nextThreatScan) {
             this.nextThreatScan = this.ship.age + this.threatScanInterval;
-            // Check for nearby threat
-            if (this.threat && this.ship.state === 'Flying') {
-                const distanceSq = this._scratchDistance.set(this.threat.position)
-                    .subtractInPlace(this.ship.position).squareMagnitude();
-                if (distanceSq < 500 * 500) {
-                    if (this.ship.debug) {
-                        console.log('Job: Threat within 500 units, switching to Avoid');
+            // Check for nearby hostile
+            if (this.ship.state === 'Flying') {
+                for (const hostile of this.ship.hostiles) {
+                    if (!isValidAttackTarget(this.ship, hostile) || this.ship.getRelationship(hostile) !== FactionRelationship.Hostile) continue;
+                    const distanceSq = this._scratchDistance.set(hostile.position)
+                        .subtractInPlace(this.ship.position).squareMagnitude();
+                    if (distanceSq < 500 * 500) {
+                        if (this.ship.debug) {
+                            console.log('Job: Hostile within 500 units, switching to Attack');
+                        }
+                        this.changeState('Attack', new AttackAutopilot(this.ship, hostile));
+                        return;
                     }
-                    this.changeState('Avoid', new AttackAutopilot(this.ship, this.threat));
-                    return;
                 }
             }
         }
@@ -528,11 +558,14 @@ export class PirateAiPilot extends AiPilot {
 
         // Check for timeout fleeing
         if ((!this.autopilot || (this.autopilot instanceof AvoidAutopilot && this.autopilot.timeElapsed >= this.autopilot.timeout)) && !this.isSafe()) {
-            if (this.ship.debug) {
-                console.log('Avoid: Timeout or complete and not safe, switching to Flee');
+            const target = this.ship.hostiles.find(s => this.ship.getRelationship(s) === FactionRelationship.Hostile && isValidAttackTarget(this.ship, s));
+            if (target) {
+                if (this.ship.debug) {
+                    console.log('Avoid: Timeout or complete and not safe, switching to Flee');
+                }
+                this.changeState('Flee', new FleeAutopilot(this.ship, target));
+                return;
             }
-            this.changeState('Flee', new FleeAutopilot(this.ship, this.threat));
-            return;
         }
     }
 
@@ -546,7 +579,7 @@ export class PirateAiPilot extends AiPilot {
     }
 
     /**
-     * Handles damage, updating state based on shields.
+     * Handles damage, updating state based on shields and hull.
      * @param {number} damage - Amount of damage received.
      * @param {Ship} source - The ship causing the damage.
      */
@@ -554,23 +587,27 @@ export class PirateAiPilot extends AiPilot {
         super.onDamage(damage, source);
         this.safeTime = 0;
 
-        //Check if the shilds have gone down and 50% hull
-        if (this.ship.state === 'Flying' && this.threat && ((this.ship.shield && this.ship.shield.strength <= 0) || !this.ship.shield) && remapClamp(this.ship.hullIntegrity, 0, this.ship.maxHull, 0, 1) < 0.5) {
-            if (this.ship.debug) {
-                console.log('onDamage: Shields down, switching to Flee');
+        // Check if shields are down and hull <50%
+        if (this.ship.state === 'Flying' && ((this.ship.shield && this.ship.shield.strength <= 0) || !this.ship.shield) && remapClamp(this.ship.hullIntegrity, 0, this.ship.maxHull, 0, 1) < 0.5) {
+            if (this.ship.hostiles.includes(source) && isValidAttackTarget(this.ship, source)) {
+                if (this.ship.debug) {
+                    console.log('onDamage: Shields down and low hull, switching to Flee');
+                }
+                this.changeState('Flee', new FleeAutopilot(this.ship, source));
             }
-            this.changeState('Flee', new FleeAutopilot(this.ship, this.threat));
-        } else if (this.state !== 'Avoid' && this.state !== 'Flee' && this.state !== 'Attack' && this.threat) {
-            if (this.ship.debug) {
-                console.log('onDamage: Threat detected, switching to Attack');
+        } else if (this.state !== 'Avoid' && this.state !== 'Flee' && this.state !== 'Attack') {
+            if (this.ship.hostiles.includes(source) && isValidAttackTarget(this.ship, source)) {
+                if (this.ship.debug) {
+                    console.log('onDamage: Hostile detected, switching to Attack');
+                }
+                this.changeState('Attack', new AttackAutopilot(this.ship, source));
             }
-            this.changeState('Attack', new AttackAutopilot(this.ship, this.threat));
         }
     }
 }
 
 /**
- * AI pilot for officers ships with reaction logic.
+ * AI pilot for officer ships, focusing on attacking and fleeing.
  * @extends AiPilot
  */
 export class OfficerAiPilot extends AiPilot {
@@ -593,34 +630,33 @@ export class OfficerAiPilot extends AiPilot {
      * @param {GameManager} gameManager - The game manager instance for context.
      */
     update(deltaTime, gameManager) {
-        // Check shields for immediate flee
-        if (this.ship.state === 'Flying' && this.threat && ((this.ship.shield && this.ship.shield.strength <= 0) || !this.ship.shield) && remapClamp(this.ship.hullIntegrity, 0, this.ship.maxHull, 0, 1) < 0.5) {
-            if (this.ship.debug) {
-                console.log('Shields down, switching to Flee');
-            }
-            this.changeState('Flee', new FleeAutopilot(this.ship, this.threat));
-            return;
-        }
-
-        if (this.threat && this.threat instanceof Ship) {
-            if (isValidAttackTarget(this.ship, this.threat)) {
-                if (this.ship.target !== this.threat) {
-                    this.ship.target = this.threat;
-                    if (this.autopilot instanceof AttackAutopilot) {
-                        this.autopilot.target = this.threat;
-                        this.autopilot.start();
-                    }
+        // Check shields/hull for immediate flee
+        if (this.ship.state === 'Flying' && ((this.ship.shield && this.ship.shield.strength <= 0) || !this.ship.shield) && remapClamp(this.ship.hullIntegrity, 0, this.ship.maxHull, 0, 1) < 0.5) {
+            const target = this.ship.hostiles.find(s => this.ship.getRelationship(s) === FactionRelationship.Hostile && isValidAttackTarget(this.ship, s));
+            if (target) {
+                if (this.ship.debug) {
+                    console.log('Shields down or low hull, switching to Flee');
                 }
-            } else {
-                this.threat = null;
+                this.changeState('Flee', new FleeAutopilot(this.ship, target));
+                return;
             }
         }
 
+        // Update target if in Attack state
         if (this.state === 'Attack') {
-            this.ship.lightMode = 'Warden';
-        } else {
-            this.ship.lightMode = 'Normal';
+            const target = this.ship.hostiles.find(s => this.ship.getRelationship(s) === FactionRelationship.Hostile && isValidAttackTarget(this.ship, s));
+            if (target && this.ship.target !== target) {
+                this.ship.target = target;
+                if (this.autopilot instanceof AttackAutopilot) {
+                    this.autopilot.target = target;
+                    this.autopilot.start();
+                }
+            }
         }
+
+        // Set light mode
+        this.ship.lightMode = this.state === 'Attack' ? 'Warden' : 'Normal';
+
         super.update(deltaTime, gameManager);
     }
 
@@ -633,17 +669,20 @@ export class OfficerAiPilot extends AiPilot {
         // Check reactions
         if (this.ship.age >= this.nextThreatScan) {
             this.nextThreatScan = this.ship.age + this.threatScanInterval;
-            // Check for nearby threat
-            if (this.threat && this.ship.state === 'Flying') {
-                const distanceSq = this._scratchDistance.set(this.threat.position)
-                    .subtractInPlace(this.ship.position).squareMagnitude();
-                if (distanceSq < 500 * 500) {
-                    if (this.ship.debug) {
-                        console.log('Job: Threat within 500 units, switching to AttackAutopilot');
+            // Check for nearby hostile
+            if (this.ship.state === 'Flying') {
+                for (const hostile of this.ship.hostiles) {
+                    if (!isValidAttackTarget(this.ship, hostile) || this.ship.getRelationship(hostile) !== FactionRelationship.Hostile) continue;
+                    const distanceSq = this._scratchDistance.set(hostile.position)
+                        .subtractInPlace(this.ship.position).squareMagnitude();
+                    if (distanceSq < 500 * 500) {
+                        if (this.ship.debug) {
+                            console.log('Job: Hostile within 500 units, switching to Attack');
+                        }
+                        this.ship.target = hostile;
+                        this.changeState('Attack', new AttackAutopilot(this.ship, hostile));
+                        return;
                     }
-                    this.ship.target = this.threat;
-                    this.changeState('Avoid', new AttackAutopilot(this.ship, this.threat));
-                    return;
                 }
             }
         }
@@ -659,11 +698,14 @@ export class OfficerAiPilot extends AiPilot {
         super.updateAvoid(deltaTime, gameManager);
         // Check for timeout fleeing
         if ((!this.autopilot || (this.autopilot instanceof AvoidAutopilot && this.autopilot.timeElapsed >= this.autopilot.timeout)) && !this.isSafe()) {
-            if (this.ship.debug) {
-                console.log('Avoid: Timeout or complete and not safe, switching to Flee');
+            const target = this.ship.hostiles.find(s => this.ship.getRelationship(s) === FactionRelationship.Hostile && isValidAttackTarget(this.ship, s));
+            if (target) {
+                if (this.ship.debug) {
+                    console.log('Avoid: Timeout or complete and not safe, switching to Flee');
+                }
+                this.changeState('Flee', new FleeAutopilot(this.ship, target));
+                return;
             }
-            this.changeState('Flee', new FleeAutopilot(this.ship, this.threat));
-            return;
         }
     }
 
@@ -677,7 +719,7 @@ export class OfficerAiPilot extends AiPilot {
     }
 
     /**
-     * Handles damage, updating state based on shields.
+     * Handles damage, updating state based on shields and hull.
      * @param {number} damage - Amount of damage received.
      * @param {Ship} source - The ship causing the damage.
      */
@@ -685,17 +727,21 @@ export class OfficerAiPilot extends AiPilot {
         super.onDamage(damage, source);
         this.safeTime = 0;
 
-        //Check if the shilds have gone down and 50% hull
-        if (this.ship.state === 'Flying' && this.threat && ((this.ship.shield && this.ship.shield.strength <= 0) || !this.ship.shield) && remapClamp(this.ship.hullIntegrity, 0, this.ship.maxHull, 0, 1) < 0.5) {
-            if (this.ship.debug) {
-                console.log('onDamage: Shields down, switching to Flee');
+        // Check if shields are down and hull <50%
+        if (this.ship.state === 'Flying' && ((this.ship.shield && this.ship.shield.strength <= 0) || !this.ship.shield) && remapClamp(this.ship.hullIntegrity, 0, this.ship.maxHull, 0, 1) < 0.5) {
+            if (this.ship.hostiles.includes(source) && isValidAttackTarget(this.ship, source)) {
+                if (this.ship.debug) {
+                    console.log('onDamage: Shields down and low hull, switching to Flee');
+                }
+                this.changeState('Flee', new FleeAutopilot(this.ship, source));
             }
-            this.changeState('Flee', new FleeAutopilot(this.ship, this.threat));
-        } else if (this.state !== 'Avoid' && this.state !== 'Flee' && this.state !== 'Attack' && this.threat) {
-            if (this.ship.debug) {
-                console.log('onDamage: Threat detected, switching to Attack');
+        } else if (this.state !== 'Avoid' && this.state !== 'Flee' && this.state !== 'Attack') {
+            if (this.ship.hostiles.includes(source) && isValidAttackTarget(this.ship, source)) {
+                if (this.ship.debug) {
+                    console.log('onDamage: Hostile detected, switching to Attack');
+                }
+                this.changeState('Attack', new AttackAutopilot(this.ship, source));
             }
-            this.changeState('Attack', new AttackAutopilot(this.ship, this.threat));
         }
     }
 
@@ -706,12 +752,6 @@ export class OfficerAiPilot extends AiPilot {
      */
     changeState(newState, newAutopilot = null) {
         super.changeState(newState, newAutopilot);
-        if (this.state === newState) return;
-        // Pause job only when leaving Job state
-        if (this.state === 'Attack') {
-            this.ship.lightMode = 'Warden';
-        } else {
-            this.ship.lightMode = 'Normal';
-        }
+        // Light mode handled in update
     }
 }

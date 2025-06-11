@@ -372,15 +372,6 @@ export class GameManager {
         this.galaxy[0].addGameObject(escort01);
         this.playerShip.setTarget(escort01);
 
-        // const pirate01 = new Fighter(spawnPlanet.position.x + spawnPlanet.radius * 50.0, spawnPlanet.position.y, this.galaxy[0]);
-        // const pilot02 = new PirateAiPilot(pirate01, new PirateJob(pirate01));
-        // pirate01.setPilot(pilot02);
-        // this.galaxy[0].addGameObject(pirate01);
-        //pilot02.threat = this.playerShip;
-        //this.playerShip.lastAttacker = pirate01;
-        //this.cameraTarget = escort01;
-        //escort01.debug = true;
-
         // Set player pilot
         this.playerShip.pilot = this.playerPilot;
         this.galaxy[0].ships.push(this.playerShip);
@@ -519,14 +510,14 @@ export class GameManager {
                         console.warn('spawnAiShipsIfNeeded: No spawnPlanet found!');
                         return;
                     }
-                    if (officerCount < 1) {
+                    if (officerCount < 2) {
                         //spawn officer
                         aiShip = createRandomFastShip(spawnPlanet.position.x, spawnPlanet.position.y, system, officerFaction);
                         aiShip.pilot = new OfficerAiPilot(aiShip, new OfficerJob(aiShip));
                         aiShip.colors.wings.set(0.25, 0.25, 0.9, 1);
                         aiShip.colors.hull.set(0.9, 0.9, 0.9, 1);
                         officerCount++;
-                    } else if (pirateCount < 4 && Math.random() < 0.25) {
+                    } else if (pirateCount < 5 && Math.random() < 0.25) {
                         //spawn pirate
                         aiShip = createRandomFastShip(spawnPlanet.position.x, spawnPlanet.position.y, system, pirateFaction);
                         aiShip.pilot = new PirateAiPilot(aiShip, new PirateJob(aiShip));

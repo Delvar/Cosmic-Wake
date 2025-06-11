@@ -12,7 +12,7 @@ import { GameObject } from '/src/core/gameObject.js';
 import { FactionRelationship } from '/src/core/faction.js';
 
 /**
- * Job for a ship to attack pirats in the system.
+ * Job for officer ships to attack hostile ships in the system.
  * @extends Job
  */
 export class OfficerJob extends Job {
@@ -23,15 +23,20 @@ export class OfficerJob extends Job {
      */
     constructor(ship, pilot = null) {
         super(ship, pilot);
-        /** @type {string} The current job state ('Starting'). */
+        /** @type {string} The current job state ('Starting', 'Hunting', 'Waiting', 'Landing', 'Failed'). */
         this.state = 'Starting';
         /** @type {Object.<string, Function>} Map of state names to handler methods. */
         this.stateHandlers = {
             'Starting': this.updateStarting.bind(this),
+            'Hunting': this.updateHunting.bind(this),
             'Waiting': this.updateWaiting.bind(this),
             'Landing': this.updateLanding.bind(this),
             'Failed': () => { }
         };
+        /** @type {number} Interval (seconds) between target scans in Hunting state. */
+        this.targetScanInterval = 1.0;
+        /** @type {number} Ship age (seconds) when the next target scan is due. */
+        this.nextTargetScan = 0;
     }
 
     /**
@@ -40,27 +45,11 @@ export class OfficerJob extends Job {
      * @param {GameManager} gameManager - The game manager instance for context.
      */
     update(deltaTime, gameManager) {
-        if (this.ship.target && this.ship.target instanceof Ship) {
-            if (!isValidAttackTarget(this.ship, this.ship.target)) {
-                this.ship.target = null;
-            }
-        }
-
-        if (this.pilot.threat && this.pilot.threat instanceof Ship) {
-            if (!isValidAttackTarget(this.ship, this.pilot.threat)) {
-                this.pilot.threat = null;
-            }
-        }
-
-        if (this.pilot.threat && !this.ship.target) {
-            this.ship.target = this.pilot.threat;
-        }
-
         const handler = this.stateHandlers[this.state];
         if (handler) {
             handler(deltaTime, gameManager);
         } else if (this.ship.debug) {
-            console.log(`${this.constructor.name}: Invalid state ${this.state}`);
+            console.warn(`${this.constructor.name}: Invalid state ${this.state}`);
         }
     }
 
@@ -71,79 +60,126 @@ export class OfficerJob extends Job {
      */
     updateStarting(deltaTime, gameManager) {
         if (this.ship.state === 'Landed') {
+            if (this.ship.debug) {
+                console.log(`${this.constructor.name}: Landed, transitioning to Waiting`);
+            }
             this.state = 'Waiting';
             return;
         }
         if (this.ship.state === 'Flying') {
-            const target = this.ship.starSystem.getRandomShip(this.ship, null, OfficerJob.prototype.isValidHostileTarget);
+            if (this.ship.debug) {
+                console.log(`${this.constructor.name}: Flying, transitioning to Hunting`);
+            }
+            this.state = 'Hunting';
+            this.nextTargetScan = this.ship.age;
+        }
+    }
+
+    /**
+     * Handles the 'Hunting' state, scanning for hostile targets to attack.
+     * @param {number} deltaTime - Time elapsed since last update (seconds).
+     * @param {GameManager} gameManager - The game manager instance for context.
+     */
+    updateHunting(deltaTime, gameManager) {
+        if (this.ship.state !== 'Flying') return;
+
+        if (this.pilot.state === 'Attack') {
+            // Already attacking, let OfficerAiPilot handle
+            return;
+        }
+
+        if (this.ship.age >= this.nextTargetScan) {
+            this.nextTargetScan = this.ship.age + this.targetScanInterval;
+
+            // Prioritize hostiles
+            let target = this.ship.hostiles.find(s => this.ship.getRelationship(s) === FactionRelationship.Hostile && isValidAttackTarget(this.ship, s));
+
+            // Fallback to random hostile ship
+            if (!target) {
+                target = this.ship.starSystem.getRandomShip(this.ship, null, OfficerJob.isValidHostileTarget);
+            }
+
             if (target) {
-                this.pilot.threat = target;
                 this.ship.target = target;
-                this.pilot.changeState('Attack', new AttackAutopilot(this.ship, this.ship.target));
-                return;
+                this.pilot.changeState('Attack', new AttackAutopilot(this.ship, target));
+                if (this.ship.debug) {
+                    console.log(`${this.constructor.name}: Found target ${target.name}, initiating Attack`);
+                }
             } else {
                 const targetPlanet = this.ship.starSystem.getClosestPlanet(this.ship);
                 if (targetPlanet) {
                     this.ship.target = targetPlanet;
                     this.pilot.setAutopilot(new LandOnPlanetAutopilot(this.ship, targetPlanet));
                     this.state = 'Landing';
-                    return;
+                    if (this.ship.debug) {
+                        console.log(`${this.constructor.name}: No hostile target, transitioning to Landing`);
+                    }
+                } else if (this.ship.debug) {
+                    console.log(`${this.constructor.name}: No hostile target or planet found`);
                 }
             }
         }
     }
 
     /**
-     * Handles the 'Landing' state, find the closest planet and land, then wait.
+     * Handles the 'Landing' state, finding the closest planet and landing.
      * @param {number} deltaTime - Time elapsed since last update (seconds).
      * @param {GameManager} gameManager - The game manager instance for context.
      */
     updateLanding(deltaTime, gameManager) {
         if (this.ship.state === 'Landed') {
             if (this.ship.debug) {
-                console.log(`${this.constructor.name}: Waiting but not landed, transitioning to Waiting`);
+                console.log(`${this.constructor.name}: Landed, transitioning to Waiting`);
             }
             this.state = 'Waiting';
             return;
         }
         if (!this.pilot.autopilot) {
+            if (this.ship.debug) {
+                console.log(`${this.constructor.name}: No autopilot, transitioning to Starting`);
+            }
             this.state = 'Starting';
             return;
         }
     }
 
     /**
-     * Handles the 'Waiting' state, delaying before re-Starting.
+     * Handles the 'Waiting' state, scanning for targets while landed.
      * @param {number} deltaTime - Time elapsed since last update (seconds).
      * @param {GameManager} gameManager - The game manager instance for context.
      */
     updateWaiting(deltaTime, gameManager) {
         if (this.ship.state !== 'Landed') {
             if (this.ship.debug) {
-                console.log(`${this.constructor.name}: Waiting but not landed, transitioning to Starting`);
+                console.log(`${this.constructor.name}: Not landed, transitioning to Starting`);
             }
             this.state = 'Starting';
             return;
         }
-        const target = this.ship.starSystem.getRandomShip(this.ship, null, OfficerJob.prototype.isValidHostileTarget);
+
+        const target = this.ship.starSystem.getRandomShip(this.ship, null, OfficerJob.isValidHostileTarget);
         if (target) {
-            this.pilot.threat = target;
             this.ship.target = target;
-            this.pilot.changeState('Attack', new AttackAutopilot(this.ship, this.ship.target));
+            this.pilot.changeState('Attack', new AttackAutopilot(this.ship, target));
             this.ship.initiateTakeoff();
-            return;
+            if (this.ship.debug) {
+                console.log(`${this.constructor.name}: Found target ${target.name}, initiating takeoff and Attack`);
+            }
         }
     }
 
     /**
-     * Checks if a target is valid, normal checks and not Pirate.
-     * @param {Ship} source - The source game object to validate.
-     * @param {Ship} target - The target game object to validate.
+     * Checks if a target is valid: Hostile relationship and passes isValidAttackTarget.
+     * @static
+     * @param {Ship} source - The source ship.
+     * @param {Ship} target - The target ship.
      * @returns {boolean} True if the target is valid, false otherwise.
      */
-    isValidHostileTarget(source, target) {
+    static isValidHostileTarget(source, target) {
         if (!isValidAttackTarget(source, target)) return false;
         if (source.getRelationship(target) === FactionRelationship.Hostile) return true;
+        // Check allied ships' hostiles (e.g., Player attacking Civilian)
+        if (target instanceof Ship && target.hostiles.some(s => source.getRelationship(s) === FactionRelationship.Allied)) return true;
         return false;
     }
 }

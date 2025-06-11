@@ -430,57 +430,318 @@ export class StarSystem {
     }
 
     /**
-     * @param {Ship} ship the ship looking for a target
-     * @param {GameObject} [exclude=null] exclude this other GameObject
-     * @return {JumpGate|null} The selected body, or null if none available.
+     * Finds the closest valid jump gate to the ship.
+     * @param {Ship} ship - The ship looking for a target.
+     * @param {GameObject} [exclude=null] - Exclude this GameObject.
+     * @returns {JumpGate|null} The closest jump gate, or null if none available.
      */
     getClosestJumpGate(ship, exclude = null) {
         const arr1 = this.jumpGates;
         const length1 = arr1 ? arr1.length : 0;
-        const totalLength = length1;
-        if (totalLength == 0) {
-            return null;
-        }
-        let item = null;
-        let closestItem = arr1[0];
-        let closestSquaredDistance = closestItem.position.distanceSquaredTo(ship.position);
-        for (let i = 1; i < totalLength; i++) {
-            item = arr1[i];
+        if (length1 === 0) return null;
+
+        let closestItem = null;
+        let closestSquaredDistance = Infinity;
+
+        for (let i = 0; i < length1; i++) {
+            const item = arr1[i];
             if (item !== exclude && isValidTarget(ship, item)) {
                 const squaredDistance = item.position.distanceSquaredTo(ship.position);
                 if (squaredDistance < closestSquaredDistance) {
+                    closestSquaredDistance = squaredDistance;
                     closestItem = item;
                 }
             }
         }
+
         return closestItem;
     }
 
     /**
-     * @param {Ship} ship the ship looking for a target
-     * @param {GameObject} [exclude=null] exclude this other GameObject
-     * @return {Planet|null} The selected body, or null if none available.
+     * Finds the next closest valid jump gate after the current gate, wrapping to the closest if none further.
+     * @param {Ship} ship - The ship looking for a target.
+     * @param {JumpGate} [currentGate=null] - The currently selected jump gate.
+     * @param {GameObject} [exclude=null] - Exclude this GameObject.
+     * @returns {JumpGate|null} The next closest jump gate, or null if none available.
+     */
+    cycleClosestJumpGate(ship, currentGate = null, exclude = null) {
+        const arr1 = this.jumpGates;
+        const length1 = arr1 ? arr1.length : 0;
+        if (length1 === 0) return null;
+
+        // Compute current gate's distance if provided
+        let currentDistanceSq = Infinity;
+        if (currentGate && isValidTarget(ship, currentGate)) {
+            currentDistanceSq = currentGate.position.distanceSquaredTo(ship.position);
+        }
+
+        let closestItem = null;
+        let closestSquaredDistance = Infinity;
+        let nextClosestItem = null;
+        let nextClosestSquaredDistance = Infinity;
+
+        // Single pass: find closest and next closest gate
+        for (let i = 0; i < length1; i++) {
+            const item = arr1[i];
+            if (item !== exclude && isValidTarget(ship, item)) {
+                const squaredDistance = item.position.distanceSquaredTo(ship.position);
+                // Update closest gate
+                if (squaredDistance < closestSquaredDistance) {
+                    closestSquaredDistance = squaredDistance;
+                    closestItem = item;
+                }
+                // Update next closest (greater than current, smallest such distance)
+                if (squaredDistance > currentDistanceSq && squaredDistance < nextClosestSquaredDistance) {
+                    nextClosestSquaredDistance = squaredDistance;
+                    nextClosestItem = item;
+                }
+            }
+        }
+
+        // Return next closest if found, else wrap to closest
+        return nextClosestItem || closestItem;
+    }
+
+    /**
+     * Finds the closest valid planet to the ship.
+     * @param {Ship} ship - The ship looking for a target.
+     * @param {Planet} [exclude=null] - Exclude this Planet.
+     * @returns {Planet|null} The closest planet, or null if none available.
      */
     getClosestPlanet(ship, exclude = null) {
         const arr1 = this.planets;
         const length1 = arr1 ? arr1.length : 0;
-        const totalLength = length1;
-        if (totalLength == 0) {
+        if (length1 === 0) {
+            if (ship.debug) {
+                console.log(`StarSystem: No planets in system`);
+            }
             return null;
         }
-        let item = null;
-        let closestItem = arr1[0];
-        let closestSquaredDistance = closestItem.position.distanceSquaredTo(ship.position);
-        for (let i = 1; i < totalLength; i++) {
-            item = arr1[i];
-            if (item !== exclude && isValidTarget(ship, item)) {
+
+        let closestItem = null;
+        let closestSquaredDistance = Infinity;
+
+        if (ship.debug) {
+            console.log(`StarSystem: Checking ${length1} planets`);
+        }
+
+        for (let i = 0; i < length1; i++) {
+            const item = arr1[i];
+            const isValid = isValidTarget(ship, item);
+            if (ship.debug) {
+                console.log(`Planet ${item.name}: isValid=${isValid}, distance=${item.position.distanceSquaredTo(ship.position)}`);
+            }
+            if (item !== exclude && isValid) {
                 const squaredDistance = item.position.distanceSquaredTo(ship.position);
                 if (squaredDistance < closestSquaredDistance) {
+                    closestSquaredDistance = squaredDistance;
                     closestItem = item;
                 }
             }
         }
+
+        if (ship.debug && !closestItem) {
+            console.log(`StarSystem: No valid planets found`);
+        }
+
         return closestItem;
+    }
+
+    /**
+     * Finds the next closest valid planet after the current planet, wrapping to the closest if none further.
+     * @param {Ship} ship - The ship looking for a target.
+     * @param {Planet} [currentPlanet=null] - The currently selected planet.
+     * @param {Planet} [exclude=null] - Exclude this Planet.
+     * @returns {Planet|null} The next closest planet, or null if none available.
+     */
+    cycleClosestPlanet(ship, currentPlanet = null, exclude = null) {
+        const arr1 = this.planets;
+        const length1 = arr1 ? arr1.length : 0;
+        if (length1 === 0) return null;
+
+        let currentDistanceSq = Infinity;
+        if (currentPlanet && isValidTarget(ship, currentPlanet)) {
+            currentDistanceSq = currentPlanet.position.distanceSquaredTo(ship.position);
+        }
+
+        let closestItem = null;
+        let closestDistanceSq = Infinity;
+        let nextClosestItem = null;
+        let nextClosestDistanceSq = Infinity;
+
+        for (let i = 0; i < length1; i++) {
+            const item = arr1[i];
+            if (item !== exclude && isValidTarget(ship, item)) {
+                const squaredDistance = item.position.distanceSquaredTo(ship.position);
+                if (squaredDistance < closestDistanceSq) {
+                    closestDistanceSq = squaredDistance;
+                    closestItem = item;
+                }
+                if (squaredDistance > currentDistanceSq && squaredDistance < nextClosestDistanceSq) {
+                    nextClosestDistanceSq = squaredDistance;
+                    nextClosestItem = item;
+                }
+            }
+        }
+
+        return nextClosestItem || closestItem;
+    }
+
+    /**
+     * Finds the closest valid ship to the source ship.
+     * @param {Ship} ship - The ship looking for a target.
+     * @param {Ship} [exclude=null] - Exclude this ship.
+     * @param {function(Ship, Ship): boolean} [isValid=isValidTarget] - Validation function to check if a target is valid.
+     * @returns {Ship|null} The closest ship, or null if none available.
+     */
+    getClosestShip(ship, exclude = null, isValid = isValidTarget) {
+        const arr1 = this.ships;
+        const length1 = arr1 ? arr1.length : 0;
+        if (length1 === 0) {
+            if (ship.debug) {
+                console.log(`StarSystem: No ships in system`);
+            }
+            return null;
+        }
+
+        let closestItem = null;
+        let closestSquaredDistance = Infinity;
+
+        if (ship.debug) {
+            console.log(`StarSystem: Checking ${length1} ships`);
+        }
+
+        for (let i = 0; i < length1; i++) {
+            const item = arr1[i];
+            const valid = isValid(ship, item);
+            if (ship.debug) {
+                console.log(`Ship ${item.name}: isValid=${valid}, distance=${item.position.distanceSquaredTo(ship.position)}`);
+            }
+            if (item !== ship && item !== exclude && valid) {
+                const squaredDistance = item.position.distanceSquaredTo(ship.position);
+                if (squaredDistance < closestSquaredDistance) {
+                    closestSquaredDistance = squaredDistance;
+                    closestItem = item;
+                }
+            }
+        }
+
+        if (ship.debug && !closestItem) {
+            console.log(`StarSystem: No valid ships found`);
+        }
+
+        return closestItem;
+    }
+
+    /**
+     * Finds the next closest valid ship after the current ship, wrapping to the closest if none further.
+     * @param {Ship} ship - The ship looking for a target.
+     * @param {Ship} [currentShip=null] - The currently selected ship.
+     * @param {Ship} [exclude=null] - Exclude this ship.
+     * @param {function(Ship, Ship): boolean} [isValid=isValidTarget] - Validation function to check if a target is valid.
+     * @returns {Ship|null} The next closest ship, or null if none available.
+     */
+    cycleClosestShip(ship, currentShip = null, exclude = null, isValid = isValidTarget) {
+        const arr1 = this.ships;
+        const length1 = arr1 ? arr1.length : 0;
+        if (length1 === 0) return null;
+
+        let currentDistanceSq = Infinity;
+        if (currentShip && isValid(ship, currentShip)) {
+            currentDistanceSq = currentShip.position.distanceSquaredTo(ship.position);
+        }
+
+        let closestItem = null;
+        let closestDistanceSq = Infinity;
+        let nextClosestItem = null;
+        let nextClosestDistanceSq = Infinity;
+
+        for (let i = 0; i < length1; i++) {
+            const item = arr1[i];
+            const valid = isValid(ship, item);
+            if (item !== ship && item !== exclude && valid) {
+                const squaredDistance = item.position.distanceSquaredTo(ship.position);
+                if (squaredDistance < closestDistanceSq) {
+                    closestDistanceSq = squaredDistance;
+                    closestItem = item;
+                }
+                if (squaredDistance > currentDistanceSq && squaredDistance < nextClosestDistanceSq) {
+                    nextClosestDistanceSq = squaredDistance;
+                    nextClosestItem = item;
+                }
+            }
+        }
+
+        return nextClosestItem || closestItem;
+    }
+
+    /**
+     * Finds the closest valid asteroid to the ship.
+     * @param {Ship} ship - The ship looking for a target.
+     * @param {Asteroid} [exclude=null] - Exclude this Asteroid.
+     * @returns {Asteroid|null} The closest asteroid, or null if none available.
+     */
+    getClosestAsteroid(ship, exclude = null) {
+        const arr1 = this.asteroids;
+        const length1 = arr1 ? arr1.length : 0;
+
+        if (length1 === 0) return null;
+
+        let closestItem = null;
+        let closestSquaredDistance = Infinity;
+
+        for (let i = 0; i < length1; i++) {
+            const item = arr1[i];
+            if (item !== exclude && isValidTarget(ship, item)) {
+                const squaredDistance = item.position.distanceSquaredTo(ship.position);
+                if (squaredDistance < closestSquaredDistance) {
+                    closestSquaredDistance = squaredDistance;
+                    closestItem = item;
+                }
+            }
+        }
+
+        return closestItem;
+    }
+
+    /**
+     * Finds the next closest valid asteroid after the current asteroid, wrapping to the closest if none further.
+     * @param {Ship} ship - The ship looking for a target.
+     * @param {Asteroid} [currentAsteroid=null] - The currently selected asteroid.
+     * @param {Asteroid} [exclude=null] - Exclude this Asteroid.
+     * @returns {Asteroid|null} The next closest asteroid, or null if none available.
+     */
+    cycleClosestAsteroid(ship, currentAsteroid = null, exclude = null) {
+        const arr1 = this.asteroids;
+        const length1 = arr1 ? arr1.length : 0;
+        if (length1 === 0) return null;
+
+        let currentDistanceSq = Infinity;
+        if (currentAsteroid && isValidTarget(ship, currentAsteroid)) {
+            currentDistanceSq = currentAsteroid.position.distanceSquaredTo(ship.position);
+        }
+
+        let closestItem = null;
+        let closestDistanceSq = Infinity;
+        let nextClosestItem = null;
+        let nextClosestDistanceSq = Infinity;
+
+        for (let i = 0; i < length1; i++) {
+            const item = arr1[i];
+            if (item !== exclude && isValidTarget(ship, item)) {
+                const squaredDistance = item.position.distanceSquaredTo(ship.position);
+                if (squaredDistance < closestDistanceSq) {
+                    closestDistanceSq = squaredDistance;
+                    closestItem = item;
+                }
+                if (squaredDistance > currentDistanceSq && squaredDistance < nextClosestDistanceSq) {
+                    nextClosestDistanceSq = squaredDistance;
+                    nextClosestItem = item;
+                }
+            }
+        }
+
+        return nextClosestItem || closestItem;
     }
 
     /**
@@ -507,33 +768,6 @@ export class StarSystem {
                 item = arr2[i - length1];
             }
             if (item !== exclude && isValidTarget(ship, item)) {
-                const squaredDistance = item.position.distanceSquaredTo(ship.position);
-                if (squaredDistance < closestSquaredDistance) {
-                    closestItem = item;
-                }
-            }
-        }
-        return closestItem;
-    }
-
-    /**
-     * @param {Ship} ship the ship looking for a target
-     * @param {GameObject} [exclude=null] exclude this other GameObject
-     * @return {Ship|null} The selected ship, or null if none available.
-     */
-    getClosestShip(ship, exclude = null) {
-        const arr1 = this.ships;
-        const length1 = arr1 ? arr1.length : 0;
-        const totalLength = length1;
-        if (totalLength == 0) {
-            return null;
-        }
-        let item = null;
-        let closestItem = arr1[0];
-        let closestSquaredDistance = closestItem.position.distanceSquaredTo(ship.position);
-        for (let i = 1; i < totalLength; i++) {
-            item = arr1[i];
-            if (item !== ship && item !== exclude && isValidTarget(ship, item)) {
                 const squaredDistance = item.position.distanceSquaredTo(ship.position);
                 if (squaredDistance < closestSquaredDistance) {
                     closestItem = item;

@@ -57,6 +57,10 @@ export class Turret {
      * @param {Ship} ship - Parent ship.
      */
     update(deltaTime, ship) {
+        this.weapon.update(deltaTime);
+        if (ship.state !== 'Flying' || ship.turretMode === 'Disabled') {
+            return;
+        }
         // Update target selection timer
         this.reselectTimer -= deltaTime;
         if (this.reselectTimer <= 0) {
@@ -65,7 +69,7 @@ export class Turret {
         }
         let targetAngle = 0;
 
-        if (this.target && isValidTarget(ship, this.target)) {
+        if (this.target && isValidAttackTarget(ship, this.target)) {
             // Compute world-space turret position
             const cosShipAngle = Math.cos(ship.angle);
             const sinShipAngle = Math.sin(ship.angle);
@@ -108,7 +112,6 @@ export class Turret {
         const maxRotation = this.rotationSpeed * deltaTime;
         this.direction += Math.max(Math.min(angleDifference, maxRotation), -maxRotation);
         this.direction = normalizeAngle(this.direction);
-        this.weapon.update(deltaTime);
     }
 
     /**
@@ -122,7 +125,7 @@ export class Turret {
         }
 
         // Prefer ship.target if hostile
-        if (ship.target instanceof Ship && PlayerPilot.isValidHostileTarget(ship, ship.target)) {
+        if (ship.target instanceof Ship && PlayerPilot.isValidHostileTarget(ship, ship.target) && ship.position.distanceSquaredTo(ship.target.position) < 1000 * 1000) {
             this.target = ship.target;
             return;
         }

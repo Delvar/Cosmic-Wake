@@ -205,7 +205,7 @@ export class Ship extends GameObject {
         /** @type {Turret[]} Array of turrets. */
         this.turrets = [];
         /** @type {string} the mode of the turrest 'Full-auto', 'Auto-target', 'Target-only', 'Disabled'. */
-        this.turretMode = 'full-auto';
+        this.turretMode = 'Full-auto';
         /** @type {FixedWeapon[]} Array of fixed weapons. */
         this.fixedWeapons = [];
         /** @type {string} Current mode for the lights (e.g., 'Normal', 'Flicker', 'Disabled', 'Warden'). */

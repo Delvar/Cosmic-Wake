@@ -260,17 +260,21 @@ export class Game {
         if (this.manager.cameraTarget.target instanceof Ship) {
             switch (this.manager.cameraTarget.getRelationship(this.manager.cameraTarget.target)) {
                 case FactionRelationship.Allied:
-                    this.targetCanvas.style.borderColor = Colour.Allied.toRGB();
+                    //this.targetCanvas.style.borderColor = Colour.Allied.toRGB();
+                    this.targetCanvas.style.outlineColor = Colour.Allied.toRGB();
                     break;
                 case FactionRelationship.Neutral:
-                    this.targetCanvas.style.borderColor = Colour.Neutral.toRGB();
+                    // this.targetCanvas.style.borderColor = Colour.Neutral.toRGB();
+                    this.targetCanvas.style.outlineColor = Colour.Neutral.toRGB();
                     break;
                 case FactionRelationship.Hostile:
-                    this.targetCanvas.style.borderColor = Colour.Hostile.toRGB();
+                    // this.targetCanvas.style.borderColor = Colour.Hostile.toRGB();
+                    this.targetCanvas.style.outlineColor = Colour.Hostile.toRGB();
                     break;
             }
         } else {
-            this.targetCanvas.style.borderColor = Colour.Neutral.toRGB();
+            // this.targetCanvas.style.borderColor = Colour.Neutral.toRGB();
+            this.targetCanvas.style.outlineColor = Colour.Neutral.toRGB();
         }
 
         const ctx = this.targetCtx;

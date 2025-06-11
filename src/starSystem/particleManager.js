@@ -61,8 +61,9 @@ export class ParticleManager {
      * Spawns particles for an explosion, scaling count and properties with radius.
      * @param {Vector2D} position - Explosion center.
      * @param {number} radius - Explosion radius (world units, e.g., 1–300).
+     * @param {Vector2D} initialVelocity - The initial velocity.
      */
-    spawnExplosion(position, radius) {
+    spawnExplosion(position, radius, initialVelocity) {
         if (this.particles.length >= 1000) {
             console.warn('Particle limit reached');
             return;
@@ -79,7 +80,7 @@ export class ParticleManager {
             const particle = new Particle();
             const speed = remapClamp(t * t * randomBetween(0.75, 1.25), 0, 1, sparkType.minSpeed, sparkType.maxSpeed);
             const angle = randomBetween(0, TWO_PI);
-            const velocity = this._scratchVelocity.setFromPolar(speed, angle);
+            const velocity = this._scratchVelocity.setFromPolar(speed, angle).addInPlace(initialVelocity);
             const length = randomBetween(sparkType.minLength, sparkType.maxLength);
             particle.reset(position, velocity, 0, this.currentTime, sparkType.lifetime * (randomBetween(1.0, 2.0) + t * 2), length);
             this.particles.push(particle);
@@ -89,7 +90,7 @@ export class ParticleManager {
         const explosionType = ParticleManager.particleTypes[1];
         const particle = new Particle();
         const shockwaveRadius = remapClamp(t, 0, 1, radius * 2.0, radius * 4.0);
-        const velocity = this._scratchVelocity.set(0, 0);
+        const velocity = this._scratchVelocity.set(initialVelocity);
         const speed = randomBetween(explosionType.minSpeed, explosionType.maxSpeed);
         const lifetime = clamp(shockwaveRadius / speed, 0.5, 3);
         particle.reset(position, velocity, 1, this.currentTime, lifetime, shockwaveRadius);
@@ -109,10 +110,7 @@ export class ParticleManager {
                 continue;
             }
 
-            // Move particle (only for spark lines, type 0)
-            if (p.typeIndex === 0) {
-                p.position.addInPlace(this._scratchScreenPos.set(p.velocity).multiplyInPlace(deltaTime));
-            }
+            p.position.addInPlace(this._scratchScreenPos.set(p.velocity).multiplyInPlace(deltaTime));
         }
     }
 
@@ -171,7 +169,7 @@ export class ParticleManager {
                 const r = 255;
                 const g = t < 0.5 ? 255 : 255 * (1 - (t - 0.5) * 2);
                 const b = t < 0.5 ? 255 * t * 2 : 0;
-                const opacity = 1 - t;
+                const opacity = Math.min(2 * (1 - t), 1);
 
                 const t2 = clamp(t * 3, 0, 1);
                 if (t2 < 1) {

@@ -125,18 +125,8 @@ export class ProjectileManager {
                 }
 
                 if (isHit) {
-                    // Debug damage to force state transitions
-                    // let damage = 0;
-                    // if (ship.shield.strength) {
-                    //     damage = ship.shield.strength;
-                    // } else if (ship.hullIntegrity > ship.disabledThreshold) {
-                    //     damage = ship.hullIntegrity - ship.disabledThreshold;
-                    // } else if (ship.hullIntegrity > 0) {
-                    //     damage = ship.hullIntegrity;
-                    // }
-                    // ship.takeDamage(damage, p.position);
                     ship.takeDamage(type.damage, p.position, p.owner);
-                    this.starSystem.particleManager.spawnExplosion(p.position, 5);
+                    this.starSystem.particleManager.spawnExplosion(p.position, 5, ship.velocity);
                     removeObjectFromArrayInPlace(p, this.projectiles);
                     break;
                 }

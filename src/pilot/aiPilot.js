@@ -56,13 +56,6 @@ export class AiPilot extends Pilot {
             return;
         }
 
-        // Fire turrets at target if in hostiles and close
-        if (this.ship.target && this.ship.target instanceof Ship && this.ship.hostiles.includes(this.ship.target) && isValidAttackTarget(this.ship, this.ship.target)) {
-            if (this.ship.position.distanceSquaredTo(this.ship.target.position) < 1000 * 1000) {
-                this.ship.fireTurrets();
-            }
-        }
-
         // Run state handler
         const handler = this.stateHandlers[this.state];
         if (handler) {

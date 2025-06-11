@@ -4,8 +4,10 @@ import { Vector2D } from '/src/core/vector2d.js';
 import { Weapon } from '/src/weapon/weapon.js';
 import { normalizeAngle } from '/src/core/utils.js';
 import { ProjectileManager } from '/src/starSystem/projectileManager.js';
-import { Ship } from '/src/ship/ship.js';
-import { GameObject } from '/src/core/gameObject.js';
+import { isValidAttackTarget, Ship } from '/src/ship/ship.js';
+import { GameObject, isValidTarget } from '/src/core/gameObject.js';
+import { PlayerPilot } from '/src/pilot/pilot.js';
+
 /**
  * Represents an auto-aiming turret on a ship.
  */
@@ -26,6 +28,10 @@ export class Turret {
         this.direction = 0;
         /** @type {number} Rotation speed (radians/s). */
         this.rotationSpeed = Math.PI;
+        /** @type {Ship|null} Current target ship. */
+        this.target = null;
+        /** @type {number} Time until next target re-evaluation (seconds). */
+        this.reselectTimer = 0;
 
         /** @type {Vector2D} Scratch vector for turret's world position. */
         this._scratchTurretWorldPosition = new Vector2D(0, 0);
@@ -51,21 +57,15 @@ export class Turret {
      * @param {Ship} ship - Parent ship.
      */
     update(deltaTime, ship) {
-        const targetAngle = this.getTargetAngle(ship);
-        const angleDifference = normalizeAngle(targetAngle - this.direction);
-        const maxRotation = this.rotationSpeed * deltaTime;
-        this.direction += Math.max(Math.min(angleDifference, maxRotation), -maxRotation);
-        this.direction = normalizeAngle(this.direction);
-        this.weapon.update(deltaTime);
-    }
+        // Update target selection timer
+        this.reselectTimer -= deltaTime;
+        if (this.reselectTimer <= 0) {
+            this.selectTarget(ship);
+            this.reselectTimer = Math.random() * 0.5 + 0.5;
+        }
+        let targetAngle = 0;
 
-    /**
-     * Computes target angle relative to ship forward.
-     * @param {Ship} ship - Parent ship.
-     * @returns {number} Target angle (radians).
-     */
-    getTargetAngle(ship) {
-        if (ship.target && !ship.target.despawned && ship.target.position && ship.target.velocity) {
+        if (this.target && isValidTarget(ship, this.target)) {
             // Compute world-space turret position
             const cosShipAngle = Math.cos(ship.angle);
             const sinShipAngle = Math.sin(ship.angle);
@@ -74,17 +74,17 @@ export class Turret {
             this._scratchTurretWorldPosition.set(worldX, worldY);
 
             // Compute direction to target
-            this._scratchDirectionToTarget.set(ship.target.position).subtractInPlace(this._scratchTurretWorldPosition);
+            this._scratchDirectionToTarget.set(this.target.position).subtractInPlace(this._scratchTurretWorldPosition);
             const distanceToTarget = this._scratchDirectionToTarget.magnitude();
             this._scratchDirectionToTarget.normalizeInPlace();
 
             // Compute lead position
-            const projectileSpeed = 1000; // Default if undefined
+            const projectileSpeed = 1000;
             this.computeLeadPosition(
                 ship,
-                ship.target,
+                this.target,
                 projectileSpeed,
-                ship.target.velocity,
+                this.target.velocity,
                 distanceToTarget,
                 this._scratchDirectionToTarget,
                 this._scratchLeadPosition,
@@ -94,11 +94,75 @@ export class Turret {
                 this._scratchVelocityError
             );
 
-            // Compute angle to lead position relative to ship angle
+            // Compute angle to lead position
             this._scratchLeadDirection.set(this._scratchLeadPosition).subtractInPlace(this._scratchTurretWorldPosition);
-            return normalizeAngle(Math.atan2(this._scratchLeadDirection.x, -this._scratchLeadDirection.y) - ship.angle);
+            targetAngle = normalizeAngle(Math.atan2(this._scratchLeadDirection.x, -this._scratchLeadDirection.y) - ship.angle);
+            const angleDifference = normalizeAngle(targetAngle - this.direction);
+            if (ship.turretMode === 'Full-auto' && distanceToTarget < 1000 && Math.abs(angleDifference) < this.target.radius / distanceToTarget) {
+                this.fire(ship, ship.starSystem.projectileManager);
+            }
         }
-        return 0; // Face ship forward if no valid target
+
+        //const targetAngle = this.getTargetAngle(ship);
+        const angleDifference = normalizeAngle(targetAngle - this.direction);
+        const maxRotation = this.rotationSpeed * deltaTime;
+        this.direction += Math.max(Math.min(angleDifference, maxRotation), -maxRotation);
+        this.direction = normalizeAngle(this.direction);
+        this.weapon.update(deltaTime);
+    }
+
+    /**
+     * Selects a target for the turret.
+     * @param {Ship} ship - Parent ship.
+     */
+    selectTarget(ship) {
+        if (ship.turretMode === 'Target-only' && ship.target instanceof Ship && PlayerPilot.isValidHostileTarget(ship, ship.target)) {
+            this.target = ship.target;
+            return;
+        }
+
+        // Prefer ship.target if hostile
+        if (ship.target instanceof Ship && PlayerPilot.isValidHostileTarget(ship, ship.target)) {
+            this.target = ship.target;
+            return;
+        }
+
+        // Select closest hostile by rotation time
+        this.target = this.getClosestHostileByRotationTime(ship);
+    }
+
+    /**
+     * Finds the closest hostile by rotation time.
+     * @param {Ship} ship - Parent ship.
+     * @returns {Ship|null} Closest hostile ship, or null if none.
+     */
+    getClosestHostileByRotationTime(ship) {
+        // Compute world-space turret position
+        const cosShipAngle = Math.cos(ship.angle);
+        const sinShipAngle = Math.sin(ship.angle);
+        const worldX = this.relativePosition.x * cosShipAngle - this.relativePosition.y * sinShipAngle + ship.position.x;
+        const worldY = this.relativePosition.x * sinShipAngle + this.relativePosition.y * cosShipAngle + ship.position.y;
+        this._scratchTurretWorldPosition.set(worldX, worldY);
+
+        let closestHostile = null;
+        let minRotationTime = Infinity;
+
+        for (const hostile of ship.hostiles) {
+            if (!isValidAttackTarget(ship, hostile)) continue;
+
+            // Compute angle to hostile
+            this._scratchDirectionToTarget.set(hostile.position).subtractInPlace(this._scratchTurretWorldPosition);
+            const targetAngle = normalizeAngle(Math.atan2(this._scratchDirectionToTarget.x, -this._scratchDirectionToTarget.y) - ship.angle);
+            const angleDifference = Math.abs(normalizeAngle(targetAngle - this.direction));
+            const rotationTime = angleDifference / this.rotationSpeed;
+
+            if (rotationTime < minRotationTime) {
+                minRotationTime = rotationTime;
+                closestHostile = hostile;
+            }
+        }
+
+        return closestHostile;
     }
 
     /**
@@ -129,7 +193,7 @@ export class Turret {
         outVelocityError
     ) {
         outVelocityError.set(targetVelocity).subtractInPlace(ship.velocity);
-        const timeToImpact = distanceToTarget / projectileSpeed;
+        const timeToImpact = Math.min(distanceToTarget / projectileSpeed, 3.0);
         outLeadPosition.set(outVelocityError).multiplyInPlace(timeToImpact).addInPlace(target.position);
         outLeadOffset.set(outLeadPosition).subtractInPlace(target.position);
         const longitudinalComponent = outLeadOffset.dot(directionToTarget);
@@ -146,7 +210,6 @@ export class Turret {
      * @param {ProjectileManager} projectileManager - Manager for spawning projectiles.
      */
     fire(ship, projectileManager) {
-        // Compute world-space barrel end
         const cosAngle = Math.cos(ship.angle + this.direction);
         const sinAngle = Math.sin(ship.angle + this.direction);
         const barrelLength = this.radius * 3;

@@ -204,6 +204,8 @@ export class Ship extends GameObject {
         this._recentExplosions = Array(5).fill().map(() => ({ position: new Vector2D(0, 0), time: -Infinity, force: 0 }));
         /** @type {Turret[]} Array of turrets. */
         this.turrets = [];
+        /** @type {string} the mode of the turrest 'Full-auto', 'Auto-target', 'Target-only', 'Disabled'. */
+        this.turretMode = 'full-auto';
         /** @type {FixedWeapon[]} Array of fixed weapons. */
         this.fixedWeapons = [];
         /** @type {string} Current mode for the lights (e.g., 'Normal', 'Flicker', 'Disabled', 'Warden'). */

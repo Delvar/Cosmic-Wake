@@ -1627,7 +1627,7 @@ export class TraverseJumpGateAutopilot extends Autopilot {
 
         if (this.subAutopilot && this.subAutopilot.active) {
             // Delegate to sub-pilot to approach the jump gate
-            this.subAutopilot.update(deltaTime);
+            this.subAutopilot.update(deltaTime, gameManager);
             if (this.subAutopilot.isComplete()) {
                 if (this.subAutopilot.error) {
                     this.error = this.subAutopilot.error;

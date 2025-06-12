@@ -678,31 +678,35 @@ export class EscortAutopilot extends Autopilot {
 
         // Target is in the same system
         if (this.target.state === "Landed" || this.target.state === "Landing") {
-            const targetPlanet = this.target.landedObject || this.target.targetPlanet;
-            if (!targetPlanet) {
+            const landedObject = this.target.landedObject;
+            if (!landedObject) {
                 this.error = "Target planet not found";
                 this.stop();
                 return;
             }
             if (this.ship.state === "Landed") {
-                if (this.ship.landedObject === targetPlanet) {
+                if (this.ship.landedObject === landedObject) {
                     this.waitTime = randomBetween(this.waitTimeMin, this.waitTimeMax);
                     this.state = "Waiting";
                     if (this.ship.debug) {
-                        console.log(`EscortAutopilot: Transitioned to Waiting on ${targetPlanet.name}`);
+                        console.log(`EscortAutopilot: Transitioned to Waiting on ${landedObject.name}`);
                     }
                 } else {
                     this.ship.initiateTakeoff();
                     if (this.ship.debug) {
-                        console.log(`EscortAutopilot: Taking Off to land on ${targetPlanet.name}`);
+                        console.log(`EscortAutopilot: Taking Off to land on ${landedObject.name}`);
                     }
                 }
             } else if (this.ship.state === "Flying") {
-                this.subAutopilot = new LandOnPlanetAutopilot(this.ship, targetPlanet);
+                if (landedObject instanceof Planet) {
+                    this.subAutopilot = new LandOnPlanetAutopilot(this.ship, landedObject);
+                } else if (landedObject instanceof Asteroid) {
+                    this.subAutopilot = new LandOnAsteroidAutopilot(this.ship, landedObject);
+                }
                 this.subAutopilot.start();
                 this.state = "Landing";
                 if (this.ship.debug) {
-                    console.log(`EscortAutopilot: Transitioned to Landing on ${targetPlanet.name}`);
+                    console.log(`EscortAutopilot: Transitioned to Landing on ${landedObject.name}`);
                 }
             }
             // If ship is in TakingOff or Landing, let those states complete naturally
@@ -770,12 +774,12 @@ export class EscortAutopilot extends Autopilot {
 
             // Handle target landed on a different planet
             if (this.target.state === 'Landed' || this.target.state === 'Landing') {
-                const targetPlanet = this.target.landedObject || this.target.targetPlanet;
-                if (targetPlanet && this.ship.landedObject !== targetPlanet) {
+                const landedObject = this.target.landedObject;
+                if (landedObject && this.ship.landedObject !== landedObject) {
                     this.ship.initiateTakeoff();
                     this.state = 'Starting';
                     if (this.ship.debug) {
-                        console.log(`EscortAutopilot: Transitioned to Starting to land on target's planet ${targetPlanet.name}`);
+                        console.log(`EscortAutopilot: Transitioned to Starting to land on target's planet ${landedObject.name}`);
                     }
                     return;
                 }
@@ -832,8 +836,8 @@ export class EscortAutopilot extends Autopilot {
 
         // Handle the escorted ship landing or landed
         if (this.target.state === 'Landing' || this.target.state === 'Landed') {
-            const targetPlanet = this.target.landedObject || this.target.targetPlanet;
-            if (!targetPlanet) {
+            const landedObject = this.target.landedObject;
+            if (!landedObject) {
                 this.error = 'Target planet not found';
                 this.subAutopilot.stop();
                 this.subAutopilot = null;
@@ -844,11 +848,15 @@ export class EscortAutopilot extends Autopilot {
                 return;
             }
             this.subAutopilot.stop();
-            this.subAutopilot = new LandOnPlanetAutopilot(this.ship, targetPlanet);
+            if (landedObject instanceof Planet) {
+                this.subAutopilot = new LandOnPlanetAutopilot(this.ship, landedObject);
+            } else if (landedObject instanceof Asteroid) {
+                this.subAutopilot = new LandOnAsteroidAutopilot(this.ship, landedObject);
+            }
             this.subAutopilot.start();
             this.state = 'Landing';
             if (this.ship.debug) {
-                console.log(`EscortAutopilot: Transitioned to Landing on ${targetPlanet.name}`);
+                console.log(`EscortAutopilot: Transitioned to Landing on ${landedObject.name}`);
             }
             return;
         }

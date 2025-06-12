@@ -63,6 +63,13 @@ export class Game {
         this.fps = 0;
         /** @type {number} The timestamp of the last FPS update. */
         this.lastFpsUpdate = performance.now();
+        // Target frame rate for game logic
+        this.targetFps = 60;
+        // Approximately 0.01667 seconds (16.67 ms)
+        this.fixedDeltaTime = 1 / this.targetFps;
+        // Accumulator to track elapsed time (in seconds)
+        this.timeAccumulator = 0;
+
         /** @type {number} Timer for controlling zoom text display duration. */
         this.zoomTextTimer = 0;
 
@@ -91,9 +98,18 @@ export class Game {
      * @param {number} currentTime - The current time from requestAnimationFrame.
      */
     gameLoop(currentTime) {
-        const deltaTime = (currentTime - this.lastTime);
+        const deltaTime = (currentTime - this.lastTime) / 1000;
         this.lastTime = currentTime;
-        this.update(deltaTime);
+
+        // Add the elapsed time to the accumulator
+        this.timeAccumulator += deltaTime;
+
+        // Update game logic at a fixed 60 FPS rate
+        while (this.timeAccumulator >= this.fixedDeltaTime) {
+            this.update(this.fixedDeltaTime);
+            this.timeAccumulator -= this.fixedDeltaTime;
+        }
+
         this.render(deltaTime);
         requestAnimationFrame(this.gameLoop);
     }
@@ -111,9 +127,6 @@ export class Game {
      */
     update(deltaTime) {
         if (!this.manager.isFocused) return;
-        const MAX_DELTA = 100;
-        if (deltaTime > MAX_DELTA) deltaTime = MAX_DELTA;
-        deltaTime = deltaTime / 1000;
 
         this.manager.update(deltaTime);
         if (this.manager.cameraTarget && !this.manager.cameraTarget.despawned) {
@@ -123,13 +136,7 @@ export class Game {
         if (this.manager.zoomTextTimer > 0) {
             this.manager.zoomTextTimer -= deltaTime;
         }
-        this.frameCount++;
-        const currentTime = performance.now();
-        if (currentTime - this.lastFpsUpdate >= 1000) {
-            this.fps = Math.round(this.frameCount * 1000 / (currentTime - this.lastFpsUpdate));
-            this.frameCount = 0;
-            this.lastFpsUpdate = currentTime;
-        }
+
         if (this.manager.cameraTarget instanceof Ship && this.manager.cameraTarget.target) {
             this.targetCamera.updateTarget(this.manager.cameraTarget.target);
         }
@@ -173,9 +180,18 @@ export class Game {
 
     /**
      * Renders the game state to the canvas.
-     * @param {number} deltaTime - Time elapsed since the last render in milliseconds.
+     * @param {number} deltaTime - Time elapsed since the last render in seconds.
      */
     render(deltaTime) {
+
+        const currentTime = performance.now();
+        if (currentTime - this.lastFpsUpdate >= 1000) {
+            this.fps = Math.round(this.frameCount * 1000 / (currentTime - this.lastFpsUpdate));
+            this.frameCount = 0;
+            this.lastFpsUpdate = currentTime;
+        }
+        this.frameCount++;
+
         const ctx = this.ctx;
         ctx.save();
         ctx.fillStyle = 'black';
@@ -214,20 +230,20 @@ export class Game {
         ctx.textAlign = 'left';
         ctx.strokeText(`FPS: ${this.fps}`, 10, 20);
         ctx.fillText(`FPS: ${this.fps}`, 10, 20);
-        // 144 FPS = 6.94 ms
-        // 120 FPS = 8.33 ms
-        // 72 FPS = 13.89 ms
-        // 60 FPS = 16.67 ms
-        // 36 FPS = 27.78 ms
-        // 30 FPS = 33.33 ms
-        const maxFrameTime = 33.33;;
+        // 144 FPS = 0.00694 s
+        // 120 FPS = 0.00833 s
+        // 72 FPS =  0.01389 s
+        // 60 FPS =  0.01667 s
+        // 36 FPS =  0.02778 s
+        // 30 FPS =  0.03333 s
+        const maxFrameTime = 0.03333;
         const barWidth = Math.min(deltaTime / maxFrameTime, 1) * 150;
         ctx.fillStyle =
-            deltaTime > 33.33 ? Colour.RedDark.toRGB() :
-                deltaTime > 27.78 ? Colour.Red.toRGB() :
-                    deltaTime > 16.67 ? Colour.RedLight.toRGB() :
-                        deltaTime > 13.89 ? Colour.Yellow.toRGB() :
-                            deltaTime > 8.33 ? Colour.Orange.toRGB() :
+            deltaTime > 0.03333 ? Colour.RedDark.toRGB() :
+                deltaTime > 0.02778 ? Colour.Red.toRGB() :
+                    deltaTime > 0.01667 ? Colour.RedLight.toRGB() :
+                        deltaTime > 0.01389 ? Colour.Yellow.toRGB() :
+                            deltaTime > 0.00833 ? Colour.Orange.toRGB() :
                                 Colour.Green.toRGB();
         ctx.fillRect(10, 25, barWidth, 10);
         ctx.restore();
@@ -393,6 +409,7 @@ export class GameManager {
         escort01.trail.color = this.playerShip.trail.color;
         this.galaxy[0].addGameObject(escort01);
         this.playerShip.setTarget(escort01);
+        this.playerShip.turretMode = 'Target-only';
 
         // Set player pilot
         this.playerShip.pilot = this.playerPilot;

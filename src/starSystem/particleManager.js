@@ -27,6 +27,8 @@ export class ParticleManager {
         this._scratchLineEnd = new Vector2D(0, 0);
         /** @type {Vector2D} Temporary vector for velocity. */
         this._scratchVelocity = new Vector2D(0, 0);
+
+        if (new.target === ParticleManager) Object.seal(this);
     }
 
     /**

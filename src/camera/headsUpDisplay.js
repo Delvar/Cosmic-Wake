@@ -78,6 +78,8 @@ export class HeadsUpDisplay {
         this._scratchHostileShips = [];
         // Call resize to initialize HUD dimensions
         this.resize(width, height);
+
+        if (new.target === HeadsUpDisplay) Object.seal(this);
     }
 
     /**
@@ -227,7 +229,7 @@ export class HeadsUpDisplay {
      */
     drawNames(ctx, camera, ringRadius, objects = []) {
         ctx.save();
-        ctx.fillStyle = 'white';
+        ctx.fillStyle = Colour.White.toRGB();
         ctx.textAlign = 'center';
         ctx.strokeStyle = 'rgba(0.0,0.0,0.0,0.5)';
         ctx.lineWidth = 2.0;
@@ -259,7 +261,7 @@ export class HeadsUpDisplay {
         let autopilotStatus = this.gameManager.cameraTarget?.pilot?.getStatus();
 
         if (autopilotStatus) {
-            ctx.fillStyle = "white";
+            ctx.fillStyle = Colour.White.toRGB();;
             ctx.textAlign = "center";
             ctx.fillText(autopilotStatus, this.size.width / 2, 20); // Top middle of screen
         }

@@ -61,6 +61,8 @@ export class StarField {
 
         /** @type {Array<Array<string>>} Pre-generated color palettes for each layer, containing HSL color strings. */
         this.colourPalettes = this.generateColourPalettes();
+
+        if (new.target === StarField) Object.seal(this);
     }
 
     /**

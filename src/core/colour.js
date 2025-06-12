@@ -21,6 +21,8 @@ export class Colour {
         this.b = b;
         /** @type {number} The alpha component of the color (0 to 1, default is 1 for fully opaque). */
         this.a = a;
+
+        if (new.target === Colour) Object.seal(this);
     }
 
     /**
@@ -134,6 +136,22 @@ export class Colour {
     static BluePurpleDark = new Colour(0.353, 0.282, 0.635);    // #5A48A2
     static PurpleDark = new Colour(0.494, 0.282, 0.635);        // #7F48A2
     static PurpleRedDark = new Colour(0.565, 0.388, 0.471);     // #90637A
+
+
+    // Static instances of 1970s-style muted neutral colors (3 total)
+    static White = new Colour(0.960, 0.925, 0.878);             // #F5ECDF
+    static Grey = new Colour(0.620, 0.588, 0.545);              // #9E968B
+    static Black = new Colour(0.251, 0.239, 0.220);             // #403C38
+
+    // Lighter versions of 1970s-style muted neutral colors
+    static WhiteLight = new Colour(0.980, 0.957, 0.925);         // #FAF3EB
+    static GreyLight = new Colour(0.753, 0.722, 0.678);          // #C0B8AD
+    static BlackLight = new Colour(0.388, 0.369, 0.341);         // #635E57
+
+    // Darker versions of 1970s-style muted neutral colors
+    static WhiteDark = new Colour(0.839, 0.812, 0.769);          // #D6CFC4
+    static GreyDark = new Colour(0.486, 0.459, 0.420);           // #7C756B
+    static BlackDark = new Colour(0.176, 0.165, 0.153);          // #2A2927
 
     // FactionRelationship Colours
     static Allied = Colour.Yellow;

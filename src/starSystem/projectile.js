@@ -26,6 +26,8 @@ export class Projectile {
         this.isActive = false;
         /** @type {Ship|null} The ship that fired the projectile, or null. */
         this.owner = null;
+
+        if (new.target === Projectile) Object.seal(this);
     }
 
     /**

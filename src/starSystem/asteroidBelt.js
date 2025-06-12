@@ -5,6 +5,7 @@ import { TWO_PI, remapRange01, removeObjectFromArrayInPlace, SimpleRNG, hash, no
 import { GameObject, isValidTarget } from '/src/core/gameObject.js';
 import { StarSystem } from '/src/starSystem/starSystem.js';
 import { Camera } from '/src/camera/camera.js';
+import { Colour } from '/src/core/colour.js';
 
 /**
  * A precomputed asteroid shape, stored as a Float32Array of [x1, y1, x2, y2, ...].
@@ -47,6 +48,8 @@ class AsteroidShape {
         this.path.closePath();
         // Log points for debugging
         //console.log(`AsteroidShape: numPoints=${numPoints}, points=[${this.points.join(', ')}]`);
+
+        if (new.target === AsteroidShape) Object.seal(this);
     }
 }
 
@@ -122,6 +125,8 @@ export class AsteroidBelt {
             'red', 'blue', 'green', 'yellow', 'cyan',
             'magenta', 'purple', 'orange', 'pink', 'lime'
         ];
+
+        if (new.target === AsteroidBelt) Object.seal(this);
     }
 
     init() {
@@ -284,8 +289,8 @@ export class AsteroidBelt {
         }
 
         ctx.save();
-        ctx.fillStyle = 'rgb(100, 100, 100)';
-        ctx.strokeStyle = 'rgb(50, 50, 50)';
+        ctx.fillStyle = Colour.GreyDark.toRGB();
+        ctx.strokeStyle = Colour.BlackDark.toRGB();
         ctx.lineWidth = 1;
 
         const time = this.elapsedTime;
@@ -494,6 +499,8 @@ export class Asteroid extends GameObject {
         this.position.setFromPolar(this.orbitRadius, this.orbitAngle);
         /** @type {Vector2D} Scratch vector for screen position calculations. */
         this._scratchScreenPos = new Vector2D();
+
+        if (new.target === Asteroid) Object.seal(this);
     }
 
     /**

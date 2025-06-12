@@ -70,6 +70,8 @@ export class Game {
         this.resizeCanvas();
         /** @type {Function} The bound game loop function for rendering and updating the game. */
         this.gameLoop = this.gameLoop.bind(this);
+
+        if (new.target === Game) Object.seal(this);
     }
 
     /**
@@ -207,19 +209,30 @@ export class Game {
         this.renderTargetView();
 
         ctx.save();
-        ctx.fillStyle = 'white';
+        ctx.fillStyle = Colour.White.toRGB();
         ctx.textAlign = 'left';
         ctx.fillText(`FPS: ${this.fps}`, 10, 20);
-
-        const maxFrameTime = 50;
+        // 144 FPS = 6.94 ms
+        // 120 FPS = 8.33 ms
+        // 72 FPS = 13.89 ms
+        // 60 FPS = 16.67 ms
+        // 36 FPS = 27.78 ms
+        // 30 FPS = 33.33 ms
+        const maxFrameTime = 33.33;;
         const barWidth = Math.min(deltaTime / maxFrameTime, 1) * 150;
-        ctx.fillStyle = deltaTime > 33.33 ? 'red' : deltaTime > 16.67 ? 'yellow' : 'green';
+        ctx.fillStyle =
+            deltaTime > 33.33 ? Colour.RedDark.toRGB() :
+                deltaTime > 27.78 ? Colour.Red.toRGB() :
+                    deltaTime > 16.67 ? Colour.RedLight.toRGB() :
+                        deltaTime > 13.89 ? Colour.Yellow.toRGB() :
+                            deltaTime > 8.33 ? Colour.Orange.toRGB() :
+                                Colour.Green.toRGB();
         ctx.fillRect(10, 25, barWidth, 10);
         ctx.restore();
 
         if (this.manager.zoomTextTimer > 0) {
             ctx.save();
-            ctx.fillStyle = 'white';
+            ctx.fillStyle = Colour.White.toRGB();
             //ctx.font = '20px Arial';
             ctx.textAlign = 'right';
             const zoomPercent = Math.round(this.camera.zoom * 100);
@@ -299,7 +312,7 @@ export class Game {
         starSystem.projectileManager.draw(ctx, this.targetCamera);
         starSystem.particleManager.draw(ctx, this.targetCamera);
         const targetName = (target instanceof Ship || target instanceof CelestialBody) ? target.name : "Unnamed Object";
-        ctx.fillStyle = "white";
+        ctx.fillStyle = Colour.White.toRGB();
         ctx.textAlign = "center";
         ctx.fillText(targetName, this.targetCanvas.width / 2, 20);
 
@@ -384,6 +397,7 @@ export class GameManager {
         this.spawnAiShips();
         this.setupEventListeners();
         this.game.start();
+        if (new.target === GameManager) Object.seal(this);
     }
 
     /**

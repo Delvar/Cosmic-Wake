@@ -25,6 +25,8 @@ export class Pilot {
         this.ship = ship;
         /** @type {Autopilot|null} The active autopilot controlling ship navigation (e.g., FlyToTargetAutopilot). */
         this.autopilot = null;
+
+        if (new.target === Pilot) Object.seal(this);
     }
 
     /**
@@ -64,6 +66,8 @@ export class PlayerPilot extends Pilot {
         this._scratchDirectionToTarget = new Vector2D(0, 0);
         /** @type {Vector2D} Temporary vector for distance to target. */
         this._scratchDistanceToTarget = new Vector2D(0, 0);
+
+        if (new.target === PlayerPilot) Object.seal(this);
     }
 
     /**

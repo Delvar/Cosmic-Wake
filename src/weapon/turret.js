@@ -49,6 +49,8 @@ export class Turret {
         this._scratchVelocityError = new Vector2D(0, 0);
         /** @type {Vector2D} Scratch vector for temporary calculations. */
         this._scratchTemporaryVector = new Vector2D(0, 0);
+
+        if (new.target === Turret) Object.seal(this);
     }
 
     /**

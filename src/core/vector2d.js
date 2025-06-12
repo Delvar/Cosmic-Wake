@@ -15,6 +15,8 @@ export class Vector2D {
         this.x = x;
         /** @type {number} The y component of the vector. */
         this.y = y;
+
+        if (new.target === Vector2D) Object.seal(this);
     }
 
     /**

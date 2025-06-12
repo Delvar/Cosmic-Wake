@@ -23,6 +23,8 @@ export class FixedWeapon {
         this.weapon = new Weapon(0); // Rail gun, cooldown 0.5s
         /** @type {Vector2D} Temp vector for world position. */
         this._scratchWorldPos = new Vector2D(0, 0);
+
+        if (new.target === FixedWeapon) Object.seal(this);
     }
 
     /**

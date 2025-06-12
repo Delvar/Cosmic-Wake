@@ -136,8 +136,6 @@ export class Ship extends GameObject {
         this.lastAttacker = null;
         /** @type {CelestialBody|Asteroid|null} Object the ship is landed on. */
         this.landedObject = null;
-        /** @type {Asteroid|null} Asteroid being mined (not used after landing merge). */
-        this.miningAsteroid = null;
         /** @type {string} Current state (e.g., 'Flying', 'Landing', 'Landed'). */
         this.state = 'Flying';
         /** @type {Object} Map of state names to update handler functions. */
@@ -1489,16 +1487,6 @@ export class Ship extends GameObject {
         ctx.closePath();
         ctx.fill();
         ctx.restore();
-
-        // Draw pilot state text
-        if (this.pilot) {
-            const state = this.pilot.getStatus();
-            ctx.fillStyle = 'white';
-            const textMetrics = ctx.measureText(state);
-            const textX = this._scratchScreenPos.x - textMetrics.width / 2;
-            const textY = this._scratchScreenPos.y + 20 * scale;
-            ctx.fillText(state, textX, textY);
-        }
 
         // Draw stopping point based on velocity
         const currentSpeed = this.velocity.magnitude();

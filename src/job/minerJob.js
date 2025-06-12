@@ -49,6 +49,8 @@ export class MinerJob extends Job {
             'WaitingOnHomePlanet': this.updateWaitingOnHomePlanet.bind(this),
             'Failed': () => { }
         };
+
+        if (new.target === MinerJob) Object.seal(this);
     }
 
     /**

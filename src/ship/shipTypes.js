@@ -36,6 +36,8 @@ export class Flivver extends Ship {
 
         // Initialize the particle trail for visual effects
         this.setupTrail();
+
+        if (new.target === Flivver) Object.seal(this);
     }
 
     /**
@@ -218,6 +220,8 @@ export class Shuttle extends Ship {
          */
         this.maxVelocity = 400;
         this.setupTrail();
+
+        if (new.target === Shuttle) Object.seal(this);
     }
 
     /**
@@ -372,6 +376,8 @@ export class HeavyShuttle extends Ship {
          */
         this.maxVelocity = 350;
         this.setupTrail();
+
+        if (new.target === HeavyShuttle) Object.seal(this);
     }
 
     /**
@@ -535,6 +541,8 @@ export class StarBarge extends Ship {
          */
         this.maxVelocity = 100;
         this.setupTrail();
+
+        if (new.target === StarBarge) Object.seal(this);
     }
 
     /**
@@ -754,6 +762,8 @@ export class Freighter extends Ship {
          */
         this.maxVelocity = 100;
         this.setupTrail();
+
+        if (new.target === Freighter) Object.seal(this);
     }
 
     /**
@@ -1304,6 +1314,8 @@ export class Arrow extends Ship {
          */
         this.maxVelocity = 600;
         this.setupTrail();
+
+        if (new.target === Arrow) Object.seal(this);
     }
 
     /**
@@ -1461,6 +1473,8 @@ export class Boxwing extends Ship {
          */
         this.maxVelocity = 100;
         this.setupTrail();
+
+        if (new.target === Boxwing) Object.seal(this);
     }
 
     /**
@@ -1642,6 +1656,8 @@ export class Interceptor extends Ship {
          */
         this.maxVelocity = 1000;
         this.setupTrail();
+
+        if (new.target === Interceptor) Object.seal(this);
     }
 
     /**
@@ -1808,6 +1824,8 @@ export class Fighter extends Ship {
          */
         this.maxVelocity = 700;
         this.setupTrail();
+
+        if (new.target === Fighter) Object.seal(this);
     }
 
     /**

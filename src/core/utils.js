@@ -128,6 +128,8 @@ export class SimpleRNG {
             this.seed += 2147483646;
             this.seed = Math.abs(this.seed);
         }
+
+        if (new.target === SimpleRNG) Object.seal(this);
     }
 
     /**

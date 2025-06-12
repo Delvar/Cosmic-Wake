@@ -23,6 +23,8 @@ class TrailPointPool {
         this.tail = 0;
         /** @type {number} Current number of active points in the buffer. */
         this.count = 0;
+
+        if (new.target === TrailPointPool) Object.seal(this);
     }
 
     /**
@@ -183,6 +185,8 @@ export class Trail {
         this.minPointDistSquared = this.minPointDist * this.minPointDist;
         this.maxPointDistSquared = this.maxPointDist * this.maxPointDist;
         this.lateralThresholdSquared = this.lateralThreshold * this.lateralThreshold;
+
+        if (new.target === Trail) Object.seal(this);
     }
 
     /**

@@ -71,6 +71,8 @@ export class StarSystem {
             asteroidBelt.starSystem = this;
             asteroidBelt.init();
         }
+
+        if (new.target === StarSystem) Object.seal(this);
     }
 
     /**
@@ -812,6 +814,8 @@ export class Hyperlane {
         this.sourceGate = null;
         /** @type {JumpGate|null} The jump gate associated with the target star system. */
         this.targetGate = null;
+
+        if (new.target === Hyperlane) Object.seal(this);
     }
 
     /**

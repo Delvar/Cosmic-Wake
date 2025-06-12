@@ -42,6 +42,8 @@ export class WandererJob extends Job {
             Waiting: this.updateWaiting.bind(this),
             'Failed': () => { }
         };
+
+        if (new.target === WandererJob) Object.seal(this);
     }
 
     /**

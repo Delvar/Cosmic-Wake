@@ -25,6 +25,8 @@ export class Particle {
         this.isActive = false;
         /** @type {number} Length of spark line (world units), or initial radius for explosions. */
         this.length = 0;
+
+        if (new.target === Particle) Object.seal(this);
     }
 
     /**

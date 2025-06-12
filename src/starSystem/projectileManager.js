@@ -33,6 +33,8 @@ export class ProjectileManager {
         this._scratchLineEnd = new Vector2D(0, 0);
         /** @type {Vector2D} Temporary vector for local-space projectile position. */
         this._scratchLocalPos = new Vector2D(0, 0);
+
+        if (new.target === ProjectileManager) Object.seal(this);
     }
 
     /**

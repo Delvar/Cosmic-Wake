@@ -27,6 +27,8 @@ export class Weapon {
         this._scratchPosition = new Vector2D(0, 0);
         /** @type {Vector2D} Temporary vector for velocity calculation. */
         this._scratchVelocity = new Vector2D(0, 0);
+
+        if (new.target === Weapon) Object.seal(this);
     }
 
     /**

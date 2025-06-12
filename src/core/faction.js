@@ -27,6 +27,8 @@ export class Faction {
         this.id = id;
         /** @type {FactionManager} Reference to the FactionManager. */
         this.manager = manager;
+
+        if (new.target === Faction) Object.seal(this);
     }
 
     /**
@@ -59,6 +61,8 @@ export class FactionManager {
         this.factions = new Map();
         /** @type {number[][]} 2D array of relationships (FactionRelationship values). */
         this.relationships = [];
+
+        if (new.target === FactionManager) Object.seal(this);
     }
 
     /**

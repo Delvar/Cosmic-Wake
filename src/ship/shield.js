@@ -55,6 +55,8 @@ export class Shield {
         this._scratchShieldCenter = new Vector2D(0, 0);
         /** @type {Vector2D} Temporary vector for shield hit point in screen coordinates. */
         this._scratchShieldHit = new Vector2D(0, 0);
+
+        if (new.target === Shield) Object.seal(this);
     }
 
     /**

@@ -20,8 +20,12 @@ export class Job {
         this.pilot = pilot;
         /** @type {string} The current job state (e.g., 'Starting', 'Paused'). */
         this.state = 'Starting';
+        /** @type {string|null} Error message if the job fails, null if no error. */
+        this.error = null;
         /** @type {string|null} The state before pausing, restored on resume. */
         this.pausedState = null;
+
+        if (new.target === Job) Object.seal(this);
     }
 
     /**

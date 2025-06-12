@@ -1,5 +1,4 @@
 // /src/core/gameObject.js
-
 import { Vector2D } from '/src/core/vector2d.js';
 import { StarSystem } from '/src/starSystem/starSystem.js';
 
@@ -42,6 +41,8 @@ export class GameObject {
         this.debug = false;
         /** @type {string|null} The name of the game object */
         this.name = null;
+
+        if (new.target === GameObject) Object.seal(this);
     }
 
     /**

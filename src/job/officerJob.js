@@ -37,6 +37,8 @@ export class OfficerJob extends Job {
         this.targetScanInterval = 1.0;
         /** @type {number} Ship age (seconds) when the next target scan is due. */
         this.nextTargetScan = 0;
+
+        if (new.target === OfficerJob) Object.seal(this);
     }
 
     /**

@@ -22,7 +22,7 @@ export class AttackAutopilot extends Autopilot {
         /** @type {Ship} The Ship to target. */
         this.target = target;
         /** @type {string} Attack pattern: "orbit", "flyby", or "inrange". */
-        this.pattern
+        this.pattern = null;
         /** @type {string} Current state: "Approaching" or "Attacking". */
         this.state = "Approaching";
         /** @type {Autopilot|null} Sub-autopilot for specific attack behavior. */
@@ -40,6 +40,8 @@ export class AttackAutopilot extends Autopilot {
         };
         /** @type {number} the remaining time to execute the selected attack patern. */
         this.attackTime = 0;
+
+        if (new.target === AttackAutopilot) Object.seal(this);
     }
 
     /**
@@ -258,6 +260,8 @@ export class OrbitAttackAutopilot extends Autopilot {
             Approaching: this.updateApproaching.bind(this),
             Orbiting: this.updateOrbiting.bind(this)
         };
+
+        if (new.target === OrbitAttackAutopilot) Object.seal(this);
     }
 
     /**
@@ -460,6 +464,8 @@ export class FlybyAttackAutopilot extends Autopilot {
             Retreating: this.updateRetreating.bind(this),
             Turning: this.updateTurning.bind(this)
         };
+
+        if (new.target === FlybyAttackAutopilot) Object.seal(this);
     }
 
     /**
@@ -719,6 +725,8 @@ export class InRangeAttackAutopilot extends Autopilot {
         this._scratchLateralOffset = new Vector2D(0, 0);
         /** @type {Vector2D} Scratch vector for lead direction. */
         this._scratchLeadDirection = new Vector2D(0, 0);
+
+        if (new.target === InRangeAttackAutopilot) Object.seal(this);
     }
 
     /**

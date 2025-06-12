@@ -88,6 +88,8 @@ export class CelestialBody extends GameObject {
         this._scratchScreenPos = new Vector2D();
         /** @type {string|null} The name of the CelestialBody */
         this.name = name;
+
+        if (new.target === CelestialBody) Object.seal(this);
     }
 
     /**
@@ -184,6 +186,8 @@ export class PlanetaryRing {
         this.tiltAngle = tiltAngle;
         /** @type {number} The scaling factor for the ring, based on the ratio of inner to outer radius. */
         this.scalingFactor = 1 - 0.5 * (1 - this.innerRadius / this.outerRadius);
+
+        if (new.target === PlanetaryRing) Object.seal(this);
     }
 
     /**
@@ -257,6 +261,7 @@ export class Planet extends CelestialBody {
      */
     constructor(distance, radius, color, parent = null, angle = 0, type = celestialTypes['planet'], subtype = null, name = '', starSystem = null, ring = null) {
         super(distance, radius, color, parent, angle, type, subtype, name, starSystem, ring);
+        if (new.target === Planet) Object.seal(this);
     }
 }
 
@@ -280,6 +285,7 @@ export class Star extends CelestialBody {
      */
     constructor(distance, radius, color, parent = null, angle = 0, type = celestialTypes['star'], subtype = null, name = 'Unknown Star', starSystem = null, ring = null) {
         super(distance, radius, color, parent, angle, type, subtype, name, starSystem, ring);
+        if (new.target === Star) Object.seal(this);
     }
 }
 
@@ -306,6 +312,8 @@ export class JumpGate extends CelestialBody {
         super(dist, radius, celestialTypes['jumpgate'].color, null, angle, celestialTypes['jumpgate'], null, `Jump To ${lane.target.name}`, lane.source);
         /** @type {Hyperlane} The hyperlane connection between two star systems. */
         this.lane = lane;
+
+        if (new.target === JumpGate) Object.seal(this);
     }
 
     /**

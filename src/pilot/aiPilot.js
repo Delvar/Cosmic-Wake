@@ -41,6 +41,8 @@ export class AiPilot extends Pilot {
         this.safeTime = 0;
         /** @type {Vector2D} Temporary vector for distance calculations. */
         this._scratchDistance = new Vector2D();
+
+        if (new.target === AiPilot) Object.seal(this);
     }
 
     /**
@@ -355,6 +357,8 @@ export class CivilianAiPilot extends AiPilot {
         this.threatScanInterval = 0.5;
         /** @type {number} Ship age (seconds) when the next threat scan is due. */
         this.nextThreatScan = 0;
+
+        if (new.target === CivilianAiPilot) Object.seal(this);
     }
 
     /**
@@ -491,6 +495,8 @@ export class PirateAiPilot extends AiPilot {
         this.threatScanInterval = 0.5;
         /** @type {number} Ship age (seconds) when the next threat scan is due. */
         this.nextThreatScan = 0;
+
+        if (new.target === PirateAiPilot) Object.seal(this);
     }
 
     /**
@@ -615,6 +621,8 @@ export class OfficerAiPilot extends AiPilot {
         this.threatScanInterval = 0.5;
         /** @type {number} Ship age (seconds) when the next threat scan is due. */
         this.nextThreatScan = 0;
+
+        if (new.target === OfficerAiPilot) Object.seal(this);
     }
 
     /**

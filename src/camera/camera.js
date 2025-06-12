@@ -58,6 +58,8 @@ export class Camera {
         this._scratchMin = new Vector2D();
         /** @type {Vector2D} Scratch vector for maximum cell visibility calculations. */
         this._scratchMax = new Vector2D();
+
+        if (new.target === Camera) Object.seal(this);
     }
 
     /**
@@ -269,6 +271,8 @@ export class TargetCamera extends Camera {
         this.lastTargetSize = null;
         /** @type {number} Cache for the last zoom level to detect changes. */
         this.lastZoom = this.zoom;
+
+        if (new.target === TargetCamera) Object.seal(this);
     }
 
     /**

@@ -31,6 +31,8 @@ export class EscortJob extends Job {
             'Escorting': this.updateEscorting.bind(this),
             'Failed': () => { }
         };
+
+        if (new.target === EscortJob) Object.seal(this);
     }
 
     /**

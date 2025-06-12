@@ -357,10 +357,8 @@ export class Ship extends GameObject {
      * @returns {Colour} A random color object.
      */
     generateRandomColor() {
-        const r = Math.random();
-        const g = Math.random();
-        const b = Math.random();
-        return new Colour(r, g, b);
+        const colours = [Colour.Red, Colour.RedOrange, Colour.Orange, Colour.OrangeYellow, Colour.Yellow, Colour.YellowGreen, Colour.Green, Colour.GreenBlue, Colour.Blue, Colour.BluePurple, Colour.Purple, Colour.PurpleRed, Colour.RedLight, Colour.RedOrangeLight, Colour.OrangeLight, Colour.OrangeYellowLight, Colour.YellowLight, Colour.YellowGreenLight, Colour.GreenLight, Colour.GreenBlueLight, Colour.BlueLight, Colour.BluePurpleLight, Colour.PurpleLight, Colour.PurpleRedLight, Colour.RedDark, Colour.RedOrangeDark, Colour.OrangeDark, Colour.OrangeYellowDark, Colour.YellowDark, Colour.YellowGreenDark, Colour.GreenDark, Colour.GreenBlueDark, Colour.BlueDark, Colour.BluePurpleDark, Colour.PurpleDark, Colour.PurpleRedDark];
+        return colours[Math.floor(Math.random() * colours.length)];
     }
 
     /**
@@ -368,8 +366,12 @@ export class Ship extends GameObject {
      * @returns {Colour} A grey color object.
      */
     generateRandomGrey() {
-        const shade = randomBetween(0.4, 0.7); // Light to dark grey
-        return new Colour(shade, shade, shade);
+        const colours = [
+            //Colour.Red, Colour.RedOrange, Colour.Orange, Colour.OrangeYellow, Colour.Yellow, Colour.YellowGreen, Colour.Green, Colour.GreenBlue, Colour.Blue, Colour.BluePurple, Colour.Purple, Colour.PurpleRed, Colour.RedLight, Colour.RedOrangeLight, Colour.OrangeLight, Colour.OrangeYellowLight, Colour.YellowLight, Colour.YellowGreenLight, Colour.GreenLight, Colour.GreenBlueLight, Colour.BlueLight, Colour.BluePurpleLight, Colour.PurpleLight, Colour.PurpleRedLight, Colour.RedDark, Colour.RedOrangeDark, Colour.OrangeDark, Colour.OrangeYellowDark, Colour.YellowDark, Colour.YellowGreenDark, Colour.GreenDark, Colour.GreenBlueDark, Colour.BlueDark, Colour.BluePurpleDark, Colour.PurpleDark, Colour.PurpleRedDark,
+            Colour.White, Colour.Grey, Colour.WhiteLight, Colour.GreyLight, Colour.BlackLight, Colour.WhiteDark, Colour.GreyDark,
+            //Colour.Black, Colour.BlackDark
+        ];
+        return colours[Math.floor(Math.random() * colours.length)];
     }
 
     /**

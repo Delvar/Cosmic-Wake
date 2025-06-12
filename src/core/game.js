@@ -210,7 +210,9 @@ export class Game {
 
         ctx.save();
         ctx.fillStyle = Colour.White.toRGB();
+        ctx.strokeStyle = Colour.Black.toRGB();
         ctx.textAlign = 'left';
+        ctx.strokeText(`FPS: ${this.fps}`, 10, 20);
         ctx.fillText(`FPS: ${this.fps}`, 10, 20);
         // 144 FPS = 6.94 ms
         // 120 FPS = 8.33 ms
@@ -236,6 +238,7 @@ export class Game {
             //ctx.font = '20px Arial';
             ctx.textAlign = 'right';
             const zoomPercent = Math.round(this.camera.zoom * 100);
+            ctx.strokeText(`${zoomPercent}%`, this.canvasSize.width - 10, 30);
             ctx.fillText(`${zoomPercent}%`, this.canvasSize.width - 10, 30);
             ctx.restore();
         }
@@ -313,7 +316,9 @@ export class Game {
         starSystem.particleManager.draw(ctx, this.targetCamera);
         const targetName = (target instanceof Ship || target instanceof CelestialBody) ? target.name : "Unnamed Object";
         ctx.fillStyle = Colour.White.toRGB();
+        ctx.strokeStyle = Colour.Black.toRGB();
         ctx.textAlign = "center";
+        ctx.strokeText(targetName, this.targetCanvas.width / 2, 20);
         ctx.fillText(targetName, this.targetCanvas.width / 2, 20);
 
         if (target && target instanceof Ship && !target.despawned && (target.state === 'Flying' || target.state === 'Disabled')) {
@@ -532,14 +537,15 @@ export class GameManager {
                         //spawn officer
                         aiShip = createRandomFastShip(spawnPlanet.position.x, spawnPlanet.position.y, system, officerFaction);
                         aiShip.pilot = new OfficerAiPilot(aiShip, new OfficerJob(aiShip));
-                        aiShip.colors.wings.set(0.25, 0.25, 0.9, 1);
-                        aiShip.colors.hull.set(0.9, 0.9, 0.9, 1);
+                        aiShip.colors.wings = Colour.BlueDark;
+                        aiShip.colors.hull = Colour.WhiteLight;
                         officerCount++;
                     } else if (pirateCount < 5 && Math.random() < 0.25) {
                         //spawn pirate
                         aiShip = createRandomFastShip(spawnPlanet.position.x, spawnPlanet.position.y, system, pirateFaction);
                         aiShip.pilot = new PirateAiPilot(aiShip, new PirateJob(aiShip));
-                        aiShip.colors.wings.set(0.9, 0, 0, 1);
+                        aiShip.colors.wings = Colour.RedDark;
+                        aiShip.colors.hull = Colour.GreyDark;
                         pirateCount++;
                     } else {
                         //spawn civilian

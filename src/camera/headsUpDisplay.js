@@ -124,7 +124,7 @@ export class HeadsUpDisplay {
         const scale = target instanceof Ship ? target.shipScale : 1.0;
         ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, camera.worldToSize(target.radius * scale) + 5.0, 0, TWO_PI);
         ctx.lineWidth = 2.5;
-        ctx.strokeStyle = 'rgba(0.0,0.0,0.0,0.5)';
+        ctx.strokeStyle = Colour.Black.toRGB();
         ctx.stroke();
         ctx.lineWidth = 2;
         if (target instanceof Ship) {
@@ -161,8 +161,9 @@ export class HeadsUpDisplay {
         ctx.save();
 
         //Draw ring outline
-        ctx.strokeStyle = 'rgba(0.0,0.0,0.0,0.5)';
+        ctx.strokeStyle = Colour.Black.toRGB();
         ctx.lineWidth = this.ringLineWidth + 1.0;
+
         ctx.beginPath();
         ctx.arc(camera.screenCenter.x, camera.screenCenter.y, ringRadius, 0, TWO_PI);
         ctx.stroke();
@@ -231,7 +232,7 @@ export class HeadsUpDisplay {
         ctx.save();
         ctx.fillStyle = Colour.White.toRGB();
         ctx.textAlign = 'center';
-        ctx.strokeStyle = 'rgba(0.0,0.0,0.0,0.5)';
+        ctx.strokeStyle = Colour.Black.toRGB();
         ctx.lineWidth = 2.0;
 
         for (let i = 0; i < objects.length; i++) {
@@ -261,9 +262,12 @@ export class HeadsUpDisplay {
         let autopilotStatus = this.gameManager.cameraTarget?.pilot?.getStatus();
 
         if (autopilotStatus) {
-            ctx.fillStyle = Colour.White.toRGB();;
+            ctx.fillStyle = Colour.White.toRGB();
+            ctx.strokeStyle = Colour.Black.toRGB();
             ctx.textAlign = "center";
-            ctx.fillText(autopilotStatus, this.size.width / 2, 20); // Top middle of screen
+            // Top middle of screen
+            ctx.strokeText(autopilotStatus, this.size.width / 2, 20)
+            ctx.fillText(autopilotStatus, this.size.width / 2, 20);
         }
 
         // Determine the current target

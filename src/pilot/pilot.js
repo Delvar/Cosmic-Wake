@@ -526,6 +526,12 @@ export class PlayerPilot extends Pilot {
             this.handleAlliedShipSelection(deltaTime, gameManager);
         }
 
+        // Check for turret mode switch
+        if (pressed('u') || pressed('U')) {
+            this.ship.cycleTurretMode();
+            console.log(`Turret mode changed to: ${this.ship.turretMode}`);
+        }
+
         // Update autopilot if active
         if (this.autopilot?.active) {
             this.autopilot.update(deltaTime, gameManager);

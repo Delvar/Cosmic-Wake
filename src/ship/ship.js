@@ -202,7 +202,7 @@ export class Ship extends GameObject {
         this._recentExplosions = Array(5).fill().map(() => ({ position: new Vector2D(0, 0), time: -Infinity, force: 0 }));
         /** @type {Turret[]} Array of turrets. */
         this.turrets = [];
-        /** @type {string} the mode of the turrest 'Full-auto', 'Auto-target', 'Target-only', 'Disabled'. */
+        /** @type {string} the mode of the turrets 'Full-auto', 'Auto-target', 'Target-only', 'Disabled'. */
         this.turretMode = 'Full-auto';
         /** @type {FixedWeapon[]} Array of fixed weapons. */
         this.fixedWeapons = [];
@@ -576,6 +576,16 @@ export class Ship extends GameObject {
         for (const turret of this.turrets) {
             turret.fire(this, this.starSystem.projectileManager);
         }
+    }
+
+    /**
+     * Cycles the turret mode to the next available mode.
+     */
+    cycleTurretMode() {
+        const modes = ['Full-auto', 'Auto-target', 'Target-only', 'Disabled'];
+        const currentIndex = modes.indexOf(this.turretMode);
+        const nextIndex = (currentIndex + 1) % modes.length;
+        this.turretMode = modes[nextIndex];
     }
 
     /**

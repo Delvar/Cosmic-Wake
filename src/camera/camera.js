@@ -11,42 +11,52 @@ import { GameObject } from '/src/core/gameObject.js';
 export class Camera {
     /**
      * Creates a new Camera instance.
-     * @param {StarSystem} starSystem - The initial star system.
-     * @param {Vector2D} position - The initial position of the camera in world coordinates.
-     * @param {Vector2D} screenSize - The size of the screen in pixels.
+     * @param {HTMLCanvasElement} foregroundCanvas - The main canvas for rendering ships etc.
+     * @param {HTMLCanvasElement} backgroundCanvas - The background canvas for rendering starfield.
      * @param {number} [zoom=1] - The initial zoom level (default is 1).
      */
-    constructor(starSystem, position, screenSize, zoom = 1) {
+    constructor(foregroundCanvas, backgroundCanvas, zoom = 1) {
         /** @type {boolean} Enables or disables debug mode for the camera. */
         this.debug = false;
-        /** @type {StarSystem} The star system the camera is currently viewing. */
-        this.starSystem = starSystem;
+        /** @type {StarSystem|null} The star system the camera is currently viewing. */
+        this.starSystem = null;
         /** @type {Vector2D} The position of the camera in world coordinates. */
-        this.position = position.clone();
+        this.position = new Vector2D(0.0, 0.0);
+
+        /** @type {HTMLCanvasElement} The main canvas for rendering. */
+        this.foregroundCanvas = foregroundCanvas;
+        /** @type {CanvasRenderingContext2D} The 2D rendering context for the main canvas. */
+        this.foregroundCtx = this.foregroundCanvas.getContext('2d');
+
+        /** @type {HTMLCanvasElement} The main canvas for rendering. */
+        this.backgroundCanvas = backgroundCanvas;
+        /** @type {CanvasRenderingContext2D} The 2D rendering context for the main canvas. */
+        this.backgroundCtx = this.backgroundCanvas.getContext('2d', { alpha: false });
+
         /** @type {Vector2D} The size of the screen in pixels. */
-        this.screenSize = screenSize.clone();
+        this.screenSize = new Vector2D(0.0, 0.0);
         /** @type {number} The current zoom level of the camera. */
         this.zoom = zoom;
         /** @type {number} The reciprocal of the zoom level for faster calculations. */
         this.zoomReciprocal = 1 / zoom;
         /** @type {Vector2D} The size of the world view in world coordinates, based on screen size and zoom. */
-        this.worldSize = new Vector2D(screenSize.x * this.zoomReciprocal, screenSize.y * this.zoomReciprocal);
+        this.worldSize = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} The center of the screen in pixels. */
-        this.screenCenter = new Vector2D(screenSize.x / 2, screenSize.y / 2);
+        this.screenCenter = new Vector2D(0.0, 0.0);
         /** @type {Object} The bounds of the camera's view in world coordinates, with angles for visibility. */
         this.worldBounds = {
             /** @type {number} The left boundary of the camera's view in world coordinates. */
-            left: 0,
+            left: 0.0,
             /** @type {number} The right boundary of the camera's view in world coordinates. */
-            right: 0,
+            right: 0.0,
             /** @type {number} The top boundary of the camera's view in world coordinates. */
-            top: 0,
+            top: 0.0,
             /** @type {number} The bottom boundary of the camera's view in world coordinates. */
-            bottom: 0,
+            bottom: 0.0,
             /** @type {number} The minimum angle of the camera's view corners. */
-            minAngle: 0,
+            minAngle: 0.0,
             /** @type {number} The maximum angle of the camera's view corners. */
-            maxAngle: 0
+            maxAngle: 0.0
         };
         // Set initial bounds
         this._updateWorldBounds();
@@ -85,6 +95,13 @@ export class Camera {
         this.screenSize.set(screenSizeX, screenSizeY);
         this.screenCenter.set(screenSizeX / 2, screenSizeY / 2); // Update cached screen center
         this.worldSize.set(screenSizeX * this.zoomReciprocal, screenSizeY * this.zoomReciprocal);
+
+        this.foregroundCanvas.width = screenSizeX;
+        this.foregroundCanvas.height = screenSizeY;
+        this.backgroundCanvas.width = screenSizeX;
+        this.backgroundCanvas.height = screenSizeY;
+        this.foregroundCtx.font = 'bolder 16px "Century Gothic Paneuropean", "Century Gothic", "CenturyGothic", "AppleGothic", sans-serif';
+
         this._updateWorldBounds(); // Update world-space bounds
     }
 
@@ -261,12 +278,12 @@ export class Camera {
 export class TargetCamera extends Camera {
     /**
      * Creates a new TargetCamera instance.
-     * @param {StarSystem} starSystem - The initial star system.
-     * @param {Vector2D} position - The initial position of the camera in world coordinates.
-     * @param {Vector2D} screenSize - The size of the screen in pixels.
+     * @param {HTMLCanvasElement} foregroundCanvas - The main canvas for rendering ships etc.
+     * @param {HTMLCanvasElement} backgroundCanvas - The background canvas for rendering starfield.
+     * @param {number} [zoom=1] - The initial zoom level (default is 1).
      */
-    constructor(starSystem, position, screenSize) {
-        super(starSystem, position, screenSize, 1);
+    constructor(foregroundCanvas, backgroundCanvas, zoom = 1) {
+        super(foregroundCanvas, backgroundCanvas, zoom);
         /** @type {number} Cache for the last target size to avoid recomputing zoom. */
         this.lastTargetSize = null;
         /** @type {number} Cache for the last zoom level to detect changes. */
@@ -281,13 +298,13 @@ export class TargetCamera extends Camera {
      */
     updateTarget(target) {
         if (!target || !target.position) return;
-        this.position.set(target.position); // Reuse position vector
+        this.position.set(target.position);
         this.starSystem = target.starSystem;
         let size = 10;
         // Compute target size and check if it has changed
         size = target.radius;
 
-        if (size !== this.lastTargetSize) {
+        if (this.lastTargetSize == null || size !== this.lastTargetSize) {
             // Adjust zoom calculation to ensure the target fits comfortably on screen
             const targetWorldSize = size * 4; // Simplified: Use diameter * 2 for buffer
             const viewSize = Math.min(this.screenSize.width, this.screenSize.height);

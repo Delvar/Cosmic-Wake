@@ -147,6 +147,10 @@ export class StarField {
     draw(ctx, camera) {
         ctx.save();
 
+        //ctx.fillStyle = 'rgba(0, 0, 0, 0.25)'
+        ctx.fillStyle = 'rgb(0, 0, 0)'
+        ctx.fillRect(0, 0, camera.screenSize.width, camera.screenSize.height);
+
         const zoomThreshold = 1 - remapClamp(camera.zoom, 0.5, 1, 0.5, 1);
         this._scratchScreenSize.set(camera.screenSize.width, camera.screenSize.height);
         this._scratchHalfScreenSize.set(this._scratchScreenSize).multiplyInPlace(0.5);
@@ -226,34 +230,34 @@ export class StarField {
 
             const size = 1 + parallaxFactor * 2;
             const halfSize = size / 2;
-            if (size > 2) {
-                for (let colourIdx = 0; colourIdx < palette.length; colourIdx++) {
-                    const positions = starsByColour[colourIdx];
-                    if (positions.length) {
-                        ctx.fillStyle = palette[colourIdx];
-                        ctx.beginPath();
-                        for (const posIdx of positions) {
-                            const x = this.positionPool[posIdx];
-                            const y = this.positionPool[posIdx + 1];
-                            ctx.arc(x, y, halfSize, 0, TWO_PI);
-                            ctx.moveTo(x, y);
-                        }
-                        ctx.fill();
-                    }
-                }
-            } else {
-                for (let colourIdx = 0; colourIdx < palette.length; colourIdx++) {
-                    const positions = starsByColour[colourIdx];
-                    if (positions.length) {
-                        ctx.fillStyle = palette[colourIdx];
-                        for (const posIdx of positions) {
-                            const x = this.positionPool[posIdx];
-                            const y = this.positionPool[posIdx + 1];
-                            ctx.fillRect(x - halfSize, y - halfSize, size, size);
-                        }
+            // if (size > 2) {
+            //     for (let colourIdx = 0; colourIdx < palette.length; colourIdx++) {
+            //         const positions = starsByColour[colourIdx];
+            //         if (positions.length) {
+            //             ctx.fillStyle = palette[colourIdx];
+            //             ctx.beginPath();
+            //             for (const posIdx of positions) {
+            //                 const x = this.positionPool[posIdx];
+            //                 const y = this.positionPool[posIdx + 1];
+            //                 ctx.arc(x, y, halfSize, 0, TWO_PI);
+            //                 ctx.moveTo(x, y);
+            //             }
+            //             ctx.fill();
+            //         }
+            //     }
+            // } else {
+            for (let colourIdx = 0; colourIdx < palette.length; colourIdx++) {
+                const positions = starsByColour[colourIdx];
+                if (positions.length) {
+                    ctx.fillStyle = palette[colourIdx];
+                    for (const posIdx of positions) {
+                        const x = this.positionPool[posIdx];
+                        const y = this.positionPool[posIdx + 1];
+                        ctx.fillRect(x - halfSize, y - halfSize, size, size);
                     }
                 }
             }
+            // }
         }
         this.pruneCache();
         ctx.restore();

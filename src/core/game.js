@@ -29,28 +29,14 @@ export class Game {
     /**
      * Creates a new Game instance.
      * @param {GameManager} manager - The game manager providing game state.
-     * @param {HTMLCanvasElement} canvas - The main game canvas.
-     * @param {HTMLCanvasElement} targetCanvas - The canvas for the target view.
      */
-    constructor(manager, canvas, targetCanvas) {
+    constructor(manager) {
         /** @type {GameManager} The game manager providing access to game state. */
         this.manager = manager;
-        /** @type {HTMLCanvasElement} The main game canvas for rendering. */
-        this.canvas = canvas;
-        /** @type {CanvasRenderingContext2D} The 2D rendering context for the main canvas. */
-        this.ctx = this.canvas.getContext('2d');
-        /** @type {Vector2D} The size of the main canvas in pixels. */
-        this.canvasSize = new Vector2D(0, 0);
-        /** @type {HTMLCanvasElement} The canvas for rendering the target view. */
-        this.targetCanvas = targetCanvas;
-        /** @type {CanvasRenderingContext2D} The 2D rendering context for the target canvas. */
-        this.targetCtx = this.targetCanvas.getContext('2d');
-        this.targetCtx.font = 'bolder 16px "Century Gothic Paneuropean", "Century Gothic", "CenturyGothic", "AppleGothic", sans-serif';
-
         /** @type {TargetCamera} The camera for the target view, managed by the game manager. */
         this.targetCamera = manager.targetCamera;
         /** @type {Camera} The main camera for the game, managed by the game manager. */
-        this.camera = manager.camera;
+        this.mainCamera = manager.mainCamera;
         /** @type {StarField} The starfield for rendering background stars, managed by the game manager. */
         this.starField = manager.starField;
         /** @type {HeadsUpDisplay} The HUD for displaying game information, managed by the game manager. */
@@ -63,34 +49,37 @@ export class Game {
         this.fps = 0;
         /** @type {number} The timestamp of the last FPS update. */
         this.lastFpsUpdate = performance.now();
-        // Target frame rate for game logic
+        /** @type {number} Target frame rate for game logic. */
         this.targetFps = 60;
-        // Approximately 0.01667 seconds (16.67 ms)
+        /** @type {number} Approximately 0.01667 seconds (16.67 ms) */
         this.fixedDeltaTime = 1 / this.targetFps;
-        // Accumulator to track elapsed time (in seconds)
+        /** @type {number} Accumulator to track elapsed time (in seconds) */
         this.timeAccumulator = 0;
-
         /** @type {number} Timer for controlling zoom text display duration. */
         this.zoomTextTimer = 0;
-
-        // Initialize canvas size
-        this.resizeCanvas();
         /** @type {Function} The bound game loop function for rendering and updating the game. */
         this.gameLoop = this.gameLoop.bind(this);
-
+        // Initialize canvas size
+        this.resizeMainCamera();
+        this.resizeTargetCamera();
+        //this.targetCamera.resize(200.0, 200.0);
         if (new.target === Game) Object.seal(this);
     }
 
     /**
-     * Resizes the canvas and updates related components when the window size changes.
+     * Resizes the main camera and its canvas and updates related components when the window size changes.
      */
-    resizeCanvas() {
-        this.canvasSize.set(window.innerWidth, window.innerHeight);
-        this.canvas.width = this.canvasSize.width;
-        this.canvas.height = this.canvasSize.height;
-        this.camera.resize(this.canvasSize.width, this.canvasSize.height);
-        this.hud.resize(this.canvasSize.width, this.canvasSize.height);
-        this.ctx.font = 'bolder 16px "Century Gothic Paneuropean", "Century Gothic", "CenturyGothic", "AppleGothic", sans-serif';
+    resizeMainCamera() {
+        this.mainCamera.resize(window.innerWidth, window.innerHeight);
+        this.hud.resize(window.innerWidth, window.innerHeight);
+    }
+
+    /**
+     * Resizes the main camera and its canvas and updates related components when the window size changes.
+     */
+    resizeTargetCamera() {
+        const parent = this.targetCamera.foregroundCanvas.parentElement;
+        this.targetCamera.resize(parent.clientWidth, parent.clientHeight);
     }
 
     /**
@@ -98,19 +87,39 @@ export class Game {
      * @param {number} currentTime - The current time from requestAnimationFrame.
      */
     gameLoop(currentTime) {
+        // Initialize lastTime if not set
+        if (!this.lastTime) {
+            this.lastTime = currentTime;
+        }
+
         const deltaTime = (currentTime - this.lastTime) / 1000;
         this.lastTime = currentTime;
 
-        // Add the elapsed time to the accumulator
-        this.timeAccumulator += deltaTime;
+        // Clamp deltaTime to prevent large jumps
+        const maxDeltaTime = 0.1;
+        this.timeAccumulator += Math.min(deltaTime, maxDeltaTime);
 
-        // Update game logic at a fixed 60 FPS rate
+        // Update game logic and render starfield at fixed 60 FPS
         while (this.timeAccumulator >= this.fixedDeltaTime) {
             this.update(this.fixedDeltaTime);
+
+            // Render starfield to background canvas
+            if (this.starField && this.mainCamera.backgroundCtx) {
+                // Draw starfield for main camera
+                this.starField.draw(this.mainCamera.backgroundCtx, this.mainCamera);
+
+                // Draw starfield for target camera (if visible)
+                if (this.targetCamera && this.targetCamera.foregroundCanvas.parentElement.style.display !== 'none') {
+                    this.starField.draw(this.targetCamera.backgroundCtx, this.targetCamera);
+                }
+            }
+
             this.timeAccumulator -= this.fixedDeltaTime;
         }
 
+        // Render game to foreground canvas at variable frame rate
         this.render(deltaTime);
+
         requestAnimationFrame(this.gameLoop);
     }
 
@@ -130,7 +139,7 @@ export class Game {
 
         this.manager.update(deltaTime);
         if (this.manager.cameraTarget && !this.manager.cameraTarget.despawned) {
-            this.camera.update(this.manager.cameraTarget.starSystem, this.manager.cameraTarget.position);
+            this.mainCamera.update(this.manager.cameraTarget.starSystem, this.manager.cameraTarget.position);
         }
 
         if (this.manager.zoomTextTimer > 0) {
@@ -192,36 +201,38 @@ export class Game {
         }
         this.frameCount++;
 
-        const ctx = this.ctx;
+        const camera = this.mainCamera;
+        const ctx = camera.foregroundCtx;
+
         ctx.save();
-        ctx.fillStyle = 'black';
-        ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-        this.starField.draw(ctx, this.camera);
+        ctx.clearRect(0, 0, camera.screenSize.width, camera.screenSize.height);
+
         const cameraTarget = this.manager.cameraTarget;
         if (!cameraTarget || cameraTarget.despawned) {
             this.manager.cameraTarget = null;
         }
-        const starSystem = this.camera.starSystem;
+
+        const starSystem = camera.starSystem;
         if (!starSystem) {
-            console.log(this.camera);
-            throw new Error('No starSystem on this.camera');
+            //throw new Error('No starSystem on this.camera');
+            return;
         }
-        if (starSystem.asteroidBelt) starSystem.asteroidBelt.draw(ctx, this.camera);
+        if (starSystem.asteroidBelt) starSystem.asteroidBelt.draw(ctx, this.mainCamera);
         for (let i = 0; i < starSystem.stars.length; i++) {
-            starSystem.stars[i].draw(ctx, this.camera);
+            starSystem.stars[i].draw(ctx, camera);
         }
         for (let i = 0; i < starSystem.planets.length; i++) {
-            starSystem.planets[i].draw(ctx, this.camera);
+            starSystem.planets[i].draw(ctx, camera);
         }
         for (let i = 0; i < starSystem.jumpGates.length; i++) {
-            starSystem.jumpGates[i].draw(ctx, this.camera);
+            starSystem.jumpGates[i].draw(ctx, camera);
         }
         for (let i = 0; i < starSystem.ships.length; i++) {
-            starSystem.ships[i].draw(ctx, this.camera);
+            starSystem.ships[i].draw(ctx, camera);
         }
-        starSystem.projectileManager.draw(ctx, this.camera);
-        starSystem.particleManager.draw(ctx, this.camera);
-        this.hud.draw(ctx, this.camera);
+        starSystem.projectileManager.draw(ctx, camera);
+        starSystem.particleManager.draw(ctx, camera);
+        this.hud.draw(ctx, camera);
         this.renderTargetView();
 
         ctx.save();
@@ -251,17 +262,17 @@ export class Game {
         if (this.manager.zoomTextTimer > 0) {
             ctx.save();
             ctx.fillStyle = Colour.White.toRGB();
-            //ctx.font = '20px Arial';
             ctx.textAlign = 'right';
-            const zoomPercent = Math.round(this.camera.zoom * 100);
-            ctx.strokeText(`${zoomPercent}%`, this.canvasSize.width - 10, 30);
-            ctx.fillText(`${zoomPercent}%`, this.canvasSize.width - 10, 30);
+            const zoomPercent = Math.round(camera.zoom * 100);
+            ctx.strokeText(`${zoomPercent}%`, camera.screenSize.width - 10, 30);
+            ctx.fillText(`${zoomPercent}%`, camera.screenSize.width - 10, 30);
             ctx.restore();
         }
 
         if (cameraTarget && cameraTarget instanceof Ship && !cameraTarget.despawned && (cameraTarget.state === 'Flying' || cameraTarget.state === 'Disabled')) {
-            this.drawShipStats(ctx, this.camera, cameraTarget);
+            this.drawShipStats(ctx, camera, cameraTarget);
         }
+
         ctx.restore();
     }
 
@@ -278,67 +289,64 @@ export class Game {
             target = this.manager.cameraTarget.target;
         };
 
+        const camera = this.targetCamera;
+        const ctx = camera.foregroundCtx;
+        const parent = camera.foregroundCanvas.parentElement;
+
         if (!target) {
-            if (this.targetCanvas.style.display !== 'none') {
-                this.targetCanvas.style.display = 'none';
+            if (parent.style.display !== 'none') {
+                parent.style.display = 'none';
             }
             return;
         } else {
-            if (this.targetCanvas.style.display !== 'block') {
-                this.targetCanvas.style.display = 'block';
+            if (parent.style.display !== 'block') {
+                parent.style.display = 'block';
             }
         }
 
         if (this.manager.cameraTarget.target instanceof Ship) {
             switch (this.manager.cameraTarget.getRelationship(this.manager.cameraTarget.target)) {
                 case FactionRelationship.Allied:
-                    //this.targetCanvas.style.borderColor = Colour.Allied.toRGB();
-                    this.targetCanvas.style.outlineColor = Colour.Allied.toRGB();
+                    parent.style.outlineColor = Colour.Allied.toRGB();
                     break;
                 case FactionRelationship.Neutral:
-                    // this.targetCanvas.style.borderColor = Colour.Neutral.toRGB();
-                    this.targetCanvas.style.outlineColor = Colour.Neutral.toRGB();
+                    parent.style.outlineColor = Colour.Neutral.toRGB();
                     break;
                 case FactionRelationship.Hostile:
-                    // this.targetCanvas.style.borderColor = Colour.Hostile.toRGB();
-                    this.targetCanvas.style.outlineColor = Colour.Hostile.toRGB();
+                    parent.style.outlineColor = Colour.Hostile.toRGB();
                     break;
             }
         } else {
-            // this.targetCanvas.style.borderColor = Colour.Neutral.toRGB();
-            this.targetCanvas.style.outlineColor = Colour.Neutral.toRGB();
+            parent.style.outlineColor = Colour.Neutral.toRGB();
         }
 
-        const ctx = this.targetCtx;
-        ctx.fillStyle = 'black';
-        ctx.fillRect(0, 0, this.targetCanvas.width, this.targetCanvas.height);
-        this.starField.draw(ctx, this.targetCamera);
+        ctx.clearRect(0, 0, camera.screenSize.width, camera.screenSize.height);
 
-        const starSystem = target.starSystem; //this.manager.cameraTarget.starSystem;
+        const starSystem = target.starSystem;
         if (starSystem.asteroidBelt) starSystem.asteroidBelt.draw(ctx, this.targetCamera);
         for (let i = 0; i < starSystem.stars.length; i++) {
-            starSystem.stars[i].draw(ctx, this.targetCamera);
+            starSystem.stars[i].draw(ctx, camera);
         }
         for (let i = 0; i < starSystem.planets.length; i++) {
-            starSystem.planets[i].draw(ctx, this.targetCamera);
+            starSystem.planets[i].draw(ctx, camera);
         }
         for (let i = 0; i < starSystem.jumpGates.length; i++) {
-            starSystem.jumpGates[i].draw(ctx, this.targetCamera);
+            starSystem.jumpGates[i].draw(ctx, camera);
         }
         for (let i = 0; i < starSystem.ships.length; i++) {
-            starSystem.ships[i].draw(ctx, this.targetCamera);
+            starSystem.ships[i].draw(ctx, camera);
         }
-        starSystem.projectileManager.draw(ctx, this.targetCamera);
-        starSystem.particleManager.draw(ctx, this.targetCamera);
+        starSystem.projectileManager.draw(ctx, camera);
+        starSystem.particleManager.draw(ctx, camera);
         const targetName = (target instanceof Ship || target instanceof CelestialBody) ? target.name : "Unnamed Object";
         ctx.fillStyle = Colour.White.toRGB();
         ctx.strokeStyle = Colour.Black.toRGB();
         ctx.textAlign = "center";
-        ctx.strokeText(targetName, this.targetCanvas.width / 2, 20);
-        ctx.fillText(targetName, this.targetCanvas.width / 2, 20);
+        ctx.strokeText(targetName, camera.screenCenter.width, 20);
+        ctx.fillText(targetName, camera.screenCenter.width, 20);
 
         if (target && target instanceof Ship && !target.despawned && (target.state === 'Flying' || target.state === 'Disabled')) {
-            this.drawShipStats(ctx, this.targetCamera, target);
+            this.drawShipStats(ctx, camera, target);
         }
     }
 }
@@ -353,12 +361,19 @@ export class GameManager {
     constructor() {
         /** @type {boolean} Enables or disables debug mode for the game. */
         this.debug = false;
-        /** @type {HTMLCanvasElement} The main game canvas for rendering. */
-        // @ts-ignore
-        this.canvas = document.getElementById('gameCanvas');
-        /** @type {HTMLCanvasElement} The canvas for rendering the target view. */
-        // @ts-ignore
-        this.targetCanvas = document.getElementById('targetCanvas');
+
+        const mainCameraForegroundCanvas = document.getElementById('mainCameraForeground');
+        const mainCameraBackgroundCanvas = document.getElementById('mainCameraBackground');
+        const targetCameraForegroundCanvas = document.getElementById('targetCameraForeground');
+        const targetCameraBackgroundCanvas = document.getElementById('targetCameraBackground');
+
+        /** @type {Camera} The main camera tracking the player's ship. */
+        this.mainCamera = new Camera(mainCameraForegroundCanvas, mainCameraBackgroundCanvas, 1.0);
+        /** @type {TargetCamera} The camera for the target view, rendering a secondary perspective. */
+        this.targetCamera = new TargetCamera(targetCameraForegroundCanvas, targetCameraBackgroundCanvas, 1.0);
+        /** @type {Ship} The current target for the camera, typically the player's ship. */
+        this.cameraTarget = null;
+
         /** @type {Object.<string, boolean>} Tracks the current state of keyboard inputs. */
         this.keys = {};
         /** @type {Object.<string, boolean>} Tracks the previous state of keyboard inputs for detecting changes. */
@@ -376,14 +391,9 @@ export class GameManager {
         this.playerShip = new Interceptor(spawnPlanet.position.x + spawnPlanet.radius * 1.5, spawnPlanet.position.y, this.galaxy[0], this.factionManager.getFaction('Player'));
         /** @type {PlayerPilot} The pilot controlling the player's ship. */
         this.playerPilot = new PlayerPilot(this.playerShip);
-        /** @type {Camera} The main camera tracking the player's ship. */
-        this.camera = new Camera(this.playerShip.starSystem, this.playerShip.position, new Vector2D(window.innerWidth, window.innerHeight), 1);
-        /** @type {Ship} The current target for the camera, typically the player's ship. */
         this.cameraTarget = this.playerShip;
-        /** @type {TargetCamera} The camera for the target view, rendering a secondary perspective. */
-        this.targetCamera = new TargetCamera(this.playerShip.starSystem, new Vector2D(0, 0), new Vector2D(this.targetCanvas.width, this.targetCanvas.height));
         /** @type {StarField} The starfield for rendering background stars. */
-        this.starField = new StarField(20, 1000, 10);
+        this.starField = new StarField(20, 1000, 5);
         /** @type {HeadsUpDisplay} The HUD for displaying game information. */
         this.hud = new HeadsUpDisplay(this, window.innerWidth, window.innerHeight);
         /** @type {number} Timer for controlling zoom text display duration. */
@@ -393,7 +403,7 @@ export class GameManager {
         /** @type {number} Interval between AI ship spawns, randomized for variety. */
         this.spawnInterval = this.randomSpawnInterval();
         /** @type {Game} The game instance managing rendering and updates. */
-        this.game = new Game(this, this.canvas, this.targetCanvas);
+        this.game = new Game(this);
 
         // Temporary scratch values to avoid allocations
         /** @type {Vector2D} Scratch vector for calculating spawn positions in spawnAiShips. */
@@ -640,7 +650,7 @@ export class GameManager {
         if (this.cameraTarget) {
             this.cameraTarget.debug = false;
         }
-        const ships = this.camera.starSystem.ships;
+        const ships = this.mainCamera.starSystem.ships;
         if (ships.length === 0) return;
         const currentIndex = ships.indexOf(this.cameraTarget);
         const nextIndex = (currentIndex + 1) % ships.length;
@@ -654,19 +664,28 @@ export class GameManager {
     setupEventListeners() {
         let offsetX, offsetY;
 
-        this.targetCanvas.addEventListener('dragstart', (e) => {
+        const parent = this.targetCamera.foregroundCanvas.parentElement;
+        parent.addEventListener('dragstart', (e) => {
             offsetX = e.offsetX;
             offsetY = e.offsetY;
         });
 
-        this.targetCanvas.addEventListener('drag', (e) => {
+        parent.addEventListener('drag', (e) => {
             if (e.clientX > 0 && e.clientY > 0) {
-                this.targetCanvas.style.left = `${e.clientX - offsetX}px`;
-                this.targetCanvas.style.top = `${e.clientY - offsetY}px`;
+                parent.style.left = `${e.clientX - offsetX}px`;
+                parent.style.top = `${e.clientY - offsetY}px`;
             }
         });
 
-        window.addEventListener('resize', () => { this.game.resizeCanvas(); });
+        // Set up ResizeObserver to call resizeTargetCamera on size change
+        const resizeObserver = new ResizeObserver(() => {
+            this.game.resizeTargetCamera();
+        });
+
+        // Start observing
+        resizeObserver.observe(parent);
+
+        window.addEventListener('resize', () => { this.game.resizeMainCamera() });
 
         window.addEventListener('keydown', (e) => {
             this.keys[e.key] = true;
@@ -685,19 +704,19 @@ export class GameManager {
                 if (this.cameraTarget) {
                     this.cameraTarget.debug = this.debug;
                 }
-                if (this.camera) {
-                    this.camera.debug = this.debug;
+                if (this.mainCamera) {
+                    this.mainCamera.debug = this.debug;
                 }
                 console.log("DEBUG: ", this.debug);
             }
 
             if (e.key === '=' || e.key === '+') {
-                this.camera.setZoom(this.camera.zoom + 0.1);
+                this.mainCamera.setZoom(this.mainCamera.zoom + 0.1);
                 this.zoomTextTimer = 120;
             }
 
             if (e.key === '-' || e.key === '_') {
-                this.camera.setZoom(this.camera.zoom - 0.1);
+                this.mainCamera.setZoom(this.mainCamera.zoom - 0.1);
                 this.zoomTextTimer = 120;
             }
 
@@ -707,8 +726,83 @@ export class GameManager {
 
         window.addEventListener('wheel', (e) => {
             const zoomStep = 0.1;
-            this.camera.setZoom(this.camera.zoom + (e.deltaY < 0 ? zoomStep : -zoomStep));
+            this.mainCamera.setZoom(this.mainCamera.zoom + (e.deltaY < 0 ? zoomStep : -zoomStep));
             this.zoomTextTimer = 120;
+        });
+
+        // Handle resizing via corner handles
+        const handles = parent.querySelectorAll('.resize-handle');
+        let isResizing = false;
+        let startX, startY, startWidth, startHeight, startRight, startTop, corner;
+
+        handles.forEach((handle) => {
+            handle.addEventListener('mousedown', (e) => {
+                e.preventDefault(); // Prevent drag interference
+                isResizing = true;
+                corner = handle.classList[1]; // e.g., 'top-left'
+                startX = e.clientX;
+                startY = e.clientY;
+                const rect = parent.getBoundingClientRect();
+                startWidth = rect.width;
+                startHeight = rect.height;
+                startRight = window.innerWidth - (rect.right - 2); // Account for 2px border
+                startTop = rect.top - 2;
+            });
+        });
+
+        // Inside initTargetCameraEvents, replace the mousemove handler
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+
+            const minWidth = 100; // Match CSS min-width
+            const minHeight = 100; // Match CSS min-height
+            let newWidth, newHeight, newRight, newTop;
+
+            // Calculate mouse movement (positive deltaX when dragging left)
+            const deltaX = startX - e.clientX; // Left drag = positive
+            const deltaY = startY - e.clientY; // Up drag = positive
+
+            if (corner === 'top-left') {
+                // Resize left: Increase/decrease width, keep right fixed
+                newWidth = Math.max(minWidth, startWidth + deltaX);
+                newRight = startRight; // Right edge stays fixed
+                // Resize up: Increase/decrease height, adjust top
+                newHeight = Math.max(minHeight, startHeight + deltaY);
+                newTop = startTop - deltaY;
+            } else if (corner === 'top-right') {
+                // Resize right: Increase/decrease width, adjust right
+                newWidth = Math.max(minWidth, startWidth - deltaX);
+                newRight = startRight + deltaX;
+                // Resize up: Increase/decrease height, adjust top
+                newHeight = Math.max(minHeight, startHeight + deltaY);
+                newTop = startTop - deltaY;
+            } else if (corner === 'bottom-left') {
+                // Resize left: Increase/decrease width, keep right fixed
+                newWidth = Math.max(minWidth, startWidth + deltaX);
+                newRight = startRight;
+                // Resize down: Increase/decrease height, keep top fixed
+                newHeight = Math.max(minHeight, startHeight - deltaY);
+                newTop = startTop;
+            } else if (corner === 'bottom-right') {
+                // Resize right: Increase/decrease width, adjust right
+                newWidth = Math.max(minWidth, startWidth - deltaX);
+                newRight = startRight + deltaX;
+                // Resize down: Increase/decrease height, keep top fixed
+                newHeight = Math.max(minHeight, startHeight - deltaY);
+                newTop = startTop;
+            }
+
+            // Update div styles
+            parent.style.width = `${newWidth}px`;
+            parent.style.height = `${newHeight}px`;
+            parent.style.right = `${newRight}px`;
+            parent.style.top = `${newTop}px`;
+            parent.style.left = ''; // Clear conflicting style
+
+        });
+
+        document.addEventListener('mouseup', () => {
+            isResizing = false;
         });
     }
 }

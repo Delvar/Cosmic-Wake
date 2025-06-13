@@ -94,6 +94,7 @@ export class Game {
 
         const deltaTime = (currentTime - this.lastTime) / 1000;
         this.lastTime = currentTime;
+        let renderStarfield = false;
 
         // Clamp deltaTime to prevent large jumps
         const maxDeltaTime = 0.1;
@@ -102,7 +103,11 @@ export class Game {
         // Update game logic and render starfield at fixed 60 FPS
         while (this.timeAccumulator >= this.fixedDeltaTime) {
             this.update(this.fixedDeltaTime);
+            renderStarfield = true;
+            this.timeAccumulator -= this.fixedDeltaTime;
+        }
 
+        if (renderStarfield) {
             // Render starfield to background canvas
             if (this.starField && this.mainCamera.backgroundCtx) {
                 // Draw starfield for main camera
@@ -113,8 +118,6 @@ export class Game {
                     this.starField.draw(this.targetCamera.backgroundCtx, this.targetCamera);
                 }
             }
-
-            this.timeAccumulator -= this.fixedDeltaTime;
         }
 
         // Render game to foreground canvas at variable frame rate

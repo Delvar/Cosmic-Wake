@@ -293,6 +293,23 @@ export class TargetCamera extends Camera {
     }
 
     /**
+     * Resizes the screen and updates the world size and screen center.
+     * @param {number} screenSizeX - The new screen width in pixels.
+     * @param {number} screenSizeY - The new screen height in pixels.
+     */
+    resize(screenSizeX, screenSizeY) {
+        super.resize(screenSizeX, screenSizeY);
+        // Adjust zoom calculation to ensure the target fits comfortably on screen
+        const targetWorldSize = this.lastTargetSize * 4;
+        const viewSize = Math.min(this.screenSize.width, this.screenSize.height);
+        const newZoom = Math.max(0.5, Math.min((viewSize * 0.8) / targetWorldSize, 5));
+        if (newZoom !== this.lastZoom) {
+            this.setZoom(newZoom);
+            this.lastZoom = newZoom;
+        }
+    }
+
+    /**
      * Updates the camera to follow the target object and adjusts zoom based on target size.
      * @param {GameObject} target - The target GameObject to follow, or null to do nothing.
      */
@@ -306,11 +323,11 @@ export class TargetCamera extends Camera {
 
         if (this.lastTargetSize == null || size !== this.lastTargetSize) {
             // Adjust zoom calculation to ensure the target fits comfortably on screen
-            const targetWorldSize = size * 4; // Simplified: Use diameter * 2 for buffer
+            const targetWorldSize = size * 4;
             const viewSize = Math.min(this.screenSize.width, this.screenSize.height);
-            const newZoom = Math.max(0.5, Math.min((viewSize * 0.8) / targetWorldSize, 5)); // 0.8 to leave some padding
+            const newZoom = Math.max(0.5, Math.min((viewSize * 0.8) / targetWorldSize, 5));
             if (newZoom !== this.lastZoom) {
-                this.setZoom(newZoom); // Only update zoom if it has changed
+                this.setZoom(newZoom);
                 this.lastZoom = newZoom;
             }
             this.lastTargetSize = size;

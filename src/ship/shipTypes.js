@@ -95,10 +95,6 @@ export class Flivver extends Ship {
      * Draws the ship's hull, wings, and detail lines
      */
     drawShip(ctx, camera) {
-        // Set default stroke style and line width
-        ctx.strokeStyle = 'rgb(50, 50, 50)';
-        ctx.lineWidth = 0.1;
-
         // Draw the hull
         ctx.fillStyle = this.colors.hull.toRGB();
         ctx.beginPath();
@@ -275,10 +271,6 @@ export class Shuttle extends Ship {
      * Draws the ship's hull, wings, and detail lines
      */
     drawShip(ctx, camera) {
-        // Set default stroke style and line width
-        ctx.strokeStyle = 'rgb(50, 50, 50)';
-        ctx.lineWidth = 0.1;
-
         // Draw the hull
         ctx.fillStyle = this.colors.hull.toRGB();
         ctx.beginPath();
@@ -435,10 +427,6 @@ export class HeavyShuttle extends Ship {
      * Draws the ship's hull, wings, and detail lines
      */
     drawShip(ctx, camera) {
-        // Set default stroke style and line width
-        ctx.strokeStyle = 'rgb(50, 50, 50)';
-        ctx.lineWidth = 0.1;
-
         // Draw the hull
         ctx.fillStyle = this.colors.hull.toRGB();
         ctx.beginPath();
@@ -598,10 +586,6 @@ export class StarBarge extends Ship {
      * Draws the ship's hull, wings, and detail lines
      */
     drawShip(ctx, camera) {
-        // Set default stroke style and line width
-        ctx.strokeStyle = 'rgb(50, 50, 50)';
-        ctx.lineWidth = 0.1;
-
         // Draw the hull
         ctx.fillStyle = this.colors.hull.toRGB();
         ctx.beginPath();
@@ -824,10 +808,6 @@ export class Freighter extends Ship {
      * Draws the ship's hull, wings, and detail lines
      */
     drawShip(ctx, camera) {
-        // Set default stroke style and line width
-        ctx.strokeStyle = 'rgb(50, 50, 50)';
-        ctx.lineWidth = 0.1;
-
         // Draw the hull
         ctx.fillStyle = this.colors.hull.toRGB();
         ctx.beginPath();
@@ -1370,10 +1350,6 @@ export class Arrow extends Ship {
      * Draws the ship's hull, wings, and detail lines
      */
     drawShip(ctx, camera) {
-        // Set default stroke style and line width
-        ctx.strokeStyle = 'rgb(50, 50, 50)';
-        ctx.lineWidth = 0.1;
-
         // Draw the hull
         ctx.fillStyle = this.colors.hull.toRGB();
         ctx.beginPath();
@@ -1540,10 +1516,6 @@ export class Boxwing extends Ship {
      * Draws the ship's hull, wings, and detail lines
      */
     drawShip(ctx, camera) {
-        // Set default stroke style and line width
-        ctx.strokeStyle = 'rgb(50, 50, 50)';
-        ctx.lineWidth = 0.1;
-
         // Draw the hull
         ctx.fillStyle = this.colors.hull.toRGB();
         ctx.beginPath();
@@ -1716,10 +1688,6 @@ export class Interceptor extends Ship {
      * Draws the ship's hull, wings, and detail lines
      */
     drawShip(ctx, camera) {
-        // Set default stroke style and line width
-        ctx.strokeStyle = 'rgb(50, 50, 50)';
-        ctx.lineWidth = 0.1;
-
         // Draw the hull
         ctx.fillStyle = this.colors.hull.toRGB();
         ctx.beginPath();
@@ -1884,10 +1852,6 @@ export class Fighter extends Ship {
      * Draws the ship's hull, wings, and detail lines
      */
     drawShip(ctx, camera) {
-        // Set default stroke style and line width
-        ctx.strokeStyle = 'rgb(50, 50, 50)';
-        ctx.lineWidth = 0.1;
-
         // Draw the hull
         ctx.fillStyle = this.colors.hull.toRGB();
         ctx.beginPath();

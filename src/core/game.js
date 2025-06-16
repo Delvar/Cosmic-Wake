@@ -107,15 +107,31 @@ export class Game {
             this.timeAccumulator -= this.fixedDeltaTime;
         }
 
+        let fadeout = 1.0;
+        if (this.manager.cameraTarget instanceof Ship && (
+            this.manager.cameraTarget.state === 'JumpingOut' ||
+            this.manager.cameraTarget.state === 'JumpingIn'
+        )) {
+            const ship = this.manager.cameraTarget;
+            if (ship.state === 'JumpingOut') {
+                fadeout = remapClamp(ship.animationTime, 0.0, ship.animationJumpingDuration, 1.0, 0.5) ** 2;
+            } else if (ship.state === 'JumpingIn') {
+                fadeout = remapClamp(ship.animationTime, 0.0, ship.animationJumpingDuration, 0.5, 1.0) ** 2;
+            }
+            fadeout *= (deltaTime * 50.0);
+            renderStarfield = true;
+        }
+
         if (renderStarfield) {
             // Render starfield to background canvas
             if (this.starField && this.mainCamera.backgroundCtx) {
+
                 // Draw starfield for main camera
-                this.starField.draw(this.mainCamera.backgroundCtx, this.mainCamera);
+                this.starField.draw(this.mainCamera.backgroundCtx, this.mainCamera, fadeout);
 
                 // Draw starfield for target camera (if visible)
                 if (this.targetCamera && this.targetCamera.foregroundCanvas.parentElement.style.display !== 'none') {
-                    this.starField.draw(this.targetCamera.backgroundCtx, this.targetCamera);
+                    this.starField.draw(this.targetCamera.backgroundCtx, this.targetCamera, 1.0);
                 }
             }
         }
@@ -175,7 +191,11 @@ export class Game {
         ctx.fillRect(barGap, top, barWidth, barHeight);
         //ctx.shadowBlur = 8;
         //ctx.shadowColor = 'rgba(64, 64, 255, 0.75)';
-        ctx.fillStyle = Colour.Blue.toRGB();
+        if (ship.shield.rapidRechargeEffectTime > 0.0) {
+            ctx.fillStyle = Colour.BlueLight.toRGB();
+        } else {
+            ctx.fillStyle = Colour.Blue.toRGB();
+        }
         ctx.fillRect(centerX - width, top, width * 2.0, barHeight);
 
         top = top - barGap - barHeight;
@@ -185,7 +205,11 @@ export class Game {
         ctx.fillRect(barGap, top, barWidth, barHeight);
         //ctx.shadowColor = 'rgba(64, 255, 64, 0.75)';
         //ctx.shadowBlur = 8;
-        ctx.fillStyle = Colour.Green.toRGB();
+        if (ship.protectionTime > 0.0) {
+            ctx.fillStyle = Colour.GreenLight.toRGB();
+        } else {
+            ctx.fillStyle = Colour.Green.toRGB();
+        }
         ctx.fillRect(centerX - width, top, width * 2.0, barHeight);
         ctx.restore();
     }
@@ -242,8 +266,8 @@ export class Game {
         ctx.fillStyle = Colour.White.toRGB();
         ctx.strokeStyle = Colour.Black.toRGB();
         ctx.textAlign = 'left';
-        ctx.strokeText(`FPS: ${this.fps}`, 10, 20);
-        ctx.fillText(`FPS: ${this.fps}`, 10, 20);
+        ctx.strokeText(`FPS: ${this.fps}`, 20, 20);
+        ctx.fillText(`FPS: ${this.fps}`, 20, 20);
         // 144 FPS = 0.00694 s
         // 120 FPS = 0.00833 s
         // 72 FPS =  0.01389 s
@@ -267,8 +291,8 @@ export class Game {
             ctx.fillStyle = Colour.White.toRGB();
             ctx.textAlign = 'right';
             const zoomPercent = Math.round(camera.zoom * 100);
-            ctx.strokeText(`${zoomPercent}%`, camera.screenSize.width - 10, 30);
-            ctx.fillText(`${zoomPercent}%`, camera.screenSize.width - 10, 30);
+            ctx.strokeText(`${zoomPercent}%`, camera.screenSize.width - 20, 20);
+            ctx.fillText(`${zoomPercent}%`, camera.screenSize.width - 20, 20);
             ctx.restore();
         }
 
@@ -563,9 +587,10 @@ export class GameManager {
                         console.warn('spawnAiShipsIfNeeded: No spawnPlanet found!');
                         return;
                     }
-                    if (officerCount < 2) {
+                    if (officerCount < 4) {
                         //spawn officer
-                        aiShip = createRandomFastShip(spawnPlanet.position.x, spawnPlanet.position.y, system, officerFaction);
+                        //aiShip = createRandomFastShip(spawnPlanet.position.x, spawnPlanet.position.y, system, officerFaction);
+                        aiShip = new Fighter(spawnPlanet.position.x, spawnPlanet.position.y, system, officerFaction);
                         aiShip.pilot = new OfficerAiPilot(aiShip, new OfficerJob(aiShip));
                         aiShip.colors.wings = Colour.BlueDark;
                         aiShip.colors.hull = Colour.WhiteLight;

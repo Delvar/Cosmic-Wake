@@ -5,7 +5,7 @@ import { Trail } from '/src/ship/trail.js';
 import { Colour } from '/src/core/colour.js';
 import { GameObject, isValidTarget } from '/src/core/gameObject.js';
 import { CelestialBody, JumpGate } from '/src/starSystem/celestialBody.js';
-import { TWO_PI, clamp, remapClamp, normalizeAngle, randomBetween, removeAtIndexInPlace } from '/src/core/utils.js';
+import { TWO_PI, clamp, remapClamp, normalizeAngle, randomBetween, removeAtIndexInPlace, removeObjectFromArrayInPlace } from '/src/core/utils.js';
 import { Asteroid } from '/src/starSystem/asteroidBelt.js';
 import { Shield } from '/src/ship/shield.js';
 import { Turret } from '/src/weapon/turret.js';
@@ -110,10 +110,6 @@ export class Ship extends GameObject {
         this.isThrusting = false;
         /** @type {boolean} Whether the ship is braking. */
         this.isBraking = false;
-        /** @type {boolean} Whether the hyperdrive is ready for a jump. */
-        this.hyperdriveReady = true;
-        /** @type {number} Cooldown time for hyperdrive in milliseconds. */
-        this.hyperdriveCooldown = 5000;
         /** @type {number} Timestamp of the last hyperjump in milliseconds. */
         this.lastJumpTime = 0;
         /** @type {Pilot|null} The pilot controlling the ship, if any. */
@@ -156,7 +152,9 @@ export class Ship extends GameObject {
         /** @type {number} Time elapsed in current animation in seconds. */
         this.animationTime = 0;
         /** @type {number} Duration of animations (landing, takeoff) in seconds. */
-        this.animationDuration = 2;
+        this.animationLandingDuration = 2.0;
+        /** @type {number} Duration of animations (jump in, jump out) in seconds. */
+        this.animationJumpingDuration = 4.0;
         /** @type {Vector2D} Starting position for landing animation. */
         this.landingStartPosition = new Vector2D(0, 0);
         /** @type {Vector2D} Ending position for takeoff animation. */
@@ -168,7 +166,7 @@ export class Ship extends GameObject {
         /** @type {Vector2D} Starting position for jump out animation. */
         this.jumpStartPosition = new Vector2D(0, 0);
         /** @type {Vector2D} Ending position for jump in animation. */
-        this.jumpEndPosition = new Vector2D(0, 0);
+        //this.jumpEndPosition = new Vector2D(0, 0);
         /** @type {number|null} Starting angle for jump animations. */
         this.jumpStartAngle = null;
         /** @type {number} Age of the ship in seconds, used for animations. */
@@ -183,9 +181,6 @@ export class Ship extends GameObject {
         this.boundingBox = new Vector2D(0, 0);
         /** @type {Object|null} Positions of engines, turrets, and lights. */
         this.featurePoints = null;
-        /** @type {number} Hull percentage below which the ship becomes disabled. */
-        this.disabledThreshold = 10;
-
         /** @type {number} Angular velocity in radians per second for rotation. */
         this.angularVelocity = 0;
         /** @type {number} Maximum angular velocity in radians per second. */
@@ -198,8 +193,6 @@ export class Ship extends GameObject {
         this.explosionTorque = 30.0;
         /** @type {number} Time elapsed since last explosion (seconds). */
         this.explosionTime = 0;
-        /** @type {Array<{position: Vector2D, time: number, force: number}>} Recent explosion positions for debug visuals. */
-        this._recentExplosions = Array(5).fill().map(() => ({ position: new Vector2D(0, 0), time: -Infinity, force: 0 }));
         /** @type {Turret[]} Array of turrets. */
         this.turrets = [];
         /** @type {string} the mode of the turrets 'Full-auto', 'Auto-target', 'Target-only', 'Disabled'. */
@@ -223,6 +216,10 @@ export class Ship extends GameObject {
         this.maxHull = area;
         /** @type {number} Current hull health. */
         this.hullIntegrity = this.maxHull;
+        /** @type {number} Hull hullIntegrity below which the ship becomes disabled. */
+        this.disabledThreshold = this.maxHull * 0.1;
+        /** @type {number} Time the ship becomes invulnerable . */
+        this.protectionTime = 0.0;
 
         // Scratch vectors to avoid memory allocations in main loop
         /** @type {Vector2D} Temporary vector for thrust calculations. */
@@ -609,16 +606,17 @@ export class Ship extends GameObject {
             excessDamage = this.shield.takeDamage(damage, hitPosition, this.position, this.age);
         }
 
-        //Debug: player takes no hull damage
-        if (this.pilot instanceof PlayerPilot) {
-            excessDamage = 0;
+        //if protection time is active or a Player take no hull damage
+        //FIXME: remove player protection
+        if (this.pilot instanceof PlayerPilot || this.protectionTime > 0.0) {
+            excessDamage = 0.0;
         }
 
-        if (excessDamage > 0) {
-            if (this.hullIntegrity < 0) {
-                excessDamage = 1;
+        if (excessDamage > 0.0) {
+            if (this.hullIntegrity < 0.0) {
+                excessDamage = 1.0;
             }
-            this.hullIntegrity = Math.max(this.hullIntegrity - excessDamage, -50);
+            this.hullIntegrity = Math.max(this.hullIntegrity - excessDamage, -50.0);
         }
 
         if (this.pilot instanceof AiPilot) {
@@ -635,20 +633,24 @@ export class Ship extends GameObject {
 
         this.age += deltaTime; // Increment ship age for animations
 
+        if (this.protectionTime > 0.0) {
+            this.protectionTime = Math.max(0.0, this.protectionTime - deltaTime);
+        }
+
         // Log NaN position errors in debug mode
         if (isNaN(this.position.x) && this.debug) {
             console.log('Position became NaN');
         }
 
         // Remove despawned ships from hostiles without allocations
-        for (let i = this.hostiles.length - 1; i >= 0; i--) {
+        for (let i = this.hostiles.length - 1.0; i >= 0.0; i--) {
             if (!isValidAttackTarget(this, this.hostiles[i])) {
                 removeAtIndexInPlace(i, this.hostiles);
             }
         }
 
         if (!isValidAttackTarget(this, this.lastAttacker)) {
-            if (this.hostiles.length > 0) {
+            if (this.hostiles.length > 0.0) {
                 this.lastAttacker = this.hostiles[0];
             } else {
                 this.lastAttacker = null;
@@ -704,12 +706,19 @@ export class Ship extends GameObject {
         // Check for Disabled or Exploding state transitions
         if (this.hullIntegrity <= this.disabledThreshold) {
             this.setState('Disabled');
+            this.hullIntegrity = this.disabledThreshold;
             this.isThrusting = false;
             this.isBraking = false;
             this.shield.isActive = false;
-            this.shield.strength = 0;
+            this.shield.strength = 0.0;
             this.shield.restartTime = null;
             this.target = null;
+            this.protectionTime = 5.0;
+
+            this._getRandomPointInBoundingBox(this._scratchExplosionPos);
+            this._applyExplosionImpulse(this._scratchExplosionPos, this.explosionForce, this.explosionTorque);
+            this.starSystem.particleManager.spawnExplosion(this._scratchExplosionPos, this.radius * 0.5, this.velocity);
+
             return;
         }
 
@@ -749,16 +758,16 @@ export class Ship extends GameObject {
      */
     updateLanding(deltaTime) {
         this.animationTime += deltaTime;
-        const t = Math.min(this.animationTime / this.animationDuration, 1);
+        const t = Math.min(this.animationTime / this.animationLandingDuration, 1);
 
         // Interpolate position from start to target
         this.position.lerpInPlace(this.landingStartPosition, this.landedObject.position, t);
 
         // Adjust scale and behavior based on target type
         if (this.landedObject instanceof CelestialBody) {
-            this.shipScale = 1 - t; // Shrink to 0 for planets
+            this.shipScale = 1.0 - t; // Shrink to 0 for planets
         } else if (this.landedObject instanceof Asteroid) {
-            this.shipScale = 1 - (t * 0.2); // Shrink to 0.8 for asteroids
+            this.shipScale = 1.0 - (t * 0.2); // Shrink to 0.8 for asteroids
             // Update landing start position with asteroid's velocity
             this.landingStartPosition.addInPlace(this._scratchTemp.set(this.landedObject.velocity).multiplyInPlace(deltaTime));
             // Rotate with asteroid's spin
@@ -771,9 +780,9 @@ export class Ship extends GameObject {
         if (t >= 1) {
             this.setState('Landed');
             this.position.set(this.landedObject.position);
-            this.velocity.set(this.landedObject.velocity || new Vector2D(0, 0));
+            this.velocity.set(this.landedObject.velocity || new Vector2D(0.0, 0.0));
             if (this.landedObject instanceof CelestialBody) {
-                this.shipScale = 0;
+                this.shipScale = 0.0;
                 this.landedObject.addLandedShip(this);
                 this.hullIntegrity = this.maxHull;
                 this.shield.isActive = true;
@@ -805,7 +814,7 @@ export class Ship extends GameObject {
      */
     updateTakingOff(deltaTime) {
         this.animationTime += deltaTime;
-        const t = Math.min(this.animationTime / this.animationDuration, 1);
+        const t = Math.min(this.animationTime / this.animationLandingDuration, 1);
         // Interpolate position and angle
         this.position.lerpInPlace(this.landedObject.position, this.takeoffEndPosition, t);
         this.angle = this.startAngle + (this.targetAngle - this.startAngle) * t;
@@ -823,12 +832,12 @@ export class Ship extends GameObject {
         if (t >= 1) {
             this.setState('Flying');
             this.setTargetAngle(this.angle);
-            this.shipScale = 1;
+            this.shipScale = 1.0;
             // Calculate takeoff velocity
             this._scratchVelocityDelta.set(this.takeoffEndPosition)
                 .subtractInPlace(this.landedObject.position)
-                .divideInPlace(this.animationDuration);
-            this.velocity.set(this.landedObject.velocity || new Vector2D(0, 0))
+                .divideInPlace(this.animationLandingDuration);
+            this.velocity.set(this.landedObject.velocity || new Vector2D(0.0, 0.0))
                 .addInPlace(this._scratchVelocityDelta);
             this.landedObject = null;
         }
@@ -840,50 +849,43 @@ export class Ship extends GameObject {
      */
     updateJumpingOut(deltaTime) {
         this.animationTime += deltaTime;
-        const t = Math.min(this.animationTime / this.animationDuration, 1);
+        const t = remapClamp(this.animationTime, 0.0, this.animationJumpingDuration, 0.0, 1.0);
 
-        if (t < 0.5) {
+        const landRatio = 0.25;
+
+        if (t < landRatio) {
+            const landTime = remapClamp(t, 0.0, landRatio, 0.0, 1.0);
             // First half: Shrink and move to gate
-            this.shipScale = 1 - (t * 1.5);
-            this.position.lerpInPlace(this.jumpStartPosition, this.jumpGate.position, t * 2);
+            this.shipScale = remapClamp(landTime, 0.0, 1.0, 1.0, 0.25);
+            this.position.lerpInPlace(this.jumpStartPosition, this.jumpGate.position, landTime);
             this._scratchRadialOut.set(this.jumpGate.position).normalizeInPlace();
             const desiredAngle = Math.atan2(this._scratchRadialOut.x, -this._scratchRadialOut.y);
             const startAngle = this.jumpStartAngle || this.angle;
             if (!this.jumpStartAngle) this.jumpStartAngle = this.angle;
             const angleDiff = normalizeAngle(desiredAngle - startAngle);
-            this.angle = startAngle + angleDiff * (t * 2);
+            this.angle = startAngle + angleDiff * landTime;
             this.targetAngle = this.angle;
-            this.stretchFactor = 1;
         } else {
             // Second half: Stretch and accelerate outward
-            this.shipScale = 0.25;
-            const easedT = (t - 0.5) * 2;
-            const progress = easedT * easedT;
-            this.stretchFactor = 1 + progress * 9;
+            const easedT = remapClamp(t, landRatio, 1.0, 0.0, 1.0);
+            const progress = easedT ** 3;
+            this.stretchFactor = 1 + progress * 9.0;
             this._scratchRadialOut.set(this.jumpGate.position).normalizeInPlace();
-            const maxDistance = 5000;
+            const maxDistance = 5000.0;
             this._scratchVelocityDelta.set(this._scratchRadialOut).multiplyInPlace(maxDistance * progress);
             this.position.set(this.jumpGate.position).addInPlace(this._scratchVelocityDelta);
-            this.velocity.set(this._scratchRadialOut).multiplyInPlace(2000 * easedT);
         }
 
         // Transition to JumpingIn when animation completes
         if (t >= 1) {
             const oldSystem = this.starSystem;
             this.starSystem = this.jumpGate.lane.target;
-            this._scratchRadialIn.set(this.jumpGate.lane.targetGate.position)
-                .normalizeInPlace()
-                .multiplyInPlace(-1);
-            this.jumpEndPosition.set(this.jumpGate.lane.targetGate.position);
-            this._scratchVelocityDelta.set(this._scratchRadialIn).multiplyInPlace(5000);
-            this.position.set(this.jumpEndPosition).subtractInPlace(this._scratchVelocityDelta);
             this.setState('JumpingIn');
-            this.velocity.set(this._scratchRadialIn).multiplyInPlace(2000);
             this.trail.clear();
-            this.jumpStartAngle = null;
             // Update star system ship lists
-            oldSystem.ships = oldSystem.ships.filter(ship => ship !== this);
+            removeObjectFromArrayInPlace(this, oldSystem.ships);
             this.starSystem.ships.push(this);
+            this.jumpGate = this.jumpGate.lane.targetGate;
         }
     }
 
@@ -893,54 +895,36 @@ export class Ship extends GameObject {
      */
     updateJumpingIn(deltaTime) {
         this.animationTime += deltaTime;
-        const t = Math.min(this.animationTime / this.animationDuration, 1);
+        const t = remapClamp(this.animationTime, 0.0, this.animationJumpingDuration, 0.0, 1.0);
 
-        // Handle missing jumpEndPosition
-        if (!this.jumpEndPosition) {
-            console.error('jumpEndPosition is null in JumpingIn state; resetting to current position');
-            this.jumpEndPosition.set(this.position);
-        }
-
-        if (t < 0.5) {
+        const jumpInRatio = 0.75;
+        if (t < jumpInRatio) {
             // First half: Stretched and decelerating
-            this.shipScale = 0.25;
-            const easedT = t * 2;
-            const progress = 1 - (1 - easedT) * (1 - easedT);
-            this.stretchFactor = 10 - progress * 9;
-            this._scratchRadialOut.set(this.jumpEndPosition).normalizeInPlace();
-            this._scratchRadialIn.set(this._scratchRadialOut).multiplyInPlace(-1);
-
-            const maxDistance = 5000;
-            this._scratchVelocityDelta.set(this._scratchRadialOut).multiplyInPlace(maxDistance)
-                .addInPlace(this.jumpEndPosition);
-            this.position.lerpInPlace(this._scratchVelocityDelta, this.jumpEndPosition, progress);
-            const desiredAngle = Math.atan2(this._scratchRadialIn.x, -this._scratchRadialIn.y);
-            const startAngle = this.jumpStartAngle || this.angle;
-            if (!this.jumpStartAngle) this.jumpStartAngle = this.angle;
-            const angleDiff = normalizeAngle(desiredAngle - startAngle);
-            this.angle = startAngle + angleDiff * easedT;
-            this.targetAngle = this.angle;
-            this.velocity.set(this._scratchRadialIn).multiplyInPlace(2000 * (1 - easedT));
+            const easedT = remapClamp(t, 0.0, jumpInRatio, 1.0, 0.0);
+            const progress = easedT ** 3;
+            this.stretchFactor = 1 + progress * 9.0;
+            this._scratchRadialOut.set(this.jumpGate.position).normalizeInPlace();
+            const maxDistance = 5000.0;
+            this._scratchVelocityDelta.set(this._scratchRadialOut).multiplyInPlace(maxDistance * progress);
+            this.position.set(this.jumpGate.position).addInPlace(this._scratchVelocityDelta);
         } else {
+            const takeOffTime = remapClamp(t, jumpInRatio, 1.0, 0.0, 1.0);
             // Second half: Expand and stop
-            this.shipScale = 0.25 + (t - 0.5) * 1.5;
-            this.stretchFactor = 1;
-            this.position.set(this.jumpEndPosition);
-            this.velocity.set(0, 0);
+            this.shipScale = this.shipScale = remapClamp(takeOffTime, 0.0, 1.0, 0.25, 1.0);
+            this.stretchFactor = 1.0;
+            this.velocity.set(0.0, 0.0);
+            this.jumpStartPosition.set(this._scratchRadialOut).multiplyInPlace(this.jumpGate.radius * -1.0).addInPlace(this.jumpGate.position);
+            this.position.lerpInPlace(this.jumpGate.position, this.jumpStartPosition, takeOffTime);
         }
 
         // Transition to Flying when animation completes
         if (t >= 1) {
+            this.velocity.set(this._scratchRadialOut).multiplyInPlace(this.jumpGate.radius * -1.0);
             this.setState('Flying');
             this.shipScale = 1;
             this.stretchFactor = 1;
             this.jumpGate = null;
-            this.jumpStartPosition.set(0, 0);
-            this.jumpEndPosition.set(0, 0);
             this.jumpStartAngle = null;
-            this.hyperdriveReady = false;
-            // Set hyperdrive cooldown
-            setTimeout(() => { this.hyperdriveReady = true; }, this.hyperdriveCooldown);
         }
     }
 
@@ -950,16 +934,22 @@ export class Ship extends GameObject {
      */
     updateDisabled(deltaTime) {
         // Check for transition to Exploding
-        if (this.hullIntegrity <= 0) {
+        if (this.hullIntegrity <= 0.0) {
             this.setState('Exploding');
-            this.pilot = null; // Disable pilot controls!
-            this.explosionTime = 0; // Initialize explosion timer
+            this.hullIntegrity = this.disabledThreshold;
             this.isThrusting = false;
             this.isBraking = false;
             this.shield.isActive = false;
-            this.shield.strength = 0;
+            this.shield.strength = 0.0;
             this.shield.restartTime = null;
             this.target = null;
+            // Initialize explosion timer
+            this.explosionTime = 0.0;
+
+            this._getRandomPointInBoundingBox(this._scratchExplosionPos);
+            this._applyExplosionImpulse(this._scratchExplosionPos, this.explosionForce, this.explosionTorque);
+            this.starSystem.particleManager.spawnExplosion(this._scratchExplosionPos, this.radius * 0.5, this.velocity);
+
             return;
         }
 
@@ -970,7 +960,7 @@ export class Ship extends GameObject {
             this._scratchVelocityDelta.set(this.velocity).multiplyInPlace(deltaTime);
             this.position.addInPlace(this._scratchVelocityDelta);
         } else {
-            this.velocity.set(0, 0); // Dead stop
+            this.velocity.set(0.0, 0.0); // Dead stop
         }
     }
 
@@ -979,31 +969,25 @@ export class Ship extends GameObject {
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
      */
     updateExploding(deltaTime) {
-        this.velocity.multiplyInPlace(1 - (0.1 * deltaTime)); // 10% loss per second
+        this.velocity.multiplyInPlace(1.0 - (0.1 * deltaTime)); // 10% loss per second
 
         this.explosionTime += deltaTime;
 
         // Compute lerp factor based on hullIntegrity (0 at hull=0, 1 at hull=-50)
-        const t = clamp(this.hullIntegrity / -50, 0, 1);
+        const t = clamp(this.hullIntegrity / -50.0, 0.0, 1.0);
 
         // Check for final explosion and despawn
         if (this.hullIntegrity <= -50) {
             // Trigger large final explosion
             this._scratchExplosionPos.set(this.position);
-            // Store for debug visuals
-            const explosionEntry = this._recentExplosions.shift();
-            explosionEntry.position.set(this._scratchExplosionPos);
-            explosionEntry.time = this.age;
-            explosionEntry.force = this.explosionForce * 5;
-            this._recentExplosions.push(explosionEntry);
 
-            this.starSystem.particleManager.spawnExplosion(this._scratchExplosionPos, this.radius * 2, this.velocity);
+            this.starSystem.particleManager.spawnExplosion(this._scratchExplosionPos, this.radius * 2.0, this.velocity);
 
             // Despawn the ship
             this.despawn();
 
             if (this.debug) {
-                console.log(`Ship ${this.name} despawned with final explosion at (${this._scratchExplosionPos.x.toFixed(2)}, ${this._scratchExplosionPos.y.toFixed(2)})`);
+                console.log(`Ship ${this.name} despawned with final explosion at (${this._scratchExplosionPos.x.toFixed(2.0)}, ${this._scratchExplosionPos.y.toFixed(2.0)})`);
             }
             return;
         }
@@ -1013,9 +997,9 @@ export class Ship extends GameObject {
             const explosionSizeRatio = randomBetween(0.0, 1.0);
 
             //Get the size of the explosion
-            const explosionRadius = clamp(this.radius * remapClamp(explosionSizeRatio, 0, 1, 0.01, 0.25), 1, 300);
+            const explosionRadius = clamp(this.radius * remapClamp(explosionSizeRatio, 0.0, 1.0, 0.01, 0.25), 1.0, 300.0);
             // Calculate next explosion time
-            const baseInterval = remapClamp(1 - t, 0, 1, 0.1, 2);
+            const baseInterval = remapClamp(1.0 - t, 0.0, 1.0, 0.1, 2.0);
             const nextExplosionTime = baseInterval * randomBetween(0.75, 1.25) * explosionSizeRatio;
 
             // Calculate scaled force and torque
@@ -1026,25 +1010,18 @@ export class Ship extends GameObject {
             this._getRandomPointInBoundingBox(this._scratchExplosionPos);
             this._applyExplosionImpulse(this._scratchExplosionPos, currentForce, currentTorque);
 
-            // Store for debug visuals
-            const explosionEntry = this._recentExplosions.shift();
-            explosionEntry.position.set(this._scratchExplosionPos);
-            explosionEntry.time = this.age;
-            explosionEntry.force = this.explosionForce;
-            this._recentExplosions.push(explosionEntry);
-
             // Spawn particles with scaled radius
             this.starSystem.particleManager.spawnExplosion(this._scratchExplosionPos, explosionRadius, this.velocity);
 
             // Reduce hull integrity
-            const hullReduction = 1 + (2 * explosionSizeRatio);
-            this.hullIntegrity = Math.max(this.hullIntegrity - hullReduction, -50);
+            const hullReduction = 1.0 + (2.0 * explosionSizeRatio);
+            this.hullIntegrity = Math.max(this.hullIntegrity - hullReduction, -50.0);
 
             // Update explosion delay
             this.explosionDelay = this.explosionTime + nextExplosionTime;
 
             if (this.debug) {
-                console.log(`Explosion at (${this._scratchExplosionPos.x.toFixed(2)}, ${this._scratchExplosionPos.y.toFixed(2)}), hullIntegrity: ${this.hullIntegrity.toFixed(2)}, nextExplosionTime: ${nextExplosionTime.toFixed(2)}s`);
+                console.log(`Explosion at (${this._scratchExplosionPos.x.toFixed(2.0)}, ${this._scratchExplosionPos.y.toFixed(2.0)}), hullIntegrity: ${this.hullIntegrity.toFixed(2.0)}, nextExplosionTime: ${nextExplosionTime.toFixed(2.0)}s`);
             }
         }
 
@@ -1132,6 +1109,9 @@ export class Ship extends GameObject {
             ctx.rotate(this.angle);
             ctx.scale(scale, scale * this.stretchFactor);
             this.drawEngines(ctx, camera);
+            // Set default stroke style and line width
+            ctx.strokeStyle = Colour.Black.toRGB();
+            ctx.lineWidth = 0.25;
             this.drawShip(ctx, camera);
             this.drawWindows(ctx, camera);
             this.drawTurrets(ctx, camera);
@@ -1144,23 +1124,6 @@ export class Ship extends GameObject {
             ctx.save();
             this.drawShieldEffect(ctx, camera);
             this.drawDebug(ctx, camera, scale);
-            ctx.restore();
-        }
-
-        // Draw explosion debug visuals
-        if (this.debug || camera.debug) {
-            ctx.save();
-            for (let i = 0; i < this._recentExplosions.length; i++) {
-                const explosion = this._recentExplosions[i];
-                if (this.age - explosion.time > 1) continue; // Skip expired explosions
-                camera.worldToScreen(explosion.position, this._scratchScreenPos);
-                const opacity = 1 - (this.age - explosion.time); // Fade over 1s
-                const visualRadius = (explosion.force / this.explosionForce) * 5 * scale; // Scale by force
-                ctx.fillStyle = `rgba(128, 0, 128, ${opacity})`; // Purple
-                ctx.beginPath();
-                ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, visualRadius, 0, TWO_PI);
-                ctx.fill();
-            }
             ctx.restore();
         }
     }
@@ -1208,17 +1171,6 @@ export class Ship extends GameObject {
         ctx.lineTo(-10, 10);
         ctx.closePath();
         ctx.fill();
-
-        // Draw thrust effect if active
-        if ((this.isThrusting && this.state === 'Flying') || this.state === 'Landing' || this.state === 'TakingOff') {
-            ctx.fillStyle = new Colour(1, 1, 0).toRGB();
-            ctx.beginPath();
-            ctx.moveTo(0, 15);
-            ctx.lineTo(5, 10);
-            ctx.lineTo(-5, 10);
-            ctx.closePath();
-            ctx.fill();
-        }
 
         ctx.restore();
     }
@@ -1277,24 +1229,25 @@ export class Ship extends GameObject {
         if (!this.turrets || this.turrets.length == 0) return;
 
         ctx.save();
-        ctx.fillStyle = 'rgb(100, 100, 100)';
         // Set default stroke style and line width
-        ctx.strokeStyle = 'rgb(50, 50, 50)';
-        ctx.lineWidth = 0.1;
+        ctx.strokeStyle = Colour.Black.toRGB();
+        ctx.lineWidth = 0.25;
 
+        //Draw turret bases
+        ctx.fillStyle = Colour.GreyLight.toRGB();
         for (const turret of this.turrets) {
-            const screenX = turret.relativePosition.x;
-            const screenY = turret.relativePosition.y;
-            ctx.save();
-            ctx.translate(screenX, screenY);
-
             // Mount: Circle
             ctx.beginPath();
-            ctx.arc(0, 0, turret.radius, 0, TWO_PI);
-            ctx.fillStyle = 'rgb(100, 100, 100)';
+            ctx.arc(turret.relativePosition.x, turret.relativePosition.y, turret.radius, 0, TWO_PI);
             ctx.fill();
             ctx.stroke();
+        }
 
+        ctx.fillStyle = Colour.Grey.toRGB();
+        //Draw turrets
+        for (const turret of this.turrets) {
+            ctx.save();
+            ctx.translate(turret.relativePosition.x, turret.relativePosition.y);
             ctx.rotate(turret.direction);
             ctx.beginPath();
             // Base: 1.2 × 2 rectangle
@@ -1313,7 +1266,7 @@ export class Ship extends GameObject {
             ctx.lineTo(barrelWidth, -baseLength);
             ctx.lineTo(-barrelWidth, -baseLength);
             ctx.closePath();
-            ctx.fillStyle = 'rgb(128, 128, 128)';
+
             ctx.fill();
             ctx.stroke();
             ctx.restore();

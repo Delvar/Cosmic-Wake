@@ -143,12 +143,13 @@ export class StarField {
      * Renders the starfield to the canvas, batching stars by colour.
      * @param {CanvasRenderingContext2D} ctx - The canvas rendering context.
      * @param {Camera} camera - The camera object with position (Vector2D) and screenSize (width/height).
+     * @param {number} fadeout - the alpha level of the blank out, 1.0 clear to black, < 1.0 leaves trails
      */
-    draw(ctx, camera) {
+    draw(ctx, camera, fadeout) {
         ctx.save();
 
         //ctx.fillStyle = 'rgba(0, 0, 0, 0.25)'
-        ctx.fillStyle = 'rgb(0, 0, 0)'
+        ctx.fillStyle = `rgb(0, 0, 0, ${fadeout})`
         ctx.fillRect(0, 0, camera.screenSize.width, camera.screenSize.height);
 
         const zoomThreshold = 1 - remapClamp(camera.zoom, 0.5, 1, 0.5, 1);

@@ -531,7 +531,7 @@ export class FollowShipAutopilot extends Autopilot {
             //FIXME: implement manuver speed here, -20.0, 20.0
             const speed = remapClamp(distance, this.minFollowDistance, this.maxFollowDistance, -Ship.LANDING_SPEED, Ship.LANDING_SPEED);
             this._scratchDesiredVelocity.set(this._scratchLeadDirection).multiplyInPlace(speed).addInPlace(this.target.velocity);
-            failoverAngle = this.target.velocity;
+            failoverAngle = (this.target.velocity.x === 0.0 && this.target.velocity.y === 0.0) ? this.target.angle : this.target.velocity;
             errorThresholdRatio = remapClamp(distance, this.minFollowDistance, this.maxFollowDistance, 0.1, 0.5); // Tighten thrust threshold
         } else if (distance >= this.maxFollowDistance && distance < this.farApproachDistance) {
             const speed = remapClamp(distance, this.maxFollowDistance, this.farApproachDistance, 0.0, this.ship.maxVelocity);

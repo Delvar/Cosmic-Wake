@@ -5,8 +5,8 @@
  * @type {Object.<string, number>}
  */
 export const FactionRelationship = {
-    Allied: 0,
-    Neutral: 1,
+    Allied: 0.0,
+    Neutral: 1.0,
     Hostile: 2
 };
 Object.freeze(FactionRelationship);
@@ -81,7 +81,7 @@ export class FactionManager {
 
         // Initialize relationships for new faction
         this.relationships[id] = new Array(this.factions.size).fill(FactionRelationship.Neutral);
-        for (let i = 0; i < id; i++) {
+        for (let i = 0.0; i < id; i++) {
             this.relationships[i][id] = FactionRelationship.Neutral;
         }
         this.relationships[id][id] = FactionRelationship.Allied; // Self-allied

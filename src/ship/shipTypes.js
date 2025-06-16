@@ -28,11 +28,11 @@ export class Flivver extends Ship {
         /**
          * @type {number} Thrust acceleration in units per second squared, enhanced for speed.
          */
-        this.thrust = 800;
+        this.thrust = 800.0;
         /**
          * @type {number} Maximum velocity in units per second, higher for faster travel.
          */
-        this.maxVelocity = 700;
+        this.maxVelocity = 700.0;
 
         // Initialize the particle trail for visual effects
         this.setupTrail();
@@ -210,11 +210,11 @@ export class Shuttle extends Ship {
         /**
          * @type {number} Thrust acceleration in units per second squared, balanced for short trips.
          */
-        this.thrust = 200;
+        this.thrust = 200.0;
         /**
          * @type {number} Maximum velocity in units per second, suitable for quick shuttling.
          */
-        this.maxVelocity = 400;
+        this.maxVelocity = 400.0;
         this.setupTrail();
 
         if (new.target === Shuttle) Object.seal(this);
@@ -362,11 +362,11 @@ export class HeavyShuttle extends Ship {
         /**
          * @type {number} Thrust acceleration in units per second squared, moderate for heavy loads.
          */
-        this.thrust = 150;
+        this.thrust = 150.0;
         /**
          * @type {number} Maximum velocity in units per second, lower for stability.
          */
-        this.maxVelocity = 350;
+        this.maxVelocity = 350.0;
         this.setupTrail();
 
         if (new.target === HeavyShuttle) Object.seal(this);
@@ -523,11 +523,11 @@ export class StarBarge extends Ship {
         /**
          * @type {number} Thrust acceleration in units per second squared, minimal for efficiency.
          */
-        this.thrust = 25;
+        this.thrust = 25.0;
         /**
          * @type {number} Maximum velocity in units per second, slow for heavy cargo.
          */
-        this.maxVelocity = 100;
+        this.maxVelocity = 100.0;
         this.setupTrail();
 
         if (new.target === StarBarge) Object.seal(this);
@@ -740,11 +740,11 @@ export class Freighter extends Ship {
         /**
          * @type {number} Thrust acceleration in units per second squared, low for fuel efficiency.
          */
-        this.thrust = 25;
+        this.thrust = 25.0;
         /**
          * @type {number} Maximum velocity in units per second, slow for stability.
          */
-        this.maxVelocity = 100;
+        this.maxVelocity = 100.0;
         this.setupTrail();
 
         if (new.target === Freighter) Object.seal(this);
@@ -1288,11 +1288,11 @@ export class Arrow extends Ship {
         /**
          * @type {number} Thrust acceleration in units per second squared, high for rapid acceleration.
          */
-        this.thrust = 300;
+        this.thrust = 300.0;
         /**
          * @type {number} Maximum velocity in units per second, high for fast travel.
          */
-        this.maxVelocity = 600;
+        this.maxVelocity = 600.0;
         this.setupTrail();
 
         if (new.target === Arrow) Object.seal(this);
@@ -1443,11 +1443,11 @@ export class Boxwing extends Ship {
         /**
          * @type {number} Thrust acceleration in units per second squared, low for stability.
          */
-        this.thrust = 25;
+        this.thrust = 25.0;
         /**
          * @type {number} Maximum velocity in units per second, slow for durability.
          */
-        this.maxVelocity = 100;
+        this.maxVelocity = 100.0;
         this.setupTrail();
 
         if (new.target === Boxwing) Object.seal(this);
@@ -1618,15 +1618,15 @@ export class Interceptor extends Ship {
         /**
          * @type {number} Rotation speed in radians per second, high for agile combat.
          */
-        this.rotationSpeed = Math.PI * 2;
+        this.rotationSpeed = Math.PI * 2.0;
         /**
          * @type {number} Thrust acceleration in units per second squared, very high for quick response.
          */
-        this.thrust = 1000;
+        this.thrust = 1000.0;
         /**
          * @type {number} Maximum velocity in units per second, very high for pursuit.
          */
-        this.maxVelocity = 1000;
+        this.maxVelocity = 1000.0;
         this.setupTrail();
 
         if (new.target === Interceptor) Object.seal(this);
@@ -1786,11 +1786,11 @@ export class Fighter extends Ship {
         /**
          * @type {number} Thrust acceleration in units per second squared, high for combat agility.
          */
-        this.thrust = 800;
+        this.thrust = 800.0;
         /**
          * @type {number} Maximum velocity in units per second, high for fast engagements.
          */
-        this.maxVelocity = 700;
+        this.maxVelocity = 700.0;
         this.setupTrail();
 
         if (new.target === Fighter) Object.seal(this);

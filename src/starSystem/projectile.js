@@ -13,15 +13,15 @@ export class Projectile {
      */
     constructor() {
         /** @type {Vector2D} Current position in world coordinates. */
-        this.position = new Vector2D(0, 0);
+        this.position = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Velocity in units/s. */
-        this.velocity = new Vector2D(0, 0);
+        this.velocity = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Position for rendering (trail start). */
-        this.originalPosition = new Vector2D(0, 0);
+        this.originalPosition = new Vector2D(0.0, 0.0);
         /** @type {number} Time (in seconds) when projectile expires. */
-        this.expirationTime = 0;
+        this.expirationTime = 0.0;
         /** @type {number} Index into ProjectileManager.projectileTypes. */
-        this.typeIndex = 0;
+        this.typeIndex = 0.0;
         /** @type {boolean} Whether the projectile is active. */
         this.isActive = false;
         /** @type {Ship|null} The ship that fired the projectile, or null. */

@@ -30,7 +30,7 @@ export class PirateJob extends Job {
         /** @type {number} Interval (seconds) between target scans in Hunting state. */
         this.targetScanInterval = 1.0;
         /** @type {number} Ship age (seconds) when the next target scan is due. */
-        this.nextTargetScan = 0;
+        this.nextTargetScan = 0.0;
 
         if (new.target === PirateJob) Object.seal(this);
     }

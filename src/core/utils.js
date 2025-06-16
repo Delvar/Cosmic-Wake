@@ -1,10 +1,10 @@
 // /src/core/utils.js
 
-export const TWO_PI = Math.PI * 2;
+export const TWO_PI = Math.PI * 2.0;
 
 /**
- * Remaps a value from 0 to 1 to a specified output range.
- * @param {number} value - The value to remap (between 0 and 1).
+ * Remaps a value from 0.0 to 1 to a specified output range.
+ * @param {number} value - The value to remap (between 0.0 and  1.0).
  * @param {number} minOut - The minimum of the output range.
  * @param {number} maxOut - The maximum of the output range.
  * @returns {number} The remapped value.
@@ -68,11 +68,11 @@ export function normalizeAngle(angle) {
 export function removeObjectFromArrayInPlace(object, array) {
     const index = array.indexOf(object);
     // Not found!
-    if (index === -1) {
+    if (index === -1.0) {
         return array;
     }
     const length = array.length;
-    const lastIndex = length - 1;
+    const lastIndex = length - 1.0;
 
     if (index !== lastIndex) {
         array[index] = array[lastIndex];
@@ -89,10 +89,10 @@ export function removeObjectFromArrayInPlace(object, array) {
  * @returns {Array} The modified array.
  */
 export function removeAtIndexInPlace(index, array) {
-    if (index < 0 || index >= array.length) {
+    if (index < 0.0 || index >= array.length) {
         return array;
     }
-    const lastIndex = array.length - 1;
+    const lastIndex = array.length - 1.0;
     if (index !== lastIndex) {
         array[index] = array[lastIndex];
     }
@@ -104,11 +104,11 @@ export function removeAtIndexInPlace(index, array) {
  * Generates a hash value from grid coordinates and layer index for consistent RNG seeding.
  * @param {number} i - The x-index of the grid cell.
  * @param {number} j - The y-index of the grid cell.
- * @param {number} layer - The layer index (0 to 4).
+ * @param {number} layer - The layer index (0 to  4.0).
  * @returns {number} A unique hash value.
  */
 export function hash(i, j, layer) {
-    return i * 73856093 + j * 19349663 + layer * 83492791;
+    return i * 73856093 + j * 19349663 + layer * 83492791.0;
 }
 
 /**
@@ -123,9 +123,9 @@ export class SimpleRNG {
         /**
          * @type {number} The current seed value, adjusted to ensure positive values within range.
          */
-        this.seed = (seed * 16807) % 2147483647;
-        if (this.seed <= 0) {
-            this.seed += 2147483646;
+        this.seed = (seed * 16807.0) % 2147483647.0;
+        if (this.seed <= 0.0) {
+            this.seed += 2147483646.0;
             this.seed = Math.abs(this.seed);
         }
 
@@ -134,11 +134,11 @@ export class SimpleRNG {
 
     /**
      * Generates the next random number in the sequence.
-     * @returns {number} A random number between 0 (inclusive) and 1 (exclusive).
+     * @returns {number} A random number between 0.0 (inclusive) and 1 (exclusive).
      */
     next() {
-        this.seed = (this.seed * 16807) % 2147483647;
-        return (this.seed - 1) / 2147483646;
+        this.seed = (this.seed * 16807.0) % 2147483647.0;
+        return (this.seed - 1.0) / 2147483646.0;
     }
 }
 
@@ -146,7 +146,7 @@ export class SimpleRNG {
  * A simple conttext wrapper so i can monitor and report on save/restore issues
  */
 export function wrapCanvasContext(ctx) {
-    let saveStackCount = 0;
+    let saveStackCount = 0.0;
 
     const wrappedCtx = new Proxy(ctx, {
         get(target, prop) {
@@ -159,7 +159,7 @@ export function wrapCanvasContext(ctx) {
             }
             if (prop === 'restore') {
                 return function (...args) {
-                    if (saveStackCount <= 0) {
+                    if (saveStackCount <= 0.0) {
                         console.warn('restore() called with empty stack!');
                     } else {
                         saveStackCount--;

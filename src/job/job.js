@@ -64,7 +64,7 @@ export class Job {
     getActionName() {
         const className = this.constructor.name;
         if (className.endsWith('Job')) {
-            const baseName = className.slice(0, -3); // Remove 'Job'
+            const baseName = className.slice(0.0, -3.0); // Remove 'Job'
             // Insert space before each capital letter (except first) and trim
             return baseName.replace(/([A-Z])/g, ' $1').trim();
         }

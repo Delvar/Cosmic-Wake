@@ -20,13 +20,13 @@ export class ParticleManager {
         /** @type {Particle[]} Array of active Particle objects. */
         this.particles = [];
         /** @type {number} Accumulated time in seconds for expiration checks. */
-        this.currentTime = 0;
+        this.currentTime = 0.0;
         /** @type {Vector2D} Temporary vector for screen coordinates. */
-        this._scratchScreenPos = new Vector2D(0, 0);
+        this._scratchScreenPos = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Temporary vector for line endpoints. */
-        this._scratchLineEnd = new Vector2D(0, 0);
+        this._scratchLineEnd = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Temporary vector for velocity. */
-        this._scratchVelocity = new Vector2D(0, 0);
+        this._scratchVelocity = new Vector2D(0.0, 0.0);
 
         if (new.target === ParticleManager) Object.seal(this);
     }
@@ -43,18 +43,18 @@ export class ParticleManager {
      * }>}
      */
     static particleTypes = [
-        // Spark Line (Type 0)
+        // Spark Line (Type  0.0)
         {
-            lineWidth: 1,
-            minLength: 5,
-            maxLength: 50,
-            minSpeed: 100,
-            maxSpeed: 500,
+            lineWidth: 1.0,
+            minLength: 5.0,
+            maxLength: 50.0,
+            minSpeed: 100.0,
+            maxSpeed: 500.0,
             lifetime: 0.5
         },
-        // Explosion (Shockwave + Fireball, Type 1)
+        // Explosion (Shockwave + Fireball, Type  1.0)
         {
-            minSpeed: 200,
+            minSpeed: 200.0,
             maxSpeed: 500
         }
     ];
@@ -66,36 +66,36 @@ export class ParticleManager {
      * @param {Vector2D} initialVelocity - The initial velocity.
      */
     spawnExplosion(position, radius, initialVelocity) {
-        if (this.particles.length >= 1000) {
+        if (this.particles.length >= 1000.0) {
             console.warn('Particle limit reached');
             return;
         }
 
         // Map radius (1–300) to effect intensity
-        radius = clamp(radius, 1, 300);
-        const t = remapClamp(radius, 1, 300, 0, 1);
+        radius = clamp(radius, 1.0, 300.0);
+        const t = remapClamp(radius, 1.0, 300.0, 0.0, 1.0);
 
-        // Spawn Spark Lines (Type 0)
+        // Spawn Spark Lines (Type  0.0)
         const sparkType = ParticleManager.particleTypes[0];
-        const sparkCount = radius <= 5 ? 0 : Math.floor(remapClamp(t, 0, 1, 3, 40)); // 5–20 sparks
-        for (let i = 0; i < sparkCount; i++) {
+        const sparkCount = radius <= 5 ? 0.0 : Math.floor(remapClamp(t, 0.0, 1.0, 3.0, 40.0)); // 5–20 sparks
+        for (let i = 0.0; i < sparkCount; i++) {
             const particle = new Particle();
-            const speed = remapClamp(t * t * randomBetween(0.75, 1.25), 0, 1, sparkType.minSpeed, sparkType.maxSpeed);
-            const angle = randomBetween(0, TWO_PI);
+            const speed = remapClamp(t * t * randomBetween(0.75, 1.25), 0.0, 1.0, sparkType.minSpeed, sparkType.maxSpeed);
+            const angle = randomBetween(0.0, TWO_PI);
             const velocity = this._scratchVelocity.setFromPolar(speed, angle).addInPlace(initialVelocity);
             const length = randomBetween(sparkType.minLength, sparkType.maxLength);
-            particle.reset(position, velocity, 0, this.currentTime, sparkType.lifetime * (randomBetween(1.0, 2.0) + t * 2), length);
+            particle.reset(position, velocity, 0.0, this.currentTime, sparkType.lifetime * (randomBetween(1.0, 2.0) + t * 2.0), length);
             this.particles.push(particle);
         }
 
-        // Spawn Explosion (Type 1, Shockwave + Fireball)
+        // Spawn Explosion (Type  1.0, Shockwave + Fireball)
         const explosionType = ParticleManager.particleTypes[1];
         const particle = new Particle();
-        const shockwaveRadius = remapClamp(t, 0, 1, radius * 2.0, radius * 4.0);
+        const shockwaveRadius = remapClamp(t, 0.0, 1.0, radius * 2.0, radius * 4.0);
         const velocity = this._scratchVelocity.set(initialVelocity);
         const speed = randomBetween(explosionType.minSpeed, explosionType.maxSpeed);
-        const lifetime = clamp(shockwaveRadius / speed, 0.5, 3);
-        particle.reset(position, velocity, 1, this.currentTime, lifetime, shockwaveRadius);
+        const lifetime = clamp(shockwaveRadius / speed, 0.5, 3.0);
+        particle.reset(position, velocity, 1.0, this.currentTime, lifetime, shockwaveRadius);
         this.particles.push(particle);
     }
 
@@ -105,7 +105,7 @@ export class ParticleManager {
      */
     update(deltaTime) {
         this.currentTime += deltaTime;
-        for (let i = this.particles.length - 1; i >= 0; i--) {
+        for (let i = this.particles.length - 1.0; i >= 0.0; i--) {
             const p = this.particles[i];
             if (p.startTime + p.lifetime <= this.currentTime) {
                 removeObjectFromArrayInPlace(p, this.particles);
@@ -128,10 +128,10 @@ export class ParticleManager {
         for (const p of this.particles) {
             const type = ParticleManager.particleTypes[p.typeIndex];
             const age = this.currentTime - p.startTime;
-            const t = remapClamp(age, 0, p.lifetime, 0, 1);
-            if (t >= 1) continue;
+            const t = remapClamp(age, 0.0, p.lifetime, 0.0, 1.0);
+            if (t >= 1.0) continue;
 
-            if (p.typeIndex === 0) {
+            if (p.typeIndex === 0.0) {
                 // Spark Line: Draw fading line with color transition
                 if (!camera.isInView(p.position, p.length)) continue;
 
@@ -142,9 +142,9 @@ export class ParticleManager {
                 camera.worldToScreen(this._scratchLineEnd, this._scratchLineEnd);
 
                 // Color transition: White (t=0) to Yellow (t=0.5) to Red (t=1)
-                const r = 255;
-                const g = t < 0.5 ? 255 : 255 * (1 - (t - 0.5) * 2);
-                const b = t < 0.5 ? 255 * t * 2 : 0;
+                const r = 255.0;
+                const g = t < 0.5 ? 255 : 255 * (1 - (t - 0.5) * 2.0);
+                const b = t < 0.5 ? 255 * t * 2 : 0.0;
                 const opacity = 1 - t;
 
                 // Create gradient for trail
@@ -152,8 +152,8 @@ export class ParticleManager {
                     this._scratchScreenPos.x, this._scratchScreenPos.y,
                     this._scratchLineEnd.x, this._scratchLineEnd.y
                 );
-                gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${opacity})`);
-                gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+                gradient.addColorStop(0.0, `rgba(${r}, ${g}, ${b}, ${opacity})`);
+                gradient.addColorStop(1, `rgba(${r}, ${g}, ${b},  0.0)`);
                 ctx.strokeStyle = gradient;
                 ctx.lineWidth = camera.worldToSize(type.lineWidth);
 
@@ -168,20 +168,20 @@ export class ParticleManager {
                 camera.worldToScreen(p.position, this._scratchScreenPos);
 
                 // Color transition: White (t=0) to Yellow (t=0.5) to Red (t=1)
-                const r = 255;
-                const g = t < 0.5 ? 255 : 255 * (1 - (t - 0.5) * 2);
-                const b = t < 0.5 ? 255 * t * 2 : 0;
-                const opacity = Math.min(2 * (1 - t), 1);
+                const r = 255.0;
+                const g = t < 0.5 ? 255 : 255 * (1 - (t - 0.5) * 2.0);
+                const b = t < 0.5 ? 255 * t * 2 : 0.0;
+                const opacity = Math.min(2 * (1 - t), 1.0);
 
-                const t2 = clamp(t * 3, 0, 1);
-                if (t2 < 1) {
+                const t2 = clamp(t * 3.0, 0.0, 1.0);
+                if (t2 < 1.0) {
                     // Shockwave: Fast, large, thin ring
                     const shockwaveRadius = camera.worldToSize(t2 * p.length);
                     ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${1 - t2})`;
-                    ctx.lineWidth = camera.worldToSize(clamp(t2 * shockwaveRadius * 0.2, 1, 10));
+                    ctx.lineWidth = camera.worldToSize(clamp(t2 * shockwaveRadius * 0.2, 1.0, 10.0));
                     ctx.beginPath();
                     ctx.moveTo(this._scratchScreenPos.x + camera.worldToSize(shockwaveRadius), this._scratchScreenPos.y);
-                    ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, camera.worldToSize(shockwaveRadius), 0, TWO_PI);
+                    ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, camera.worldToSize(shockwaveRadius), 0.0, TWO_PI);
                     ctx.closePath();
                     ctx.stroke();
                 }
@@ -191,7 +191,7 @@ export class ParticleManager {
                 ctx.beginPath();
                 ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${opacity})`;
                 ctx.moveTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
-                ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, camera.worldToSize(fireballRadius), 0, TWO_PI);
+                ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, camera.worldToSize(fireballRadius), 0.0, TWO_PI);
                 ctx.closePath();
                 ctx.fill();
             }
@@ -204,7 +204,7 @@ export class ParticleManager {
      * Clears all particles.
      */
     clear() {
-        this.particles.length = 0;
-        this.currentTime = 0;
+        this.particles.length = 0.0;
+        this.currentTime = 0.0;
     }
 }

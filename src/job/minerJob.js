@@ -29,13 +29,13 @@ export class MinerJob extends Job {
         /** @type {Asteroid|null} The current target asteroid to mine. */
         this.targetAsteroid = null;
         /** @type {number} Time remaining for mining or waiting (seconds). */
-        this.waitTime = 0;
+        this.waitTime = 0.0;
         /** @type {number} Time to spend mining an asteroid (seconds). */
-        this.miningTime = 5;
+        this.miningTime = 5.0;
         /** @type {number} Minimum wait time on home planet (seconds). */
-        this.waitTimeMin = 5;
+        this.waitTimeMin = 5.0;
         /** @type {number} Maximum wait time on home planet (seconds). */
-        this.waitTimeMax = 10;
+        this.waitTimeMax = 10.0;
         /** @type {Vector2D} Scratch vector for distance calculations. */
         this._scratchDistanceToTarget = new Vector2D();
         /** @type {Vector2D} Scratch vector for velocity corrections. */
@@ -162,7 +162,7 @@ export class MinerJob extends Job {
      */
     updateMining(deltaTime, gameManager) {
         this.waitTime -= deltaTime;
-        if (this.waitTime <= 0) {
+        if (this.waitTime <= 0.0) {
             this.ship.initiateTakeoff();
             this.pilot.setAutopilot(new LandOnPlanetAutopilot(this.ship, this.homePlanet));
             this.state = 'FlyingToHomePlanet';
@@ -195,7 +195,7 @@ export class MinerJob extends Job {
      */
     updateWaitingOnHomePlanet(deltaTime, gameManager) {
         this.waitTime -= deltaTime;
-        if (this.waitTime <= 0) {
+        if (this.waitTime <= 0.0) {
             this.ship.initiateTakeoff();
             this.state = 'Starting';
         }

@@ -9,19 +9,19 @@ import { clamp } from "/src/core/utils.js";
 export class Colour {
     /**
      * Creates a new Colour instance.
-     * @param {number} r - The red component (0 to 1).
-     * @param {number} g - The green component (0 to 1).
-     * @param {number} b - The blue component (0 to 1).
-     * @param {number} [a=1] - The alpha component (0 to 1, default is 1 for fully opaque).
+     * @param {number} r - The red component (0.0 to  1.0).
+     * @param {number} g - The green component (0.0 to  1.0).
+     * @param {number} b - The blue component (0.0 to  1.0).
+     * @param {number} [a=1] - The alpha component (0 to  1.0, default is 1.0 for fully opaque).
      */
-    constructor(r, g, b, a = 1) {
-        /** @type {number} The red component of the color (0 to 1). */
+    constructor(r, g, b, a = 1.0) {
+        /** @type {number} The red component of the color (0.0 to  1.0). */
         this.r = r;
-        /** @type {number} The green component of the color (0 to 1). */
+        /** @type {number} The green component of the color (0.0 to  1.0). */
         this.g = g;
-        /** @type {number} The blue component of the color (0 to 1). */
+        /** @type {number} The blue component of the color (0.0 to  1.0). */
         this.b = b;
-        /** @type {number} The alpha component of the color (0 to 1, default is 1 for fully opaque). */
+        /** @type {number} The alpha component of the color (0.0 to  1.0, default is 1.0 for fully opaque). */
         this.a = a;
         /**
          * Cache object storing computed RGB and hex string representations.
@@ -35,12 +35,12 @@ export class Colour {
 
     /**
      * Sets the components of this Colour.
-     * @param {number} r - The red component (0 to 1).
-     * @param {number} g - The green component (0 to 1).
-     * @param {number} b - The blue component (0 to 1).
-     * @param {number} [a=1] - The alpha component (0 to 1, default is 1 for fully opaque).
+     * @param {number} r - The red component (0.0 to  1.0).
+     * @param {number} g - The green component (0.0 to  1.0).
+     * @param {number} b - The blue component (0.0 to  1.0).
+     * @param {number} [a=1] - The alpha component (0.0 to  1.0, default is 1.0 for fully opaque).
      */
-    set(r, g, b, a = 1) {
+    set(r, g, b, a = 1.0) {
         this.r = r;
         this.g = g;
         this.b = b;
@@ -59,13 +59,13 @@ export class Colour {
 
     /**
      * Converts the color to an RGB string format.
-     * @returns {string} The RGB string in the format 'rgb(r, g, b)', where r, g, b are integers from 0 to 255.
+     * @returns {string} The RGB string in the format 'rgb(r, g, b)', where r, g, b are integers from 0.0 to 255.0.
      */
     toRGB() {
         if (!this.cache.rgb) {
-            const r = Math.round(clamp(this.r, 0.0, 1.0) * 255);
-            const g = Math.round(clamp(this.g, 0.0, 1.0) * 255);
-            const b = Math.round(clamp(this.b, 0.0, 1.0) * 255);
+            const r = Math.round(clamp(this.r, 0.0, 1.0) * 255.0);
+            const g = Math.round(clamp(this.g, 0.0, 1.0) * 255.0);
+            const b = Math.round(clamp(this.b, 0.0, 1.0) * 255.0);
             this.cache.rgb = `rgb(${r}, ${g}, ${b})`;
         }
         return this.cache.rgb;
@@ -73,14 +73,14 @@ export class Colour {
 
     /**
      * Converts the color to an RGBA string format, with an optional alpha override.
-     * @param {number} [overrideAlpha=null] - An optional alpha value to override the instance’s alpha (clamped between 0 and 1).
-     * @returns {string} The RGBA string in the format 'rgba(r, g, b, a)', where r, g, b are integers from 0 to 255, and a is from 0 to 1.
+     * @param {number} [overrideAlpha=null] - An optional alpha value to override the instance’s alpha (clamped between 0.0 and  1.0).
+     * @returns {string} The RGBA string in the format 'rgba(r, g, b, a)', where r, g, b are integers from 0.0 to  255.0, and a is from 0.0 to 1.0.
      */
     toRGBA(overrideAlpha = null) {
-        const alpha = overrideAlpha !== null ? Math.min(Math.max(overrideAlpha, 0), 1) : this.a;
-        const r = Math.round(clamp(this.r, 0.0, 1.0) * 255);
-        const g = Math.round(clamp(this.g, 0.0, 1.0) * 255);
-        const b = Math.round(clamp(this.b, 0.0, 1.0) * 255);
+        const alpha = overrideAlpha !== null ? Math.min(Math.max(overrideAlpha, 0.0), 1.0) : this.a;
+        const r = Math.round(clamp(this.r, 0.0, 1.0) * 255.0);
+        const g = Math.round(clamp(this.g, 0.0, 1.0) * 255.0);
+        const b = Math.round(clamp(this.b, 0.0, 1.0) * 255.0);
         return `rgba(${r}, ${g}, ${b}, ${alpha})`;
     }
 
@@ -90,9 +90,9 @@ export class Colour {
      */
     toHex() {
         if (!this.cache.hex) {
-            const r = Math.round(clamp(this.r, 0.0, 1.0) * 255).toString(16).padStart(2, '0');
-            const g = Math.round(clamp(this.g, 0.0, 1.0) * 255).toString(16).padStart(2, '0');
-            const b = Math.round(clamp(this.b, 0.0, 1.0) * 255).toString(16).padStart(2, '0');
+            const r = Math.round(clamp(this.r, 0.0, 1.0) * 255.0).toString(16.0).padStart(2.0, '0');
+            const g = Math.round(clamp(this.g, 0.0, 1.0) * 255.0).toString(16.0).padStart(2.0, '0');
+            const b = Math.round(clamp(this.b, 0.0, 1.0) * 255.0).toString(16.0).padStart(2.0, '0');
             this.cache.hex = `#${r}${g}${b}`;
         }
         return this.cache.hex;
@@ -104,7 +104,7 @@ export class Colour {
      */
     toHexAlpha() {
         const toHex = (value) => {
-            const hex = Math.round(value * 255).toString(16).padStart(2, '0');
+            const hex = Math.round(value * 255.0).toString(16.0).padStart(2.0, '0');
             return hex.length === 2 ? hex : '00';
         };
         return `#${toHex(this.r)}${toHex(this.g)}${toHex(this.b)}${toHex(this.a)}`;

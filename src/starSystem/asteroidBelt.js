@@ -19,13 +19,13 @@ class AsteroidShape {
         /** @type {number} The number of points defining the asteroid shape. */
         this.numPoints = numPoints;
         /** @type {Float32Array} The array of points [x1, y1, x2, y2, ...] defining the asteroid shape. */
-        this.points = new Float32Array(numPoints * 2);
+        this.points = new Float32Array(numPoints * 2.0);
         /** @type {Path2D} The cached Path2D object for drawing the asteroid shape. */
         this.path = new Path2D();
 
-        const angleStep = (Math.PI * 2) / numPoints;
-        let centerPoint = new Vector2D(0, 0);
-        for (let i = 0; i < numPoints; i++) {
+        const angleStep = (Math.PI * 2.0) / numPoints;
+        let centerPoint = new Vector2D(0.0, 0.0);
+        for (let i = 0.0; i < numPoints; i++) {
             const angle = i * angleStep + (Math.random() - 0.5) * 0.5;
             const radius = 0.5 + Math.random() * 0.5; // Radius between 0.5 and 1 for varied shape
             this.points[i * 2] = Math.sin(angle) * radius;
@@ -36,10 +36,10 @@ class AsteroidShape {
 
         // Recenter the asteroid if one side sticks out too far
         centerPoint.divideInPlace(numPoints);
-        for (let i = 0; i < numPoints; i++) {
+        for (let i = 0.0; i < numPoints; i++) {
             this.points[i * 2] -= centerPoint.x;
             this.points[i * 2 + 1] -= centerPoint.y;
-            if (i === 0) {
+            if (i === 0.0) {
                 this.path.moveTo(this.points[i * 2], this.points[i * 2 + 1]);
             } else {
                 this.path.lineTo(this.points[i * 2], this.points[i * 2 + 1]);
@@ -65,7 +65,7 @@ export class AsteroidBelt {
      * @param {number} interactiveCount - Number of interactive asteroids.
      * @param {number} [layerCount=10] - Number of orbital layers.
      */
-    constructor(innerRadius, outerRadius, backgroundDensity, interactiveCount, layerCount = 10) {
+    constructor(innerRadius, outerRadius, backgroundDensity, interactiveCount, layerCount = 10.0) {
         /** @type {StarSystem|null} The star system the asteroid belt belongs to. */
         this.starSystem = null;
         /** @type {number} The inner radius of the asteroid belt. */
@@ -79,37 +79,37 @@ export class AsteroidBelt {
         /** @type {Array} Array of interactive asteroids in the belt. */
         this.interactiveAsteroids = [];
         /** @type {number} The number of orbital layers in the belt, clamped between 1 and 10. */
-        this.layerCount = clamp(Math.floor(layerCount), 1, 10);
+        this.layerCount = clamp(Math.floor(layerCount), 1.0, 10.0);
         /** @type {Float32Array} Array of orbital speeds for each layer, in radians per second. */
         this.orbitalSpeeds = new Float32Array(this.layerCount);
-        for (let i = 0; i < this.layerCount; i++) {
-            const speedRatio = this.layerCount > 1 ? i / (this.layerCount - 1) : 0;
+        for (let i = 0.0; i < this.layerCount; i++) {
+            const speedRatio = this.layerCount > 1 ? i / (this.layerCount - 1.0) : 0.0;
             const minTangentialVelocity = 25 / outerRadius;
             const maxTangentialVelocity = 95 / outerRadius;
             this.orbitalSpeeds[i] = remapRange01(speedRatio, minTangentialVelocity, maxTangentialVelocity);
         }
         /** @type {number} The number of cells dividing the belt's circumference. */
-        this.cellCount = Math.max(4, Math.ceil(TWO_PI * innerRadius / 500));
+        this.cellCount = Math.max(4, Math.ceil(TWO_PI * innerRadius / 500.0));
         /** @type {number} The angular size of each cell in radians. */
         this.cellAngleSize = TWO_PI / this.cellCount;
         /** @type {number} The number of asteroids per cell, based on density and cell area. */
-        this.asteroidsPerCell = clamp(Math.ceil((backgroundDensity * (0.5 * this.cellAngleSize * (outerRadius * outerRadius - innerRadius * innerRadius))) / (250000 * this.layerCount)), 1, 50);
+        this.asteroidsPerCell = clamp(Math.ceil((backgroundDensity * (0.5 * this.cellAngleSize * (outerRadius * outerRadius - innerRadius * innerRadius))) / (250000 * this.layerCount)), 1.0, 50.0);
         /** @type {Map} Cache storing asteroid data for cells to improve performance. */
         this.cellCache = new Map();
         /** @type {number} Maximum number of cells to cache. */
-        this.maxCacheSize = 100;
+        this.maxCacheSize = 100.0;
         /** @type {number} Timestamp of the last cache pruning operation. */
         this._lastCachePrune = performance.now();
         /** @type {number} The number of precomputed asteroid shapes. */
-        this.shapeCount = 20;
+        this.shapeCount = 20.0;
         /** @type {Array<AsteroidShape>} Array of precomputed asteroid shapes for rendering. */
         this.shapes = new Array(this.shapeCount);
-        for (let i = 0; i < this.shapeCount; i++) {
-            const numPoints = 5 + Math.floor(Math.random() * 4);
+        for (let i = 0.0; i < this.shapeCount; i++) {
+            const numPoints = 5 + Math.floor(Math.random() * 4.0);
             this.shapes[i] = new AsteroidShape(numPoints);
         }
         /** @type {number} Elapsed time for animating the asteroid belt. */
-        this.elapsedTime = 0;
+        this.elapsedTime = 0.0;
         /** @type {Vector2D} Scratch vector for world position calculations. */
         this._scratchWorldPos = new Vector2D();
         /** @type {Vector2D} Scratch vector for screen position calculations. */
@@ -133,7 +133,7 @@ export class AsteroidBelt {
         if (!this.starSystem) {
             console.warn('No star system on asteroid belt init', this);
         }
-        for (let i = 0; i < this.interactiveCount; i++) {
+        for (let i = 0.0; i < this.interactiveCount; i++) {
             this.interactiveAsteroids.push(new Asteroid(this));
         }
     }
@@ -157,10 +157,10 @@ export class AsteroidBelt {
 
     getRandomAsteroid(ship = null, exclude = null) {
         const arr1 = this.interactiveAsteroids;
-        const length1 = arr1 ? arr1.length : 0;
-        if (length1 === 0) return null;
+        const length1 = arr1 ? arr1.length : 0.0;
+        if (length1 === 0.0) return null;
         let attempts = length1;
-        while (attempts > 0) {
+        while (attempts > 0.0) {
             const randomIndex = Math.floor(Math.random() * length1);
             const item = arr1[randomIndex];
             if (ship && item !== exclude && isValidTarget(ship, item)) return item;
@@ -227,16 +227,16 @@ export class AsteroidBelt {
         let asteroidData = this.cellCache.get(cellKey);
         if (!asteroidData || !asteroidData.data) {
             try {
-                const seed = hash(layer, Math.round(cellAngle / this.cellAngleSize), 0);
+                const seed = hash(layer, Math.round(cellAngle / this.cellAngleSize), 0.0);
                 const rng = new SimpleRNG(seed);
-                asteroidData = { data: new Float32Array(this.asteroidsPerCell * 5), time };
-                for (let i = 0; i < this.asteroidsPerCell; i++) {
-                    const idx = i * 5;
+                asteroidData = { data: new Float32Array(this.asteroidsPerCell * 5.0), time };
+                for (let i = 0.0; i < this.asteroidsPerCell; i++) {
+                    const idx = i * 5.0;
                     asteroidData.data[idx] = remapRange01(rng.next(), this.innerRadius, this.outerRadius);
                     asteroidData.data[idx + 1] = rng.next() * this.cellAngleSize;
                     asteroidData.data[idx + 2] = (rng.next() - 0.5) * TWO_PI * 0.75;
                     asteroidData.data[idx + 3] = Math.floor(rng.next() * this.shapeCount);
-                    asteroidData.data[idx + 4] = remapRange01(rng.next(), 2, 20);
+                    asteroidData.data[idx + 4] = remapRange01(rng.next(), 2.0, 20.0);
                 }
                 this.cellCache.set(cellKey, asteroidData);
                 if (this.cellCache.size > this.maxCacheSize) this.pruneCache(time);
@@ -256,10 +256,10 @@ export class AsteroidBelt {
      * @param {number} time - Current time in milliseconds.
      */
     pruneCache(time) {
-        if (time - this._lastCachePrune < 10000) return;
+        if (time - this._lastCachePrune < 10000.0) return;
         //const from = this.cellCache.size;
         for (const [key, entry] of this.cellCache) {
-            if (time - entry.time > 10000) this.cellCache.delete(key);
+            if (time - entry.time > 10000.0) this.cellCache.delete(key);
         }
         //const to = this.cellCache.size;
         this._lastCachePrune = time;
@@ -291,15 +291,15 @@ export class AsteroidBelt {
         ctx.save();
         ctx.fillStyle = Colour.GreyDark.toRGB();
         ctx.strokeStyle = Colour.BlackDark.toRGB();
-        ctx.lineWidth = 1;
+        ctx.lineWidth = 1.0;
 
         const time = this.elapsedTime;
         const globalPath = new Path2D(); // Separate Path2D for background asteroids to simplify layering
         const matrix = this._scratchMatrix;
 
         // Draw background asteroids in a batch per layer
-        //let renderedCells = 0;
-        for (let layerIdx = 0; layerIdx < this.layerCount; layerIdx++) {
+        //let renderedCells =  0.0;
+        for (let layerIdx = 0.0; layerIdx < this.layerCount; layerIdx++) {
             const orbitalSpeed = this.orbitalSpeeds[layerIdx];
             // Adjust camera angles for layer rotation
             const layerAngle = orbitalSpeed * this.elapsedTime;
@@ -320,7 +320,7 @@ export class AsteroidBelt {
                 if (camera.isCellInView(cellAngle, cellEndAngle)) {
                     //renderedCells++;
                     const asteroids = this.getCellAsteroids(layerIdx, baseCellAngle, time);
-                    for (let j = 0; j < asteroids.length; j += 5) {
+                    for (let j = 0.0; j < asteroids.length; j += 5.0) {
                         const radius = asteroids[j];
                         const angleOffset = asteroids[j + 1];
                         const rotationSpeed = asteroids[j + 2];
@@ -329,7 +329,7 @@ export class AsteroidBelt {
 
                         this._scratchWorldPos.setFromPolar(radius, cellAngle + angleOffset);
                         if (camera.isInView(this._scratchWorldPos, size)) {
-                            const rotation = rotationSpeed * this.elapsedTime + Math.PI / 2; // Adjust for 0 = up
+                            const rotation = rotationSpeed * this.elapsedTime + Math.PI / 2.0; // Adjust for 0.0 = up
                             const scaledSize = camera.worldToSize(size); // Direct zoom scaling
                             const shape = this.shapes[shapeIndex];
                             camera.worldToScreen(this._scratchWorldPos, this._scratchScreenPos);
@@ -354,10 +354,10 @@ export class AsteroidBelt {
             //console.log(`renderedCells: ${renderedCells}`);
             // Draw translucent purple cone for camera’s minAngle to maxAngle
             ctx.save();
-            ctx.fillStyle = 'rgba(128, 0, 128, 0.3)';
+            ctx.fillStyle = 'rgba(128,  0.0,  128.0, 0.3)';
             ctx.beginPath();
             // Start at origin
-            this._scratchWorldPos.set(0, 0);
+            this._scratchWorldPos.set(0.0, 0.0);
             camera.worldToScreen(this._scratchWorldPos, this._scratchScreenPos);
             ctx.moveTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
             // Line to minAngle at outerRadius
@@ -377,7 +377,7 @@ export class AsteroidBelt {
             ctx.restore();
             // Batch debug circles and cell outlines in a single loop per layer
             ctx.save();
-            for (let layerIdx = 0; layerIdx < this.layerCount; layerIdx++) {
+            for (let layerIdx = 0.0; layerIdx < this.layerCount; layerIdx++) {
                 const orbitalSpeed = this.orbitalSpeeds[layerIdx];
                 const layerAngle = orbitalSpeed * this.elapsedTime;
                 let minAngleLayer = normalizeAngle(camera.worldBounds.minAngle - layerAngle);
@@ -396,7 +396,7 @@ export class AsteroidBelt {
 
                     // Build circle path for asteroid positions
                     const asteroids = this.getCellAsteroids(layerIdx, baseCellAngle, time);
-                    for (let j = 0; j < asteroids.length; j += 5) {
+                    for (let j = 0.0; j < asteroids.length; j += 5.0) {
                         const radius = asteroids[j];
                         const angleOffset = asteroids[j + 1];
                         const size = asteroids[j + 4];
@@ -405,7 +405,7 @@ export class AsteroidBelt {
                         if (camera.isInView(this._scratchWorldPos, size)) {
                             camera.worldToScreen(this._scratchWorldPos, this._scratchScreenPos);
                             circlePath.moveTo(this._scratchScreenPos.x + 5 * camera.zoom, this._scratchScreenPos.y);
-                            circlePath.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, 5 * camera.zoom, 0, TWO_PI);
+                            circlePath.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, 5 * camera.zoom, 0.0, TWO_PI);
                         }
                     }
 
@@ -428,7 +428,7 @@ export class AsteroidBelt {
                 // Draw batched paths with layer color
                 ctx.fillStyle = this._debugColors[layerIdx % this._debugColors.length];
                 ctx.strokeStyle = this._debugColors[layerIdx % this._debugColors.length];
-                ctx.lineWidth = 2;
+                ctx.lineWidth = 2.0;
                 ctx.fill(circlePath);
                 ctx.stroke(outlinePath);
             }
@@ -441,7 +441,7 @@ export class AsteroidBelt {
             if (camera.isInView(asteroid.position, asteroid.radius)) {
                 camera.worldToScreen(asteroid.position, this._scratchScreenPos);
                 const scaledSize = camera.worldToSize(asteroid.radius);
-                const rotation = asteroid.spin + Math.PI / 2; // Adjust for 0 = up
+                const rotation = asteroid.spin + Math.PI / 2.0; // Adjust for 0.0 = up
                 const cosA = Math.cos(rotation);
                 const sinA = Math.sin(rotation);
                 matrix.a = scaledSize * cosA;
@@ -470,7 +470,7 @@ export class Asteroid extends GameObject {
      * @param {AsteroidBelt} belt - The asteroid belt this asteroid belongs to.
      */
     constructor(belt) {
-        super(new Vector2D(0, 0), belt.starSystem);
+        super(new Vector2D(0.0, 0.0), belt.starSystem);
         /** @type {AsteroidBelt} The asteroid belt this asteroid belongs to. */
         this.belt = belt;
         /** @type {number} Index of the shape used for rendering. */
@@ -478,14 +478,14 @@ export class Asteroid extends GameObject {
         /** @type {AsteroidShape} The shape used for rendering this asteroid. */
         this.shape = belt.shapes[this.shapeIndex];
         /** @type {number} The radius of the asteroid (world units). */
-        this.radius = remapRange01(Math.random(), 15, 30);
+        this.radius = remapRange01(Math.random(), 15.0, 30.0);
         /** @type {number} Current spin angle (radians). */
-        this.spin = 0;
+        this.spin = 0.0;
         /** @type {number} Spin angular velocity (radians/second). */
         this.spinSpeed = remapRange01(Math.random(), -TWO_PI, TWO_PI) * 0.5;
 
         // Calculate orbital speed to achieve tangential velocity between 25 and 95 units/second
-        const tangentialVelocity = remapRange01(Math.random(), 25, 95);
+        const tangentialVelocity = remapRange01(Math.random(), 25.0, 95.0);
         /** @type {number} Orbital radius from system center (world units). */
         this.orbitRadius = remapRange01(Math.random(), belt.innerRadius, belt.outerRadius);
         /** @type {number} Orbital angular velocity (radians/second). */
@@ -494,7 +494,7 @@ export class Asteroid extends GameObject {
         // Clamp orbitSpeed to prevent extreme values for small or large radii
         this.orbitSpeed = clamp(this.orbitSpeed, Math.PI * 0.0001, Math.PI * 0.01);
         /** @type {number} Current orbital angle (radians). */
-        this.orbitAngle = remapRange01(Math.random(), 0, TWO_PI);
+        this.orbitAngle = remapRange01(Math.random(), 0.0, TWO_PI);
         /** @type {Vector2D} Current position in world coordinates. */
         this.position.setFromPolar(this.orbitRadius, this.orbitAngle);
         /** @type {Vector2D} Scratch vector for screen position calculations. */
@@ -523,7 +523,7 @@ export class Asteroid extends GameObject {
         this.orbitAngle += this.orbitSpeed * deltaTime;
         this.spin += this.spinSpeed * deltaTime;
         this.position.setFromPolar(this.orbitRadius, this.orbitAngle);
-        this.velocity.setFromPolar(this.orbitSpeed * this.orbitRadius, this.orbitAngle + Math.PI / 2);
+        this.velocity.setFromPolar(this.orbitSpeed * this.orbitRadius, this.orbitAngle + Math.PI / 2.0);
         this.orbitAngle %= TWO_PI;
         this.spin %= TWO_PI;
     }

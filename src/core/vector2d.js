@@ -7,10 +7,10 @@
 export class Vector2D {
     /**
      * Creates a new Vector2D instance.
-     * @param {number} [x=0] - The x component of the vector.
-     * @param {number} [y=0] - The y component of the vector.
+     * @param {number} [x=0.0] - The x component of the vector.
+     * @param {number} [y=0.0] - The y component of the vector.
      */
-    constructor(x = 0, y = 0) {
+    constructor(x = 0.0, y = 0.0) {
         /** @type {number} The x component of the vector. */
         this.x = x;
         /** @type {number} The y component of the vector. */
@@ -187,7 +187,7 @@ export class Vector2D {
         outDelta.set(other).subtractInPlace(this);
         const distance = outDelta.magnitude();
         outDirection.set(outDelta);
-        if (distance > 0) outDirection.divideInPlace(distance);
+        if (distance > 0.0) outDirection.divideInPlace(distance);
         return distance;
     }
 
@@ -250,7 +250,7 @@ export class Vector2D {
      * @returns {Vector2D} This vector, for chaining.
      */
     divideInPlace(scalar) {
-        if (scalar === 0) throw new Error("Cannot divide by zero");
+        if (scalar === 0.0) throw new Error("Cannot divide by zero");
         this.x /= scalar;
         this.y /= scalar;
         return this;
@@ -258,17 +258,17 @@ export class Vector2D {
 
     /**
      * Normalizes this vector in-place (makes it a unit vector).
-     * If the vector is zero, sets it to (0, 0).
+     * If the vector is zero, sets it to (0.0,  0.0).
      * @returns {Vector2D} This vector, for chaining.
      */
     normalizeInPlace() {
         const mag = Math.sqrt(this.x * this.x + this.y * this.y);
-        if (mag > 0) {
+        if (mag > 0.0) {
             this.x /= mag;
             this.y /= mag;
         } else {
-            this.x = 0;
-            this.y = 0;
+            this.x = 0.0;
+            this.y = 0.0;
         }
         return this;
     }
@@ -322,4 +322,4 @@ export class Vector2D {
     }
 }
 
-Vector2D.Zero = Object.freeze(new Vector2D(0, 0));
+Vector2D.Zero = Object.freeze(new Vector2D(0.0, 0.0));

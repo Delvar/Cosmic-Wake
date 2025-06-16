@@ -47,7 +47,7 @@ export class StarSystem {
         /** @type {Array<Ship>} Array of ships in the star system. */
         this.ships = [];
         /** @type {number} Maximum number of AI-controlled ships allowed in the star system. */
-        this.maxAiShips = planets.length * 2;
+        this.maxAiShips = planets.length * 2.0;
         /** @type {Array<Hyperlane>} Array of hyperlane connections to other star systems. */
         this.hyperlanes = [];
         /** @type {AsteroidBelt|null} Optional asteroid belt in the star system. */
@@ -57,12 +57,12 @@ export class StarSystem {
 
         // Link each celestial body to this star system
         const starsLength = stars.length;
-        for (let i = 0; i < starsLength; i++) {
+        for (let i = 0.0; i < starsLength; i++) {
             stars[i].starSystem = this;
         }
 
         const planetsLength = planets.length;
-        for (let i = 0; i < planetsLength; i++) {
+        for (let i = 0.0; i < planetsLength; i++) {
             planets[i].starSystem = this;
         }
 
@@ -184,14 +184,14 @@ export class StarSystem {
      */
     getRandomShip(ship = null, exclude = null, isValid = isValidTarget) {
         const arr1 = this.ships;
-        const length1 = arr1 ? arr1.length : 0;
+        const length1 = arr1 ? arr1.length : 0.0;
         const totalLength = length1;
-        if (totalLength == 0) {
+        if (totalLength == 0.0) {
             return null;
         }
         let attempts = totalLength;
         let item = null;
-        while (attempts > 0) {
+        while (attempts > 0.0) {
             const randomIndex = Math.floor(Math.random() * totalLength);
             item = arr1[randomIndex];
             if (ship) {
@@ -213,14 +213,14 @@ export class StarSystem {
      */
     getRandomPlanet(ship = null, exclude = null) {
         const arr1 = this.planets;
-        const length1 = arr1 ? arr1.length : 0;
+        const length1 = arr1 ? arr1.length : 0.0;
         const totalLength = length1;
-        if (totalLength == 0) {
+        if (totalLength == 0.0) {
             return null;
         }
         let attempts = totalLength;
         let item = null;
-        while (attempts > 0) {
+        while (attempts > 0.0) {
             const randomIndex = Math.floor(Math.random() * totalLength);
             item = arr1[randomIndex];
             if (ship) {
@@ -242,14 +242,14 @@ export class StarSystem {
      */
     getRandomStar(ship = null, exclude = null) {
         const arr1 = this.stars;
-        const length1 = arr1 ? arr1.length : 0;
+        const length1 = arr1 ? arr1.length : 0.0;
         const totalLength = length1;
-        if (totalLength == 0) {
+        if (totalLength == 0.0) {
             return null;
         }
         let attempts = totalLength;
         let item = null;
-        while (attempts > 0) {
+        while (attempts > 0.0) {
             const randomIndex = Math.floor(Math.random() * totalLength);
             item = arr1[randomIndex];
             if (ship) {
@@ -271,14 +271,14 @@ export class StarSystem {
      */
     getRandomJumpGate(ship = null, exclude = null) {
         const arr1 = this.jumpGates;
-        const length1 = arr1 ? arr1.length : 0;
+        const length1 = arr1 ? arr1.length : 0.0;
         const totalLength = length1;
-        if (totalLength == 0) {
+        if (totalLength == 0.0) {
             return null;
         }
         let attempts = totalLength;
         let item = null;
-        while (attempts > 0) {
+        while (attempts > 0.0) {
             const randomIndex = Math.floor(Math.random() * totalLength);
             item = arr1[randomIndex];
             if (ship) {
@@ -300,14 +300,14 @@ export class StarSystem {
      */
     getRandomAsteroid(ship = null, exclude = null) {
         const arr1 = this.asteroids;
-        const length1 = arr1 ? arr1.length : 0;
+        const length1 = arr1 ? arr1.length : 0.0;
         const totalLength = length1;
-        if (totalLength == 0) {
+        if (totalLength == 0.0) {
             return null;
         }
         let attempts = totalLength;
         let item = null;
-        while (attempts > 0) {
+        while (attempts > 0.0) {
             const randomIndex = Math.floor(Math.random() * totalLength);
             item = arr1[randomIndex];
             if (ship) {
@@ -329,16 +329,16 @@ export class StarSystem {
      */
     getRandomJumpGatePlanet(ship = null, exclude = null) {
         const arr1 = this.planets;
-        const length1 = arr1 ? arr1.length : 0;
+        const length1 = arr1 ? arr1.length : 0.0;
         const arr2 = this.jumpGates;
-        const length2 = arr2 ? arr2.length : 0;
+        const length2 = arr2 ? arr2.length : 0.0;
         const totalLength = length1 + length2;
-        if (totalLength == 0) {
+        if (totalLength == 0.0) {
             return null;
         }
         let attempts = totalLength;
         let item = null;
-        while (attempts > 0) {
+        while (attempts > 0.0) {
             const randomIndex = Math.floor(Math.random() * totalLength);
             if (randomIndex < length1) {
                 item = arr1[randomIndex];
@@ -364,16 +364,16 @@ export class StarSystem {
      */
     getRandomPlanetAsteroid(ship = null, exclude = null) {
         const arr1 = this.planets;
-        const length1 = arr1 ? arr1.length : 0;
+        const length1 = arr1 ? arr1.length : 0.0;
         const arr2 = this.asteroids;
-        const length2 = arr2 ? arr2.length : 0;
+        const length2 = arr2 ? arr2.length : 0.0;
         const totalLength = length1 + length2;
-        if (totalLength == 0) {
+        if (totalLength == 0.0) {
             return null;
         }
         let attempts = totalLength;
         let item = null;
-        while (attempts > 0) {
+        while (attempts > 0.0) {
             const randomIndex = Math.floor(Math.random() * totalLength);
             if (randomIndex < length1) {
                 item = arr1[randomIndex];
@@ -399,18 +399,18 @@ export class StarSystem {
      */
     getRandomJumpGatePlanetAsteroid(ship = null, exclude = null) {
         const arr1 = this.planets;
-        const length1 = arr1 ? arr1.length : 0;
+        const length1 = arr1 ? arr1.length : 0.0;
         const arr2 = this.jumpGates;
-        const length2 = arr2 ? arr2.length : 0;
+        const length2 = arr2 ? arr2.length : 0.0;
         const arr3 = this.asteroids;
-        const length3 = arr3 ? arr3.length : 0;
+        const length3 = arr3 ? arr3.length : 0.0;
         const totalLength = length1 + length2 + length3;
-        if (totalLength == 0) {
+        if (totalLength == 0.0) {
             return null;
         }
         let attempts = totalLength;
         let item = null;
-        while (attempts > 0) {
+        while (attempts > 0.0) {
             const randomIndex = Math.floor(Math.random() * totalLength);
             if (randomIndex < length1) {
                 item = arr1[randomIndex];
@@ -439,13 +439,13 @@ export class StarSystem {
      */
     getClosestJumpGate(ship, exclude = null) {
         const arr1 = this.jumpGates;
-        const length1 = arr1 ? arr1.length : 0;
-        if (length1 === 0) return null;
+        const length1 = arr1 ? arr1.length : 0.0;
+        if (length1 === 0.0) return null;
 
         let closestItem = null;
         let closestSquaredDistance = Infinity;
 
-        for (let i = 0; i < length1; i++) {
+        for (let i = 0.0; i < length1; i++) {
             const item = arr1[i];
             if (item !== exclude && isValidTarget(ship, item)) {
                 const squaredDistance = item.position.distanceSquaredTo(ship.position);
@@ -468,8 +468,8 @@ export class StarSystem {
      */
     cycleClosestJumpGate(ship, currentGate = null, exclude = null) {
         const arr1 = this.jumpGates;
-        const length1 = arr1 ? arr1.length : 0;
-        if (length1 === 0) return null;
+        const length1 = arr1 ? arr1.length : 0.0;
+        if (length1 === 0.0) return null;
 
         // Compute current gate's distance if provided
         let currentDistanceSq = Infinity;
@@ -483,7 +483,7 @@ export class StarSystem {
         let nextClosestSquaredDistance = Infinity;
 
         // Single pass: find closest and next closest gate
-        for (let i = 0; i < length1; i++) {
+        for (let i = 0.0; i < length1; i++) {
             const item = arr1[i];
             if (item !== exclude && isValidTarget(ship, item)) {
                 const squaredDistance = item.position.distanceSquaredTo(ship.position);
@@ -512,8 +512,8 @@ export class StarSystem {
      */
     getClosestPlanet(ship, exclude = null) {
         const arr1 = this.planets;
-        const length1 = arr1 ? arr1.length : 0;
-        if (length1 === 0) {
+        const length1 = arr1 ? arr1.length : 0.0;
+        if (length1 === 0.0) {
             if (ship.debug) {
                 console.log(`StarSystem: No planets in system`);
             }
@@ -527,7 +527,7 @@ export class StarSystem {
             console.log(`StarSystem: Checking ${length1} planets`);
         }
 
-        for (let i = 0; i < length1; i++) {
+        for (let i = 0.0; i < length1; i++) {
             const item = arr1[i];
             const isValid = isValidTarget(ship, item);
             if (ship.debug) {
@@ -558,8 +558,8 @@ export class StarSystem {
      */
     cycleClosestPlanet(ship, currentPlanet = null, exclude = null) {
         const arr1 = this.planets;
-        const length1 = arr1 ? arr1.length : 0;
-        if (length1 === 0) return null;
+        const length1 = arr1 ? arr1.length : 0.0;
+        if (length1 === 0.0) return null;
 
         let currentDistanceSq = Infinity;
         if (currentPlanet && isValidTarget(ship, currentPlanet)) {
@@ -571,7 +571,7 @@ export class StarSystem {
         let nextClosestItem = null;
         let nextClosestDistanceSq = Infinity;
 
-        for (let i = 0; i < length1; i++) {
+        for (let i = 0.0; i < length1; i++) {
             const item = arr1[i];
             if (item !== exclude && isValidTarget(ship, item)) {
                 const squaredDistance = item.position.distanceSquaredTo(ship.position);
@@ -598,8 +598,8 @@ export class StarSystem {
      */
     getClosestShip(ship, exclude = null, isValid = isValidTarget) {
         const arr1 = this.ships;
-        const length1 = arr1 ? arr1.length : 0;
-        if (length1 === 0) {
+        const length1 = arr1 ? arr1.length : 0.0;
+        if (length1 === 0.0) {
             if (ship.debug) {
                 console.log(`StarSystem: No ships in system`);
             }
@@ -613,7 +613,7 @@ export class StarSystem {
             console.log(`StarSystem: Checking ${length1} ships`);
         }
 
-        for (let i = 0; i < length1; i++) {
+        for (let i = 0.0; i < length1; i++) {
             const item = arr1[i];
             const valid = isValid(ship, item);
             if (ship.debug) {
@@ -645,8 +645,8 @@ export class StarSystem {
      */
     cycleClosestShip(ship, currentShip = null, exclude = null, isValid = isValidTarget) {
         const arr1 = this.ships;
-        const length1 = arr1 ? arr1.length : 0;
-        if (length1 === 0) return null;
+        const length1 = arr1 ? arr1.length : 0.0;
+        if (length1 === 0.0) return null;
 
         let currentDistanceSq = Infinity;
         if (currentShip && isValid(ship, currentShip)) {
@@ -658,7 +658,7 @@ export class StarSystem {
         let nextClosestItem = null;
         let nextClosestDistanceSq = Infinity;
 
-        for (let i = 0; i < length1; i++) {
+        for (let i = 0.0; i < length1; i++) {
             const item = arr1[i];
             const valid = isValid(ship, item);
             if (item !== ship && item !== exclude && valid) {
@@ -685,14 +685,14 @@ export class StarSystem {
      */
     getClosestAsteroid(ship, exclude = null) {
         const arr1 = this.asteroids;
-        const length1 = arr1 ? arr1.length : 0;
+        const length1 = arr1 ? arr1.length : 0.0;
 
-        if (length1 === 0) return null;
+        if (length1 === 0.0) return null;
 
         let closestItem = null;
         let closestSquaredDistance = Infinity;
 
-        for (let i = 0; i < length1; i++) {
+        for (let i = 0.0; i < length1; i++) {
             const item = arr1[i];
             if (item !== exclude && isValidTarget(ship, item)) {
                 const squaredDistance = item.position.distanceSquaredTo(ship.position);
@@ -715,8 +715,8 @@ export class StarSystem {
      */
     cycleClosestAsteroid(ship, currentAsteroid = null, exclude = null) {
         const arr1 = this.asteroids;
-        const length1 = arr1 ? arr1.length : 0;
-        if (length1 === 0) return null;
+        const length1 = arr1 ? arr1.length : 0.0;
+        if (length1 === 0.0) return null;
 
         let currentDistanceSq = Infinity;
         if (currentAsteroid && isValidTarget(ship, currentAsteroid)) {
@@ -728,7 +728,7 @@ export class StarSystem {
         let nextClosestItem = null;
         let nextClosestDistanceSq = Infinity;
 
-        for (let i = 0; i < length1; i++) {
+        for (let i = 0.0; i < length1; i++) {
             const item = arr1[i];
             if (item !== exclude && isValidTarget(ship, item)) {
                 const squaredDistance = item.position.distanceSquaredTo(ship.position);
@@ -753,17 +753,17 @@ export class StarSystem {
      */
     getClosestJumpGatePlanet(ship, exclude = null) {
         const arr1 = this.planets;
-        const length1 = arr1 ? arr1.length : 0;
+        const length1 = arr1 ? arr1.length : 0.0;
         const arr2 = this.jumpGates;
-        const length2 = arr2 ? arr2.length : 0;
+        const length2 = arr2 ? arr2.length : 0.0;
         const totalLength = length1 + length2;
-        if (totalLength == 0) {
+        if (totalLength == 0.0) {
             return null;
         }
         let item = null;
         let closestItem = arr1[0];
         let closestSquaredDistance = closestItem.position.distanceSquaredTo(ship.position);
-        for (let i = 1; i < totalLength; i++) {
+        for (let i = 1.0; i < totalLength; i++) {
             if (i < length1) {
                 item = arr1[i];
             } else {
@@ -786,7 +786,7 @@ export class StarSystem {
      */
     getJumpGateToSystem(targetSystem) {
         const gates = this.jumpGates;
-        for (let i = 0; i < gates.length; i++) {
+        for (let i = 0.0; i < gates.length; i++) {
             const gate = gates[i];
             if (gate.lane && gate.lane.target === targetSystem) return gate;
         }

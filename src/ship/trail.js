@@ -12,17 +12,17 @@ class TrailPointPool {
      * Creates a new TrailPointPool.
      * @param {number} [maxPoints=300] - Initial maximum number of points the pool can hold.
      */
-    constructor(maxPoints = 300) {
+    constructor(maxPoints = 300.0) {
         /** @type {number} Maximum number of points the buffer can store. */
         this.maxPoints = maxPoints;
         /** @type {Float32Array} Buffer storing point data (9 floats per point). */
-        this.data = new Float32Array(maxPoints * 9);
+        this.data = new Float32Array(maxPoints * 9.0);
         /** @type {number} Index where the next point will be added (newest). */
-        this.head = 0;
+        this.head = 0.0;
         /** @type {number} Index of the oldest point to be removed (start of trail). */
-        this.tail = 0;
+        this.tail = 0.0;
         /** @type {number} Current number of active points in the buffer. */
-        this.count = 0;
+        this.count = 0.0;
 
         if (new.target === TrailPointPool) Object.seal(this);
     }
@@ -32,9 +32,9 @@ class TrailPointPool {
      * Useful for events like ship jumps to restart the trail.
      */
     clear() {
-        this.head = 0;
-        this.tail = 0;
-        this.count = 0;
+        this.head = 0.0;
+        this.tail = 0.0;
+        this.count = 0.0;
     }
 
     /**
@@ -48,19 +48,19 @@ class TrailPointPool {
         if (this.count >= this.maxPoints) {
             this.expand();
         }
-        const index = this.head * 9;
+        const index = this.head * 9.0;
         this.data[index] = position.x;
         this.data[index + 1] = position.y;
         this.data[index + 2] = backwards.x;
         this.data[index + 3] = backwards.y;
         this.data[index + 4] = right.x;
         this.data[index + 5] = right.y;
-        this.data[index + 6] = 0; // screenLeftPositionX (to be set during draw)
-        this.data[index + 7] = 0; // screenLeftPositionY (to be set during draw)
+        this.data[index + 6] = 0.0; // screenLeftPositionX (to be set during draw)
+        this.data[index + 7] = 0.0; // screenLeftPositionY (to be set during draw)
         this.data[index + 8] = age; // Age of the point
-        this.head = (this.head + 1) % this.maxPoints;
+        this.head = (this.head + 1.0) % this.maxPoints;
         if (this.count === this.maxPoints) {
-            this.tail = (this.tail + 1) % this.maxPoints;
+            this.tail = (this.tail + 1.0) % this.maxPoints;
         } else {
             this.count++;
         }
@@ -71,15 +71,15 @@ class TrailPointPool {
      * @returns {number} The new maximum number of points.
      */
     expand() {
-        const newMaxPoints = this.maxPoints * 2;
-        const newData = new Float32Array(newMaxPoints * 9);
-        let oldIdx = this.tail * 9;
-        for (let i = 0; i < this.count * 9; i++) {
+        const newMaxPoints = this.maxPoints * 2.0;
+        const newData = new Float32Array(newMaxPoints * 9.0);
+        let oldIdx = this.tail * 9.0;
+        for (let i = 0.0; i < this.count * 9.0; i++) {
             newData[i] = this.data[oldIdx];
-            oldIdx = (oldIdx + 1) % (this.maxPoints * 9);
+            oldIdx = (oldIdx + 1.0) % (this.maxPoints * 9.0);
         }
         this.data = newData;
-        this.tail = 0;
+        this.tail = 0.0;
         this.head = this.count;
         this.maxPoints = newMaxPoints;
         return newMaxPoints;
@@ -88,28 +88,28 @@ class TrailPointPool {
     /**
      * Gets the buffer index for the nth point from the head (newest to oldest).
      * @param {number} n - The point’s position from head (0 = newest).
-     * @returns {number} The index in the data array (multiple of 9).
+     * @returns {number} The index in the data array (multiple of  9.0).
      */
     getIndex(n) {
-        return ((this.head - 1 - n + this.maxPoints) % this.maxPoints) * 9;
+        return ((this.head - 1 - n + this.maxPoints) % this.maxPoints) * 9.0;
     }
 
     /**
-     * Removes points with age <= 0, starting from the tail (oldest points), but only if both the tail and the next point have age <= 0.
-     * This ensures the tail always has age <= 0 for smooth projection.
+     * Removes points with age <=  0.0, starting from the tail (oldest points), but only if both the tail and the next point have age <= 0.
+     * This ensures the tail always has age <= 0.0 for smooth projection.
      * @returns {number} The number of points removed.
      */
     removeExpiredPoints() {
-        let removedCount = 0;
-        while (this.count > 1) { // Ensure at least 1 point remains
-            const tailIdx = this.tail * 9;
+        let removedCount = 0.0;
+        while (this.count > 1.0) { // Ensure at least 1 point remains
+            const tailIdx = this.tail * 9.0;
             const tailAge = this.data[tailIdx + 8];
-            if (tailAge > 0) break; // Stop if the tail is still alive
+            if (tailAge > 0.0) break; // Stop if the tail is still alive
             // Check the next point's age
-            const nextTailIdx = ((this.tail + 1) % this.maxPoints) * 9;
+            const nextTailIdx = ((this.tail + 1.0) % this.maxPoints) * 9.0;
             const nextTailAge = this.data[nextTailIdx + 8];
-            if (nextTailAge > 0) break; // Stop if the next point is alive, ensuring tail has age <= 0
-            this.tail = (this.tail + 1) % this.maxPoints;
+            if (nextTailAge > 0.0) break; // Stop if the next point is alive, ensuring tail has age <= 0
+            this.tail = (this.tail + 1.0) % this.maxPoints;
             this.count--;
             removedCount++;
         }
@@ -126,9 +126,9 @@ export class Trail {
      * @param {number} [maxAge=5] - Maximum age of a trail point in seconds.
      * @param {number} [decayMultiplier=1] - Multiplier for age decay rate.
      * @param {number} [startWidth=2] - Initial width of the trail in world units.
-     * @param {string} [color='rgba(255, 255, 255, 0.5)'] - CSS color for the trail fill.
+     * @param {string} [color='rgba(255,  255.0,  255.0, 0.5)'] - CSS color for the trail fill.
      */
-    constructor(maxAge = 5, decayMultiplier = 1, startWidth = 2, color = 'rgba(255, 255, 255, 0.5)') {
+    constructor(maxAge = 5.0, decayMultiplier = 1.0, startWidth = 2.0, color = 'rgba(255,  255.0,  255.0, 0.5)') {
         /** @type {TrailPointPool} Ring buffer for trail points. */
         this.points = new TrailPointPool(20);
         /** @type {number} Starting width of the trail in world units. */
@@ -138,11 +138,11 @@ export class Trail {
         /** @type {number} Multiplier for age decay rate (higher = faster decay). */
         this.decayMultiplier = decayMultiplier;
         /** @type {number} Minimum distance between points to add a new one. */
-        this.minPointDist = 2;
+        this.minPointDist = 2.0;
         /** @type {number} Maximum distance before forcing a new point. */
-        this.maxPointDist = 200;
+        this.maxPointDist = 200.0;
         /** @type {number} Threshold for lateral movement to add a point. */
-        this.lateralThreshold = 2;
+        this.lateralThreshold = 2.0;
         /** @type {string} Color of the trail fill. */
         this.color = color;
         /** @type {boolean} Should we draw debug visuals? */
@@ -227,15 +227,15 @@ export class Trail {
         }
 
         // Initialize with at least 2 points
-        if (this.points.count < 2) {
+        if (this.points.count < 2.0) {
             const cosAngle = Math.cos(currentAngle);
             const sinAngle = Math.sin(currentAngle);
             this._scratchBackwardDirection.set(-sinAngle, cosAngle);
             this._scratchRightDirection.set(cosAngle, sinAngle); // Right is perpendicular
-            if (this.points.count == 0) {
-                this.points.addPoint(currentPosition, this._scratchBackwardDirection, this._scratchRightDirection, 0);
+            if (this.points.count == 0.0) {
+                this.points.addPoint(currentPosition, this._scratchBackwardDirection, this._scratchRightDirection, 0.0);
             }
-            if (this.points.count == 1) {
+            if (this.points.count == 1.0) {
                 this.points.addPoint(currentPosition, this._scratchBackwardDirection, this._scratchRightDirection, this.maxAge);
             }
         }
@@ -245,7 +245,7 @@ export class Trail {
         this.boundsMax.set(-Infinity, -Infinity);
 
         // Reduce age of all points and remove expired ones
-        for (let i = 0; i < this.points.count; i++) {
+        for (let i = 0.0; i < this.points.count; i++) {
             const idx = this.points.getIndex(i);
             //Age them down
             this.points.data[idx + 8] -= deltaTime * this.decayMultiplier;
@@ -285,7 +285,7 @@ export class Trail {
                 .normalizeInPlace();
             this._scratchTemp.set(-this.points.data[secondIdx + 2], -this.points.data[secondIdx + 3]);
             const dot = this._scratchTemp.dot(this._scratchForwardDirection);
-            const minDot = distance <= this.lateralThreshold ? 0 : Math.sqrt(1 - (this.lateralThreshold / distance) ** 2);
+            const minDot = distance <= this.lateralThreshold ? 0.0 : Math.sqrt(1 - (this.lateralThreshold / distance) ** 2.0);
             if (dot < minDot) {
                 shouldAddPoint = true;
             }
@@ -295,7 +295,7 @@ export class Trail {
             // Add new point at parent position
             this._scratchRelativePos.set(currentPosition)
                 .subtractInPlace(this._scratchFirstPositionPoint);
-            const newDistance = this._scratchRelativePos.magnitude() || 0;
+            const newDistance = this._scratchRelativePos.magnitude() || 0.0;
             if (newDistance > 0.1) {
                 this._scratchBackwardDirection.set(this._scratchRelativePos)
                     .multiplyInPlace(-1)
@@ -333,7 +333,7 @@ export class Trail {
      * @param {Number} shipScale - The current scale of the ship.
      */
     draw(ctx, camera, shipScale) {
-        if (this.points.count < 2) return;
+        if (this.points.count < 2.0) return;
 
         const startWidthInScreen = camera.worldToSize(this.startWidth * shipScale);
         ctx.save();
@@ -343,17 +343,17 @@ export class Trail {
         let previousIdx = -1; // Store the previous point's index
 
         // Forward pass: Draw right side, calculate and store left positions
-        for (let i = 0; i < lastPoint; i++) {
+        for (let i = 0.0; i < lastPoint; i++) {
             const idx = this.points.getIndex(i);
             const pointAge = this.points.data[idx + 8];
 
-            // Check if the current point's age is <= 0 to project the tail
-            if (pointAge <= 0 && i > 0) { // Need at least one previous point to project
-                // Use the previous point (last with age > 0) to project to the point where age = 0
+            // Check if the current point's age is <= 0.0 to project the tail
+            if (pointAge <= 0.0 && i > 0.0) { // Need at least one previous point to project
+                // Use the previous point (last with age >  0.0) to project to the point where age = 0
                 const previousAge = this.points.data[previousIdx + 8];
                 const ageDiff = previousAge - pointAge;
-                let ageRatio = 0;
-                if (ageDiff > 0) {
+                let ageRatio = 0.0;
+                if (ageDiff > 0.0) {
                     ageRatio = previousAge / ageDiff; // Ratio where age would be 0
                 }
 
@@ -366,14 +366,14 @@ export class Trail {
                 camera.worldToScreen(this._scratchEndPoint, this._scratchScreenPos);
                 ctx.lineTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
 
-                lastPoint = i - 1; // Exclude the current point and beyond
+                lastPoint = i - 1.0; // Exclude the current point and beyond
                 break;
             }
 
             // Draw the current point
             this._scratchScreenPos.set(this.points.data[idx], this.points.data[idx + 1]);
             camera.worldToScreen(this._scratchScreenPos, this._scratchScreenPos);
-            const ageProgress = Math.min(1, 1 - (pointAge / this.maxAge)); // 0 (new) to 1 (old)
+            const ageProgress = Math.min(1, 1 - (pointAge / this.maxAge)); // 0.0 (new) to 1 (old)
             const currentWidth = startWidthInScreen * (1 - ageProgress);
 
             // Calculate right point for drawing
@@ -389,7 +389,7 @@ export class Trail {
             this.points.data[idx + 6] = this._scratchLeftPoint.x; // screenLeftPositionX
             this.points.data[idx + 7] = this._scratchLeftPoint.y; // screenLeftPositionY
 
-            if (i == 0) {
+            if (i == 0.0) {
                 ctx.moveTo(this._scratchLeftPoint.x, this._scratchLeftPoint.y);
                 const radius = currentWidth;
                 const angleToRight = Math.atan2(this.points.data[idx + 5], this.points.data[idx + 4]);
@@ -400,7 +400,7 @@ export class Trail {
         }
 
         // Backward pass: Draw left side using stored screen positions
-        for (let i = lastPoint; i >= 0; i--) {
+        for (let i = lastPoint; i >= 0.0; i--) {
             const idx = this.points.getIndex(i);
             const leftX = this.points.data[idx + 6]; // screenLeftPositionX
             const leftY = this.points.data[idx + 7]; // screenLeftPositionY
@@ -417,17 +417,17 @@ export class Trail {
         if (this.debug) {
             ctx.fillStyle = 'red';
             ctx.strokeStyle = 'green';
-            for (let i = 0; i < this.points.count; i++) {
+            for (let i = 0.0; i < this.points.count; i++) {
                 const idx = this.points.getIndex(i);
                 this._scratchScreenPos.set(this.points.data[idx], this.points.data[idx + 1]);
                 camera.worldToScreen(this._scratchScreenPos, this._scratchScreenPos);
                 ctx.beginPath();
-                ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, 2, 0, Math.PI * 2);
+                ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, 2.0, 0.0, Math.PI * 2.0);
                 ctx.closePath();
                 ctx.fill();
 
-                const endX = this._scratchScreenPos.x + this.points.data[idx + 2] * 10;
-                const endY = this._scratchScreenPos.y + this.points.data[idx + 3] * 10;
+                const endX = this._scratchScreenPos.x + this.points.data[idx + 2] * 10.0;
+                const endY = this._scratchScreenPos.y + this.points.data[idx + 3] * 10.0;
                 ctx.beginPath();
                 ctx.moveTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
                 ctx.lineTo(endX, endY);
@@ -436,7 +436,7 @@ export class Trail {
             camera.worldToScreen(this._scratchEndPoint, this._scratchScreenPos);
             ctx.beginPath();
             ctx.moveTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
-            ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, 2, 0, Math.PI * 2);
+            ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, 2.0, 0.0, Math.PI * 2.0);
             ctx.closePath();
             ctx.fillStyle = 'lightgreen';
             ctx.fill();

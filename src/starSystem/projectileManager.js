@@ -22,17 +22,17 @@ export class ProjectileManager {
         /** @type {Projectile[]} Array of active Projectile objects. */
         this.projectiles = [];
         /** @type {number} Accumulated time in seconds for expiration checks. */
-        this.currentTime = 0;
+        this.currentTime = 0.0;
         /** @type {Vector2D} Temporary vector for collision distance calculation. */
-        this._scratchDistance = new Vector2D(0, 0);
+        this._scratchDistance = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Temporary vector for line endpoint calculation. */
-        this._scratchLineEnd = new Vector2D(0, 0);
+        this._scratchLineEnd = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Temporary vector for line start in screen coordinates. */
-        this._scratchLineStart = new Vector2D(0, 0);
+        this._scratchLineStart = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Temporary vector for line end in screen coordinates. */
-        this._scratchLineEnd = new Vector2D(0, 0);
+        this._scratchLineEnd = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Temporary vector for local-space projectile position. */
-        this._scratchLocalPos = new Vector2D(0, 0);
+        this._scratchLocalPos = new Vector2D(0.0, 0.0);
 
         if (new.target === ProjectileManager) Object.seal(this);
     }
@@ -42,7 +42,7 @@ export class ProjectileManager {
      * @type {Array<{speed: number, damage: number, maxAge: number, radius: number}>}
      */
     static projectileTypes = [
-        { speed: 1000, damage: 15, maxAge: 3, radius: 2 } // Rail Gun tungsten slug
+        { speed: 1000.0, damage: 15.0, maxAge: 3.0, radius: 2 } // Rail Gun tungsten slug
     ];
 
     /**
@@ -58,7 +58,7 @@ export class ProjectileManager {
             console.warn(`Invalid projectile type: ${typeIndex}`);
             return;
         }
-        if (this.projectiles.length >= 1000) {
+        if (this.projectiles.length >= 1000.0) {
             console.warn('Projectile limit reached');
             return;
         }
@@ -74,7 +74,7 @@ export class ProjectileManager {
      */
     update(deltaTime) {
         this.currentTime += deltaTime;
-        for (let i = this.projectiles.length - 1; i >= 0; i--) {
+        for (let i = this.projectiles.length - 1.0; i >= 0.0; i--) {
             const p = this.projectiles[i];
             if (p.expirationTime <= this.currentTime) {
                 removeObjectFromArrayInPlace(p, this.projectiles);
@@ -128,7 +128,7 @@ export class ProjectileManager {
 
                 if (isHit) {
                     ship.takeDamage(type.damage, p.position, p.owner);
-                    this.starSystem.particleManager.spawnExplosion(p.position, 5, ship.velocity);
+                    this.starSystem.particleManager.spawnExplosion(p.position, 5.0, ship.velocity);
                     removeObjectFromArrayInPlace(p, this.projectiles);
                     break;
                 }
@@ -148,7 +148,7 @@ export class ProjectileManager {
         ctx.beginPath();
 
         for (const p of this.projectiles) {
-            if (!camera.isInView(p.position, 100)) continue;
+            if (!camera.isInView(p.position, 100.0)) continue;
 
             // Set line width based on projectile type and camera scale
             const type = ProjectileManager.projectileTypes[p.typeIndex];
@@ -157,8 +157,8 @@ export class ProjectileManager {
             // Compute line endpoint (100 units toward originalPosition)
             this._scratchLineEnd.set(p.originalPosition).subtractInPlace(p.position);
             const distSq = this._scratchLineEnd.squareMagnitude();
-            if (distSq > 0) {
-                const scale = Math.min(100 / Math.sqrt(distSq), 1);
+            if (distSq > 0.0) {
+                const scale = Math.min(100 / Math.sqrt(distSq), 1.0);
                 this._scratchLineEnd.multiplyInPlace(scale).addInPlace(p.position);
             } else {
                 this._scratchLineEnd.set(p.position);
@@ -173,8 +173,8 @@ export class ProjectileManager {
                 this._scratchLineStart.x, this._scratchLineStart.y,
                 this._scratchLineEnd.x, this._scratchLineEnd.y
             );
-            gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
-            gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            gradient.addColorStop(0.0, 'rgba(255,  255.0,  255.0,  1.0)');
+            gradient.addColorStop(1, 'rgba(255,  255.0,  255.0,  0.0)');
             ctx.strokeStyle = gradient;
 
             ctx.moveTo(this._scratchLineStart.x, this._scratchLineStart.y);
@@ -190,7 +190,7 @@ export class ProjectileManager {
      * Clears all projectiles.
      */
     clear() {
-        this.projectiles.length = 0;
-        this.currentTime = 0;
+        this.projectiles.length = 0.0;
+        this.currentTime = 0.0;
     }
 }

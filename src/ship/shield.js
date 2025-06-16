@@ -16,7 +16,7 @@ export class Shield {
      * @param {number} [rapidRechargeRate=50] - Faster recharge rate post-restart.
      * @param {number} [rapidRechargeDuration=1] - Duration of rapid recharge in seconds.
      */
-    constructor(maxStrength = 100, rechargeRate = 20, restartDelay = 3, rapidRechargeRate = 50, rapidRechargeDuration = 3) {
+    constructor(maxStrength = 100.0, rechargeRate = 20.0, restartDelay = 3.0, rapidRechargeRate = 50.0, rapidRechargeDuration = 3.0) {
         /** @type {number} Current shield strength (0 to maxStrength). */
         this.strength = maxStrength;
         /** @type {number} Maximum shield strength. */
@@ -32,29 +32,29 @@ export class Shield {
         /** @type {boolean} Whether shields are functional (false during collapse/restart). */
         this.isActive = true;
         /** @type {number} Timestamp (in seconds) when shields are scheduled to restart. */
-        this.restartTime = 0;
+        this.restartTime = 0.0;
         /** @type {number} Time remaining for rapid recharge effect in seconds.*/
-        this.rapidRechargeEffectTime = 0;
+        this.rapidRechargeEffectTime = 0.0;
         /** @type {number} Time remaining for hit pulse effect in seconds. */
-        this.pulseEffectTime = 0;
+        this.pulseEffectTime = 0.0;
         /** @type {number} Maximum duration of hit pulse effect in seconds. */
         this.pulseEffectMaxTime = 0.5;
         /** @type {number} Time remaining for collapse effect in seconds. */
-        this.collapseEffectTime = 0;
+        this.collapseEffectTime = 0.0;
         /** @type {number} Maximum duration of collapse effect in seconds. */
         this.collapseEffectMaxTime = 0.25;
         /** @type {number} Time since shield restart for restart effect in seconds. */
-        this.restartEffectTime = 0;
+        this.restartEffectTime = 0.0;
         /** @type {number} Time since shield restart for restart effect in seconds. */
         this.restartEffectMaxTime = 0.25;
         /** @type {Vector2D} Relative offset from ship position for hit pulse hot spot. */
-        this.hitPosition = new Vector2D(0, 0);
+        this.hitPosition = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Temporary vector for world-space hit point calculation. */
-        this._scratchWorldHit = new Vector2D(0, 0);
+        this._scratchWorldHit = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Temporary vector for shield center in screen coordinates. */
-        this._scratchShieldCenter = new Vector2D(0, 0);
+        this._scratchShieldCenter = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Temporary vector for shield hit point in screen coordinates. */
-        this._scratchShieldHit = new Vector2D(0, 0);
+        this._scratchShieldHit = new Vector2D(0.0, 0.0);
 
         if (new.target === Shield) Object.seal(this);
     }
@@ -66,30 +66,30 @@ export class Shield {
      */
     update(deltaTime, currentTime) {
         // Update effect timers
-        if (this.pulseEffectTime > 0) {
-            this.pulseEffectTime = Math.max(this.pulseEffectTime - deltaTime, 0);
+        if (this.pulseEffectTime > 0.0) {
+            this.pulseEffectTime = Math.max(this.pulseEffectTime - deltaTime, 0.0);
         }
-        if (this.collapseEffectTime > 0) {
-            this.collapseEffectTime = Math.max(this.collapseEffectTime - deltaTime, 0);
+        if (this.collapseEffectTime > 0.0) {
+            this.collapseEffectTime = Math.max(this.collapseEffectTime - deltaTime, 0.0);
         }
-        if (this.restartEffectTime > 0) {
-            this.restartEffectTime = Math.max(this.restartEffectTime - deltaTime, 0);
+        if (this.restartEffectTime > 0.0) {
+            this.restartEffectTime = Math.max(this.restartEffectTime - deltaTime, 0.0);
         }
-        if (this.rapidRechargeEffectTime > 0) {
-            this.rapidRechargeEffectTime = Math.max(this.rapidRechargeEffectTime - deltaTime, 0);
+        if (this.rapidRechargeEffectTime > 0.0) {
+            this.rapidRechargeEffectTime = Math.max(this.rapidRechargeEffectTime - deltaTime, 0.0);
         }
 
         // Update shield strength and status
         if (this.isActive) {
-            const isRapidRecharge = this.rapidRechargeEffectTime > 0;
+            const isRapidRecharge = this.rapidRechargeEffectTime > 0.0;
             const rate = isRapidRecharge ? this.rapidRechargeRate : this.rechargeRate;
             this.strength = Math.min(this.strength + rate * deltaTime, this.maxStrength);
         } else if (this.restartTime == null) {
-            this.strength = 0;
+            this.strength = 0.0;
         } else if (currentTime >= this.restartTime) {
             // Restart shields
             this.isActive = true;
-            this.strength = 0;
+            this.strength = 0.0;
             this.rapidRechargeEffectTime = this.rapidRechargeDuration;
             this.restartEffectTime = this.restartEffectMaxTime;
         }
@@ -110,20 +110,20 @@ export class Shield {
         }
 
         this.strength -= damage;
-        if (this.strength <= 0) {
+        if (this.strength <= 0.0) {
             // Shields collapse
             this.isActive = false;
             this.restartTime = currentTime + this.restartDelay;
             this.collapseEffectTime = this.collapseEffectMaxTime;
             const excessDamage = -this.strength;
-            this.strength = 0;
+            this.strength = 0.0;
             return excessDamage;
         }
 
         // Trigger hit pulse effect
         this.pulseEffectTime = this.pulseEffectMaxTime;
         this.hitPosition.set(hitPosition).subtractInPlace(shipPosition);
-        return 0;
+        return 0.0;
     }
 
     /**
@@ -143,79 +143,79 @@ export class Shield {
 
         camera.worldToScreen(shipPosition, this._scratchShieldCenter);
         let shieldRadius = camera.worldToSize(shipRadius);
-        if (!isFinite(shieldRadius) || shieldRadius <= 0) {
+        if (!isFinite(shieldRadius) || shieldRadius <= 0.0) {
             // console.warn('Invalid shield radius:', shieldRadius);
             return;
         }
-        let alphaScale = 1;
+        let alphaScale = 1.0;
 
         //apply collapseEffect and restartEffect scales to and alpha
-        if (this.collapseEffectTime > 0) {
+        if (this.collapseEffectTime > 0.0) {
             // Draw collapse effect expanding out to 2 and fade out
-            alphaScale = remapClamp(this.collapseEffectTime, 0, this.collapseEffectMaxTime, 0, 1);//0.8 * (this.collapseEffectTime / this.collapseEffectMaxTime);
+            alphaScale = remapClamp(this.collapseEffectTime, 0.0, this.collapseEffectMaxTime, 0.0, 1.0);//0.8 * (this.collapseEffectTime / this.collapseEffectMaxTime);
             shieldRadius = shieldRadius * 2 * (1 - alphaScale);
             const alpha = alphaScale;
             const gradient = ctx.createRadialGradient(
-                this._scratchShieldCenter.x, this._scratchShieldCenter.y, 0,
+                this._scratchShieldCenter.x, this._scratchShieldCenter.y, 0.0,
                 this._scratchShieldCenter.x, this._scratchShieldCenter.y, shieldRadius
             );
-            gradient.addColorStop(0, `rgba(100, 150, 255, ${alpha})`);
-            gradient.addColorStop(1, `rgba(0, 50, 150, ${0.2 * alpha})`);
+            gradient.addColorStop(0.0, `rgba(100,  150.0,  255.0, ${alpha})`);
+            gradient.addColorStop(1, `rgba(0.0,  50.0,  150.0, ${0.2 * alpha})`);
 
             ctx.beginPath();
-            ctx.arc(this._scratchShieldCenter.x, this._scratchShieldCenter.y, shieldRadius, 0, TWO_PI);
+            ctx.arc(this._scratchShieldCenter.x, this._scratchShieldCenter.y, shieldRadius, 0.0, TWO_PI);
             ctx.fillStyle = gradient;
             ctx.fill();
-        } else if (this.restartEffectTime > 0) {
-            // Draw restart effect expanding from 0 and fade in
-            alphaScale = 1 - remapClamp(this.restartEffectTime, 0, this.restartEffectMaxTime, 0, 1);//0.8 * (this.collapseEffectTime / this.collapseEffectMaxTime);
+        } else if (this.restartEffectTime > 0.0) {
+            // Draw restart effect expanding from 0.0 and fade in
+            alphaScale = 1 - remapClamp(this.restartEffectTime, 0.0, this.restartEffectMaxTime, 0.0, 1.0);//0.8 * (this.collapseEffectTime / this.collapseEffectMaxTime);
             shieldRadius = shieldRadius * (alphaScale);
             const alpha = alphaScale * 0.5;
             const gradient = ctx.createRadialGradient(
-                this._scratchShieldCenter.x, this._scratchShieldCenter.y, 0,
+                this._scratchShieldCenter.x, this._scratchShieldCenter.y, 0.0,
                 this._scratchShieldCenter.x, this._scratchShieldCenter.y, shieldRadius
             );
-            gradient.addColorStop(0, `rgba(0, 50, 150, ${0.2 * alpha})`);
-            gradient.addColorStop(1, `rgba(100, 150, 255, ${alpha})`);
+            gradient.addColorStop(0.0, `rgba(0.0,  50.0,  150.0, ${0.2 * alpha})`);
+            gradient.addColorStop(1, `rgba(100,  150.0,  255.0, ${alpha})`);
 
             ctx.beginPath();
-            ctx.arc(this._scratchShieldCenter.x, this._scratchShieldCenter.y, shieldRadius, 0, TWO_PI);
+            ctx.arc(this._scratchShieldCenter.x, this._scratchShieldCenter.y, shieldRadius, 0.0, TWO_PI);
             ctx.fillStyle = gradient;
             ctx.fill();
-        } else if (this.rapidRechargeEffectTime > 0) {
-            // Draw restart effect expanding from 0 and fade in
-            alphaScale = 1;
-            const alpha = remapClamp(this.rapidRechargeEffectTime, 0, this.rapidRechargeDuration, 0, 0.5);
+        } else if (this.rapidRechargeEffectTime > 0.0) {
+            // Draw restart effect expanding from 0.0 and fade in
+            alphaScale = 1.0;
+            const alpha = remapClamp(this.rapidRechargeEffectTime, 0.0, this.rapidRechargeDuration, 0.0, 0.5);
             const gradient = ctx.createRadialGradient(
-                this._scratchShieldCenter.x, this._scratchShieldCenter.y, 0,
+                this._scratchShieldCenter.x, this._scratchShieldCenter.y, 0.0,
                 this._scratchShieldCenter.x, this._scratchShieldCenter.y, shieldRadius
             );
-            gradient.addColorStop(0, `rgba(0, 50, 150, ${0.2 * alpha})`);
-            gradient.addColorStop(1, `rgba(100, 150, 255, ${alpha})`);
+            gradient.addColorStop(0.0, `rgba(0.0,  50.0,  150.0, ${0.2 * alpha})`);
+            gradient.addColorStop(1, `rgba(100,  150.0,  255.0, ${alpha})`);
 
             ctx.beginPath();
-            ctx.arc(this._scratchShieldCenter.x, this._scratchShieldCenter.y, shieldRadius, 0, TWO_PI);
+            ctx.arc(this._scratchShieldCenter.x, this._scratchShieldCenter.y, shieldRadius, 0.0, TWO_PI);
             ctx.fillStyle = gradient;
             ctx.fill();
-        } else if (this.isActive && this.pulseEffectTime > 0) {
+        } else if (this.isActive && this.pulseEffectTime > 0.0) {
             // when hit draw a faint outline of the shield
-            alphaScale = 1;
-            const alpha = remapClamp(this.pulseEffectTime, 0, this.pulseEffectMaxTime, 0, 0.5);
+            alphaScale = 1.0;
+            const alpha = remapClamp(this.pulseEffectTime, 0.0, this.pulseEffectMaxTime, 0.0, 0.5);
             const gradient = ctx.createRadialGradient(
-                this._scratchShieldCenter.x, this._scratchShieldCenter.y, 0,
+                this._scratchShieldCenter.x, this._scratchShieldCenter.y, 0.0,
                 this._scratchShieldCenter.x, this._scratchShieldCenter.y, shieldRadius
             );
-            gradient.addColorStop(0, `rgba(0, 50, 150, ${0.2 * alpha})`);
-            gradient.addColorStop(1, `rgba(100, 150, 255, ${alpha})`);
+            gradient.addColorStop(0.0, `rgba(0.0,  50.0,  150.0, ${0.2 * alpha})`);
+            gradient.addColorStop(1, `rgba(100,  150.0,  255.0, ${alpha})`);
 
             ctx.beginPath();
-            ctx.arc(this._scratchShieldCenter.x, this._scratchShieldCenter.y, shieldRadius, 0, TWO_PI);
+            ctx.arc(this._scratchShieldCenter.x, this._scratchShieldCenter.y, shieldRadius, 0.0, TWO_PI);
             ctx.fillStyle = gradient;
             ctx.fill();
         }
 
         // Draw hit pulse effect (inward-moving hot spot)
-        if (this.isActive && this.pulseEffectTime > 0) {
+        if (this.isActive && this.pulseEffectTime > 0.0) {
             const alpha = this.pulseEffectTime / this.pulseEffectMaxTime;
             this._scratchWorldHit.set(this.hitPosition).multiplyInPlace(alpha).addInPlace(shipPosition);
             camera.worldToScreen(this._scratchWorldHit, this._scratchShieldHit);
@@ -226,14 +226,14 @@ export class Shield {
             }
 
             const gradient = ctx.createRadialGradient(
-                this._scratchShieldHit.x, this._scratchShieldHit.y, 0,
+                this._scratchShieldHit.x, this._scratchShieldHit.y, 0.0,
                 this._scratchShieldCenter.x, this._scratchShieldCenter.y, shieldRadius
             );
-            gradient.addColorStop(0, `rgba(100, 150, 255, ${1 * alpha * alphaScale})`);
-            gradient.addColorStop(0.5, `rgba(100, 150, 255, 0.0)`);
+            gradient.addColorStop(0.0, `rgba(100,  150.0,  255.0, ${1 * alpha * alphaScale})`);
+            gradient.addColorStop(0.5, `rgba(100,  150.0,  255.0, 0.0)`);
 
             ctx.beginPath();
-            ctx.arc(this._scratchShieldCenter.x, this._scratchShieldCenter.y, shieldRadius, 0, TWO_PI);
+            ctx.arc(this._scratchShieldCenter.x, this._scratchShieldCenter.y, shieldRadius, 0.0, TWO_PI);
             ctx.fillStyle = gradient;
             ctx.fill();
         }

@@ -28,48 +28,48 @@ export class HeadsUpDisplay {
         this.size = new Vector2D(width, height);
 
         /** @type {number} Radius of the jump gate ring in pixels. */
-        this.jumpGateRingRadius = 1;
+        this.jumpGateRingRadius = 1.0;
         /** @type {Colour} Colour of the jump gate ring. */
         this.jumpGateRingColour = Colour.Purple;
 
         /** @type {number} Radius of the planet ring in pixels. */
-        this.planetRingRadius = 1;
+        this.planetRingRadius = 1.0;
         /** @type {Colour} Colour of the planet ring. */
         this.planetRingColour = Colour.Blue;
 
         /** @type {number} Radius of the asteroid ring in pixels. */
-        this.asteroidRingRadius = 1;
+        this.asteroidRingRadius = 1.0;
         /** @type {Colour} Colour of the asteroid ring. */
         this.asteroidRingColour = Colour.Green;
 
         /** @type {number} Radius of the ship ring in pixels. */
-        this.shipAlliedRingRadius = 1;
+        this.shipAlliedRingRadius = 1.0;
         /** @type {Colour} Colour of the ship ring. */
         this.shipAlliedRingColour = Colour.Allied;
 
         /** @type {number} Radius of the ship ring in pixels. */
-        this.shipNeutralRingRadius = 1;
+        this.shipNeutralRingRadius = 1.0;
         /** @type {Colour} Colour of the ship ring. */
         this.shipNeutralRingColour = Colour.Neutral;
 
         /** @type {number} Radius of the threat ring in pixels. */
-        this.shipHostileRingRadius = 1;
+        this.shipHostileRingRadius = 1.0;
         /** @type {Colour} Colour of the threat ring. */
         this.shipHostileRingColour = Colour.Hostile;
 
         /** @type {number} Line width for rings in pixels. */
-        this.ringLineWidth = 4;
+        this.ringLineWidth = 4.0;
         /** @type {number} Spacing between ring lines in pixels. */
-        this.ringLineSpace = 12;
+        this.ringLineSpace = 12.0;
 
         /** @type {number} Maximum distance for arrow visibility in pixels. */
-        this.maxRadius = 5000;
+        this.maxRadius = 5000.0;
 
         // Temporary scratch values to avoid allocations
         /** @type {Vector2D} Scratch vector for camera-relative position calculations. */
-        this._scratchCameraPos = new Vector2D(0, 0);
+        this._scratchCameraPos = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for screen position of objects. */
-        this._scratchScreenPos = new Vector2D(0, 0);
+        this._scratchScreenPos = new Vector2D(0.0, 0.0);
         /** @type {Array<Ship>} Scratch buffer to Allied ships. */
         this._scratchAlliedShips = [];
         /** @type {Array<Ship>} Scratch buffer to store Neutral ships. */
@@ -122,11 +122,11 @@ export class HeadsUpDisplay {
         ctx.save();
         ctx.beginPath();
         const scale = target instanceof Ship ? target.shipScale : 1.0;
-        ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, camera.worldToSize(target.radius * scale) + 5.0, 0, TWO_PI);
+        ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, camera.worldToSize(target.radius * scale) + 5.0, 0.0, TWO_PI);
         ctx.lineWidth = 2.5;
         ctx.strokeStyle = Colour.Black.toRGB();
         ctx.stroke();
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 2.0;
         if (target instanceof Ship) {
             switch (this.gameManager.cameraTarget.getRelationship(target)) {
                 case FactionRelationship.Allied:
@@ -165,7 +165,7 @@ export class HeadsUpDisplay {
         ctx.lineWidth = this.ringLineWidth + 1.0;
 
         ctx.beginPath();
-        ctx.arc(camera.screenCenter.x, camera.screenCenter.y, ringRadius, 0, TWO_PI);
+        ctx.arc(camera.screenCenter.x, camera.screenCenter.y, ringRadius, 0.0, TWO_PI);
         ctx.stroke();
 
         //Draw all the arrows
@@ -174,11 +174,11 @@ export class HeadsUpDisplay {
         ctx.lineWidth = 1.0;
 
         // Calculate base to align arrow's left/right points with ring's outer edge
-        const outerRadius = ringRadius + this.ringLineWidth / 2;
-        const arrowWidth = 5; // Half-width of arrow base
+        const outerRadius = ringRadius + this.ringLineWidth / 2.0;
+        const arrowWidth = 5.0; // Half-width of arrow base
         const base = ringRadius - Math.sqrt(outerRadius * outerRadius - arrowWidth * arrowWidth) + 1.0;
 
-        for (let i = 0; i < objects.length; i++) {
+        for (let i = 0.0; i < objects.length; i++) {
             const body = objects[i];
             if (body === this.gameManager.cameraTarget) continue;
             camera.worldToCamera(body.position, this._scratchCameraPos);
@@ -197,12 +197,12 @@ export class HeadsUpDisplay {
 
                 if (body === target) {
                     ctx.moveTo(arrowWidth, base);  // Bottom right
-                    ctx.lineTo(0, -20);            // Tip up
+                    ctx.lineTo(0.0, -20.0);            // Tip up
                     ctx.lineTo(-arrowWidth, base); // Bottom left
                 } else {
-                    const length = remapClamp(squareMagnitude, 0, this.maxRadius * this.maxRadius, -10.0, base);
+                    const length = remapClamp(squareMagnitude, 0.0, this.maxRadius * this.maxRadius, -10.0, base);
                     ctx.moveTo(arrowWidth, base);  // Bottom right
-                    ctx.lineTo(0, length);         // Tip up
+                    ctx.lineTo(0.0, length);         // Tip up
                     ctx.lineTo(-arrowWidth, base); // Bottom left
                 }
                 ctx.stroke();
@@ -214,7 +214,7 @@ export class HeadsUpDisplay {
         //draw the ring last to cover any artifacts
         ctx.lineWidth = this.ringLineWidth;
         ctx.beginPath();
-        ctx.arc(camera.screenCenter.x, camera.screenCenter.y, ringRadius, 0, TWO_PI);
+        ctx.arc(camera.screenCenter.x, camera.screenCenter.y, ringRadius, 0.0, TWO_PI);
         ctx.strokeStyle = colour;
         ctx.stroke();
 
@@ -235,7 +235,7 @@ export class HeadsUpDisplay {
         ctx.strokeStyle = Colour.Black.toRGB();
         ctx.lineWidth = 2.0;
 
-        for (let i = 0; i < objects.length; i++) {
+        for (let i = 0.0; i < objects.length; i++) {
             const body = objects[i];
             camera.worldToCamera(body.position, this._scratchCameraPos);
             const squareMagnitude = this._scratchCameraPos.squareMagnitude();
@@ -244,8 +244,8 @@ export class HeadsUpDisplay {
                 ctx.beginPath();
                 camera.worldToScreen(body.position, this._scratchScreenPos);
                 const scaledRadius = camera.worldToSize(body.radius);
-                ctx.strokeText(body.name, this._scratchScreenPos.x, this._scratchScreenPos.y + scaledRadius + camera.worldToSize(20));
-                ctx.fillText(body.name, this._scratchScreenPos.x, this._scratchScreenPos.y + scaledRadius + camera.worldToSize(20));
+                ctx.strokeText(body.name, this._scratchScreenPos.x, this._scratchScreenPos.y + scaledRadius + camera.worldToSize(20.0));
+                ctx.fillText(body.name, this._scratchScreenPos.x, this._scratchScreenPos.y + scaledRadius + camera.worldToSize(20.0));
             }
         }
         ctx.restore();
@@ -266,8 +266,8 @@ export class HeadsUpDisplay {
             ctx.strokeStyle = Colour.Black.toRGB();
             ctx.textAlign = "center";
             // Top middle of screen
-            ctx.strokeText(autopilotStatus, this.size.width / 2, 20)
-            ctx.fillText(autopilotStatus, this.size.width / 2, 20);
+            ctx.strokeText(autopilotStatus, this.size.width / 2.0, 20.0)
+            ctx.fillText(autopilotStatus, this.size.width / 2.0, 20.0);
         }
 
         // Determine the current target
@@ -283,12 +283,12 @@ export class HeadsUpDisplay {
             this.drawTargetCircle(ctx, camera, target);
         }
 
-        this._scratchAlliedShips.length = 0;
-        this._scratchNeutralShips.length = 0;
-        this._scratchHostileShips.length = 0;
+        this._scratchAlliedShips.length = 0.0;
+        this._scratchNeutralShips.length = 0.0;
+        this._scratchHostileShips.length = 0.0;
 
         if (this.gameManager.cameraTarget && this.gameManager.cameraTarget instanceof Ship) {
-            for (let i = 0; i < camera.starSystem.ships.length; i++) {
+            for (let i = 0.0; i < camera.starSystem.ships.length; i++) {
                 const ship = camera.starSystem.ships[i];
                 if (ship.state !== 'Flying' && ship.state !== 'Disabled') {
                     continue;
@@ -316,13 +316,13 @@ export class HeadsUpDisplay {
         // Draw asteroid ring
         this.drawRing(ctx, camera, this.asteroidRingColour, this.asteroidRingRadius, camera.starSystem.asteroids, target);
         // Draw ship rings
-        if (this._scratchAlliedShips.length > 0) {
+        if (this._scratchAlliedShips.length > 0.0) {
             this.drawRing(ctx, camera, this.shipAlliedRingColour, this.shipAlliedRingRadius, this._scratchAlliedShips, target);
         }
-        if (this._scratchNeutralShips.length > 0) {
+        if (this._scratchNeutralShips.length > 0.0) {
             this.drawRing(ctx, camera, this.shipNeutralRingColour, this.shipNeutralRingRadius, this._scratchNeutralShips, target);
         }
-        if (this._scratchHostileShips.length > 0) {
+        if (this._scratchHostileShips.length > 0.0) {
             this.drawRing(ctx, camera, this.shipHostileRingColour, this.shipHostileRingRadius, this._scratchHostileShips, target);
         }
 

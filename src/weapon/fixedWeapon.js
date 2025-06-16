@@ -20,9 +20,9 @@ export class FixedWeapon {
         /** @type {number} Size scaling factor. */
         this.radius = radius;
         /** @type {Weapon} Weapon instance (rail gun). */
-        this.weapon = new Weapon(0); // Rail gun, cooldown 0.5s
+        this.weapon = new Weapon(0.0); // Rail gun, cooldown 0.5s
         /** @type {Vector2D} Temp vector for world position. */
-        this._scratchWorldPos = new Vector2D(0, 0);
+        this._scratchWorldPos = new Vector2D(0.0, 0.0);
 
         if (new.target === FixedWeapon) Object.seal(this);
     }

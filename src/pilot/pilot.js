@@ -63,9 +63,9 @@ export class PlayerPilot extends Pilot {
     constructor(ship) {
         super(ship);
         /** @type {Vector2D} Temporary vector for direction to target. */
-        this._scratchDirectionToTarget = new Vector2D(0, 0);
+        this._scratchDirectionToTarget = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Temporary vector for distance to target. */
-        this._scratchDistanceToTarget = new Vector2D(0, 0);
+        this._scratchDistanceToTarget = new Vector2D(0.0, 0.0);
 
         if (new.target === PlayerPilot) Object.seal(this);
     }
@@ -587,7 +587,7 @@ export class PlayerPilot extends Pilot {
 
         // // Escort a targeted ship ('f' key)
         if (pressed('f') && this.ship.state === 'Flying' && this.ship.target instanceof Ship) {
-            this.autopilot = new EscortAutopilot(this.ship, this.ship.target, this.ship.target.radius * 1.5, 500);
+            this.autopilot = new EscortAutopilot(this.ship, this.ship.target, this.ship.target.radius * 1.5, 500.0);
             this.autopilot.start();
         }
 
@@ -598,7 +598,7 @@ export class PlayerPilot extends Pilot {
 
         if (pressed('k')) {
             this.ship.takeDamage(
-                this.ship.shield.strength > 0 ? this.ship.shield.strength : this.ship.hullIntegrity,
+                this.ship.shield.strength > 0.0 ? this.ship.shield.strength : this.ship.hullIntegrity,
                 this.ship.position, this.ship);
         }
     }
@@ -619,7 +619,7 @@ export class PlayerPilot extends Pilot {
 //         this.spawnPlanet = spawnPlanet;
 //         this.target = this.pickDestination(ship.starSystem, spawnPlanet);
 //         this.state = 'Idle';
-//         this.waitTime = 0;
+//         this.waitTime =  0.0;
 //         this.autopilot = null;
 
 //         this.stateHandlers = {
@@ -724,7 +724,7 @@ export class PlayerPilot extends Pilot {
 //                 this.state = 'Idle';
 //             } else if (this.ship.state === 'Landed') {
 //                 this.state = 'Landed';
-//                 this.waitTime = Math.random() * 5 + 2; // Wait 2-7 seconds
+//                 this.waitTime = Math.random() * 5 +  2.0; // Wait 2-7 seconds
 //                 this.autopilot = null;
 //             } else {
 //                 console.warn('Autopilot completed but ship is not landed; resetting');
@@ -745,7 +745,7 @@ export class PlayerPilot extends Pilot {
 //      */
 //     updateLanded(deltaTime, gameManager) {
 //         this.waitTime -= deltaTime;
-//         if (this.waitTime <= 0) {
+//         if (this.waitTime <=  0.0) {
 //             this.spawnPlanet = this.target;
 //             this.target = this.pickDestination(this.ship.starSystem, this.spawnPlanet);
 //             if (!this.target) {
@@ -832,8 +832,8 @@ export class PlayerPilot extends Pilot {
 //         this.spawnPlanet = spawnPlanet;
 //         this.target = null;
 //         this.state = 'Idle';
-//         this.waitTime = 0;
-//         this.followTime = 0;
+//         this.waitTime =  0.0;
+//         this.followTime =  0.0;
 //         this.isFollowingInRange = false;
 //         this.autopilot = null;
 
@@ -854,13 +854,13 @@ export class PlayerPilot extends Pilot {
 //         this._scratchDesiredVelocity = new Vector2D();
 
 //         // Behavior constants
-//         this.followDistance = 250; // Distance to maintain while following
-//         this.visitDistance = 200; // Distance to approach celestial bodies
-//         this.waitTimeMin = 2; // Minimum wait time in seconds
-//         this.waitTimeMax = 5; // Maximum wait time in seconds
-//         this.followDuration = 10; // Time to follow a ship in seconds
-//         this.velocityMatchThreshold = 50; // Max velocity difference to consider "matched"
-//         this.systemBounds = 10000; // Bounds for random point generation
+//         this.followDistance =  250.0; // Distance to maintain while following
+//         this.visitDistance =  200.0; // Distance to approach celestial bodies
+//         this.waitTimeMin =  2.0; // Minimum wait time in seconds
+//         this.waitTimeMax =  5.0; // Maximum wait time in seconds
+//         this.followDuration =  10.0; // Time to follow a ship in seconds
+//         this.velocityMatchThreshold =  50.0; // Max velocity difference to consider "matched"
+//         this.systemBounds =  10000.0; // Bounds for random point generation
 //     }
 
 //     /**
@@ -933,7 +933,7 @@ export class PlayerPilot extends Pilot {
 //         if (taskRoll < 0.4) { // 40% chance to follow a ship
 //             this.target = this.pickShipToFollow();
 //             if (this.target) {
-//                 this.autopilot = new FollowShipAutopilot(this.ship, this.target, this.followDistance, 100);
+//                 this.autopilot = new FollowShipAutopilot(this.ship, this.target, this.followDistance,  100.0);
 //                 this.autopilot.start();
 //                 this.followTime = this.followDuration;
 //                 this.isFollowingInRange = false;
@@ -945,7 +945,7 @@ export class PlayerPilot extends Pilot {
 //             this.target = this.pickBodyToVisit();
 //             if (this.target) {
 //                 const arrivalDistance = this.target.radius ? this.target.radius + this.visitDistance : this.visitDistance;
-//                 this.autopilot = new FlyToTargetAutopilot(this.ship, this.target, arrivalDistance, 50);
+//                 this.autopilot = new FlyToTargetAutopilot(this.ship, this.target, arrivalDistance,  50.0);
 //                 this.autopilot.start();
 //                 this.transitionFromIdle('VisitingBody');
 //             } else {
@@ -953,7 +953,7 @@ export class PlayerPilot extends Pilot {
 //             }
 //         } else { // 30% chance to fly to a random point
 //             this.target = this.pickRandomPoint();
-//             this.autopilot = new FlyToTargetAutopilot(this.ship, { position: this.target }, 100, 50);
+//             this.autopilot = new FlyToTargetAutopilot(this.ship, { position: this.target },  100.0,  50.0);
 //             this.autopilot.start();
 //             this.transitionFromIdle('FlyingToRandomPoint');
 //         }
@@ -990,7 +990,7 @@ export class PlayerPilot extends Pilot {
 //             this.autopilot.stop();
 //             this.autopilot = null;
 //             this.target = null;
-//             this.followTime = 0;
+//             this.followTime =  0.0;
 //             this.isFollowingInRange = false;
 //             this.state = 'Idle';
 //             return;
@@ -1010,11 +1010,11 @@ export class PlayerPilot extends Pilot {
 //         if (isInRange && isVelocityMatched) {
 //             this.isFollowingInRange = true;
 //             this.followTime -= deltaTime;
-//             if (this.followTime <= 0) {
+//             if (this.followTime <=  0.0) {
 //                 this.autopilot.stop();
 //                 this.autopilot = null;
 //                 this.target = null;
-//                 this.followTime = 0;
+//                 this.followTime =  0.0;
 //                 this.isFollowingInRange = false;
 //                 this.waitTime = randomBetween(this.waitTimeMin, this.waitTimeMax);
 //                 this.state = 'Waiting';
@@ -1089,14 +1089,14 @@ export class PlayerPilot extends Pilot {
 //      */
 //     updateWaiting(deltaTime, gameManager) {
 //         const currentSpeed = this.ship.velocity.magnitude();
-//         const landingSpeed = Ship.LANDING_SPEED || 10;
+//         const landingSpeed = Ship.LANDING_SPEED ||  10.0;
 
 //         if (currentSpeed > landingSpeed) {
 //             this._scratchDesiredVelocity.set(this.ship.velocity);
-//             if (currentSpeed > 0) {
+//             if (currentSpeed >  0.0) {
 //                 this._scratchDesiredVelocity.normalizeInPlace().multiplyInPlace(landingSpeed);
 //             } else {
-//                 this._scratchDesiredVelocity.set(0, 0);
+//                 this._scratchDesiredVelocity.set(0.0,  0.0);
 //             }
 
 //             this._scratchVelocityDifference.set(this._scratchDesiredVelocity).subtractInPlace(this.ship.velocity);
@@ -1105,11 +1105,11 @@ export class PlayerPilot extends Pilot {
 //             let desiredAngle = this.ship.angle;
 //             let shouldThrust = false;
 
-//             if (velocityErrorMagnitude > 5) {
+//             if (velocityErrorMagnitude >  5.0) {
 //                 desiredAngle = Math.atan2(this._scratchVelocityDifference.x, -this._scratchVelocityDifference.y);
 //                 const angleToDesired = normalizeAngle(desiredAngle - this.ship.angle);
 //                 desiredAngle = this.ship.angle + angleToDesired;
-//                 shouldThrust = Math.abs(angleToDesired) < Math.PI / 12;
+//                 shouldThrust = Math.abs(angleToDesired) < Math.PI /  12.0;
 //             } else {
 //                 desiredAngle = Math.atan2(this.ship.velocity.x, -this.ship.velocity.y);
 //             }
@@ -1119,7 +1119,7 @@ export class PlayerPilot extends Pilot {
 //         }
 
 //         this.waitTime -= deltaTime;
-//         if (this.waitTime <= 0) {
+//         if (this.waitTime <=  0.0) {
 //             this.target = null;
 //             this.state = 'Idle';
 //         }
@@ -1170,7 +1170,7 @@ export class PlayerPilot extends Pilot {
 //         this.escortedShip = escortedShip;
 //         this.autopilot = null;
 
-//         this.followDistance = 250; // Distance to maintain while escorting
+//         this.followDistance =  250.0; // Distance to maintain while escorting
 
 //         this.stateHandlers = {
 //             'Idle': this.updateIdle.bind(this),
@@ -1316,7 +1316,7 @@ export class PlayerPilot extends Pilot {
 //         this.homePlanet = homePlanet;
 //         this.targetAsteroid = null;
 //         this.state = 'Idle';
-//         this.waitTime = 0;
+//         this.waitTime =  0.0;
 //         this.autopilot = null;
 
 //         this.stateHandlers = {
@@ -1334,9 +1334,9 @@ export class PlayerPilot extends Pilot {
 //         this._scratchDirectionToTarget = new Vector2D();
 
 //         // Behavior constants
-//         this.miningTime = 5; // Time to spend mining in seconds
-//         this.waitTimeMin = 5; // Minimum wait time on home planet in seconds
-//         this.waitTimeMax = 10; // Maximum wait time on home planet in seconds
+//         this.miningTime =  5.0; // Time to spend mining in seconds
+//         this.waitTimeMin =  5.0; // Minimum wait time on home planet in seconds
+//         this.waitTimeMax =  10.0; // Maximum wait time on home planet in seconds
 //     }
 
 //     /**
@@ -1459,7 +1459,7 @@ export class PlayerPilot extends Pilot {
 //      */
 //     updateMining(deltaTime, gameManager) {
 //         this.waitTime -= deltaTime;
-//         if (this.waitTime <= 0) {
+//         if (this.waitTime <=  0.0) {
 //             this.ship.initiateTakeoff();
 //             this.state = 'TakingOffFromAsteroid';
 //         }
@@ -1556,7 +1556,7 @@ export class PlayerPilot extends Pilot {
 //      */
 //     updateWaitingOnHomePlanet(deltaTime, gameManager) {
 //         this.waitTime -= deltaTime;
-//         if (this.waitTime <= 0) {
+//         if (this.waitTime <=  0.0) {
 //             this.targetAsteroid = this.findRandomAsteroid();
 //             this.ship.target = this.targetAsteroid;
 //             this.ship.initiateTakeoff();

@@ -32,7 +32,7 @@ export class WandererJob extends Job {
         /** @type {(JumpGate|CelestialBody|Asteroid)[]} Array of jump gates and planets to reach finalTarget. */
         this.route = [];
         /** @type {number} Time (seconds) spent in Waiting state. */
-        this.waitTime = 0;
+        this.waitTime = 0.0;
         /** @type {Vector2D} Temporary vector for distance calculations. */
         this._scratchVector = new Vector2D();
         /** @type {Object.<string, Function>} Map of state names to handler methods. */
@@ -96,11 +96,11 @@ export class WandererJob extends Job {
      * @param {GameManager} gameManager - The game manager instance for context.
      */
     updateTraveling(deltaTime, gameManager) {
-        if (this.ship.state === 'Landed' && this.target === this.finalTarget && this.route.length === 0) {
+        if (this.ship.state === 'Landed' && this.target === this.finalTarget && this.route.length === 0.0) {
             if (this.ship.debug) {
                 console.log(`WandererJob: Landed at final target ${this.target?.name}, transitioning to Waiting`);
             }
-            this.waitTime = 10 + Math.random() * 20;
+            this.waitTime = 10 + Math.random() * 20.0;
             this.state = 'Waiting';
             return;
         }
@@ -121,7 +121,7 @@ export class WandererJob extends Job {
                 }
                 this.ship.setTarget(this.target);
                 this.ship.initiateTakeoff();
-                this.waitTime = 0;
+                this.waitTime = 0.0;
             }
             return;
         }
@@ -177,7 +177,7 @@ export class WandererJob extends Job {
                 console.log(`WandererJob: Waiting but not landed (state: ${this.ship.state}), transitioning to Starting`);
             }
             this.state = 'Starting';
-            this.waitTime = 0;
+            this.waitTime = 0.0;
             return;
         }
 
@@ -187,7 +187,7 @@ export class WandererJob extends Job {
                 console.log(`WandererJob: Finished Waiting, transitioning to Starting`);
             }
             this.state = 'Starting';
-            this.waitTime = 0;
+            this.waitTime = 0.0;
         }
     }
 
@@ -266,7 +266,7 @@ export class WandererJob extends Job {
      * @returns {CelestialBody|Asteroid|JumpGate|null} The next valid target, or null if none.
      */
     selectNextValidTarget() {
-        while (this.route.length > 0) {
+        while (this.route.length > 0.0) {
             const nextTarget = this.route.shift();
             if (isValidTarget(this.ship, nextTarget)) {
                 return nextTarget;
@@ -305,7 +305,7 @@ export class WandererJob extends Job {
         this.target = null;
         this.finalTarget = null;
         this.route = [];
-        this.waitTime = 0;
+        this.waitTime = 0.0;
         if (this.ship.debug) {
             console.log(`WandererJob: Resumed, transitioning to Starting`);
         }
@@ -318,8 +318,8 @@ export class WandererJob extends Job {
 //         this.target = null;
 //         this.finalTarget = null;
 //         this.route = [];
-//         this.waitTime = 0;
-//         this.waitDuration = 0;
+//         this.waitTime =  0.0;
+//         this.waitDuration =  0.0;
 //         this._scratchVector = new Vector2D();
 //         this.stateHandlers = {
 //             Starting: this.updateStarting.bind(this),
@@ -346,7 +346,7 @@ export class WandererJob extends Job {
 
 //         this.target = null;
 //         this.finalTarget = null;
-//         this.route.length = 0;
+//         this.route.length =  0.0;
 
 //         if (!this.planRoute()) {
 //             if (this.ship.debug) {
@@ -363,12 +363,12 @@ export class WandererJob extends Job {
 //     }
 
 //     updateTraveling(deltaTime, gameManager) {
-//         if (this.ship.state === 'Landed' && this.target === this.finalTarget && this.route.length === 0) {
+//         if (this.ship.state === 'Landed' && this.target === this.finalTarget && this.route.length ===  0.0) {
 //             if (this.ship.debug) {
 //                 console.log(`WandererJob: Landed at final target ${this.target?.name}, transitioning to Waiting`);
 //             }
-//             this.waitTime = 0;
-//             this.waitDuration = 10 + Math.random() * 20;
+//             this.waitTime =  0.0;
+//             this.waitDuration = 10 + Math.random() *  20.0;
 //             this.state = 'Waiting';
 //             return;
 //         }
@@ -388,8 +388,8 @@ export class WandererJob extends Job {
 //                 }
 //                 this.ship.setTarget(this.target);
 //                 this.ship.initiateTakeoff();
-//                 this.waitTime = 0;
-//                 this.waitDuration = 0;
+//                 this.waitTime =  0.0;
+//                 this.waitDuration =  0.0;
 //             } else {
 //                 this.waitTime += deltaTime;
 //             }
@@ -442,8 +442,8 @@ export class WandererJob extends Job {
 //                 console.log(`WandererJob: Waiting but not landed (state: ${this.ship.state}), transitioning to Starting`);
 //             }
 //             this.state = 'Starting';
-//             this.waitTime = 0;
-//             this.waitDuration = 0;
+//             this.waitTime =  0.0;
+//             this.waitDuration =  0.0;
 //             return;
 //         }
 
@@ -453,8 +453,8 @@ export class WandererJob extends Job {
 //                 console.log(`WandererJob: Waited ${this.waitTime.toFixed(1)}s, transitioning to Starting`);
 //             }
 //             this.state = 'Starting';
-//             this.waitTime = 0;
-//             this.waitDuration = 0;
+//             this.waitTime =  0.0;
+//             this.waitDuration =  0.0;
 //         }
 //     }
 
@@ -519,7 +519,7 @@ export class WandererJob extends Job {
 //     }
 
 //     selectNextValidTarget() {
-//         while (this.route.length > 0) {
+//         while (this.route.length >  0.0) {
 //             const nextTarget = this.route.shift();
 //             if (isValidTarget(this.ship, nextTarget)) {
 //                 return nextTarget;
@@ -552,8 +552,8 @@ export class WandererJob extends Job {
 //         this.target = null;
 //         this.finalTarget = null;
 //         this.route = [];
-//         this.waitTime = 0;
-//         this.waitDuration = 0;
+//         this.waitTime =  0.0;
+//         this.waitDuration =  0.0;
 //         if (this.ship.debug) {
 //             console.log(`WandererJob: Resumed, transitioning to Starting`);
 //         }
@@ -576,9 +576,9 @@ export class WandererJob extends Job {
 //         /** @type {JumpGate[]} Array of jump gates to reach finalTarget. */
 //         this.route = [];
 //         /** @type {number} Time (seconds) spent in Waiting state. */
-//         this.waitTime = 0;
+//         this.waitTime =  0.0;
 //         /** @type {number} Random delay (seconds, 10-30s) for Waiting state. */
-//         this.waitDuration = 0;
+//         this.waitDuration =  0.0;
 //         /** @type {Vector2D} Temporary vector for distance calculations. */
 //         this._scratchVector = new Vector2D();
 //         /** @type {Object.<string, Function>} Map of state names to handler methods. */
@@ -611,7 +611,7 @@ export class WandererJob extends Job {
 //      */
 //     updateStarting(deltaTime, gameManager) {
 //         if (this.ship.state === 'Landed') {
-//             if (this.waitDuration === 0) { // No delay for initial start
+//             if (this.waitDuration ===  0.0) { // No delay for initial start
 //                 if (this.ship.debug) {
 //                     console.log('WandererJob: Initial start, initiating takeoff');
 //                 }
@@ -621,8 +621,8 @@ export class WandererJob extends Job {
 //                     console.log(`WandererJob: Waited ${this.waitTime.toFixed(1)}s, initiating takeoff`);
 //                 }
 //                 this.ship.initiateTakeoff();
-//                 this.waitTime = 0;
-//                 this.waitDuration = 0;
+//                 this.waitTime =  0.0;
+//                 this.waitDuration =  0.0;
 //             }
 //         } else if (this.ship.state === 'Flying') {
 //             if (this.ship.debug) {
@@ -660,12 +660,12 @@ export class WandererJob extends Job {
 //      * @param {GameManager} gameManager - The game manager instance for context.
 //      */
 //     updateTraveling(deltaTime, gameManager) {
-//         if (this.ship.state === 'Landed' && this.target === this.finalTarget && this.route.length === 0) {
+//         if (this.ship.state === 'Landed' && this.target === this.finalTarget && this.route.length ===  0.0) {
 //             if (this.ship.debug) {
 //                 console.log('WandererJob: Landed at final target, transitioning to Waiting');
 //             }
-//             this.waitTime = 0;
-//             this.waitDuration = 10 + Math.random() * 20; // 10-30s
+//             this.waitTime =  0.0;
+//             this.waitDuration = 10 + Math.random() *  20.0; // 10-30s
 //             this.state = 'Waiting';
 //             return;
 //         }
@@ -678,7 +678,7 @@ export class WandererJob extends Job {
 //                 }
 //                 // Iterate route for next valid target
 //                 this.target = null;
-//                 while (this.route.length > 0) {
+//                 while (this.route.length >  0.0) {
 //                     const selectedTarget = this.route.shift();
 //                     if (isValidTarget(this.ship, selectedTarget)) {
 //                         if (this.ship.debug) {
@@ -745,8 +745,8 @@ export class WandererJob extends Job {
 //                 console.log('WandererJob: Waiting but not landed, transitioning to Starting');
 //             }
 //             this.state = 'Starting';
-//             this.waitTime = 0;
-//             this.waitDuration = 0;
+//             this.waitTime =  0.0;
+//             this.waitDuration =  0.0;
 //             return;
 //         }
 //         this.waitTime += deltaTime;
@@ -755,8 +755,8 @@ export class WandererJob extends Job {
 //                 console.log(`WandererJob: Waited ${this.waitTime.toFixed(1)}s, transitioning to Starting`);
 //             }
 //             this.state = 'Starting';
-//             this.waitTime = 0;
-//             this.waitDuration = 0;
+//             this.waitTime =  0.0;
+//             this.waitDuration =  0.0;
 //         }
 //     }
 
@@ -850,8 +850,8 @@ export class WandererJob extends Job {
 //             this.target = null;
 //             this.finalTarget = null;
 //             this.route = [];
-//             this.waitTime = 0;
-//             this.waitDuration = 10 + Math.random() * 20; // 10-30s
+//             this.waitTime =  0.0;
+//             this.waitDuration = 10 + Math.random() *  20.0; // 10-30s
 //         } else {
 //             if (this.ship.debug) {
 //                 console.log(`WandererJob: Resuming, ship ${this.ship.state}, setting Planning`);

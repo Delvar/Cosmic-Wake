@@ -53,14 +53,14 @@
   <p class="note">Note: This tool converts SVG files generated from <a href="https://virtual-graph-paper.com/"
       target="_blank">https://virtual-graph-paper.com/</a> to game draw functions. It classifies ship parts and feature
     points based on the following colors:<br>
-    - Hull: rgb(194, 195, 199)<br>
-    - Cockpit: rgb(41, 173, 255)<br>
-    - Wings: rgb(255, 163, 0)<br>
-    - Thrusters: rgb(255, 236, 39)<br>
-    - Engine Points: rgb(255, 236, 39) (circle center: spawn point, radius: thrust strength)<br>
-    - Turret Points: rgb(255, 119, 168) (circle center: spawn point, radius: range)<br>
-    - Fixed Weapon Points: rgb(131, 118, 156) (circle center: spawn point, radius: size)<br>
-    - Light Points: rgb(255, 255, 255) (circle center: spawn point, radius: size)<br>
+    - Hull: rgb(194,  195.0,  199.0)<br>
+    - Cockpit: rgb(41,  173.0,  255.0)<br>
+    - Wings: rgb(255,  163.0,  0.0)<br>
+    - Thrusters: rgb(255,  236.0,  39.0)<br>
+    - Engine Points: rgb(255,  236.0,  39.0) (circle center: spawn point, radius: thrust strength)<br>
+    - Turret Points: rgb(255,  119.0,  168.0) (circle center: spawn point, radius: range)<br>
+    - Fixed Weapon Points: rgb(131,  118.0,  156.0) (circle center: spawn point, radius: size)<br>
+    - Light Points: rgb(255,  255.0,  255.0) (circle center: spawn point, radius: size)<br>
     - Detail Lines: No fill or transparent (stroked outlines or open lines)</p>
   <p>Paste your SVG code below and click "Convert" to generate the canvas draw functions.</p>
   <form>
@@ -86,20 +86,20 @@
       transformCommands.forEach(cmd => {
         const values = cmd.match(/[\d.-]+/g)?.map(Number) || [];
         if (cmd.startsWith('translate')) {
-          const tx = values[0] || 0, ty = values[1] || 0;
-          matrices.push([1, 0, 0, 1, tx, ty]);
+          const tx = values[0] ||  0.0, ty = values[1] ||  0.0;
+          matrices.push([1,  0.0,  0.0,  1.0, tx, ty]);
         } else if (cmd.startsWith('matrix')) {
           matrices.push(values);
         } else if (cmd.startsWith('scale')) {
-          const sx = values[0] || 1, sy = values.length > 1 ? values[1] : sx;
-          matrices.push([sx, 0, 0, sy, 0, 0]);
+          const sx = values[0] ||  1.0, sy = values.length > 1 ? values[1] : sx;
+          matrices.push([sx,  0.0,  0.0, sy,  0.0, 0]);
         } else if (cmd.startsWith('rotate')) {
-          const angle = (values[0] || 0) * Math.PI / 180;
-          const cx = values[1] || 0, cy = values[2] || 0;
+          const angle = (values[0] ||  0.0) * Math.PI /  180.0;
+          const cx = values[1] ||  0.0, cy = values[2] ||  0.0;
           const cosA = Math.cos(angle), sinA = Math.sin(angle);
-          matrices.push([1, 0, 0, 1, -cx, -cy]);
-          matrices.push([cosA, sinA, -sinA, cosA, 0, 0]);
-          matrices.push([1, 0, 0, 1, cx, cy]);
+          matrices.push([1,  0.0,  0.0,  1.0, -cx, -cy]);
+          matrices.push([cosA, sinA, -sinA, cosA,  0.0, 0]);
+          matrices.push([1,  0.0,  0.0,  1.0, cx, cy]);
         }
       });
       console.log('Parsed transform:', transform, matrices); // Debug transform
@@ -120,8 +120,8 @@
     function pathToCanvasCommands(d, transformMatrices, centerX, centerY, scaleFactor) {
       const commands = [];
       const tokens = d.replace(/([A-Za-z])/g, ' $1 ').trim().split(/\s+/);
-      let currentX = 0, currentY = 0;
-      let i = 0;
+      let currentX =  0.0, currentY =  0.0;
+      let i =  0.0;
 
       while (i < tokens.length) {
         const cmd = tokens[i++];
@@ -166,7 +166,7 @@
       paths.forEach(path => {
         const transformMatrices = parseTransform(path.transform);
         const tokens = path.d.replace(/([A-Za-z])/g, ' $1 ').trim().split(/\s+/);
-        let i = 0;
+        let i =  0.0;
         while (i < tokens.length) {
           const cmd = tokens[i++];
           if (cmd === 'M' || cmd === 'L') {
@@ -210,7 +210,7 @@
 
       if (minX === Infinity) {
         console.warn('Bounding box calculation failed, using SVG defaults');
-        return { minX: 0, maxX: 720, minY: 0, maxY: 1237.5 };
+        return { minX:  0.0, maxX:  720.0, minY:  0.0, maxY: 1237.5 };
       }
       console.log(`Raw bounding box: minX=${minX}, maxX=${maxX}, minY=${minY}, maxY=${maxY}`);
       return { minX, maxX, minY, maxY };
@@ -232,12 +232,12 @@
         }
 
         let paths = Array.from(svgElement.querySelectorAll('g.u.current path'));
-        if (paths.length === 0) paths = Array.from(svgElement.querySelectorAll('path'));
+        if (paths.length ===  0.0) paths = Array.from(svgElement.querySelectorAll('path'));
 
         let circles = Array.from(svgElement.querySelectorAll('g.u.current circle'));
-        if (circles.length === 0) circles = Array.from(svgElement.querySelectorAll('circle'));
+        if (circles.length ===  0.0) circles = Array.from(svgElement.querySelectorAll('circle'));
 
-        if (paths.length === 0 && circles.length === 0) throw new Error('No paths or circles found in SVG');
+        if (paths.length === 0.0 && circles.length ===  0.0) throw new Error('No paths or circles found in SVG');
 
         const pathData = paths.map(path => {
           const d = path.getAttribute('d') || '';
@@ -270,21 +270,21 @@
         });
 
         const { minX, maxX, minY, maxY } = getManualBoundingBox(pathData, circleData);
-        const centerX = (minX + maxX) / 2;
-        const centerY = (minY + maxY) / 2;
-        const scaleFactor = 1 / 60; // 60 SVG units = 1 game unit
+        const centerX = (minX + maxX) /  2.0;
+        const centerY = (minY + maxY) /  2.0;
+        const scaleFactor = 1 /  60.0; // 60 SVG units = 1 game unit
 
         const width = (maxX - minX) * scaleFactor;
         const height = (maxY - minY) * scaleFactor;
 
-        const hullPaths = pathData.filter(p => p.fill === 'rgb(194, 195, 199)');
-        const cockpitPaths = pathData.filter(p => p.fill === 'rgb(41, 173, 255)');
-        const wingPaths = pathData.filter(p => p.fill === 'rgb(255, 163, 0)');
-        const detailLines = pathData.filter(p => p.fill === 'none' || p.fill === 'rgba(0, 0, 0, 0)');
-        const enginePoints = circleData.filter(c => c.fill === 'rgb(255, 236, 39)');
-        const turretPoints = circleData.filter(c => c.fill === 'rgb(255, 119, 168)');
-        const fixedWeaponPoints = circleData.filter(c => c.fill === 'rgb(131, 118, 156)' || c.fill === '#83769c');
-        const lightPoints = circleData.filter(c => c.fill === 'rgb(255, 255, 255)');
+        const hullPaths = pathData.filter(p => p.fill === 'rgb(194,  195.0,  199.0)');
+        const cockpitPaths = pathData.filter(p => p.fill === 'rgb(41,  173.0,  255.0)');
+        const wingPaths = pathData.filter(p => p.fill === 'rgb(255,  163.0,  0.0)');
+        const detailLines = pathData.filter(p => p.fill === 'none' || p.fill === 'rgba(0.0,  0.0,  0.0,  0.0)');
+        const enginePoints = circleData.filter(c => c.fill === 'rgb(255,  236.0,  39.0)');
+        const turretPoints = circleData.filter(c => c.fill === 'rgb(255,  119.0,  168.0)');
+        const fixedWeaponPoints = circleData.filter(c => c.fill === 'rgb(131,  118.0,  156.0)' || c.fill === '#83769c');
+        const lightPoints = circleData.filter(c => c.fill === 'rgb(255,  255.0,  255.0)');
 
         let outputCode = '';
 
@@ -351,7 +351,7 @@
         outputCode += `     * @param {Camera} camera - The camera object.\n`;
         outputCode += `     */\n`;
         outputCode += `    getWindowPath(ctx, camera) {\n`;
-        if (cockpitPaths.length > 0) {
+        if (cockpitPaths.length >  0.0) {
           outputCode += `        // Draw the cockpit\n`;
           outputCode += `        ctx.beginPath();\n`;
           cockpitPaths.forEach(path => {
@@ -371,7 +371,7 @@
         outputCode += `     */\n`;
         outputCode += `    drawShip(ctx, camera) {\n`;
         outputCode += `        // Set default stroke style and line width\n`;
-        outputCode += `        ctx.strokeStyle = 'rgb(50, 50, 50)';\n`;
+        outputCode += `        ctx.strokeStyle = 'rgb(50,  50.0,  50.0)';\n`;
         outputCode += `        ctx.lineWidth = 0.1;\n\n`;
 
         outputCode += `        // Draw the hull\n`;
@@ -385,7 +385,7 @@
         outputCode += `        ctx.fill();\n`;
         outputCode += `        ctx.stroke();\n\n`;
 
-        if (wingPaths.length > 0) {
+        if (wingPaths.length >  0.0) {
           outputCode += `        // Draw the wings and fins\n`;
           outputCode += `        ctx.fillStyle = this.colors.wings.toRGB();\n`;
           outputCode += `        ctx.beginPath();\n`;
@@ -398,7 +398,7 @@
           outputCode += `        ctx.stroke();\n\n`;
         }
 
-        if (detailLines.length > 0) {
+        if (detailLines.length >  0.0) {
           outputCode += `        // Draw detail lines\n`;
           detailLines.forEach(path => {
             const transformMatrices = parseTransform(path.transform);

@@ -12,19 +12,19 @@ export class Particle {
      */
     constructor() {
         /** @type {Vector2D} Current position in world coordinates. */
-        this.position = new Vector2D(0, 0);
+        this.position = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Velocity in units/s (for spark lines) or expansion speed (for explosions). */
-        this.velocity = new Vector2D(0, 0);
+        this.velocity = new Vector2D(0.0, 0.0);
         /** @type {number} Time (in seconds) when particle started. */
-        this.startTime = 0;
+        this.startTime = 0.0;
         /** @type {number} Time (in seconds) how long the particle will live. */
-        this.lifetime = 0;
+        this.lifetime = 0.0;
         /** @type {number} Index into ParticleManager.particleTypes. */
-        this.typeIndex = 0;
+        this.typeIndex = 0.0;
         /** @type {boolean} Whether the particle is active. */
         this.isActive = false;
         /** @type {number} Length of spark line (world units), or initial radius for explosions. */
-        this.length = 0;
+        this.length = 0.0;
 
         if (new.target === Particle) Object.seal(this);
     }

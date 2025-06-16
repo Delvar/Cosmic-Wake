@@ -32,14 +32,14 @@ export class AttackAutopilot extends Autopilot {
         /** @type {number} Radius to revert from Attacking to Approaching. */
         this.revertRadius = 5.0 * this.ship.maxVelocity;
         /** @type {Vector2D} Scratch vector for distance calculations. */
-        this._scratchDirectionToTarget = new Vector2D(0, 0);
+        this._scratchDirectionToTarget = new Vector2D(0.0, 0.0);
         /** @type {Object.<string, Function>} State handlers for update logic. */
         this.stateHandlers = {
             Approaching: this.updateApproaching.bind(this),
             Attacking: this.updateAttacking.bind(this)
         };
         /** @type {number} the remaining time to execute the selected attack patern. */
-        this.attackTime = 0;
+        this.attackTime = 0.0;
 
         if (new.target === AttackAutopilot) Object.seal(this);
     }
@@ -50,7 +50,7 @@ export class AttackAutopilot extends Autopilot {
      * @returns {string} The pattern ("inrange", "orbit", "flyby").
      */
     determinePattern(maxVelocity) {
-        if (maxVelocity > 150) {
+        if (maxVelocity > 150.0) {
             if (Math.random() > 0.5) {
                 return "orbit";
             } else {
@@ -226,35 +226,35 @@ export class OrbitAttackAutopilot extends Autopilot {
         /** @type {Ship} The Ship to target. */
         this.target = target;
         /** @type {number} Desired orbital radius around the target. */
-        this.orbitRadius = randomBetween(250, 500);
+        this.orbitRadius = randomBetween(250.0, 500.0);
         /** @type {number} Minimum allowed orbital radius. */
         this.minRadius = this.orbitRadius * 0.25;
         /** @type {number} Maximum allowed orbital radius. */
         this.maxRadius = this.orbitRadius * 1.75;
         /** @type {number} Speed of projectiles for lead aiming. */
-        this.projectileSpeed = 1000;
+        this.projectileSpeed = 1000.0;
         /** @type {string} Current state: "Approaching" or "Orbiting". */
         this.state = "Approaching";
         /** @type {Vector2D} Scratch vector for target direction. */
-        this._scratchDirectionToTarget = new Vector2D(0, 0);
+        this._scratchDirectionToTarget = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for delta to target. */
-        this._scratchDeltaToTarget = new Vector2D(0, 0);
+        this._scratchDeltaToTarget = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for desired velocity. */
-        this._scratchDesiredVelocity = new Vector2D(0, 0);
+        this._scratchDesiredVelocity = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for velocity error. */
-        this._scratchVelocityError = new Vector2D(0, 0);
+        this._scratchVelocityError = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for lead offset. */
-        this._scratchLeadOffset = new Vector2D(0, 0);
+        this._scratchLeadOffset = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for lateral offset. */
-        this._scratchLateralOffset = new Vector2D(0, 0);
+        this._scratchLateralOffset = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for lead position. */
-        this._scratchLeadPosition = new Vector2D(0, 0);
+        this._scratchLeadPosition = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for lead direction. */
-        this._scratchLeadDirection = new Vector2D(0, 0);
+        this._scratchLeadDirection = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for tangent direction. */
-        this._scratchTangent = new Vector2D(0, 0);
+        this._scratchTangent = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for offset position. */
-        this._scratchOffsetPosition = new Vector2D(0, 0);
+        this._scratchOffsetPosition = new Vector2D(0.0, 0.0);
         /** @type {Object.<string, Function>} State handlers for update logic. */
         this.stateHandlers = {
             Approaching: this.updateApproaching.bind(this),
@@ -368,7 +368,7 @@ export class OrbitAttackAutopilot extends Autopilot {
         const shouldThrust = this.applyThrustLogic(
             this.ship,
             this._scratchDesiredVelocity,
-            this.ship.fixedWeapons.length !== 0 ? this._scratchLeadDirection : null,
+            this.ship.fixedWeapons.length !== 0.0 ? this._scratchLeadDirection : null,
             1.0,
             this._scratchVelocityError
         );
@@ -384,17 +384,17 @@ export class OrbitAttackAutopilot extends Autopilot {
      * @param {Vector2D} leadDirection - Normalized lead direction vector.
      */
     computeOrbitalVelocity(targetVelocity, distance, leadDirection) {
-        const maxSpeedDelta = clamp(this.ship.maxVelocity * 0.5, 50, 250);
+        const maxSpeedDelta = clamp(this.ship.maxVelocity * 0.5, 50.0, 250.0);
         const orbitSpeed = maxSpeedDelta;
 
         // Determine orbit direction using cross product
         const crossProduct = leadDirection.x * this.ship.velocity.y - leadDirection.y * this.ship.velocity.x;
-        if (crossProduct >= 0) {
+        if (crossProduct >= 0.0) {
             this._scratchTangent.set(-leadDirection.y, leadDirection.x); // Counterclockwise
         } else {
             this._scratchTangent.set(leadDirection.y, -leadDirection.x); // Clockwise
         }
-        const radialSpeed = remapClamp(distance, this.minRadius, this.maxRadius, -1, 1) * this.ship.maxVelocity * 0.2;
+        const radialSpeed = remapClamp(distance, this.minRadius, this.maxRadius, -1.0, 1.0) * this.ship.maxVelocity * 0.2;
 
         this._scratchDesiredVelocity.set(this._scratchTangent).multiplyInPlace(orbitSpeed).addInPlace(
             this._scratchTemp.set(leadDirection).multiplyInPlace(radialSpeed)
@@ -430,33 +430,33 @@ export class FlybyAttackAutopilot extends Autopilot {
         /** @type {number} Speed for flyby passes. */
         this.passSpeed = this.ship.maxVelocity * 0.5;
         /** @type {number} Minimum distance to avoid collision. */
-        this.minRange = 100;
+        this.minRange = 100.0;
         /** @type {number} Maximum distance to loop back for another pass. */
         this.maxRange = this.firingRange * 1.1;
         /** @type {number} The length of tiem we have been turning. */
-        this.turningTime = 0;
+        this.turningTime = 0.0;
         /** @type {number} Speed of projectiles for lead aiming. */
-        this.projectileSpeed = 1000;
+        this.projectileSpeed = 1000.0;
         /** @type {string} Current state: "Approaching", "Firing", "Retreating", or "Turning". */
         this.state = "Approaching";
         /** @type {number} Last recorded distance to detect chasing. */
         this.lastDistance = Infinity;
         /** @type {Vector2D} Scratch vector for target direction. */
-        this._scratchDirectionToTarget = new Vector2D(0, 0);
+        this._scratchDirectionToTarget = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for delta to target. */
-        this._scratchDeltaToTarget = new Vector2D(0, 0);
+        this._scratchDeltaToTarget = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for desired velocity. */
-        this._scratchDesiredVelocity = new Vector2D(0, 0);
+        this._scratchDesiredVelocity = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for velocity error. */
-        this._scratchVelocityError = new Vector2D(0, 0);
+        this._scratchVelocityError = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for lead offset. */
-        this._scratchLeadOffset = new Vector2D(0, 0);
+        this._scratchLeadOffset = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for lateral offset. */
-        this._scratchLateralOffset = new Vector2D(0, 0);
+        this._scratchLateralOffset = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for lead position. */
-        this._scratchLeadPosition = new Vector2D(0, 0);
+        this._scratchLeadPosition = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for lead direction. */
-        this._scratchLeadDirection = new Vector2D(0, 0);
+        this._scratchLeadDirection = new Vector2D(0.0, 0.0);
         /** @type {Object.<string, Function>} State handlers for update logic. */
         this.stateHandlers = {
             Approaching: this.updateApproaching.bind(this),
@@ -587,7 +587,7 @@ export class FlybyAttackAutopilot extends Autopilot {
         this.handleFiring(distance, angleToLead);
 
         // Transition to Retreating
-        if (Math.abs(angleToLead) > Math.PI / 3 && distance < this.minRange) {
+        if (Math.abs(angleToLead) > Math.PI / 3.0 && distance < this.minRange) {
             this.state = "Retreating";
             this.lastDistance = distance;
             if (this.ship.debug) {
@@ -620,7 +620,7 @@ export class FlybyAttackAutopilot extends Autopilot {
 
         // Transition to Turning
         if (distance >= this.maxRange * 0.25 && !isChasing) {
-            this.turningTime = 0;
+            this.turningTime = 0.0;
             this.state = "Turning";
             if (this.ship.debug) {
                 console.log(`FlybyAttackAutopilot: Transitioned to Turning${isChasing ? ' (chasing detected)' : ''}`);
@@ -659,7 +659,7 @@ export class FlybyAttackAutopilot extends Autopilot {
             this._scratchVelocityError
         );
         const leadAngle = this._scratchLeadDirection.getAngle();
-        const requestedAngle = (1 - remapClamp(this.turningTime, 0, 3, 0, 1)) * Math.PI + leadAngle;
+        const requestedAngle = (1.0 - remapClamp(this.turningTime, 0.0, 3.0, 0.0, 1.0)) * Math.PI + leadAngle;
         this.ship.setTargetAngle(requestedAngle);
         this.ship.applyThrust(true);
         this._scratchDesiredVelocity.setFromPolar(this.ship.maxVelocity, requestedAngle);
@@ -669,7 +669,7 @@ export class FlybyAttackAutopilot extends Autopilot {
         this.handleFiring(distance, angleToLead);
 
         // Transition to Approaching
-        if (this.turningTime > 3) {
+        if (this.turningTime > 3.0) {
             this.state = "Approaching";
             if (this.ship.debug) {
                 console.log("FlybyAttackAutopilot: Transitioned to Approaching");
@@ -704,27 +704,27 @@ export class InRangeAttackAutopilot extends Autopilot {
         /** @type {Ship} The Ship to target. */
         this.target = target;
         /** @type {number} Minimum distance to avoid collision. */
-        this.minRange = 100;
+        this.minRange = 100.0;
         /** @type {number} Maximum distance to loop back for another pass. */
-        this.maxRange = 2 * this.ship.maxVelocity;
+        this.maxRange = 2.0 * this.ship.maxVelocity;
         /** @type {number} Speed of projectiles for lead aiming. */
-        this.projectileSpeed = 1000;
+        this.projectileSpeed = 1000.0;
         /** @type {Vector2D} Scratch vector for target direction. */
-        this._scratchDirectionToTarget = new Vector2D(0, 0);
+        this._scratchDirectionToTarget = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for delta to target. */
-        this._scratchDeltaToTarget = new Vector2D(0, 0);
+        this._scratchDeltaToTarget = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for desired velocity. */
-        this._scratchDesiredVelocity = new Vector2D(0, 0);
+        this._scratchDesiredVelocity = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for velocity error. */
-        this._scratchVelocityError = new Vector2D(0, 0);
+        this._scratchVelocityError = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for lead position. */
-        this._scratchLeadPosition = new Vector2D(0, 0);
+        this._scratchLeadPosition = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for lead offset. */
-        this._scratchLeadOffset = new Vector2D(0, 0);
+        this._scratchLeadOffset = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for lateral offset. */
-        this._scratchLateralOffset = new Vector2D(0, 0);
+        this._scratchLateralOffset = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for lead direction. */
-        this._scratchLeadDirection = new Vector2D(0, 0);
+        this._scratchLeadDirection = new Vector2D(0.0, 0.0);
 
         if (new.target === InRangeAttackAutopilot) Object.seal(this);
     }
@@ -785,11 +785,11 @@ export class InRangeAttackAutopilot extends Autopilot {
         // Desired velocity: match target velocity, adjust to maintain range
         this._scratchDesiredVelocity.set(this._scratchDirectionToTarget);
         if (distance < this.minRange) {
-            const thrustMultiplier = 1 - remapClamp(distance, 0, this.minRange, 0, 1);
-            this._scratchDesiredVelocity.multiplyInPlace(-100 * thrustMultiplier);
+            const thrustMultiplier = 1.0 - remapClamp(distance, 0.0, this.minRange, 0.0, 1.0);
+            this._scratchDesiredVelocity.multiplyInPlace(-100.0 * thrustMultiplier);
         } else if (distance > this.maxRange) {
-            const thrustMultiplier = 1 - remapClamp(distance - this.maxRange, 0, 1000, 0, 1);
-            this._scratchDesiredVelocity.multiplyInPlace(100 * thrustMultiplier);
+            const thrustMultiplier = 1.0 - remapClamp(distance - this.maxRange, 0.0, 1000.0, 0.0, 1.0);
+            this._scratchDesiredVelocity.multiplyInPlace(100.0 * thrustMultiplier);
         }
         this._scratchDesiredVelocity.addInPlace(targetVelocity);
 
@@ -805,7 +805,7 @@ export class InRangeAttackAutopilot extends Autopilot {
         // Fire if in range
         if (distance <= this.maxRange) {
             this.ship.fireTurrets();
-            if (Math.abs(angleToLead) < Math.PI / 25) {
+            if (Math.abs(angleToLead) < Math.PI / 25.0) {
                 this.ship.fireFixedWeapons();
             }
             if (this.ship.debug) {

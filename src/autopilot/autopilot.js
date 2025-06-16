@@ -30,13 +30,13 @@ export class Autopilot {
         /** @type {Autopilot|null} Optional sub-autopilot for delegated tasks. */
         this.subAutopilot = null;
         /** @type {number} Maximum angle deviation to apply thrust. */
-        this.thrustAngleLimit = Math.PI / 16;
+        this.thrustAngleLimit = Math.PI / 16.0;
         /** @type {number} Upper threshold for thrust activation. */
         this.upperVelocityErrorThreshold = this.ship.thrust * (0.15 + Math.random() * 0.1);
         /** @type {number} Lower threshold for thrust hysteresis. */
         this.lowerVelocityErrorThreshold = this.ship.thrust * 0.002;
         /** @type {number} Maximum distance to fire weapons. */
-        this.firingRange = 1000;
+        this.firingRange = 1000.0;
         /** @type {string} Current state of the autopilot (e.g., "Approaching"). */
         this.state = "";
         /** @type {Object.<string, Function>} State handlers for update logic. */
@@ -44,11 +44,11 @@ export class Autopilot {
 
         // Initialize scratch vectors for calculations
         /** @type {Vector2D} Temporary scratch vector for calculations. */
-        this._scratchTemp = new Vector2D(0, 0);
+        this._scratchTemp = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Final desired velocity after corrections. */
-        this._scratchDesiredVelocity = new Vector2D(0, 0);
+        this._scratchDesiredVelocity = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Difference between desired and current velocity. */
-        this._scratchVelocityError = new Vector2D(0, 0);
+        this._scratchVelocityError = new Vector2D(0.0, 0.0);
 
         if (new.target === Autopilot) Object.seal(this);
     }
@@ -102,7 +102,7 @@ export class Autopilot {
     getActionName() {
         const className = this.constructor.name;
         if (className.endsWith('Autopilot')) {
-            const baseName = className.slice(0, -9); // Remove 'Autopilot'
+            const baseName = className.slice(0.0, -9.0); // Remove 'Autopilot'
             // Insert space before each capital letter (except first) and trim
             return baseName.replace(/([A-Z])/g, ' $1').trim();
         }
@@ -271,10 +271,10 @@ export class FlyToTargetAutopilot extends Autopilot {
      * Creates a new FlyToTargetAutopilot instance.
      * @param {Ship} ship - The ship to control.
      * @param {GameObject} target - The target to fly toward.
-     * @param {number} [arrivalDistance=100] - Distance from target center to achieve arrivalSpeed.
+     * @param {number} [arrivalDistance=100.0] - Distance from target center to achieve arrivalSpeed.
      * @param {number} [arrivalSpeed=Ship.LANDING_SPEED] - Target speed when within arrivalDistance.
      */
-    constructor(ship, target, arrivalDistance = 100, arrivalSpeed = Ship.LANDING_SPEED) {
+    constructor(ship, target, arrivalDistance = 100.0, arrivalSpeed = Ship.LANDING_SPEED) {
         super(ship, target);
         /** @type {number} Distance from target center to achieve arrivalSpeed. */
         this.arrivalDistance = arrivalDistance;
@@ -291,19 +291,19 @@ export class FlyToTargetAutopilot extends Autopilot {
 
         // Initialize scratch vectors for calculations
         /** @type {Vector2D} Scratch vector for delta to target. */
-        this._scratchDeltaToTarget = new Vector2D(0, 0);
+        this._scratchDeltaToTarget = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for target direction. */
-        this._scratchDirectionToTarget = new Vector2D(0, 0);
+        this._scratchDirectionToTarget = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for lead position. */
-        this._scratchLeadPosition = new Vector2D(0, 0);
+        this._scratchLeadPosition = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for lead offset. */
-        this._scratchLeadOffset = new Vector2D(0, 0);
+        this._scratchLeadOffset = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for lateral offset. */
-        this._scratchLateralOffset = new Vector2D(0, 0);
+        this._scratchLateralOffset = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for lead direction. */
-        this._scratchLeadDirection = new Vector2D(0, 0);
+        this._scratchLeadDirection = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for velocity error. */
-        this._scratchVelocityError = new Vector2D(0, 0);
+        this._scratchVelocityError = new Vector2D(0.0, 0.0);
 
         if (new.target === FlyToTargetAutopilot) Object.seal(this);
     }
@@ -371,14 +371,14 @@ export class FlyToTargetAutopilot extends Autopilot {
             // Within arrival distance: match target velocity
             this._scratchDesiredVelocity.set(this._scratchLeadDirection)
                 .multiplyInPlace(remapClamp(distance, 0.0, this.arrivalDistance, 0.0, this.arrivalSpeed)).addInPlace(this.target.velocity);
-            errorThresholdRatio = 0;
+            errorThresholdRatio = 0.0;
         } else if (distance < this.closeApproachDistance) {
             // Close approach: slow to arrival speed, face away from target
             this._scratchDesiredVelocity.set(this._scratchLeadDirection)
                 .multiplyInPlace(this.arrivalSpeed).addInPlace(this.target.velocity);
             const approachSpeed = this.ship.velocity.dot(this._scratchLeadDirection);
             if (approachSpeed < this.arrivalSpeed * 0.5) {
-                errorThresholdRatio = 0;
+                errorThresholdRatio = 0.0;
             } else {
                 errorThresholdRatio = remapClamp(distance, this.arrivalDistance, this.closeApproachDistance, 0.25, 0.5);
             }
@@ -390,7 +390,7 @@ export class FlyToTargetAutopilot extends Autopilot {
                 .multiplyInPlace(speed).addInPlace(this.target.velocity);
             const approachSpeed = this.ship.velocity.dot(this._scratchLeadDirection);
             if (approachSpeed < this.arrivalSpeed * 0.5) {
-                errorThresholdRatio = 0;
+                errorThresholdRatio = 0.0;
             } else {
                 errorThresholdRatio = remapClamp(distance, this.closeApproachDistance, this.farApproachDistance, 0.5, 1.0);
             }
@@ -422,10 +422,10 @@ export class FollowShipAutopilot extends Autopilot {
      * Creates a new FollowShipAutopilot instance.
      * @param {Ship} ship - The ship to control.
      * @param {Ship} target - The target ship to follow.
-     * @param {number} [minFollowDistance=100] - Minimum distance from target center.
-     * @param {number} [maxFollowDistance=500] - Maximum distance from target center.
+     * @param {number} [minFollowDistance=100.0] - Minimum distance from target center.
+     * @param {number} [maxFollowDistance=500.0] - Maximum distance from target center.
      */
-    constructor(ship, target, minFollowDistance = 100, maxFollowDistance = 500) {
+    constructor(ship, target, minFollowDistance = 100.0, maxFollowDistance = 500.0) {
         super(ship, target);
         /** @type {Ship} The target to follow. */
         this.target = target;
@@ -447,19 +447,19 @@ export class FollowShipAutopilot extends Autopilot {
 
         // Initialize scratch vectors for calculations
         /** @type {Vector2D} Scratch vector for delta to target. */
-        this._scratchDeltaToTarget = new Vector2D(0, 0);
+        this._scratchDeltaToTarget = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for target direction. */
-        this._scratchDirectionToTarget = new Vector2D(0, 0);
+        this._scratchDirectionToTarget = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for lead position. */
-        this._scratchLeadPosition = new Vector2D(0, 0);
+        this._scratchLeadPosition = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for lead offset. */
-        this._scratchLeadOffset = new Vector2D(0, 0);
+        this._scratchLeadOffset = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for lateral offset. */
-        this._scratchLateralOffset = new Vector2D(0, 0);
+        this._scratchLateralOffset = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for lead direction. */
-        this._scratchLeadDirection = new Vector2D(0, 0);
+        this._scratchLeadDirection = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for velocity error. */
-        this._scratchVelocityError = new Vector2D(0, 0);
+        this._scratchVelocityError = new Vector2D(0.0, 0.0);
 
         if (new.target === FollowShipAutopilot) Object.seal(this);
     }
@@ -565,7 +565,7 @@ export class EscortAutopilot extends Autopilot {
      * @param {number} [minFollowDistance=100] - Minimum distance from target center.
      * @param {number} [maxFollowDistance=500] - Maximum distance from target center.
      */
-    constructor(ship, target, minFollowDistance = 100, maxFollowDistance = 500) {
+    constructor(ship, target, minFollowDistance = 100.0, maxFollowDistance = 500.0) {
         super(ship, target);
         /** @type {Ship} The target to follow. */
         this.target = target;
@@ -582,11 +582,11 @@ export class EscortAutopilot extends Autopilot {
             'Waiting': this.updateWaiting.bind(this)
         };
         /** @type {number} Minimum wait time (seconds) */
-        this.waitTimeMin = 5;
+        this.waitTimeMin = 5.0;
         /** @type {number} Maximum wait time (seconds) */
-        this.waitTimeMax = 10;
+        this.waitTimeMax = 10.0;
         /** @type {number} Time (seconds) remaining to wait in the 'Waiting' state. */
-        this.waitTime = 0;
+        this.waitTime = 0.0;
 
         if (new.target === EscortAutopilot) Object.seal(this);
     }
@@ -796,7 +796,7 @@ export class EscortAutopilot extends Autopilot {
 
         // Continue waiting
         this.waitTime -= deltaTime;
-        if (this.waitTime <= 0) {
+        if (this.waitTime <= 0.0) {
             this.state = 'Starting';
             if (this.ship.debug) {
                 console.log('EscortAutopilot: Wait time expired, transitioned to Starting');
@@ -1078,7 +1078,7 @@ export class LandOnPlanetAutopilot extends Autopilot {
         /** @type {FlyToTargetAutopilot|null} Sub-autopilot for approaching the planet. */
         this.subAutopilot = null;
         /** @type {Vector2D} Distance vector from ship to target planet. */
-        this._scratchDistanceToTarget = new Vector2D(0, 0);
+        this._scratchDistanceToTarget = new Vector2D(0.0, 0.0);
 
         if (new.target === LandOnPlanetAutopilot) Object.seal(this);
     }
@@ -1149,7 +1149,7 @@ export class LandOnPlanetAutopilot extends Autopilot {
                     const desiredAngle = Math.atan2(this._scratchVelocityError.x, -this._scratchVelocityError.y);
                     const angleToDesired = normalizeAngle(desiredAngle - this.ship.angle);
                     this.ship.setTargetAngle(this.ship.angle + angleToDesired);
-                    this.ship.applyThrust(Math.abs(angleToDesired) < Math.PI / 12);
+                    this.ship.applyThrust(Math.abs(angleToDesired) < Math.PI / 12.0);
                 }
             } else {
                 // Overshot the planet; restart sub-pilot to re-approach
@@ -1189,22 +1189,22 @@ export class LandOnPlanetAutopilot extends Autopilot {
 //      * @param {Ship} escortedShip - The target ship to escort.
 //      * @param {number} [followDistance=250] - The desired distance to maintain while following the escorted ship.
 //      */
-//     constructor(ship, escortedShip, followDistance = 250) {
+//     constructor(ship, escortedShip, followDistance = 250.0) {
 //         super(ship, escortedShip);
 //         /** @type {number} The distance to maintain while following the escorted ship. */
 //         this.followDistance = followDistance;
 //         /** @type {string} The current state of the autopilot (e.g., 'Idle', 'Following'). */
 //         this.state = 'Idle';
 //         /** @type {number} Time (seconds) remaining to wait in the 'Waiting' state. */
-//         this.waitTime = 0;
+//         this.waitTime =  0.0;
 //         /** @type {Vector2D} Pre-allocated vector for direction calculations to avoid allocations. */
-//         this._scratchDirectionToTarget = new Vector2D(0, 0);
+//         this._scratchDirectionToTarget = new Vector2D(0.0,  0.0);
 //         /** @type {Vector2D} Pre-allocated vector for distance (unused but retained for consistency). */
-//         this._scratchDistanceToTarget = new Vector2D(0, 0);
+//         this._scratchDistanceToTarget = new Vector2D(0.0,  0.0);
 //         /** @type {number} Minimum wait time (seconds) after landing before taking off. */
-//         this.waitTimeMin = 2;
+//         this.waitTimeMin =  2.0;
 //         /** @type {number} Maximum wait time (seconds) after landing before taking off. */
-//         this.waitTimeMax = 5;
+//         this.waitTimeMax =  5.0;
 //         /** @type {Object.<string, Function>} Map of state names to their respective handler methods. */
 //         this.stateHandlers = {
 //             Idle: this.updateIdle.bind(this),
@@ -1272,7 +1272,7 @@ export class LandOnPlanetAutopilot extends Autopilot {
 //             }
 //         } else if (this.ship.state === 'Flying') {
 //             // Begin following the escorted ship
-//             this.subAutopilot = new FollowShipAutopilot(this.ship, this.target, this.followDistance, 100);
+//             this.subAutopilot = new FollowShipAutopilot(this.ship, this.target, this.followDistance,  100.0);
 //             this.subAutopilot.start();
 //             this.state = 'Following';
 //         } else if (this.ship.state === 'TakingOff' || this.ship.state === 'Landing') {
@@ -1442,7 +1442,7 @@ export class LandOnPlanetAutopilot extends Autopilot {
 //      */
 //     updateWaiting(deltaTime) {
 //         this.waitTime -= deltaTime;
-//         if (this.waitTime <= 0) {
+//         if (this.waitTime <= 0.0) {
 //             this.state = 'Idle'; // Check the escorted ship's state next update
 //         }
 //     }
@@ -1481,7 +1481,7 @@ export class LandOnAsteroidAutopilot extends Autopilot {
     constructor(ship, asteroid) {
         super(ship, asteroid);
         /** @type {Vector2D} Pre-allocated vector for distance calculations. */
-        this._scratchDistanceToTarget = new Vector2D(0, 0);
+        this._scratchDistanceToTarget = new Vector2D(0.0, 0.0);
 
         if (new.target === LandOnAsteroidAutopilot) Object.seal(this);
     }
@@ -1551,8 +1551,8 @@ export class LandOnAsteroidAutopilot extends Autopilot {
                     const angleToDesired = normalizeAngle(desiredAngle - this.ship.angle);
                     this.ship.setTargetAngle(this.ship.angle + angleToDesired);
                     const velocityErrorMagnitude = this._scratchVelocityError.magnitude();
-                    if (velocityErrorMagnitude > 1) {
-                        this.ship.applyThrust(Math.abs(angleToDesired) < Math.PI / 12);
+                    if (velocityErrorMagnitude > 1.0) {
+                        this.ship.applyThrust(Math.abs(angleToDesired) < Math.PI / 12.0);
                     }
                 }
             } else {
@@ -1605,7 +1605,7 @@ export class TraverseJumpGateAutopilot extends Autopilot {
         /** @type {FlyToTargetAutopilot|null} Sub-autopilot for approaching the jump gate. */
         this.subAutopilot = null;
         /** @type {Vector2D} Distance vector from ship to target jump gate. */
-        this._scratchDistanceToTarget = new Vector2D(0, 0);
+        this._scratchDistanceToTarget = new Vector2D(0.0, 0.0);
 
         if (new.target === TraverseJumpGateAutopilot) Object.seal(this);
     }
@@ -1677,7 +1677,7 @@ export class TraverseJumpGateAutopilot extends Autopilot {
                     const desiredAngle = Math.atan2(this._scratchVelocityError.x, -this._scratchVelocityError.y);
                     const angleToDesired = normalizeAngle(desiredAngle - this.ship.angle);
                     this.ship.setTargetAngle(this.ship.angle + angleToDesired);
-                    this.ship.applyThrust(Math.abs(angleToDesired) < Math.PI / 12);
+                    this.ship.applyThrust(Math.abs(angleToDesired) < Math.PI / 12.0);
                 }
             } else {
                 // Not aligned with gate; restart sub-pilot
@@ -1896,13 +1896,13 @@ export class AvoidAutopilot extends Autopilot {
         /** @type {Ship} The ship posing a threat to avoid. */
         this.threat = threat;
         /** @type {number} Maximum duration (seconds) to attempt avoiding the threat. */
-        this.timeout = 30;
+        this.timeout = 30.0;
         /** @type {number} Cumulative time (seconds) spent avoiding the threat. */
-        this.timeElapsed = 0;
+        this.timeElapsed = 0.0;
         /** @type {Vector2D} Scratch vector for target direction. */
-        this._scratchDirectionToTarget = new Vector2D(0, 0);
+        this._scratchDirectionToTarget = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for delta to target. */
-        this._scratchDeltaToTarget = new Vector2D(0, 0);
+        this._scratchDeltaToTarget = new Vector2D(0.0, 0.0);
 
         if (new.target === AvoidAutopilot) Object.seal(this);
     }
@@ -1931,7 +1931,7 @@ export class AvoidAutopilot extends Autopilot {
             return;
         }
 
-        this.timeElapsed = 0;
+        this.timeElapsed = 0.0;
         this.ship.target = this.threat;
     }
 

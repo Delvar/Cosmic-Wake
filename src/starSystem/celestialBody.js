@@ -12,30 +12,30 @@ import { Camera } from '/src/camera/camera.js';
  * Defines the types and colors for celestial bodies in the game.
  */
 export const celestialTypes = {
-    'star': { type: 'star', color: new Colour(1, 1, 0) },
+    'star': { type: 'star', color: new Colour(1.0, 1.0, 0.0) },
     'planet': {
-        type: 'planet', color: new Colour(0, 0, 1), subtypes: {
-            'Chthonian': { subtype: 'Chthonian', color: new Colour(1, 0.27, 0) },
+        type: 'planet', color: new Colour(0.0, 0.0, 1.0), subtypes: {
+            'Chthonian': { subtype: 'Chthonian', color: new Colour(1.0, 0.27, 0.0) },
             'Carbon': { subtype: 'Carbon', color: new Colour(0.41, 0.41, 0.41) },
             'Desert': { subtype: 'Desert', color: new Colour(0.96, 0.64, 0.38) },
             'Gas Dwarf': { subtype: 'Gas Dwarf', color: new Colour(0.68, 0.85, 0.90) },
-            'Gas Giant': { subtype: 'Gas Giant', color: new Colour(1, 0.65, 0) },
-            'Helium': { subtype: 'Helium', color: new Colour(0.94, 0.97, 1) },
-            'Hycean': { subtype: 'Hycean', color: new Colour(0, 0.81, 0.82) },
-            'Ice Giant': { subtype: 'Ice Giant', color: new Colour(0, 0.75, 1) },
+            'Gas Giant': { subtype: 'Gas Giant', color: new Colour(1.0, 0.65, 0.0) },
+            'Helium': { subtype: 'Helium', color: new Colour(0.94, 0.97, 1.0) },
+            'Hycean': { subtype: 'Hycean', color: new Colour(0.0, 0.81, 0.82) },
+            'Ice Giant': { subtype: 'Ice Giant', color: new Colour(0.0, 0.75, 1.0) },
             'Ice': { subtype: 'Ice', color: new Colour(0.53, 0.81, 0.92) },
             'Iron': { subtype: 'Iron', color: new Colour(0.66, 0.66, 0.66) },
-            'Lava': { subtype: 'Lava', color: new Colour(1, 0, 0) },
-            'Ocean': { subtype: 'Ocean', color: new Colour(0, 0.41, 0.58) },
+            'Lava': { subtype: 'Lava', color: new Colour(1.0, 0.0, 0.0) },
+            'Ocean': { subtype: 'Ocean', color: new Colour(0.0, 0.41, 0.58) },
             'Protoplanet': { subtype: 'Protoplanet', color: new Colour(0.55, 0.53, 0.47) },
             'Puffy': { subtype: 'Puffy', color: new Colour(0.87, 0.63, 0.87) },
             'Super-puff': { subtype: 'Super-puff', color: new Colour(0.93, 0.51, 0.93) },
             'Silicate': { subtype: 'Silicate', color: new Colour(0.75, 0.75, 0.75) },
-            'Terrestrial': { subtype: 'Terrestrial', color: new Colour(0, 0, 1) }
+            'Terrestrial': { subtype: 'Terrestrial', color: new Colour(0.0, 0.0, 1.0) }
         }
     },
     'satellite': { type: 'satellite', color: new Colour(0.5, 0.5, 0.5) },
-    'comet': { type: 'comet', color: new Colour(1, 1, 1) },
+    'comet': { type: 'comet', color: new Colour(1.0, 1.0, 1.0) },
     'asteroid': { type: 'asteroid', color: new Colour(0.55, 0.27, 0.07) },
     'jumpgate': { type: 'jumpgate', color: new Colour(0.25, 0.25, 1.0) }
 };
@@ -59,8 +59,8 @@ export class CelestialBody extends GameObject {
      * @param {StarSystem} [starSystem=null] - The star system the body belongs to.
      * @param {PlanetaryRing} [ring=null] - An optional ring around the body.
      */
-    constructor(distance, radius, color, parent = null, angle = 0, type = celestialTypes['planet'], subtype = null, name = null, starSystem = null, ring = null) {
-        super(new Vector2D(0, 0), starSystem);
+    constructor(distance, radius, color, parent = null, angle = 0.0, type = celestialTypes['planet'], subtype = null, name = null, starSystem = null, ring = null) {
+        super(new Vector2D(0.0, 0.0), starSystem);
         /** @type {Vector2D} The position of the celestial body in world coordinates, calculated from parent and angle. */
         this.position = new Vector2D(
             parent ? parent.position.x + Math.sin(angle) * distance : Math.sin(angle) * distance,
@@ -108,7 +108,7 @@ export class CelestialBody extends GameObject {
         const screenY = this._scratchScreenPos.y;
         const scaledRadius = camera.worldToSize(this.radius);
 
-        if (!isFinite(screenX) || !isFinite(screenY) || !isFinite(scaledRadius) || scaledRadius <= 0) {
+        if (!isFinite(screenX) || !isFinite(screenY) || !isFinite(scaledRadius) || scaledRadius <= 0.0) {
             ctx.restore();
             return;
         }
@@ -124,18 +124,18 @@ export class CelestialBody extends GameObject {
         let fillStyle;
         if (this.type.type !== 'star') {
             const gradient = ctx.createRadialGradient(
-                lightX, lightY, 0,
+                lightX, lightY, 0.0,
                 screenX, screenY, scaledRadius * 3
             );
-            gradient.addColorStop(0, this.color.toRGB());
-            gradient.addColorStop(1, 'rgb(0, 0, 0)');
+            gradient.addColorStop(0.0, this.color.toRGB());
+            gradient.addColorStop(1, 'rgb(0.0,  0.0,  0.0)');
             fillStyle = gradient;
         } else {
             fillStyle = this.color.toRGB();
         }
 
         ctx.beginPath();
-        ctx.arc(screenX, screenY, scaledRadius, 0, TWO_PI);
+        ctx.arc(screenX, screenY, scaledRadius, 0.0, TWO_PI);
         ctx.fillStyle = fillStyle;
         ctx.fill();
         ctx.closePath();
@@ -208,8 +208,8 @@ export class PlanetaryRing {
         const innerTiltFactor = tiltFactor * this.scalingFactor;
 
         ctx.beginPath();
-        ctx.ellipse(flooredX, flooredY, scaledOuterRadius, scaledOuterRadius * tiltFactor, 0, Math.PI, TWO_PI);
-        ctx.ellipse(flooredX, flooredY, scaledInnerRadius, scaledInnerRadius * innerTiltFactor, 0, Math.PI, TWO_PI);
+        ctx.ellipse(flooredX, flooredY, scaledOuterRadius, scaledOuterRadius * tiltFactor, 0.0, Math.PI, TWO_PI);
+        ctx.ellipse(flooredX, flooredY, scaledInnerRadius, scaledInnerRadius * innerTiltFactor, 0.0, Math.PI, TWO_PI);
         ctx.fillStyle = this.color.toRGBA();
         ctx.fill('evenodd');
         ctx.restore();
@@ -233,8 +233,8 @@ export class PlanetaryRing {
         const innerTiltFactor = tiltFactor * this.scalingFactor;
 
         ctx.beginPath();
-        ctx.ellipse(flooredX, flooredY, scaledOuterRadius, scaledOuterRadius * tiltFactor, 0, 0, Math.PI);
-        ctx.ellipse(flooredX, flooredY, scaledInnerRadius, scaledInnerRadius * innerTiltFactor, 0, 0, Math.PI);
+        ctx.ellipse(flooredX, flooredY, scaledOuterRadius, scaledOuterRadius * tiltFactor, 0.0, 0.0, Math.PI);
+        ctx.ellipse(flooredX, flooredY, scaledInnerRadius, scaledInnerRadius * innerTiltFactor, 0.0, 0.0, Math.PI);
         ctx.fillStyle = this.color.toRGBA();
         ctx.fill('evenodd');
         ctx.restore();
@@ -259,7 +259,7 @@ export class Planet extends CelestialBody {
      * @param {StarSystem} [starSystem=null] - The star system the body belongs to.
      * @param {PlanetaryRing} [ring=null] - An optional ring around the body.
      */
-    constructor(distance, radius, color, parent = null, angle = 0, type = celestialTypes['planet'], subtype = null, name = '', starSystem = null, ring = null) {
+    constructor(distance, radius, color, parent = null, angle = 0.0, type = celestialTypes['planet'], subtype = null, name = '', starSystem = null, ring = null) {
         super(distance, radius, color, parent, angle, type, subtype, name, starSystem, ring);
         if (new.target === Planet) Object.seal(this);
     }
@@ -283,7 +283,7 @@ export class Star extends CelestialBody {
      * @param {StarSystem} [starSystem=null] - The star system the body belongs to.
      * @param {PlanetaryRing} [ring=null] - An optional ring around the body.
      */
-    constructor(distance, radius, color, parent = null, angle = 0, type = celestialTypes['star'], subtype = null, name = 'Unknown Star', starSystem = null, ring = null) {
+    constructor(distance, radius, color, parent = null, angle = 0.0, type = celestialTypes['star'], subtype = null, name = 'Unknown Star', starSystem = null, ring = null) {
         super(distance, radius, color, parent, angle, type, subtype, name, starSystem, ring);
         if (new.target === Star) Object.seal(this);
     }
@@ -301,13 +301,13 @@ export class JumpGate extends CelestialBody {
      * @param {Vector2D} sysPosition - The position of the star system where the gate is located in world coordinates.
      */
     constructor(lane, sysPosition) {
-        const dir = new Vector2D(0, 0);
+        const dir = new Vector2D(0.0, 0.0);
         dir.set(lane.target.position.x - sysPosition.x, lane.target.position.y - sysPosition.y);
         const mag = Math.sqrt(dir.x * dir.x + dir.y * dir.y);
-        const norm = new Vector2D(0, 0);
+        const norm = new Vector2D(0.0, 0.0);
         norm.set(dir).divideInPlace(mag);
-        const radius = 50;
-        const dist = 1000;
+        const radius = 50.0;
+        const dist = 1000.0;
         const angle = Math.atan2(norm.x, norm.y);
         super(dist, radius, celestialTypes['jumpgate'].color, null, angle, celestialTypes['jumpgate'], null, `Jump To ${lane.target.name}`, lane.source);
         /** @type {Hyperlane} The hyperlane connection between two star systems. */
@@ -326,7 +326,7 @@ export class JumpGate extends CelestialBody {
         camera.worldToScreen(this.position, this._scratchScreenPos); // Use scratch for screen pos
         const radius = camera.worldToSize(this.radius);
         ctx.beginPath();
-        ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, radius, 0, TWO_PI);
+        ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, radius, 0.0, TWO_PI);
         ctx.strokeStyle = this.color.toRGB();
         ctx.lineWidth = camera.worldToSize(5);
         ctx.stroke();

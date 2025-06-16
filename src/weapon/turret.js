@@ -23,32 +23,32 @@ export class Turret {
         /** @type {number} Size scaling factor. */
         this.radius = radius;
         /** @type {Weapon} Turret's weapon (rail gun). */
-        this.weapon = new Weapon(0);
+        this.weapon = new Weapon(0.0);
         /** @type {number} Current direction (radians, relative to ship forward). */
-        this.direction = 0;
+        this.direction = 0.0;
         /** @type {number} Rotation speed (radians/s). */
         this.rotationSpeed = Math.PI;
         /** @type {Ship|null} Current target ship. */
         this.target = null;
         /** @type {number} Time until next target re-evaluation (seconds). */
-        this.reselectTimer = 0;
+        this.reselectTimer = 0.0;
 
         /** @type {Vector2D} Scratch vector for turret's world position. */
-        this._scratchTurretWorldPosition = new Vector2D(0, 0);
+        this._scratchTurretWorldPosition = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for direction to target. */
-        this._scratchDirectionToTarget = new Vector2D(0, 0);
+        this._scratchDirectionToTarget = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for lead position. */
-        this._scratchLeadPosition = new Vector2D(0, 0);
+        this._scratchLeadPosition = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for lead offset. */
-        this._scratchLeadOffset = new Vector2D(0, 0);
+        this._scratchLeadOffset = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for lateral offset. */
-        this._scratchLateralOffset = new Vector2D(0, 0);
+        this._scratchLateralOffset = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for lead direction. */
-        this._scratchLeadDirection = new Vector2D(0, 0);
+        this._scratchLeadDirection = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for velocity error. */
-        this._scratchVelocityError = new Vector2D(0, 0);
+        this._scratchVelocityError = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for temporary calculations. */
-        this._scratchTemporaryVector = new Vector2D(0, 0);
+        this._scratchTemporaryVector = new Vector2D(0.0, 0.0);
 
         if (new.target === Turret) Object.seal(this);
     }
@@ -65,11 +65,11 @@ export class Turret {
         }
         // Update target selection timer
         this.reselectTimer -= deltaTime;
-        if (this.reselectTimer <= 0) {
+        if (this.reselectTimer <= 0.0) {
             this.selectTarget(ship);
             this.reselectTimer = Math.random() * 0.5 + 0.5;
         }
-        let targetAngle = 0;
+        let targetAngle = 0.0;
 
         if (this.target && isValidAttackTarget(ship, this.target)) {
             // Compute world-space turret position
@@ -85,7 +85,7 @@ export class Turret {
             this._scratchDirectionToTarget.normalizeInPlace();
 
             // Compute lead position
-            const projectileSpeed = 1000;
+            const projectileSpeed = 1000.0;
             this.computeLeadPosition(
                 ship,
                 this.target,
@@ -127,7 +127,7 @@ export class Turret {
         }
 
         // Prefer ship.target if hostile
-        if (ship.target instanceof Ship && PlayerPilot.isValidHostileTarget(ship, ship.target) && ship.position.distanceSquaredTo(ship.target.position) < 1000 * 1000) {
+        if (ship.target instanceof Ship && PlayerPilot.isValidHostileTarget(ship, ship.target) && ship.position.distanceSquaredTo(ship.target.position) < 1000 * 1000.0) {
             this.target = ship.target;
             return;
         }
@@ -217,7 +217,7 @@ export class Turret {
     fire(ship, projectileManager) {
         const cosAngle = Math.cos(ship.angle + this.direction);
         const sinAngle = Math.sin(ship.angle + this.direction);
-        const barrelLength = this.radius * 3;
+        const barrelLength = this.radius * 3.0;
         const turretWorldX = this.relativePosition.x * Math.cos(ship.angle) - this.relativePosition.y * Math.sin(ship.angle) + ship.position.x;
         const turretWorldY = this.relativePosition.x * Math.sin(ship.angle) + this.relativePosition.y * Math.cos(ship.angle) + ship.position.y;
         const barrelX = turretWorldX + barrelLength * sinAngle;

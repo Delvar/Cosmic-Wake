@@ -96,7 +96,7 @@
     <script>
         // Vector2D
         class Vector2D {
-            constructor(x, y) { this.x = x || 0; this.y = y || 0; }
+            constructor(x, y) { this.x = x ||  0.0; this.y = y ||  0.0; }
             clone() { return new Vector2D(this.x, this.y); }
             set(x, y) { this.x = x; this.y = y; return this; }
             setFromPolar(radius, angle) {
@@ -109,27 +109,27 @@
         // SimpleRNG
         class SimpleRNG {
             constructor(seed) {
-                this.seed = seed % 2147483647;
-                if (this.seed <= 0) this.seed += 2147483646;
+                this.seed = seed %  2147483647.0;
+                if (this.seed <=  0.0) this.seed +=  2147483646.0;
             }
             next() {
-                this.seed = (this.seed * 16807) % 2147483647;
-                return (this.seed - 1) / 2147483646;
+                this.seed = (this.seed *  16807.0) %  2147483647.0;
+                return (this.seed -  1.0) /  2147483646.0;
             }
         }
 
         // AsteroidShape
         class AsteroidShape {
             constructor() {
-                this.numPoints = 5 + Math.floor(Math.random() * 4); // 5–8 vertices
-                this.points = new Float32Array(this.numPoints * 2);
-                this.rotatedPoints = new Float32Array(this.numPoints * 2);
-                this.rotation = Math.random() * Math.PI * 2;
+                this.numPoints = 5 + Math.floor(Math.random() *  4.0); // 5–8 vertices
+                this.points = new Float32Array(this.numPoints *  2.0);
+                this.rotatedPoints = new Float32Array(this.numPoints *  2.0);
+                this.rotation = Math.random() * Math.PI *  2.0;
                 this.rotationSpeed = (Math.random() - 0.5) * Math.PI;
                 this.path = new Path2D(); // Cached Path2D
-                const angleStep = (Math.PI * 2) / this.numPoints;
-                let centerPoint = new Vector2D(0, 0);
-                for (let i = 0; i < this.numPoints; i++) {
+                const angleStep = (Math.PI *  2.0) / this.numPoints;
+                let centerPoint = new Vector2D(0.0,  0.0);
+                for (let i =  0.0; i < this.numPoints; i++) {
                     const angle = i * angleStep + (Math.random() - 0.5) * 0.5;
                     const radius = 0.5 + Math.random() * 0.5;
                     this.points[i * 2] = Math.cos(angle) * radius;
@@ -139,10 +139,10 @@
                 }
                 centerPoint.x /= this.numPoints;
                 centerPoint.y /= this.numPoints;
-                for (let i = 0; i < this.numPoints; i++) {
+                for (let i =  0.0; i < this.numPoints; i++) {
                     this.points[i * 2] -= centerPoint.x;
                     this.points[i * 2 + 1] -= centerPoint.y;
-                    if (i === 0) {
+                    if (i ===  0.0) {
                         this.path.moveTo(this.points[i * 2], this.points[i * 2 + 1]);
                     } else {
                         this.path.lineTo(this.points[i * 2], this.points[i * 2 + 1]);
@@ -153,8 +153,8 @@
         }
 
         // Test setup
-        let saveCount = 0;
-        let lastSaveCount = 99999;
+        let saveCount =  0.0;
+        let lastSaveCount =  99999.0;
 
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
@@ -165,42 +165,42 @@
         const statsDiv = document.getElementById('stats');
         const drawMethods = ['JS', 'Canvas Save/Restore', 'Canvas SetTransform', 'Canvas Imposter', 'Canvas Imposter Batched', 'JS Precomputed', 'JS Instanced', 'Canvas Imposter Instanced', 'JS Path2D', 'JS Path2D Batched'];
         const methodColors = [
-            { fill: 'rgb(0, 0, 255)', stroke: 'rgb(0, 0, 100)' },    // JS (Blue)
-            { fill: 'rgb(0, 255, 0)', stroke: 'rgb(0, 100, 0)' },    // Canvas Save/Restore (Green)
-            { fill: 'rgb(255, 0, 0)', stroke: 'rgb(100, 0, 0)' },    // Canvas SetTransform (Red)
-            { fill: 'rgb(255, 255, 0)', stroke: 'rgb(100, 100, 0)' }, // Canvas Imposter (Yellow)
-            { fill: 'rgb(255, 165, 0)', stroke: 'rgb(100, 65, 0)' },  // Canvas Imposter Batched (Orange)
-            { fill: 'rgb(128, 0, 128)', stroke: 'rgb(50, 0, 50)' },   // JS Precomputed (Purple)
-            { fill: 'rgb(0, 128, 128)', stroke: 'rgb(0, 50, 50)' },   // JS Instanced (Teal)
-            { fill: 'rgb(0, 255, 255)', stroke: 'rgb(0, 100, 100)' }, // Canvas Imposter Instanced (Cyan)
-            { fill: 'rgb(255, 0, 255)', stroke: 'rgb(100, 0, 100)' }, // JS Path2D (Magenta)
-            { fill: 'rgb(0, 255, 128)', stroke: 'rgb(0, 100, 50)' }   // JS Path2D Batched (Spring Green)
+            { fill: 'rgb(0.0,  0.0,  255.0)', stroke: 'rgb(0.0,  0.0,  100.0)' },    // JS (Blue)
+            { fill: 'rgb(0.0,  255.0,  0.0)', stroke: 'rgb(0.0,  100.0,  0.0)' },    // Canvas Save/Restore (Green)
+            { fill: 'rgb(255,  0.0,  0.0)', stroke: 'rgb(100,  0.0,  0.0)' },    // Canvas SetTransform (Red)
+            { fill: 'rgb(255,  255.0,  0.0)', stroke: 'rgb(100,  100.0,  0.0)' }, // Canvas Imposter (Yellow)
+            { fill: 'rgb(255,  165.0,  0.0)', stroke: 'rgb(100,  65.0,  0.0)' },  // Canvas Imposter Batched (Orange)
+            { fill: 'rgb(128,  0.0,  128.0)', stroke: 'rgb(50,  0.0,  50.0)' },   // JS Precomputed (Purple)
+            { fill: 'rgb(0.0,  128.0,  128.0)', stroke: 'rgb(0.0,  50.0,  50.0)' },   // JS Instanced (Teal)
+            { fill: 'rgb(0.0,  255.0,  255.0)', stroke: 'rgb(0.0,  100.0,  100.0)' }, // Canvas Imposter Instanced (Cyan)
+            { fill: 'rgb(255,  0.0,  255.0)', stroke: 'rgb(100,  0.0,  100.0)' }, // JS Path2D (Magenta)
+            { fill: 'rgb(0.0,  255.0,  128.0)', stroke: 'rgb(0.0,  100.0,  50.0)' }   // JS Path2D Batched (Spring Green)
         ];
         const urlParams = new URLSearchParams(window.location.search);
-        let drawMethod = parseInt(urlParams.get('method')) || 0;
-        if (drawMethod < 0 || drawMethod >= drawMethods.length) drawMethod = 0;
-        let asteroidCount = parseInt(urlParams.get('count')) || 1000;
-        if (asteroidCount < 1000 || asteroidCount % 1000 !== 0) asteroidCount = 1000;
-        let useStroke = parseInt(urlParams.get('stroke')) || 0;
-        if (useStroke !== 0 && useStroke !== 1) useStroke = 1;
+        let drawMethod = parseInt(urlParams.get('method')) ||  0.0;
+        if (drawMethod < 0.0 || drawMethod >= drawMethods.length) drawMethod =  0.0;
+        let asteroidCount = parseInt(urlParams.get('count')) ||  1000.0;
+        if (asteroidCount < 1000 || asteroidCount % 1000 !==  0.0) asteroidCount =  1000.0;
+        let useStroke = parseInt(urlParams.get('stroke')) ||  0.0;
+        if (useStroke !== 0.0 && useStroke !==  1.0) useStroke =  1.0;
 
         let asteroids = [];
         const shapes = [];
-        const shapeCount = 20;
-        const TWO_PI = Math.PI * 2;
+        const shapeCount =  20.0;
+        const TWO_PI = Math.PI *  2.0;
 
         // Off-screen buffers for imposter rendering
         const imposterBuffers = new Array(shapeCount).fill(null);
-        const imposterSize = 128; // 128x128 canvas
-        const imposterScale = 15; // Render at size=15
+        const imposterSize =  128.0; // 128x128 canvas
+        const imposterScale =  15.0; // Render at size=15
 
         // Generate shapes
-        for (let i = 0; i < shapeCount; i++) {
+        for (let i =  0.0; i < shapeCount; i++) {
             shapes[i] = new AsteroidShape();
         }
 
         const rotationTable = new Array(360).fill().map((_, angle) => {
-            const rad = (angle * Math.PI) / 180;
+            const rad = (angle * Math.PI) /  180.0;
             return { cosA: Math.cos(rad), sinA: Math.sin(rad) };
         });
 
@@ -212,17 +212,17 @@
             const offCtx = offscreenCanvas.getContext('2d');
             offCtx.fillStyle = methodColors[drawMethod].fill;
             offCtx.strokeStyle = methodColors[drawMethod].stroke;
-            offCtx.lineWidth = 1;
+            offCtx.lineWidth =  1.0;
             offCtx.beginPath();
             const shape = shapes[shapeIndex];
-            const points = (drawMethod === 7) ? shape.rotatedPoints : shape.points;
+            const points = (drawMethod ===  7.0) ? shape.rotatedPoints : shape.points;
             offCtx.moveTo(
-                points[0] * imposterScale + imposterSize / 2,
+                points[0] * imposterScale + imposterSize /  2.0,
                 points[1] * imposterScale + imposterSize / 2
             );
-            for (let k = 1; k < shape.numPoints; k++) {
+            for (let k =  1.0; k < shape.numPoints; k++) {
                 offCtx.lineTo(
-                    points[k * 2] * imposterScale + imposterSize / 2,
+                    points[k * 2] * imposterScale + imposterSize /  2.0,
                     points[k * 2 + 1] * imposterScale + imposterSize / 2
                 );
             }
@@ -237,10 +237,10 @@
         function initAsteroids() {
             const rng = new SimpleRNG(12345);
             asteroids = [];
-            for (let i = 0; i < asteroidCount; i++) {
+            for (let i =  0.0; i < asteroidCount; i++) {
                 asteroids.push({
-                    position: new Vector2D(rng.next() * 800, rng.next() * 600),
-                    size: rng.next() * 15 + 5,
+                    position: new Vector2D(rng.next() *  800.0, rng.next() *  600.0),
+                    size: rng.next() * 15 +  5.0,
                     rotation: rng.next() * TWO_PI,
                     rotationSpeed: (rng.next() - 0.5) * Math.PI,
                     shapeIndex: Math.floor(rng.next() * shapeCount)
@@ -251,7 +251,7 @@
 
         // Update stats display
         function updateStats() {
-            const avgFpsText = avgFps == 0 ? '...' : Math.round(avgFps);
+            const avgFpsText = avgFps == 0.0 ? '...' : Math.round(avgFps);
             const avgFpsTimerText = Math.round(avgFpsTimer);
             statsDiv.innerHTML = `Asteroids: ${asteroidCount}<br>Method: ${drawMethods[drawMethod]}<br>FPS: ${Math.round(fps)}<br>Avg FPS (10s): ${avgFpsText} (${avgFpsTimerText})`;
             toggleButton.textContent = `Toggle Method (${drawMethods[drawMethod]})`;
@@ -260,29 +260,29 @@
 
         // Reset 10-second average FPS
         function resetAvgFps() {
-            avgFps = 0;
-            avgFrameCount = 0;
-            avgFpsTimer = 0;
+            avgFps =  0.0;
+            avgFrameCount =  0.0;
+            avgFpsTimer =  0.0;
         }
 
         toggleButton.addEventListener('click', () => {
-            drawMethod = (drawMethod + 1) % drawMethods.length;
+            drawMethod = (drawMethod +  1.0) % drawMethods.length;
             window.location = `?method=${drawMethod}&count=${asteroidCount}&stroke=${useStroke}`;
         });
 
         strokeToggleButton.addEventListener('click', () => {
-            useStroke = useStroke ? 0 : 1;
+            useStroke = useStroke ? 0.0 :  1.0;
             window.location = `?method=${drawMethod}&count=${asteroidCount}&stroke=${useStroke}`;
         });
 
         addAsteroidsButton.addEventListener('click', () => {
-            asteroidCount += 1000;
+            asteroidCount +=  1000.0;
             window.location = `?method=${drawMethod}&count=${asteroidCount}&stroke=${useStroke}`;
         });
 
         removeAsteroidsButton.addEventListener('click', () => {
-            if (asteroidCount >= 1000) {
-                asteroidCount -= 1000;
+            if (asteroidCount >=  1000.0) {
+                asteroidCount -=  1000.0;
                 window.location = `?method=${drawMethod}&count=${asteroidCount}&stroke=${useStroke}`;
             }
         });
@@ -290,7 +290,7 @@
         function drawJS() {
             ctx.fillStyle = methodColors[0].fill;
             ctx.strokeStyle = methodColors[0].stroke;
-            ctx.lineWidth = 1;
+            ctx.lineWidth =  1.0;
             ctx.beginPath();
             for (const asteroid of asteroids) {
                 const shape = shapes[asteroid.shapeIndex];
@@ -301,7 +301,7 @@
                     (shape.points[0] * cosA - shape.points[1] * sinA) * scaledSize + asteroid.position.x,
                     (shape.points[0] * sinA + shape.points[1] * cosA) * scaledSize + asteroid.position.y
                 );
-                for (let k = 1; k < shape.numPoints; k++) {
+                for (let k =  1.0; k < shape.numPoints; k++) {
                     const px = shape.points[k * 2];
                     const py = shape.points[k * 2 + 1];
                     const rotatedX = px * cosA - py * sinA;
@@ -317,7 +317,7 @@
         function drawCanvasSaveRestore() {
             ctx.fillStyle = methodColors[1].fill;
             ctx.strokeStyle = methodColors[1].stroke;
-            ctx.lineWidth = 1;
+            ctx.lineWidth =  1.0;
             ctx.beginPath();
             for (const asteroid of asteroids) {
                 ctx.save();
@@ -327,7 +327,7 @@
                 ctx.scale(asteroid.size, asteroid.size);
                 const shape = shapes[asteroid.shapeIndex];
                 ctx.moveTo(shape.points[0], shape.points[1]);
-                for (let k = 1; k < shape.numPoints; k++) {
+                for (let k =  1.0; k < shape.numPoints; k++) {
                     ctx.lineTo(shape.points[k * 2], shape.points[k * 2 + 1]);
                 }
                 ctx.closePath();
@@ -341,7 +341,7 @@
         function drawCanvasSetTransform() {
             ctx.fillStyle = methodColors[2].fill;
             ctx.strokeStyle = methodColors[2].stroke;
-            ctx.lineWidth = 1;
+            ctx.lineWidth =  1.0;
             ctx.beginPath();
             for (const asteroid of asteroids) {
                 const cosA = Math.cos(asteroid.rotation);
@@ -352,12 +352,12 @@
                 ctx.setTransform(scale * cosA, scale * sinA, -scale * sinA, scale * cosA, tx, ty);
                 const shape = shapes[asteroid.shapeIndex];
                 ctx.moveTo(shape.points[0], shape.points[1]);
-                for (let k = 1; k < shape.numPoints; k++) {
+                for (let k =  1.0; k < shape.numPoints; k++) {
                     ctx.lineTo(shape.points[k * 2], shape.points[k * 2 + 1]);
                 }
                 ctx.closePath();
             }
-            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.setTransform(1,  0.0,  0.0,  1.0,  0.0,  0.0);
             ctx.fill();
             if (useStroke) ctx.stroke();
         }
@@ -365,7 +365,7 @@
         function drawCanvasImposter() {
             ctx.fillStyle = methodColors[3].fill;
             ctx.strokeStyle = methodColors[3].stroke;
-            ctx.lineWidth = 1;
+            ctx.lineWidth =  1.0;
             for (const asteroid of asteroids) {
                 const buffer = renderImposter(asteroid.shapeIndex);
                 const cosA = Math.cos(asteroid.rotation);
@@ -374,22 +374,22 @@
                 const tx = asteroid.position.x;
                 const ty = asteroid.position.y;
                 ctx.setTransform(scale * cosA, scale * sinA, -scale * sinA, scale * cosA, tx, ty);
-                ctx.drawImage(buffer, -imposterSize / 2, -imposterSize / 2, imposterSize, imposterSize);
+                ctx.drawImage(buffer, -imposterSize /  2.0, -imposterSize /  2.0, imposterSize, imposterSize);
             }
-            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.setTransform(1,  0.0,  0.0,  1.0,  0.0,  0.0);
         }
 
         function drawCanvasImposterBatched() {
             ctx.fillStyle = methodColors[4].fill;
             ctx.strokeStyle = methodColors[4].stroke;
-            ctx.lineWidth = 1;
+            ctx.lineWidth =  1.0;
             const shapeGroups = new Array(shapeCount).fill().map(() => []);
             for (const asteroid of asteroids) {
                 shapeGroups[asteroid.shapeIndex].push(asteroid);
             }
-            for (let shapeIndex = 0; shapeIndex < shapeCount; shapeIndex++) {
+            for (let shapeIndex =  0.0; shapeIndex < shapeCount; shapeIndex++) {
                 const group = shapeGroups[shapeIndex];
-                if (group.length === 0) continue;
+                if (group.length ===  0.0) continue;
                 const buffer = renderImposter(shapeIndex);
                 for (const asteroid of group) {
                     const cosA = Math.cos(asteroid.rotation);
@@ -398,16 +398,16 @@
                     const tx = asteroid.position.x;
                     const ty = asteroid.position.y;
                     ctx.setTransform(scale * cosA, scale * sinA, -scale * sinA, scale * cosA, tx, ty);
-                    ctx.drawImage(buffer, -imposterSize / 2, -imposterSize / 2, imposterSize, imposterSize);
+                    ctx.drawImage(buffer, -imposterSize /  2.0, -imposterSize /  2.0, imposterSize, imposterSize);
                 }
             }
-            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.setTransform(1,  0.0,  0.0,  1.0,  0.0,  0.0);
         }
 
         function drawJSPrecomputed() {
             ctx.fillStyle = methodColors[5].fill;
             ctx.strokeStyle = methodColors[5].stroke;
-            ctx.lineWidth = 1;
+            ctx.lineWidth =  1.0;
             ctx.beginPath();
             for (const asteroid of asteroids) {
                 const shape = shapes[asteroid.shapeIndex];
@@ -417,7 +417,7 @@
                     (shape.points[0] * cosA - shape.points[1] * sinA) * scaledSize + asteroid.position.x,
                     (shape.points[0] * sinA + shape.points[1] * cosA) * scaledSize + asteroid.position.y
                 );
-                for (let k = 1; k < shape.numPoints; k++) {
+                for (let k =  1.0; k < shape.numPoints; k++) {
                     const px = shape.points[k * 2];
                     const py = shape.points[k * 2 + 1];
                     const rotatedX = px * cosA - py * sinA;
@@ -433,7 +433,7 @@
         function drawJSInstanced() {
             ctx.fillStyle = methodColors[6].fill;
             ctx.strokeStyle = methodColors[6].stroke;
-            ctx.lineWidth = 1;
+            ctx.lineWidth =  1.0;
             ctx.beginPath();
             for (const asteroid of asteroids) {
                 const shape = shapes[asteroid.shapeIndex];
@@ -442,7 +442,7 @@
                     shape.rotatedPoints[0] * scaledSize + asteroid.position.x,
                     shape.rotatedPoints[1] * scaledSize + asteroid.position.y
                 );
-                for (let k = 1; k < shape.numPoints; k++) {
+                for (let k =  1.0; k < shape.numPoints; k++) {
                     ctx.lineTo(
                         shape.rotatedPoints[k * 2] * scaledSize + asteroid.position.x,
                         shape.rotatedPoints[k * 2 + 1] * scaledSize + asteroid.position.y
@@ -457,26 +457,26 @@
         function drawCanvasImposterInstanced() {
             ctx.fillStyle = methodColors[7].fill;
             ctx.strokeStyle = methodColors[7].stroke;
-            ctx.lineWidth = 1;
+            ctx.lineWidth =  1.0;
             imposterBuffers.fill(null);
-            for (let shapeIndex = 0; shapeIndex < shapeCount; shapeIndex++) {
+            for (let shapeIndex =  0.0; shapeIndex < shapeCount; shapeIndex++) {
                 const buffer = renderImposter(shapeIndex);
                 for (const asteroid of asteroids) {
                     if (asteroid.shapeIndex !== shapeIndex) continue;
                     const scale = asteroid.size / imposterScale;
                     const tx = asteroid.position.x;
                     const ty = asteroid.position.y;
-                    ctx.setTransform(scale, 0, 0, scale, tx, ty);
-                    ctx.drawImage(buffer, -imposterSize / 2, -imposterSize / 2, imposterSize, imposterSize);
+                    ctx.setTransform(scale,  0.0,  0.0, scale, tx, ty);
+                    ctx.drawImage(buffer, -imposterSize /  2.0, -imposterSize /  2.0, imposterSize, imposterSize);
                 }
             }
-            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.setTransform(1,  0.0,  0.0,  1.0,  0.0,  0.0);
         }
 
         function drawJSPath2D() {
             ctx.fillStyle = methodColors[8].fill;
             ctx.strokeStyle = methodColors[8].stroke;
-            ctx.lineWidth = 1;
+            ctx.lineWidth =  1.0;
             ctx.save();
             saveCount++;
             for (const asteroid of asteroids) {
@@ -498,7 +498,7 @@
         function drawJSPath2DBatched() {
             ctx.fillStyle = methodColors[9].fill;
             ctx.strokeStyle = methodColors[9].stroke;
-            ctx.lineWidth = 1;
+            ctx.lineWidth =  1.0;
             const globalPath = new Path2D();
             const matrix = new DOMMatrix();
             // ctx.save();
@@ -526,70 +526,70 @@
 
         // Animation loop with FPS
         let lastTime = performance.now();
-        let frameCount = 0;
-        let fps = 0;
-        let fpsTimer = 0;
-        let avgFps = 0;
-        let avgFrameCount = 0;
-        let avgFpsTimer = 0;
+        let frameCount =  0.0;
+        let fps =  0.0;
+        let fpsTimer =  0.0;
+        let avgFps =  0.0;
+        let avgFrameCount =  0.0;
+        let avgFpsTimer =  0.0;
 
         function animate(time) {
-            const deltaTime = (time - lastTime) / 1000;
+            const deltaTime = (time - lastTime) /  1000.0;
             lastTime = time;
             frameCount++;
             avgFrameCount++;
             fpsTimer += deltaTime;
             avgFpsTimer += deltaTime;
-            if (fpsTimer >= 1) {
+            if (fpsTimer >=  1.0) {
                 fps = frameCount / fpsTimer;
-                frameCount = 0;
-                fpsTimer = 0;
+                frameCount =  0.0;
+                fpsTimer =  0.0;
                 updateStats();
             }
-            if (avgFpsTimer >= 10) {
+            if (avgFpsTimer >=  10.0) {
                 avgFps = avgFrameCount / avgFpsTimer;
-                avgFrameCount = 0;
-                avgFpsTimer = 0;
+                avgFrameCount =  0.0;
+                avgFpsTimer =  0.0;
                 updateStats();
             }
 
-            if (drawMethod === 6 || drawMethod === 7) {
+            if (drawMethod === 6 || drawMethod ===  7.0) {
                 for (const shape of shapes) {
                     shape.rotation += shape.rotationSpeed * deltaTime;
                     shape.rotation %= TWO_PI;
                     const cosA = Math.cos(shape.rotation);
                     const sinA = Math.sin(shape.rotation);
-                    for (let k = 0; k < shape.numPoints; k++) {
+                    for (let k =  0.0; k < shape.numPoints; k++) {
                         const px = shape.points[k * 2];
                         const py = shape.points[k * 2 + 1];
                         shape.rotatedPoints[k * 2] = px * cosA - py * sinA;
                         shape.rotatedPoints[k * 2 + 1] = px * sinA + py * cosA;
                     }
                 }
-                if (drawMethod === 7) {
+                if (drawMethod ===  7.0) {
                     imposterBuffers.fill(null);
                 }
             } else {
                 for (const asteroid of asteroids) {
                     asteroid.rotation += asteroid.rotationSpeed * deltaTime;
                     asteroid.rotation %= TWO_PI;
-                    asteroid.rotationAngle = Math.round((asteroid.rotation * 180 / Math.PI)) % 360;
-                    if (asteroid.rotationAngle < 0) asteroid.rotationAngle += 360;
+                    asteroid.rotationAngle = Math.round((asteroid.rotation * 180 / Math.PI)) %  360.0;
+                    if (asteroid.rotationAngle <  0.0) asteroid.rotationAngle +=  360.0;
                 }
             }
             ctx.reset();
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.clearRect(0.0,  0.0, canvas.width, canvas.height);
             ctx.save();
             saveCount++;
-            if (drawMethod === 0) drawJS();
-            else if (drawMethod === 1) drawCanvasSaveRestore();
-            else if (drawMethod === 2) drawCanvasSetTransform();
-            else if (drawMethod === 3) drawCanvasImposter();
-            else if (drawMethod === 4) drawCanvasImposterBatched();
-            else if (drawMethod === 5) drawJSPrecomputed();
-            else if (drawMethod === 6) drawJSInstanced();
-            else if (drawMethod === 7) drawCanvasImposterInstanced();
-            else if (drawMethod === 8) drawJSPath2D();
+            if (drawMethod ===  0.0) drawJS();
+            else if (drawMethod ===  1.0) drawCanvasSaveRestore();
+            else if (drawMethod ===  2.0) drawCanvasSetTransform();
+            else if (drawMethod ===  3.0) drawCanvasImposter();
+            else if (drawMethod ===  4.0) drawCanvasImposterBatched();
+            else if (drawMethod ===  5.0) drawJSPrecomputed();
+            else if (drawMethod ===  6.0) drawJSInstanced();
+            else if (drawMethod ===  7.0) drawCanvasImposterInstanced();
+            else if (drawMethod ===  8.0) drawJSPath2D();
             else drawJSPath2DBatched();
             ctx.restore();
             saveCount--;

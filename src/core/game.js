@@ -44,19 +44,19 @@ export class Game {
         /** @type {number} The timestamp of the last frame, used for timing calculations. */
         this.lastTime = performance.now();
         /** @type {number} The number of frames rendered since the last FPS update. */
-        this.frameCount = 0;
+        this.frameCount = 0.0;
         /** @type {number} The calculated frames per second (FPS) for the game. */
-        this.fps = 0;
+        this.fps = 0.0;
         /** @type {number} The timestamp of the last FPS update. */
         this.lastFpsUpdate = performance.now();
         /** @type {number} Target frame rate for game logic. */
-        this.targetFps = 60;
+        this.targetFps = 60.0;
         /** @type {number} Approximately 0.01667 seconds (16.67 ms) */
         this.fixedDeltaTime = 1 / this.targetFps;
         /** @type {number} Accumulator to track elapsed time (in seconds) */
-        this.timeAccumulator = 0;
+        this.timeAccumulator = 0.0;
         /** @type {number} Timer for controlling zoom text display duration. */
-        this.zoomTextTimer = 0;
+        this.zoomTextTimer = 0.0;
         /** @type {Function} The bound game loop function for rendering and updating the game. */
         this.gameLoop = this.gameLoop.bind(this);
         // Initialize canvas size
@@ -92,7 +92,7 @@ export class Game {
             this.lastTime = currentTime;
         }
 
-        const deltaTime = (currentTime - this.lastTime) / 1000;
+        const deltaTime = (currentTime - this.lastTime) / 1000.0;
         this.lastTime = currentTime;
         let renderStarfield = false;
 
@@ -114,9 +114,9 @@ export class Game {
         )) {
             const ship = this.manager.cameraTarget;
             if (ship.state === 'JumpingOut') {
-                fadeout = remapClamp(ship.animationTime, 0.0, ship.animationJumpingDuration, 1.0, 0.5) ** 2;
+                fadeout = remapClamp(ship.animationTime, 0.0, ship.animationJumpingDuration, 1.0, 0.5) ** 2.0;
             } else if (ship.state === 'JumpingIn') {
-                fadeout = remapClamp(ship.animationTime, 0.0, ship.animationJumpingDuration, 0.5, 1.0) ** 2;
+                fadeout = remapClamp(ship.animationTime, 0.0, ship.animationJumpingDuration, 0.5, 1.0) ** 2.0;
             }
             fadeout *= (deltaTime * 50.0);
             renderStarfield = true;
@@ -161,7 +161,7 @@ export class Game {
             this.mainCamera.update(this.manager.cameraTarget.starSystem, this.manager.cameraTarget.position);
         }
 
-        if (this.manager.zoomTextTimer > 0) {
+        if (this.manager.zoomTextTimer > 0.0) {
             this.manager.zoomTextTimer -= deltaTime;
         }
 
@@ -178,19 +178,19 @@ export class Game {
      */
     drawShipStats(ctx, camera, ship) {
         ctx.save();
-        const shieldRatio = remapClamp(ship.shield.strength, 0, ship.shield.maxStrength, 0, 1);
-        const hullRatio = remapClamp(ship.hullIntegrity, 0, ship.maxHull, 0, 1);
+        const shieldRatio = remapClamp(ship.shield.strength, 0.0, ship.shield.maxStrength, 0.0, 1.0);
+        const hullRatio = remapClamp(ship.hullIntegrity, 0.0, ship.maxHull, 0.0, 1.0);
         const centerX = camera.screenCenter.x;
-        const barHeight = 8;
-        const barGap = 8;
+        const barHeight = 8.0;
+        const barGap = 8.0;
         const barWidth = camera.screenSize.width - barGap * 2.0;
         let top = camera.screenSize.height - barGap - barHeight;
         let width = Math.round(barWidth * shieldRatio * 0.5);
-        //ctx.shadowBlur = 0;
+        //ctx.shadowBlur =  0.0;
         ctx.fillStyle = Colour.BlueDark.toRGB();
         ctx.fillRect(barGap, top, barWidth, barHeight);
-        //ctx.shadowBlur = 8;
-        //ctx.shadowColor = 'rgba(64, 64, 255, 0.75)';
+        //ctx.shadowBlur =  8.0;
+        //ctx.shadowColor = 'rgba(64,  64.0,  255.0, 0.75)';
         if (ship.shield.rapidRechargeEffectTime > 0.0) {
             ctx.fillStyle = Colour.BlueLight.toRGB();
         } else {
@@ -200,11 +200,11 @@ export class Game {
 
         top = top - barGap - barHeight;
         width = Math.round(barWidth * hullRatio * 0.5);
-        //ctx.shadowBlur = 0;
+        //ctx.shadowBlur =  0.0;
         ctx.fillStyle = Colour.GreenDark.toRGB();
         ctx.fillRect(barGap, top, barWidth, barHeight);
-        //ctx.shadowColor = 'rgba(64, 255, 64, 0.75)';
-        //ctx.shadowBlur = 8;
+        //ctx.shadowColor = 'rgba(64,  255.0,  64.0, 0.75)';
+        //ctx.shadowBlur =  8.0;
         if (ship.protectionTime > 0.0) {
             ctx.fillStyle = Colour.GreenLight.toRGB();
         } else {
@@ -221,9 +221,9 @@ export class Game {
     render(deltaTime) {
 
         const currentTime = performance.now();
-        if (currentTime - this.lastFpsUpdate >= 1000) {
+        if (currentTime - this.lastFpsUpdate >= 1000.0) {
             this.fps = Math.round(this.frameCount * 1000 / (currentTime - this.lastFpsUpdate));
-            this.frameCount = 0;
+            this.frameCount = 0.0;
             this.lastFpsUpdate = currentTime;
         }
         this.frameCount++;
@@ -232,7 +232,7 @@ export class Game {
         const ctx = camera.foregroundCtx;
 
         ctx.save();
-        ctx.clearRect(0, 0, camera.screenSize.width, camera.screenSize.height);
+        ctx.clearRect(0.0, 0.0, camera.screenSize.width, camera.screenSize.height);
 
         const cameraTarget = this.manager.cameraTarget;
         if (!cameraTarget || cameraTarget.despawned) {
@@ -245,16 +245,16 @@ export class Game {
             return;
         }
         if (starSystem.asteroidBelt) starSystem.asteroidBelt.draw(ctx, this.mainCamera);
-        for (let i = 0; i < starSystem.stars.length; i++) {
+        for (let i = 0.0; i < starSystem.stars.length; i++) {
             starSystem.stars[i].draw(ctx, camera);
         }
-        for (let i = 0; i < starSystem.planets.length; i++) {
+        for (let i = 0.0; i < starSystem.planets.length; i++) {
             starSystem.planets[i].draw(ctx, camera);
         }
-        for (let i = 0; i < starSystem.jumpGates.length; i++) {
+        for (let i = 0.0; i < starSystem.jumpGates.length; i++) {
             starSystem.jumpGates[i].draw(ctx, camera);
         }
-        for (let i = 0; i < starSystem.ships.length; i++) {
+        for (let i = 0.0; i < starSystem.ships.length; i++) {
             starSystem.ships[i].draw(ctx, camera);
         }
         starSystem.projectileManager.draw(ctx, camera);
@@ -266,8 +266,8 @@ export class Game {
         ctx.fillStyle = Colour.White.toRGB();
         ctx.strokeStyle = Colour.Black.toRGB();
         ctx.textAlign = 'left';
-        ctx.strokeText(`FPS: ${this.fps}`, 20, 20);
-        ctx.fillText(`FPS: ${this.fps}`, 20, 20);
+        ctx.strokeText(`FPS: ${this.fps}`, 20.0, 20.0);
+        ctx.fillText(`FPS: ${this.fps}`, 20.0, 20.0);
         // 144 FPS = 0.00694 s
         // 120 FPS = 0.00833 s
         // 72 FPS =  0.01389 s
@@ -275,7 +275,7 @@ export class Game {
         // 36 FPS =  0.02778 s
         // 30 FPS =  0.03333 s
         const maxFrameTime = 0.03333;
-        const barWidth = Math.min(deltaTime / maxFrameTime, 1) * 150;
+        const barWidth = Math.min(deltaTime / maxFrameTime, 1.0) * 150.0;
         ctx.fillStyle =
             deltaTime > 0.03333 ? Colour.RedDark.toRGB() :
                 deltaTime > 0.02778 ? Colour.Red.toRGB() :
@@ -283,16 +283,16 @@ export class Game {
                         deltaTime > 0.01389 ? Colour.Yellow.toRGB() :
                             deltaTime > 0.00833 ? Colour.Orange.toRGB() :
                                 Colour.Green.toRGB();
-        ctx.fillRect(10, 25, barWidth, 10);
+        ctx.fillRect(10, 25.0, barWidth, 10.0);
         ctx.restore();
 
-        if (this.manager.zoomTextTimer > 0) {
+        if (this.manager.zoomTextTimer > 0.0) {
             ctx.save();
             ctx.fillStyle = Colour.White.toRGB();
             ctx.textAlign = 'right';
-            const zoomPercent = Math.round(camera.zoom * 100);
-            ctx.strokeText(`${zoomPercent}%`, camera.screenSize.width - 20, 20);
-            ctx.fillText(`${zoomPercent}%`, camera.screenSize.width - 20, 20);
+            const zoomPercent = Math.round(camera.zoom * 100.0);
+            ctx.strokeText(`${zoomPercent}%`, camera.screenSize.width - 20.0, 20.0);
+            ctx.fillText(`${zoomPercent}%`, camera.screenSize.width - 20.0, 20.0);
             ctx.restore();
         }
 
@@ -347,20 +347,20 @@ export class Game {
             parent.style.outlineColor = Colour.Neutral.toRGB();
         }
 
-        ctx.clearRect(0, 0, camera.screenSize.width, camera.screenSize.height);
+        ctx.clearRect(0.0, 0.0, camera.screenSize.width, camera.screenSize.height);
 
         const starSystem = target.starSystem;
         if (starSystem.asteroidBelt) starSystem.asteroidBelt.draw(ctx, this.targetCamera);
-        for (let i = 0; i < starSystem.stars.length; i++) {
+        for (let i = 0.0; i < starSystem.stars.length; i++) {
             starSystem.stars[i].draw(ctx, camera);
         }
-        for (let i = 0; i < starSystem.planets.length; i++) {
+        for (let i = 0.0; i < starSystem.planets.length; i++) {
             starSystem.planets[i].draw(ctx, camera);
         }
-        for (let i = 0; i < starSystem.jumpGates.length; i++) {
+        for (let i = 0.0; i < starSystem.jumpGates.length; i++) {
             starSystem.jumpGates[i].draw(ctx, camera);
         }
-        for (let i = 0; i < starSystem.ships.length; i++) {
+        for (let i = 0.0; i < starSystem.ships.length; i++) {
             starSystem.ships[i].draw(ctx, camera);
         }
         starSystem.projectileManager.draw(ctx, camera);
@@ -369,8 +369,8 @@ export class Game {
         ctx.fillStyle = Colour.White.toRGB();
         ctx.strokeStyle = Colour.Black.toRGB();
         ctx.textAlign = "center";
-        ctx.strokeText(targetName, camera.screenCenter.width, 20);
-        ctx.fillText(targetName, camera.screenCenter.width, 20);
+        ctx.strokeText(targetName, camera.screenCenter.width, 20.0);
+        ctx.fillText(targetName, camera.screenCenter.width, 20.0);
 
         if (target && target instanceof Ship && !target.despawned && (target.state === 'Flying' || target.state === 'Disabled')) {
             this.drawShipStats(ctx, camera, target);
@@ -420,11 +420,11 @@ export class GameManager {
         this.playerPilot = new PlayerPilot(this.playerShip);
         this.cameraTarget = this.playerShip;
         /** @type {StarField} The starfield for rendering background stars. */
-        this.starField = new StarField(20, 1000, 5);
+        this.starField = new StarField(20, 1000.0, 5.0);
         /** @type {HeadsUpDisplay} The HUD for displaying game information. */
         this.hud = new HeadsUpDisplay(this, window.innerWidth, window.innerHeight);
         /** @type {number} Timer for controlling zoom text display duration. */
-        this.zoomTextTimer = 0;
+        this.zoomTextTimer = 0.0;
         /** @type {number} Timestamp of the last AI ship spawn. */
         this.lastSpawnTime = performance.now();
         /** @type {number} Interval between AI ship spawns, randomized for variety. */
@@ -434,7 +434,7 @@ export class GameManager {
 
         // Temporary scratch values to avoid allocations
         /** @type {Vector2D} Scratch vector for calculating spawn positions in spawnAiShips. */
-        this._scratchSpawnPos = new Vector2D(0, 0);
+        this._scratchSpawnPos = new Vector2D(0.0, 0.0);
 
         // Initialize escort ship with AI pilot and matching colors
         const escort01 = new Interceptor(spawnPlanet.position.x - spawnPlanet.radius * 1.0, spawnPlanet.position.y, this.galaxy[0], this.playerShip.faction);
@@ -474,9 +474,9 @@ export class GameManager {
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
      */
     updateGalaxy(deltaTime) {
-        for (let galaxyIndex = 0, galaxyLength = this.galaxy.length; galaxyIndex < galaxyLength; ++galaxyIndex) {
+        for (let galaxyIndex = 0.0, galaxyLength = this.galaxy.length; galaxyIndex < galaxyLength; ++galaxyIndex) {
             const starSystem = this.galaxy[galaxyIndex];
-            for (let shipIndex = 0, shipLength = starSystem.ships.length; shipIndex < shipLength; ++shipIndex) {
+            for (let shipIndex = 0.0, shipLength = starSystem.ships.length; shipIndex < shipLength; ++shipIndex) {
                 const ship = starSystem.ships[shipIndex];
                 if (!ship) {
                     continue;
@@ -522,20 +522,20 @@ export class GameManager {
      * @param {number} currentTime - Current time in milliseconds.
      */
     spawnAiShipsIfNeeded(currentTime) {
-        if (currentTime != 0 && (currentTime - this.lastSpawnTime < this.spawnInterval)) return;
+        if (currentTime != 0.0 && (currentTime - this.lastSpawnTime < this.spawnInterval)) return;
 
         this.galaxy.forEach(system => {
             let systemShipsLength = system.ships.length;
-            let aiCount = 0;
-            let civilianCount = 0;
-            let pirateCount = 0;
-            let officerCount = 0;
+            let aiCount = 0.0;
+            let civilianCount = 0.0;
+            let pirateCount = 0.0;
+            let officerCount = 0.0;
 
             const civilianFaction = this.factionManager.getFaction('Civilian');
             const pirateFaction = this.factionManager.getFaction('Pirate');
             const officerFaction = this.factionManager.getFaction('Officer');
 
-            for (let i = 0; i < systemShipsLength; i++) {
+            for (let i = 0.0; i < systemShipsLength; i++) {
                 const ship = system.ships[i];
                 if (ship.pilot instanceof AiPilot) {
                     aiCount++;
@@ -552,7 +552,7 @@ export class GameManager {
             //Despawn landed ships if there are too many in the system
             if (aiCount > system.maxAiShips) {
                 let excessCount = aiCount - system.maxAiShips;
-                for (let i = 0; i < systemShipsLength && excessCount > 0; i++) {
+                for (let i = 0.0; i < systemShipsLength && excessCount > 0.0; i++) {
                     const ship = system.ships[i];
                     if (ship.pilot instanceof AiPilot && ship.state === 'Landed' && ship.landedObject instanceof Planet) {
                         let despawn = false;
@@ -563,7 +563,7 @@ export class GameManager {
                             pirateCount--;
                             despawn = true;
                         } else if (ship.faction === officerFaction) {
-                            if (officerCount > 1) {
+                            if (officerCount > 1.0) {
                                 officerCount--;
                                 despawn = true;
                             }
@@ -587,7 +587,7 @@ export class GameManager {
                         console.warn('spawnAiShipsIfNeeded: No spawnPlanet found!');
                         return;
                     }
-                    if (officerCount < 4) {
+                    if (officerCount < 4.0) {
                         //spawn officer
                         //aiShip = createRandomFastShip(spawnPlanet.position.x, spawnPlanet.position.y, system, officerFaction);
                         aiShip = new Fighter(spawnPlanet.position.x, spawnPlanet.position.y, system, officerFaction);
@@ -610,21 +610,21 @@ export class GameManager {
                         } else {
                             aiShip.pilot = new CivilianAiPilot(aiShip, new WandererJob(aiShip));
                         }
-                        //aiShip.colors.wings.set(0, 1, 0, 1);
+                        //aiShip.colors.wings.set(0.0,  1.0,  0.0,  1.0);
                         civilianCount++;
                     }
                     aiShip.trail.color = aiShip.colors.wings.toRGBA(0.5);
                     aiShip.setState('Landed');
-                    aiShip.shipScale = 0;
-                    aiShip.velocity.set(0, 0);
+                    aiShip.shipScale = 0.0;
+                    aiShip.velocity.set(0.0, 0.0);
                     aiShip.landedObject = spawnPlanet;
                     spawnPlanet.addLandedShip(aiShip);
                     system.addGameObject(aiShip);
 
                     //spawn escorts
                     if (aiShip instanceof Freighter || aiShip instanceof StarBarge) {
-                        const escortCount = Math.round(Math.random() * (aiShip instanceof Freighter ? 4 : 2));
-                        for (let i = 0; i < escortCount; i++) {
+                        const escortCount = Math.round(Math.random() * (aiShip instanceof Freighter ? 4 : 2.0));
+                        for (let i = 0.0; i < escortCount; i++) {
                             const escort = new Fighter(spawnPlanet.position.x, spawnPlanet.position.y, system, aiShip.faction);
                             const pilot = new OfficerAiPilot(escort, new EscortJob(escort, aiShip));
                             escort.setPilot(pilot);
@@ -633,8 +633,8 @@ export class GameManager {
                             escort.colors.hull = aiShip.colors.hull;
                             escort.trail.color = aiShip.trail.color;
                             escort.setState('Landed');
-                            escort.shipScale = 0;
-                            escort.velocity.set(0, 0);
+                            escort.shipScale = 0.0;
+                            escort.velocity.set(0.0, 0.0);
                             escort.landedObject = spawnPlanet;
                             spawnPlanet.addLandedShip(escort);
                             system.addGameObject(escort);
@@ -661,7 +661,7 @@ export class GameManager {
      * @returns {number} A random interval in milliseconds between 2000 and 10000.
      */
     randomSpawnInterval() {
-        return 2000 + Math.random() * 8000;
+        return 2000 + Math.random() * 8000.0;
     }
 
     /**
@@ -679,9 +679,9 @@ export class GameManager {
             this.cameraTarget.debug = false;
         }
         const ships = this.mainCamera.starSystem.ships;
-        if (ships.length === 0) return;
+        if (ships.length === 0.0) return;
         const currentIndex = ships.indexOf(this.cameraTarget);
-        const nextIndex = (currentIndex + 1) % ships.length;
+        const nextIndex = (currentIndex + 1.0) % ships.length;
         this.cameraTarget = ships[nextIndex];
         this.cameraTarget.debug = this.debug;
     }
@@ -699,7 +699,7 @@ export class GameManager {
         });
 
         parent.addEventListener('drag', (e) => {
-            if (e.clientX > 0 && e.clientY > 0) {
+            if (e.clientX > 0.0 && e.clientY > 0.0) {
                 parent.style.left = `${e.clientX - offsetX}px`;
                 parent.style.top = `${e.clientY - offsetY}px`;
             }
@@ -740,12 +740,12 @@ export class GameManager {
 
             if (e.key === '=' || e.key === '+') {
                 this.mainCamera.setZoom(this.mainCamera.zoom + 0.1);
-                this.zoomTextTimer = 120;
+                this.zoomTextTimer = 120.0;
             }
 
             if (e.key === '-' || e.key === '_') {
                 this.mainCamera.setZoom(this.mainCamera.zoom - 0.1);
-                this.zoomTextTimer = 120;
+                this.zoomTextTimer = 120.0;
             }
 
         });
@@ -754,8 +754,8 @@ export class GameManager {
 
         window.addEventListener('wheel', (e) => {
             const zoomStep = 0.1;
-            this.mainCamera.setZoom(this.mainCamera.zoom + (e.deltaY < 0 ? zoomStep : -zoomStep));
-            this.zoomTextTimer = 120;
+            this.mainCamera.setZoom(this.mainCamera.zoom + (e.deltaY < 0.0 ? zoomStep : -zoomStep));
+            this.zoomTextTimer = 120.0;
         });
 
         // Handle resizing via corner handles
@@ -773,8 +773,8 @@ export class GameManager {
                 const rect = parent.getBoundingClientRect();
                 startWidth = rect.width;
                 startHeight = rect.height;
-                startRight = window.innerWidth - (rect.right - 2); // Account for 2px border
-                startTop = rect.top - 2;
+                startRight = window.innerWidth - (rect.right - 2.0); // Account for 2px border
+                startTop = rect.top - 2.0;
             });
         });
 
@@ -782,8 +782,8 @@ export class GameManager {
         document.addEventListener('mousemove', (e) => {
             if (!isResizing) return;
 
-            const minWidth = 100; // Match CSS min-width
-            const minHeight = 100; // Match CSS min-height
+            const minWidth = 100.0; // Match CSS min-width
+            const minHeight = 100.0; // Match CSS min-height
             let newWidth, newHeight, newRight, newTop;
 
             // Calculate mouse movement (positive deltaX when dragging left)

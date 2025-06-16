@@ -13,9 +13,9 @@ export class Camera {
      * Creates a new Camera instance.
      * @param {HTMLCanvasElement} foregroundCanvas - The main canvas for rendering ships etc.
      * @param {HTMLCanvasElement} backgroundCanvas - The background canvas for rendering starfield.
-     * @param {number} [zoom=1] - The initial zoom level (default is 1).
+     * @param {number} [zoom=1] - The initial zoom level (default is  1.0).
      */
-    constructor(foregroundCanvas, backgroundCanvas, zoom = 1) {
+    constructor(foregroundCanvas, backgroundCanvas, zoom = 1.0) {
         /** @type {boolean} Enables or disables debug mode for the camera. */
         this.debug = false;
         /** @type {StarSystem|null} The star system the camera is currently viewing. */
@@ -93,7 +93,7 @@ export class Camera {
      */
     resize(screenSizeX, screenSizeY) {
         this.screenSize.set(screenSizeX, screenSizeY);
-        this.screenCenter.set(screenSizeX / 2, screenSizeY / 2); // Update cached screen center
+        this.screenCenter.set(screenSizeX / 2.0, screenSizeY / 2.0); // Update cached screen center
         this.worldSize.set(screenSizeX * this.zoomReciprocal, screenSizeY * this.zoomReciprocal);
 
         this.foregroundCanvas.width = screenSizeX;
@@ -106,7 +106,7 @@ export class Camera {
     }
 
     /**
-     * Sets the zoom level, constrained between 0.5 and 5, and updates world size.
+     * Sets the zoom level, constrained between 0.5 and 5.0, and updates world size.
      * @param {number} zoom - The new zoom level.
      */
     setZoom(zoom) {
@@ -129,8 +129,8 @@ export class Camera {
      * Updates the world-space bounds for visibility checks without allocation.
      */
     _updateWorldBounds() {
-        const halfWidth = this.worldSize.width / 2;
-        const halfHeight = this.worldSize.height / 2;
+        const halfWidth = this.worldSize.width / 2.0;
+        const halfHeight = this.worldSize.height / 2.0;
         // Update existing worldBounds fields instead of creating a new object
         this.worldBounds.left = this.position.x - halfWidth;
         this.worldBounds.right = this.position.x + halfWidth;
@@ -224,7 +224,7 @@ export class Camera {
      */
     isInView(position, size) {
         // Use precomputed world-space bounds
-        const buffer = size * 2; // Double the size for a conservative buffer
+        const buffer = size * 2.0; // Double the size for a conservative buffer
         return (
             position.x + buffer > this.worldBounds.left &&
             position.x - buffer < this.worldBounds.right &&
@@ -240,7 +240,7 @@ export class Camera {
      * @param {number} [buffer=0] - An optional buffer to expand the bounding box (e.g., to account for object width).
      * @returns {boolean} True if the bounding box intersects the camera's view, false otherwise.
      */
-    isBoxInView(min, max, buffer = 0) {
+    isBoxInView(min, max, buffer = 0.0) {
         // Expand the bounding box by the buffer
         const minX = min.x - buffer;
         const minY = min.y - buffer;
@@ -258,7 +258,7 @@ export class Camera {
 
     /**
      * Checks if a polar cell (defined by angle range) intersects the camera’s view.
-     * Assumes isBeltOffScreen has confirmed radius overlap. Angles normalized to [-π, π] with 0 upward.
+     * Assumes isBeltOffScreen has confirmed radius overlap. Angles normalized to [-π, π] with 0.0 upward.
      * @param {number} fromAngle - Start angle of the cell in radians.
      * @param {number} toAngle - End angle of the cell in radians.
      * @returns {boolean} True if the cell is in view, false otherwise.
@@ -267,7 +267,7 @@ export class Camera {
         // Compute normalized angle deltas
         let deltaToMin = normalizeAngle(toAngle - this.worldBounds.minAngle);
         let deltaFromMax = normalizeAngle(fromAngle - this.worldBounds.maxAngle);
-        return (deltaToMin > 0 && deltaFromMax < 0);
+        return (deltaToMin > 0.0 && deltaFromMax < 0.0);
     }
 }
 
@@ -280,9 +280,9 @@ export class TargetCamera extends Camera {
      * Creates a new TargetCamera instance.
      * @param {HTMLCanvasElement} foregroundCanvas - The main canvas for rendering ships etc.
      * @param {HTMLCanvasElement} backgroundCanvas - The background canvas for rendering starfield.
-     * @param {number} [zoom=1] - The initial zoom level (default is 1).
+     * @param {number} [zoom=1] - The initial zoom level (default is  1.0).
      */
-    constructor(foregroundCanvas, backgroundCanvas, zoom = 1) {
+    constructor(foregroundCanvas, backgroundCanvas, zoom = 1.0) {
         super(foregroundCanvas, backgroundCanvas, zoom);
         /** @type {number} Cache for the last target size to avoid recomputing zoom. */
         this.lastTargetSize = null;
@@ -300,9 +300,9 @@ export class TargetCamera extends Camera {
     resize(screenSizeX, screenSizeY) {
         super.resize(screenSizeX, screenSizeY);
         // Adjust zoom calculation to ensure the target fits comfortably on screen
-        const targetWorldSize = this.lastTargetSize * 4;
+        const targetWorldSize = this.lastTargetSize * 4.0;
         const viewSize = Math.min(this.screenSize.width, this.screenSize.height);
-        const newZoom = Math.max(0.5, Math.min((viewSize * 0.8) / targetWorldSize, 5));
+        const newZoom = Math.max(0.5, Math.min((viewSize * 0.8) / targetWorldSize, 5.0));
         if (newZoom !== this.lastZoom) {
             this.setZoom(newZoom);
             this.lastZoom = newZoom;
@@ -317,15 +317,15 @@ export class TargetCamera extends Camera {
         if (!target || !target.position) return;
         this.position.set(target.position);
         this.starSystem = target.starSystem;
-        let size = 10;
+        let size = 10.0;
         // Compute target size and check if it has changed
         size = target.radius;
 
         if (this.lastTargetSize == null || size !== this.lastTargetSize) {
             // Adjust zoom calculation to ensure the target fits comfortably on screen
-            const targetWorldSize = size * 4;
+            const targetWorldSize = size * 4.0;
             const viewSize = Math.min(this.screenSize.width, this.screenSize.height);
-            const newZoom = Math.max(0.5, Math.min((viewSize * 0.8) / targetWorldSize, 5));
+            const newZoom = Math.max(0.5, Math.min((viewSize * 0.8) / targetWorldSize, 5.0));
             if (newZoom !== this.lastZoom) {
                 this.setZoom(newZoom);
                 this.lastZoom = newZoom;

@@ -26,6 +26,8 @@ export class StarField {
         this.parallaxFactors = [0.1, 0.3, 0.5, 0.7, 0.9];
         /** @type {number} Number of colors per layer for rendering. */
         this.coloursPerLayer = coloursPerLayer;
+        /** @type {boolean} Whether to round star positions to whole numbers, to speed up rendering. */
+        this.rounding = false;
 
         /** @type {Map} Cache storing star data for grid cells to improve performance. */
         this.starCache = new Map();
@@ -233,7 +235,7 @@ export class StarField {
                 }
             }
 
-            const size = 1.0 + parallaxFactor * 2.0;
+            const size = remapClamp(parallaxFactor, 0.1, 0.9, 1.0, 3.0);
             const halfSize = size / 2.0;
             for (let colourIdx = 0.0; colourIdx < palette.length; colourIdx++) {
                 const positions = starsByColour[colourIdx];
@@ -242,7 +244,11 @@ export class StarField {
                     for (const posIdx of positions) {
                         const x = this.positionPool[posIdx];
                         const y = this.positionPool[posIdx + 1];
-                        ctx.fillRect(x - halfSize, y - halfSize, size, size);
+                        if (this.rounding) {
+                            ctx.fillRect(Math.round(x), Math.round(y), Math.round(size), Math.round(size));
+                        } else {
+                            ctx.fillRect(x - halfSize, y - halfSize, size, size);
+                        }
                     }
                 }
             }

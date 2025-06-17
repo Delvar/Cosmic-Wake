@@ -20,9 +20,12 @@ export class OfficerJob extends Job {
      * Creates a new OfficerJob instance.
      * @param {Ship} ship - The ship to control.
      * @param {AiPilot} [pilot=null] - The pilot controlling the ship (optional).
+     * @param {boolean} [attackDisabledShips=true] - Whether to stop if the ship is disabled.
      */
-    constructor(ship, pilot = null) {
+    constructor(ship, pilot = null, attackDisabledShips = true) {
         super(ship, pilot);
+        /** @type {boolean} Whether to attack a ship that is disabled. */
+        this.attackDisabledShips = attackDisabledShips;
         /** @type {string} The current job state ('Starting', 'Hunting', 'Waiting', 'Landing', 'Failed'). */
         this.state = 'Starting';
         /** @type {Object.<string, Function>} Map of state names to handler methods. */
@@ -94,7 +97,7 @@ export class OfficerJob extends Job {
             this.nextTargetScan = this.ship.age + this.targetScanInterval;
 
             // Prioritize hostiles
-            let target = this.ship.hostiles.find(s => this.ship.getRelationship(s) === FactionRelationship.Hostile && isValidAttackTarget(this.ship, s));
+            let target = this.ship.hostiles.find(s => this.ship.getRelationship(s) === FactionRelationship.Hostile && isValidAttackTarget(this.ship, s, this.attackDisabledShips));
 
             // Fallback to random hostile ship
             if (!target) {
@@ -103,7 +106,7 @@ export class OfficerJob extends Job {
 
             if (target) {
                 this.ship.target = target;
-                this.pilot.changeState('Attack', new AttackAutopilot(this.ship, target));
+                this.pilot.changeState('Attack', new AttackAutopilot(this.ship, target, true));
                 if (this.ship.debug) {
                     console.log(`${this.constructor.name}: Found target ${target.name}, initiating Attack`);
                 }
@@ -162,7 +165,7 @@ export class OfficerJob extends Job {
         const target = this.ship.starSystem.getRandomShip(this.ship, null, OfficerJob.isValidHostileTarget);
         if (target) {
             this.ship.target = target;
-            this.pilot.changeState('Attack', new AttackAutopilot(this.ship, target));
+            this.pilot.changeState('Attack', new AttackAutopilot(this.ship, target, true));
             this.ship.initiateTakeoff();
             if (this.ship.debug) {
                 console.log(`${this.constructor.name}: Found target ${target.name}, initiating takeoff and Attack`);
@@ -175,10 +178,11 @@ export class OfficerJob extends Job {
      * @static
      * @param {Ship} source - The source ship.
      * @param {Ship} target - The target ship.
+     * @param {boolean} [includeDisabled=false] - Whether to include disabled ships as valid targets.
      * @returns {boolean} True if the target is valid, false otherwise.
      */
-    static isValidHostileTarget(source, target) {
-        if (!isValidAttackTarget(source, target)) return false;
+    static isValidHostileTarget(source, target, includeDisabled = false) {
+        if (!isValidAttackTarget(source, target, includeDisabled)) return false;
         if (source.getRelationship(target) === FactionRelationship.Hostile) return true;
         // Check allied ships' hostiles (e.g., Player attacking Civilian)
         if (target instanceof Ship && target.hostiles.some(s => source.getRelationship(s) === FactionRelationship.Allied)) return true;

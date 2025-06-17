@@ -148,19 +148,23 @@ export class StarField {
     draw(ctx, camera, fadeout) {
         ctx.save();
 
-        //ctx.fillStyle = 'rgba(0.0,  0.0,  0.0, 0.25)'
         ctx.fillStyle = `rgb(0.0,  0.0,  0.0, ${fadeout})`
         ctx.fillRect(0.0, 0.0, camera.screenSize.width, camera.screenSize.height);
 
-        const zoomThreshold = 1.0 - remapClamp(camera.zoom, 0.5, 1.0, 0.5, 1.0);
+        if (fadeout < 0.25) {
+            ctx.globalCompositeOperation = 'screen';
+        }
+
         this._scratchScreenSize.set(camera.screenSize.width, camera.screenSize.height);
         this._scratchHalfScreenSize.set(this._scratchScreenSize).multiplyInPlace(0.5);
 
         this.positionIndex = 0.0;
 
-        for (let layer = 0.0; layer < this.layers; layer++) {
+        const layerFrom = Math.round(remapClamp(camera.zoom, 0.5, 1.0, this.layers - 3.0, 0.0));
+        const layerTo = Math.max(layerFrom, (fadeout < 0.27 ? 3.0 : this.layers));
+
+        for (let layer = layerFrom; layer < layerTo; layer++) {
             const parallaxFactor = this.parallaxFactors[layer];
-            if (zoomThreshold > parallaxFactor) continue;
 
             const starsByColour = this.starsByColourScratch;
             for (let i = 0.0; i < this.coloursPerLayer; i++) {

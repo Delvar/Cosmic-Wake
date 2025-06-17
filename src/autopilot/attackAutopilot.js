@@ -9,18 +9,22 @@ import { GameManager } from '/src/core/game.js';
 
 /**
  * Coordinates attack behavior, selecting a pattern-specific sub-autopilot based on ship velocity.
- * @extends Autopilot
+ * @extends {Autopilot<Ship>}
  */
 export class AttackAutopilot extends Autopilot {
     /**
      * Creates a new AttackAutopilot instance.
      * @param {Ship} ship - The ship to control.
      * @param {Ship} target - The target to attack.
+     * @param {boolean} [stopOnDisabled=true] - Whether to stop if the ship is disabled.
+     * @throws {Error} If ship or target is not a valid Ship instance.
      */
-    constructor(ship, target) {
+    constructor(ship, target, stopOnDisabled = true) {
         super(ship, target);
         /** @type {Ship} The Ship to target. */
         this.target = target;
+        /** @type {boolean} Whether to stop autopilot if the ship is disabled. */
+        this.stopOnDisabled = stopOnDisabled;
         /** @type {string} Attack pattern: "orbit", "flyby", or "inrange". */
         this.pattern = null;
         /** @type {string} Current state: "Approaching" or "Attacking". */
@@ -65,7 +69,7 @@ export class AttackAutopilot extends Autopilot {
      * Starts the autopilot, initializing the approach sub-autopilot.
      */
     start() {
-        if (!isValidAttackTarget(this.ship, this.target)) {
+        if (!isValidAttackTarget(this.ship, this.target, !this.stopOnDisabled)) {
             this.error = "Invalid or unreachable target";
             this.stop();
             return;
@@ -96,7 +100,7 @@ export class AttackAutopilot extends Autopilot {
      */
     update(deltaTime, gameManager) {
         if (!this.active) return;
-        if (!isValidAttackTarget(this.ship, this.target)) {
+        if (!isValidAttackTarget(this.ship, this.target, !this.stopOnDisabled)) {
             this.completed = true;
             this.stop();
             return;
@@ -140,11 +144,11 @@ export class AttackAutopilot extends Autopilot {
         this.pattern = this.determinePattern(this.ship.maxVelocity);
         // Initialize pattern-specific sub-autopilot
         if (this.pattern === "inrange") {
-            this.subAutopilot = new InRangeAttackAutopilot(this.ship, this.target);
+            this.subAutopilot = new InRangeAttackAutopilot(this.ship, this.target, this.stopOnDisabled);
         } else if (this.pattern === "orbit") {
-            this.subAutopilot = new OrbitAttackAutopilot(this.ship, this.target);
+            this.subAutopilot = new OrbitAttackAutopilot(this.ship, this.target, this.stopOnDisabled);
         } else {
-            this.subAutopilot = new FlybyAttackAutopilot(this.ship, this.target);
+            this.subAutopilot = new FlybyAttackAutopilot(this.ship, this.target, this.stopOnDisabled);
         }
         this.subAutopilot.start();
         if (this.ship.debug) {
@@ -220,11 +224,15 @@ export class OrbitAttackAutopilot extends Autopilot {
      * Creates a new OrbitAttackAutopilot instance.
      * @param {Ship} ship - The ship to control.
      * @param {Ship} target - The target to orbit and attack.
+     * @param {boolean} [stopOnDisabled=true] - Whether to stop if the ship is disabled.
+     * @throws {Error} If ship or target is not a valid Ship instance.
      */
-    constructor(ship, target) {
+    constructor(ship, target, stopOnDisabled = true) {
         super(ship, target);
         /** @type {Ship} The Ship to target. */
         this.target = target;
+        /** @type {boolean} Whether to stop autopilot if the ship is disabled. */
+        this.stopOnDisabled = stopOnDisabled;
         /** @type {number} Desired orbital radius around the target. */
         this.orbitRadius = randomBetween(250.0, 500.0);
         /** @type {number} Minimum allowed orbital radius. */
@@ -268,7 +276,7 @@ export class OrbitAttackAutopilot extends Autopilot {
      * Starts the autopilot, initializing the Approaching state.
      */
     start() {
-        if (!isValidAttackTarget(this.ship, this.target)) return;
+        if (!isValidAttackTarget(this.ship, this.target, !this.stopOnDisabled)) return;
         this.active = true;
         this.completed = false;
         this.error = null;
@@ -285,7 +293,7 @@ export class OrbitAttackAutopilot extends Autopilot {
      */
     update(deltaTime, gameManager) {
         if (!this.active) return;
-        if (!this.target || !isValidAttackTarget(this.ship, this.target) || (this.target instanceof Ship && this.target.state !== 'Flying' && this.target.state !== 'Disabled')) {
+        if (!this.target || !isValidAttackTarget(this.ship, this.target, !this.stopOnDisabled)) {
             this.completed = true;
             this.stop();
             return;
@@ -422,11 +430,15 @@ export class FlybyAttackAutopilot extends Autopilot {
      * Creates a new FlybyAttackAutopilot instance.
      * @param {Ship} ship - The ship to control.
      * @param {Ship} target - The target to attack.
+     * @param {boolean} [stopOnDisabled=true] - Whether to stop if the ship is disabled.
+     * @throws {Error} If ship or target is not a valid Ship instance.
      */
-    constructor(ship, target) {
+    constructor(ship, target, stopOnDisabled = true) {
         super(ship, target);
         /** @type {Ship} The Ship to target. */
         this.target = target;
+        /** @type {boolean} Whether to stop autopilot if the ship is disabled. */
+        this.stopOnDisabled = stopOnDisabled;
         /** @type {number} Speed for flyby passes. */
         this.passSpeed = this.ship.maxVelocity * 0.5;
         /** @type {number} Minimum distance to avoid collision. */
@@ -472,7 +484,7 @@ export class FlybyAttackAutopilot extends Autopilot {
      * Starts the autopilot, initializing the Approaching state.
      */
     start() {
-        if (!isValidAttackTarget(this.ship, this.target)) return;
+        if (!isValidAttackTarget(this.ship, this.target, !this.stopOnDisabled)) return;
         this.active = true;
         this.completed = false;
         this.error = null;
@@ -490,7 +502,7 @@ export class FlybyAttackAutopilot extends Autopilot {
      */
     update(deltaTime, gameManager) {
         if (!this.active) return;
-        if (!this.target || !isValidAttackTarget(this.ship, this.target) || (this.target instanceof Ship && this.target.state !== 'Flying' && this.target.state !== 'Disabled')) {
+        if (!this.target || !isValidAttackTarget(this.ship, this.target, !this.stopOnDisabled)) {
             this.completed = true;
             this.stop();
             return;
@@ -698,11 +710,15 @@ export class InRangeAttackAutopilot extends Autopilot {
      * Creates a new InRangeAttackAutopilot instance.
      * @param {Ship} ship - The ship to control.
      * @param {Ship} target - The target to attack.
+     * @param {boolean} [stopOnDisabled=true] - Whether to stop if the ship is disabled.
+     * @throws {Error} If ship or target is not a valid Ship instance.
      */
-    constructor(ship, target) {
+    constructor(ship, target, stopOnDisabled = true) {
         super(ship, target);
         /** @type {Ship} The Ship to target. */
         this.target = target;
+        /** @type {boolean} Whether to stop autopilot if the ship is disabled. */
+        this.stopOnDisabled = stopOnDisabled;
         /** @type {number} Minimum distance to avoid collision. */
         this.minRange = 100.0;
         /** @type {number} Maximum distance to loop back for another pass. */
@@ -733,7 +749,7 @@ export class InRangeAttackAutopilot extends Autopilot {
      * Starts the autopilot, validating the target.
      */
     start() {
-        if (!this.target || !isValidAttackTarget(this.ship, this.target) || this.target.starSystem !== this.ship.starSystem) {
+        if (!this.target || !isValidAttackTarget(this.ship, this.target, !this.stopOnDisabled) || this.target.starSystem !== this.ship.starSystem) {
             this.error = "Invalid or unreachable target";
             this.active = false;
             return;
@@ -752,7 +768,7 @@ export class InRangeAttackAutopilot extends Autopilot {
      */
     update(deltaTime) {
         if (!this.active) return;
-        if (!this.target || !isValidAttackTarget(this.ship, this.target) || (this.target instanceof Ship && this.target.state !== 'Flying' && this.target.state !== 'Disabled')) {
+        if (!this.target || !isValidAttackTarget(this.ship, this.target, !this.stopOnDisabled)) {
             this.completed = true;
             this.stop();
             return;

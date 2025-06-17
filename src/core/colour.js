@@ -171,4 +171,5 @@ export class Colour {
     static Allied = Colour.Yellow;
     static Neutral = Colour.Orange;
     static Hostile = Colour.Red;
+    static Disabled = Colour.Grey;
 }

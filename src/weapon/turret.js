@@ -71,7 +71,7 @@ export class Turret {
         }
         let targetAngle = 0.0;
 
-        if (this.target && isValidAttackTarget(ship, this.target)) {
+        if (this.target && isValidAttackTarget(ship, this.target, false)) {
             // Compute world-space turret position
             const cosShipAngle = Math.cos(ship.angle);
             const sinShipAngle = Math.sin(ship.angle);
@@ -153,7 +153,7 @@ export class Turret {
         let minRotationTime = Infinity;
 
         for (const hostile of ship.hostiles) {
-            if (!isValidAttackTarget(ship, hostile)) continue;
+            if (!isValidAttackTarget(ship, hostile, false)) continue;
 
             // Compute angle to hostile
             this._scratchDirectionToTarget.set(hostile.position).subtractInPlace(this._scratchTurretWorldPosition);

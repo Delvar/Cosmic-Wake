@@ -587,18 +587,18 @@ export class GameManager {
                         console.warn('spawnAiShipsIfNeeded: No spawnPlanet found!');
                         return;
                     }
-                    if (officerCount < 4.0) {
+                    if (officerCount < 0.0) {
                         //spawn officer
                         //aiShip = createRandomFastShip(spawnPlanet.position.x, spawnPlanet.position.y, system, officerFaction);
                         aiShip = new Fighter(spawnPlanet.position.x, spawnPlanet.position.y, system, officerFaction);
-                        aiShip.pilot = new OfficerAiPilot(aiShip, new OfficerJob(aiShip));
+                        aiShip.pilot = new OfficerAiPilot(aiShip, new OfficerJob(aiShip, null, false));
                         aiShip.colors.wings = Colour.BlueDark;
                         aiShip.colors.hull = Colour.WhiteLight;
                         officerCount++;
-                    } else if (pirateCount < 5 && Math.random() < 0.25) {
+                    } else if (pirateCount < 5.0 /* && Math.random() < 0.25 */) {
                         //spawn pirate
                         aiShip = createRandomFastShip(spawnPlanet.position.x, spawnPlanet.position.y, system, pirateFaction);
-                        aiShip.pilot = new PirateAiPilot(aiShip, new PirateJob(aiShip));
+                        aiShip.pilot = new PirateAiPilot(aiShip, new PirateJob(aiShip, null, true));
                         aiShip.colors.wings = Colour.RedDark;
                         aiShip.colors.hull = Colour.GreyDark;
                         pirateCount++;

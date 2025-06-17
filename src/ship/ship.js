@@ -60,13 +60,14 @@ function generateShipName() {
  * Checks if a target is still valid (not despawned and exists in the galaxy).
  * @param {Ship} source - The source game object to validate.
  * @param {Ship} target - The target game object to validate.
+ * @param {boolean} [includeDisabled=false] - Whether to include disabled ships as valid targets.
  * @returns {boolean} True if the target is valid, false otherwise.
  */
-export function isValidAttackTarget(source, target) {
+export function isValidAttackTarget(source, target, includeDisabled = false) {
     if (!(source instanceof Ship)) return false;
     if (!(target instanceof Ship)) return false;
     if (!isValidTarget(source, target)) return false;
-    if (target.state !== 'Flying' && target.state !== 'Disabled') return false;
+    if (target.state !== 'Flying' && (!includeDisabled || target.state !== 'Disabled')) return false;
     if (source.getRelationship(target) === FactionRelationship.Allied) return false;
     return true;
 }
@@ -389,9 +390,15 @@ export class Ship extends GameObject {
             return;
         }
 
-        if (newState === 'Disabled' && this.lightMode !== 'Flicker') {
+        if (newState === 'Disabled') {
+            if (this.debug) {
+                console.log(`new state: ${newState}, light mode: Flicker, original light mode: ${this.lightMode}`);
+            }
             this.lightMode = 'Flicker';
         } else if (this.lightMode !== 'Normal') {
+            if (this.debug) {
+                console.log(`new state: ${newState}, light mode: Normal, original light mode: ${this.lightMode}`);
+            }
             this.lightMode = 'Normal';
         }
 
@@ -592,7 +599,7 @@ export class Ship extends GameObject {
      * @param {Ship} source - Ship causing damage.
      */
     takeDamage(damage, hitPosition, source) {
-        if (source instanceof Ship && isValidAttackTarget(this, source)) {
+        if (source instanceof Ship && isValidAttackTarget(this, source, false)) {
             this.lastAttacker = source;
             // Add to hostiles if Hostile or deliberately targeted (ensured by projectile logic)
             const relationship = this.getRelationship(source);
@@ -644,12 +651,12 @@ export class Ship extends GameObject {
 
         // Remove despawned ships from hostiles without allocations
         for (let i = this.hostiles.length - 1.0; i >= 0.0; i--) {
-            if (!isValidAttackTarget(this, this.hostiles[i])) {
+            if (!isValidAttackTarget(this, this.hostiles[i], false)) {
                 removeAtIndexInPlace(i, this.hostiles);
             }
         }
 
-        if (!isValidAttackTarget(this, this.lastAttacker)) {
+        if (!isValidAttackTarget(this, this.lastAttacker, false)) {
             if (this.hostiles.length > 0.0) {
                 this.lastAttacker = this.hostiles[0];
             } else {

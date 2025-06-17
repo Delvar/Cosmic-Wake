@@ -78,7 +78,7 @@ export class PlayerPilot extends Pilot {
      * @returns {boolean} True if the target is hostile and valid, false otherwise.
      */
     static isValidHostileTarget(source, target) {
-        return target.state === 'Flying' && isValidAttackTarget(source, target) &&
+        return isValidAttackTarget(source, target, true) &&
             (source.getRelationship(target) === FactionRelationship.Hostile || source.hostiles.includes(target));
     }
 
@@ -90,7 +90,7 @@ export class PlayerPilot extends Pilot {
      * @returns {boolean} True if the target is neutral and valid, false otherwise.
      */
     static isValidNeutralTarget(source, target) {
-        return target.state === 'Flying' && isValidTarget(source, target) && source.getRelationship(target) === FactionRelationship.Neutral;
+        return (target.state === 'Flying' || target.state === 'Disabled') && isValidTarget(source, target) && source.getRelationship(target) === FactionRelationship.Neutral;
     }
 
     /**
@@ -101,7 +101,18 @@ export class PlayerPilot extends Pilot {
      * @returns {boolean} True if the target is allied and valid, false otherwise.
      */
     static isValidAlliedTarget(source, target) {
-        return target.state === 'Flying' && isValidTarget(source, target) && source.getRelationship(target) === FactionRelationship.Allied;
+        return (target.state === 'Flying' || target.state === 'Disabled') && isValidTarget(source, target) && source.getRelationship(target) === FactionRelationship.Allied;
+    }
+
+    /**
+     * Validates if a ship is Disabled.
+     * @static
+     * @param {Ship} source - The source ship.
+     * @param {Ship} target - The target ship.
+     * @returns {boolean} True if the target ship is Disabled and valid, false otherwise.
+     */
+    static isValidDisabledTarget(source, target) {
+        return target.state === 'Disabled' && isValidTarget(source, target);
     }
 
     /**
@@ -476,6 +487,117 @@ export class PlayerPilot extends Pilot {
     }
 
     /**
+     * Handles boarding ship selection for 'b'/'B' key press.
+     * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @param {GameManager} gameManager - The game manager with keys and lastKeys properties.
+     */
+    handleBoardingShipSelection(deltaTime, gameManager) {
+        if (this.ship.state === 'Landed') {
+            this.ship.initiateTakeoff();
+            if (this.ship.debug) {
+                console.log(`PlayerPilot: Initiating takeoff`);
+            }
+            return;
+        }
+        if (this.ship.state !== 'Flying') return;
+
+        // Check if current target is allied
+        if (this.ship.target instanceof Ship && PlayerPilot.isValidDisabledTarget(this.ship, this.ship.target)) {
+            const currentShip = this.ship.target;
+            const nextShip = this.ship.starSystem.cycleClosestShip(this.ship, currentShip, null, PlayerPilot.isValidDisabledTarget);
+            if (nextShip) {
+                this.ship.setTarget(nextShip);
+                if (this.ship.debug) {
+                    console.log(`PlayerPilot: Cycled to disabled ship ${nextShip.name}`);
+                }
+            } else {
+                this.ship.setTarget(null);
+                if (this.ship.debug) {
+                    console.log(`PlayerPilot: No valid next disabled ship`);
+                }
+            }
+            return;
+        }
+
+        // Select closest disabled ship
+        const closestShip = this.ship.starSystem.getClosestShip(this.ship, null, PlayerPilot.isValidDisabledTarget);
+        if (closestShip) {
+            this.ship.setTarget(closestShip);
+            if (this.ship.debug) {
+                console.log(`PlayerPilot: Selected closest disabled ship ${closestShip.name}`);
+            }
+        } else if (this.ship.debug) {
+            console.log(`PlayerPilot: No valid disabled ships in system`);
+        }
+
+        // // Check if over an asteroid
+        // const asteroids = this.ship.starSystem.asteroids;
+        // let overAsteroid = null;
+        // for (const asteroid of asteroids) {
+        //     const canLand = this.ship.canLand(asteroid);
+        //     if (this.ship.debug) {
+        //         console.log(`Checking asteroid ${asteroid.name}: canLand=${canLand}`);
+        //     }
+        //     if (isValidTarget(this.ship, asteroid) && canLand) {
+        //         overAsteroid = asteroid;
+        //         break;
+        //     }
+        // }
+        // if (overAsteroid) {
+        //     this.ship.setTarget(overAsteroid);
+        //     this.ship.initiateLanding(overAsteroid);
+        //     if (this.ship.debug) {
+        //         console.log(`PlayerPilot: Landing on asteroid ${overAsteroid.name}`);
+        //     }
+        //     return;
+        // }
+
+        // // Check for active LandOnAsteroidAutopilot
+        // if (this.autopilot instanceof LandOnAsteroidAutopilot && this.autopilot.active) {
+        //     const currentAsteroid = this.autopilot.target;
+        //     const nextAsteroid = this.ship.starSystem.cycleClosestAsteroid(this.ship, currentAsteroid);
+        //     if (nextAsteroid) {
+        //         this.ship.setTarget(nextAsteroid);
+        //         this.autopilot = new LandOnAsteroidAutopilot(this.ship, nextAsteroid);
+        //         this.autopilot.start();
+        //         if (this.ship.debug) {
+        //             console.log(`PlayerPilot: Cycled to asteroid ${nextAsteroid.name}`);
+        //         }
+        //     } else {
+        //         this.autopilot.stop();
+        //         this.autopilot = null;
+        //         if (this.ship.debug) {
+        //             console.log(`PlayerPilot: No valid next asteroid`);
+        //         }
+        //     }
+        //     return;
+        // }
+
+        // // Check for targeted asteroid
+        // if (this.ship.target instanceof Asteroid && isValidTarget(this.ship, this.ship.target)) {
+        //     this.autopilot = new LandOnAsteroidAutopilot(this.ship, this.ship.target);
+        //     this.autopilot.start();
+        //     if (this.ship.debug) {
+        //         console.log(`PlayerPilot: Autopiloting to targeted asteroid ${this.ship.target.name}`);
+        //     }
+        //     return;
+        // }
+
+        // // Select closest asteroid
+        // const closestAsteroid = this.ship.starSystem.getClosestAsteroid(this.ship);
+        // if (closestAsteroid) {
+        //     this.ship.setTarget(closestAsteroid);
+        //     this.autopilot = new LandOnAsteroidAutopilot(this.ship, closestAsteroid);
+        //     this.autopilot.start();
+        //     if (this.ship.debug) {
+        //         console.log(`PlayerPilot: Autopiloting to closest asteroid ${closestAsteroid.name}`);
+        //     }
+        // } else if (this.ship.debug) {
+        //     console.log(`PlayerPilot: No valid asteroids in system`);
+        // }
+    }
+
+    /**
      * Updates the player's ship based on keyboard input and autopilot state.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
      * @param {GameManager} gameManager - The game manager with keys and lastKeys properties.
@@ -532,6 +654,11 @@ export class PlayerPilot extends Pilot {
             console.log(`Turret mode changed to: ${this.ship.turretMode}`);
         }
 
+        // Boarding ship selection ('b' or 'B' key)
+        if (pressed('b') || pressed('B')) {
+            this.handleBoardingShipSelection(deltaTime, gameManager);
+        }
+
         // Update autopilot if active
         if (this.autopilot?.active) {
             this.autopilot.update(deltaTime, gameManager);
@@ -559,40 +686,14 @@ export class PlayerPilot extends Pilot {
             this.ship.fire();
         }
 
-        // // Interact with target ('l' key)
-        // if (pressed('l') && this.ship.state === 'Flying' && this.ship.target) {
-        //     if (this.ship.target instanceof JumpGate) {
-        //         if (this.ship.target.overlapsPoint(this.ship.position)) {
-        //             this.ship.initiateHyperjump(this.ship.target);
-        //         } else {
-        //             this.autopilot = new TraverseJumpGateAutopilot(this.ship, this.ship.target);
-        //             this.autopilot.start();
-        //         }
-        //     } else if (this.ship.target instanceof CelestialBody) {
-        //         if (this.ship.canLand(this.ship.target)) {
-        //             this.ship.initiateLanding(this.ship.target);
-        //         } else {
-        //             this.autopilot = new LandOnPlanetAutopilot(this.ship, this.ship.target);
-        //             this.autopilot.start();
-        //         }
-        //     } else if (this.ship.target instanceof Asteroid) {
-        //         if (this.ship.canLand(this.ship.target)) {
-        //             this.ship.initiateLanding(this.ship.target);
-        //         } else {
-        //             this.autopilot = new LandOnAsteroidAutopilot(this.ship, this.ship.target);
-        //             this.autopilot.start();
-        //         }
-        //     }
-        // }
-
         // // Escort a targeted ship ('f' key)
         if (pressed('f') && this.ship.state === 'Flying' && this.ship.target instanceof Ship) {
             this.autopilot = new EscortAutopilot(this.ship, this.ship.target, this.ship.target.radius * 1.5, 500.0);
             this.autopilot.start();
         }
 
-        if (pressed('a') && this.ship.state === 'Flying' && this.ship.target instanceof GameObject) {
-            this.autopilot = new AttackAutopilot(this.ship, this.ship.target);
+        if (pressed('a') && this.ship.state === 'Flying' && this.ship.target instanceof Ship) {
+            this.autopilot = new AttackAutopilot(this.ship, this.ship.target, this.ship.target.state !== 'Disabled');
             this.autopilot.start();
         }
 

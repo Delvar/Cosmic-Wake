@@ -9,17 +9,18 @@ import { GameManager } from '/src/core/game.js';
 
 /**
  * Base class for autopilot behaviors controlling ship navigation.
+ * @template {GameObject} TargetType - The type of the target object, extending GameObject.
  */
 export class Autopilot {
     /**
      * Creates a new Autopilot instance.
      * @param {Ship} ship - The ship to control.
-     * @param {GameObject} [target=null] - The target object (e.g., planet, jump gate).
+     * @param {TargetType|null} [target=null] - The target object (e.g., planet, jump gate).
      */
     constructor(ship, target = null) {
         /** @type {Ship} The ship controlled by this autopilot. */
         this.ship = ship;
-        /** @type {GameObject|null} The target object (e.g., planet, jump gate). */
+        /** @type {TargetType|null} The target object (e.g., planet, jump gate). */
         this.target = target;
         /** @type {boolean} Whether the autopilot is active. */
         this.active = false;

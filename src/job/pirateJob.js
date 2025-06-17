@@ -16,9 +16,12 @@ export class PirateJob extends Job {
      * Creates a new PirateJob instance.
      * @param {Ship} ship - The ship to control.
      * @param {AiPilot} [pilot=null] - The pilot controlling the ship (optional).
+     * @param {boolean} [attackDisabledShips=false] - Whether to attack ships that are disabled.
      */
-    constructor(ship, pilot = null) {
+    constructor(ship, pilot = null, attackDisabledShips = false) {
         super(ship, pilot);
+        /** @type {boolean} Whether to attack a ship that is disabled. */
+        this.attackDisabledShips = attackDisabledShips;
         /** @type {string} The current job state ('Starting', 'Hunting', 'Failed'). */
         this.state = 'Starting';
         /** @type {Object.<string, Function>} Map of state names to handler methods. */
@@ -86,7 +89,7 @@ export class PirateJob extends Job {
             this.nextTargetScan = this.ship.age + this.targetScanInterval;
 
             // Prioritize hostiles
-            let target = this.ship.hostiles.find(s => this.ship.getRelationship(s) === FactionRelationship.Hostile && isValidAttackTarget(this.ship, s));
+            let target = this.ship.hostiles.find(s => this.ship.getRelationship(s) === FactionRelationship.Hostile && isValidAttackTarget(this.ship, s, this.attackDisabledShips));
 
             // Fallback to random non-pirate ship
             if (!target) {
@@ -95,7 +98,7 @@ export class PirateJob extends Job {
 
             if (target) {
                 this.ship.target = target;
-                this.pilot.changeState('Attack', new AttackAutopilot(this.ship, target));
+                this.pilot.changeState('Attack', new AttackAutopilot(this.ship, target, !this.attackDisabledShips));
                 if (this.ship.debug) {
                     console.log(`${this.constructor.name}: Found target ${target.name}, initiating Attack`);
                 }
@@ -113,7 +116,7 @@ export class PirateJob extends Job {
      * @returns {boolean} True if the target is valid, false otherwise.
      */
     static isValidPirateTarget(source, target) {
-        if (!isValidAttackTarget(source, target)) return false;
+        if (!isValidAttackTarget(source, target, true)) return false;
         if (target instanceof Ship && target.pilot instanceof PirateAiPilot) return false;
         if (target instanceof Ship && source.getRelationship(target) === FactionRelationship.Allied) return false;
         return true;

@@ -235,7 +235,7 @@ export class StarField {
                 }
             }
 
-            const size = remapClamp(parallaxFactor, 0.1, 0.9, 1.0, 3.0);
+            const size = remapClamp(layer, 0.0, this.layers - 1.0, 1.0, 3.0);
             const halfSize = size / 2.0;
             for (let colourIdx = 0.0; colourIdx < palette.length; colourIdx++) {
                 const positions = starsByColour[colourIdx];

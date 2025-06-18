@@ -13,9 +13,10 @@ export class Camera {
      * Creates a new Camera instance.
      * @param {HTMLCanvasElement} foregroundCanvas - The main canvas for rendering ships etc.
      * @param {HTMLCanvasElement} backgroundCanvas - The background canvas for rendering starfield.
+     * @param {HTMLCanvasElement} [hudCanvas=null] - The canvas for rendering the HUD (optional).
      * @param {number} [zoom=1] - The initial zoom level (default is  1.0).
      */
-    constructor(foregroundCanvas, backgroundCanvas, zoom = 1.0) {
+    constructor(foregroundCanvas, backgroundCanvas, hudCanvas = null, zoom = 1.0) {
         /** @type {boolean} Enables or disables debug mode for the camera. */
         this.debug = false;
         /** @type {StarSystem|null} The star system the camera is currently viewing. */
@@ -32,6 +33,11 @@ export class Camera {
         this.backgroundCanvas = backgroundCanvas;
         /** @type {CanvasRenderingContext2D} The 2D rendering context for the main canvas. */
         this.backgroundCtx = this.backgroundCanvas.getContext('2d', { alpha: false });
+
+        /** @type {HTMLCanvasElement} The canvas for rendering the HUD. */
+        this.hudCanvas = hudCanvas;
+        /** @type {CanvasRenderingContext2D} The 2D rendering context for the HUD canvas. */
+        this.hudCtx = this.hudCanvas ? this.hudCanvas.getContext('2d') : null;
 
         /** @type {Vector2D} The size of the screen in pixels. */
         this.screenSize = new Vector2D(0.0, 0.0);
@@ -101,6 +107,12 @@ export class Camera {
         this.backgroundCanvas.width = screenSizeX;
         this.backgroundCanvas.height = screenSizeY;
         this.foregroundCtx.font = 'bolder 16px "Century Gothic Paneuropean", "Century Gothic", "CenturyGothic", "AppleGothic", sans-serif';
+
+        if (this.hudCanvas) {
+            this.hudCanvas.width = screenSizeX;
+            this.hudCanvas.height = screenSizeY;
+            this.hudCtx.font = 'bolder 16px "Century Gothic Paneuropean", "Century Gothic", "CenturyGothic", "AppleGothic", sans-serif';
+        }
 
         this._updateWorldBounds(); // Update world-space bounds
     }
@@ -280,10 +292,11 @@ export class TargetCamera extends Camera {
      * Creates a new TargetCamera instance.
      * @param {HTMLCanvasElement} foregroundCanvas - The main canvas for rendering ships etc.
      * @param {HTMLCanvasElement} backgroundCanvas - The background canvas for rendering starfield.
+     * @param {HTMLCanvasElement} hudCanvas - The canvas for rendering the HUD.
      * @param {number} [zoom=1] - The initial zoom level (default is  1.0).
      */
-    constructor(foregroundCanvas, backgroundCanvas, zoom = 1.0) {
-        super(foregroundCanvas, backgroundCanvas, zoom);
+    constructor(foregroundCanvas, backgroundCanvas, hudCanvas, zoom = 1.0) {
+        super(foregroundCanvas, backgroundCanvas, hudCanvas, zoom);
         /** @type {number} Cache for the last target size to avoid recomputing zoom. */
         this.lastTargetSize = null;
         /** @type {number} Cache for the last zoom level to detect changes. */

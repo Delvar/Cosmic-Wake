@@ -5,17 +5,18 @@ import { Trail } from '/src/ship/trail.js';
 import { Colour } from '/src/core/colour.js';
 import { GameObject, isValidTarget } from '/src/core/gameObject.js';
 import { CelestialBody, JumpGate } from '/src/starSystem/celestialBody.js';
-import { TWO_PI, clamp, remapClamp, normalizeAngle, randomBetween, removeAtIndexInPlace, removeObjectFromArrayInPlace } from '/src/core/utils.js';
+import { TWO_PI, clamp, remapClamp, normalizeAngle, randomBetween, removeAtIndexInPlace, removeObjectFromArrayInPlace, lerp } from '/src/core/utils.js';
 import { Asteroid } from '/src/starSystem/asteroidBelt.js';
 import { Shield } from '/src/ship/shield.js';
 import { Turret } from '/src/weapon/turret.js';
 import { FixedWeapon } from '/src/weapon/fixedWeapon.js';
-import { AiPilot } from '/src/pilot/aiPilot.js';
+import { AiPilot, OfficerAiPilot } from '/src/pilot/aiPilot.js';
 import { Pilot, PlayerPilot } from '/src/pilot/pilot.js';
 import { StarSystem } from '/src/starSystem/starSystem.js';
 import { Camera } from '/src/camera/camera.js';
-import { FlyToTargetAutopilot } from '/src/autopilot/autopilot.js';
+import { EscortAutopilot, FlyToTargetAutopilot } from '/src/autopilot/autopilot.js';
 import { Faction, FactionRelationship } from '/src/core/faction.js';
+import { EscortJob } from '/src/job/escortJob.js';
 
 //Colours used for the lights
 const colourRed = new Colour(1.0, 0.0, 0.0);
@@ -131,8 +132,10 @@ export class Ship extends GameObject {
         this.target = null;
         /** @type {Ship|null} the last Ship to cause damage. */
         this.lastAttacker = null;
-        /** @type {CelestialBody|Asteroid|null} Object the ship is landed on. */
+        /** @type {CelestialBody|Asteroid|Ship|null} Object the ship is landed on. */
         this.landedObject = null;
+        /** @type {JumpGate|null} Jump gate used for hyperjumping. */
+        this.jumpGate = null;
         /** @type {string} Current state (e.g., 'Flying', 'Landing', 'Landed'). */
         this.state = 'Flying';
         /** @type {Object} Map of state names to update handler functions. */
@@ -156,20 +159,12 @@ export class Ship extends GameObject {
         this.animationLandingDuration = 2.0;
         /** @type {number} Duration of animations (jump in, jump out) in seconds. */
         this.animationJumpingDuration = 4.0;
-        /** @type {Vector2D} Starting position for landing animation. */
-        this.landingStartPosition = new Vector2D(0.0, 0.0);
-        /** @type {Vector2D} Ending position for takeoff animation. */
-        this.takeoffEndPosition = new Vector2D(0.0, 0.0);
-        /** @type {number|null} Starting angle for takeoff animation. */
+        /** @type {number|null} Starting angle animations. */
         this.startAngle = null;
-        /** @type {JumpGate|null} Jump gate used for hyperjumping. */
-        this.jumpGate = null;
-        /** @type {Vector2D} Starting position for jump out animation. */
-        this.jumpStartPosition = new Vector2D(0.0, 0.0);
-        /** @type {Vector2D} Ending position for jump in animation. */
-        //this.jumpEndPosition = new Vector2D(0.0,  0.0);
-        /** @type {number|null} Starting angle for jump animations. */
-        this.jumpStartAngle = null;
+        /** @type {Vector2D} Starting position animations. */
+        this.startPosition = new Vector2D(0.0, 0.0);
+        /** @type {Vector2D} Ending position animations. */
+        this.endPosition = new Vector2D(0.0, 0.0);
         /** @type {number} Age of the ship in seconds, used for animations. */
         this.age = 0.0;
         /** @type {number} Thrust animation timer (0 to  1.0). */
@@ -481,7 +476,7 @@ export class Ship extends GameObject {
         if (this.canLand(target)) {
             this.setState('Landing');
             this.landedObject = target;
-            this.landingStartPosition.set(this.position);
+            this.startPosition.set(this.position);
             // Set velocity based on target type
             if (target instanceof CelestialBody) {
                 this.velocity.set(0.0, 0.0); // Stop for planets
@@ -517,7 +512,7 @@ export class Ship extends GameObject {
 
         // Calculate takeoff end position
         this._scratchTakeoffOffset.set(this._scratchTemp).multiplyInPlace(this.landedObject.radius * 1.5);
-        this.takeoffEndPosition.set(this.landedObject.position).addInPlace(this._scratchTakeoffOffset);
+        this.endPosition.set(this.landedObject.position).addInPlace(this._scratchTakeoffOffset);
         this.startAngle = this.angle;
 
         // Remove ship from planet's landed list if applicable
@@ -546,7 +541,7 @@ export class Ship extends GameObject {
 
         this.setState('JumpingOut');
         this.jumpGate = gate;
-        this.jumpStartPosition.set(this.position);
+        this.startPosition.set(this.position);
         this.lastJumpTime = this.age;
         this.isThrusting = false;
         this.isBraking = false;
@@ -592,6 +587,36 @@ export class Ship extends GameObject {
         this.turretMode = modes[nextIndex];
     }
 
+    /**
+     * Determines if this ship can board the target ship.
+     * @param {Ship} targetShip
+     * @returns {boolean}
+     */
+    canBoard(targetShip) {
+        if (!targetShip || !(targetShip instanceof Ship)) return false;
+        if (targetShip.state !== 'Disabled') return false;
+        if (targetShip.position.distanceTo(this.position) > targetShip.radius) return false;
+        return true;
+    }
+
+    /**
+     * Initiates landing on a target, setting up animation and state.
+     * @param {Ship} target - The target to land on.
+     * @returns {boolean} True if landing is initiated, false otherwise.
+     */
+    initiateBoarding(target) {
+        if (this.canBoard(target)) {
+            this.setState('Landing');
+            this.landedObject = target;
+            this.startPosition.set(this.position);
+            this.startAngle = this.angle;
+            this.velocity.set(target.velocity);
+            this.isThrusting = false;
+            this.isBraking = false;
+            return true;
+        }
+        return false;
+    }
     /**
      * Applies damage to the ship, processing through shields and hull.
      * @param {number} damage - Amount of damage to apply.
@@ -768,7 +793,7 @@ export class Ship extends GameObject {
         const t = Math.min(this.animationTime / this.animationLandingDuration, 1.0);
 
         // Interpolate position from start to target
-        this.position.lerpInPlace(this.landingStartPosition, this.landedObject.position, t);
+        this.position.lerpInPlace(this.startPosition, this.landedObject.position, t);
 
         // Adjust scale and behavior based on target type
         if (this.landedObject instanceof CelestialBody) {
@@ -776,11 +801,15 @@ export class Ship extends GameObject {
         } else if (this.landedObject instanceof Asteroid) {
             this.shipScale = 1.0 - (t * 0.2); // Shrink to 0.8 for asteroids
             // Update landing start position with asteroid's velocity
-            this.landingStartPosition.addInPlace(this._scratchTemp.set(this.landedObject.velocity).multiplyInPlace(deltaTime));
+            this.startPosition.addInPlace(this._scratchTemp.set(this.landedObject.velocity).multiplyInPlace(deltaTime));
             // Rotate with asteroid's spin
             const currentAngularVelocity = t * this.landedObject.spinSpeed;
             this.angle += currentAngularVelocity * deltaTime;
             this.angle = normalizeAngle(this.angle);
+        } else if (this.landedObject instanceof Ship) {
+            // Update landing start position with ship's velocity
+            this.startPosition.addInPlace(this._scratchTemp.set(this.landedObject.velocity).multiplyInPlace(deltaTime));
+            this.angle = normalizeAngle(lerp(this.startAngle, this.landedObject.angle, t));
         }
 
         // Complete landing when animation finishes
@@ -796,6 +825,12 @@ export class Ship extends GameObject {
                 this.shield.strength = this.shield.maxStrength;
             } else if (this.landedObject instanceof Asteroid) {
                 this.shipScale = 0.8;
+            } else if (this.landedObject instanceof Ship) {
+                // Update landing start position with ship's velocity
+                this.startPosition.addInPlace(this._scratchTemp.set(this.landedObject.velocity).multiplyInPlace(deltaTime));
+                this.velocity.set(this.landedObject.velocity);
+                this.position.set(this.landedObject.position);
+                this.angle = this.landedObject.angle;
             }
         }
     }
@@ -808,11 +843,23 @@ export class Ship extends GameObject {
         if (this.landedObject instanceof Asteroid) {
             // Stay attached to asteroid, matching position, velocity, and rotation
             this.position.set(this.landedObject.position);
-            this.velocity.set(this.landedObject.velocity || new Vector2D(0.0, 0.0));
+            this.velocity.set(this.landedObject.velocity);
             this.angle += this.landedObject.spinSpeed * deltaTime;
             this.angle = normalizeAngle(this.angle);
+        } else if (this.landedObject instanceof Ship) {
+            const ship = this.landedObject;
+            this.velocity.set(ship.velocity);
+            this.position.set(ship.position);
+            this.angle = ship.angle;
+            this.initiateTakeoff();
+            ship.faction = this.faction;
+            ship.hullIntegrity = ship.disabledThreshold + 1.0;
+            ship.shield.isActive = true;
+            ship.pilot = new OfficerAiPilot(ship, new EscortJob(ship, this));
+            ship.state = 'Flying';
+            ship.hostiles.length = 0; // Clear hostiles on takeoff
+            ship.lastAttacker = null; // Reset last attacker
         }
-        // Note: For planets, position is updated via landedObject.addLandedShip
     }
 
     /**
@@ -823,7 +870,7 @@ export class Ship extends GameObject {
         this.animationTime += deltaTime;
         const t = Math.min(this.animationTime / this.animationLandingDuration, 1.0);
         // Interpolate position and angle
-        this.position.lerpInPlace(this.landedObject.position, this.takeoffEndPosition, t);
+        this.position.lerpInPlace(this.landedObject.position, this.endPosition, t);
         this.angle = this.startAngle + (this.targetAngle - this.startAngle) * t;
 
         // Adjust scale based on target type
@@ -832,7 +879,9 @@ export class Ship extends GameObject {
         } else if (this.landedObject instanceof Asteroid) {
             this.shipScale = 0.8 + (t * 0.2); // Grow from 0.8 to 1 for asteroids
             // Update takeoff end position with asteroid's velocity
-            this.takeoffEndPosition.addInPlace(this._scratchTemp.set(this.landedObject.velocity).multiplyInPlace(deltaTime));
+            this.endPosition.addInPlace(this._scratchTemp.set(this.landedObject.velocity).multiplyInPlace(deltaTime));
+        } else if (this.landedObject instanceof Ship) {
+            this.setState('Flying');
         }
 
         // Complete takeoff when animation finishes
@@ -841,7 +890,7 @@ export class Ship extends GameObject {
             this.setTargetAngle(this.angle);
             this.shipScale = 1.0;
             // Calculate takeoff velocity
-            this._scratchVelocityDelta.set(this.takeoffEndPosition)
+            this._scratchVelocityDelta.set(this.endPosition)
                 .subtractInPlace(this.landedObject.position)
                 .divideInPlace(this.animationLandingDuration);
             this.velocity.set(this.landedObject.velocity || new Vector2D(0.0, 0.0))
@@ -864,11 +913,11 @@ export class Ship extends GameObject {
             const landTime = remapClamp(t, 0.0, landRatio, 0.0, 1.0);
             // First half: Shrink and move to gate
             this.shipScale = remapClamp(landTime, 0.0, 1.0, 1.0, 0.25);
-            this.position.lerpInPlace(this.jumpStartPosition, this.jumpGate.position, landTime);
+            this.position.lerpInPlace(this.startPosition, this.jumpGate.position, landTime);
             this._scratchRadialOut.set(this.jumpGate.position).normalizeInPlace();
             const desiredAngle = Math.atan2(this._scratchRadialOut.x, -this._scratchRadialOut.y);
-            const startAngle = this.jumpStartAngle || this.angle;
-            if (!this.jumpStartAngle) this.jumpStartAngle = this.angle;
+            const startAngle = this.startAngle || this.angle;
+            if (!this.startAngle) this.startAngle = this.angle;
             const angleDiff = normalizeAngle(desiredAngle - startAngle);
             this.angle = startAngle + angleDiff * landTime;
             this.targetAngle = this.angle;
@@ -920,8 +969,8 @@ export class Ship extends GameObject {
             this.shipScale = this.shipScale = remapClamp(takeOffTime, 0.0, 1.0, 0.25, 1.0);
             this.stretchFactor = 1.0;
             this.velocity.set(0.0, 0.0);
-            this.jumpStartPosition.set(this._scratchRadialOut).multiplyInPlace(this.jumpGate.radius * -1.0).addInPlace(this.jumpGate.position);
-            this.position.lerpInPlace(this.jumpGate.position, this.jumpStartPosition, takeOffTime);
+            this.startPosition.set(this._scratchRadialOut).multiplyInPlace(this.jumpGate.radius * -1.0).addInPlace(this.jumpGate.position);
+            this.position.lerpInPlace(this.jumpGate.position, this.startPosition, takeOffTime);
         }
 
         // Transition to Flying when animation completes
@@ -931,7 +980,7 @@ export class Ship extends GameObject {
             this.shipScale = 1.0;
             this.stretchFactor = 1.0;
             this.jumpGate = null;
-            this.jumpStartAngle = null;
+            this.startAngle = null;
         }
     }
 

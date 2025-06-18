@@ -7,8 +7,8 @@
         @import url("https://fonts.cdnfonts.com/css/century-gothic-paneuropean");
 
         body {
-            margin:  0.0;
-            padding:  0.0;
+            margin: 0.0;
+            padding: 0.0;
             /* Ensure no default padding */
             font-family: "Century Gothic Paneuropean", "Century Gothic", "CenturyGothic", "AppleGothic", sans-serif;
             overflow: hidden;
@@ -18,10 +18,10 @@
         /* Main camera: Full-screen */
         #mainCamera {
             position: absolute;
-            margin:  0.0;
-            padding:  0.0;
-            top:  0.0;
-            left:  0.0;
+            margin: 0.0;
+            padding: 0.0;
+            top: 0.0;
+            left: 0.0;
             width: 100vw;
             height: 100vh;
             background-color: black;
@@ -30,39 +30,46 @@
         /* Target camera: Positioned, draggable */
         #targetCamera {
             position: absolute;
-            margin:  0.0;
-            padding:  0.0;
+            margin: 0.0;
+            padding: 0.0;
             outline: 2px solid white;
             border-radius: 20px;
             overflow: hidden;
             min-width: 100px;
             min-height: 100px;
-            z-index:  3.0;
+            z-index: 4;
             background-color: black;
+            border: 1px black solid;
         }
 
         /* Canvases: Fill div, stack with z-index */
         canvas {
             position: absolute;
-            top:  0.0;
-            left:  0.0;
+            top: 0.0;
+            left: 0.0;
             width: 100%;
             height: 100%;
-            margin:  0.0;
-            padding:  0.0;
+            margin: 0.0;
+            padding: 0.0;
             display: block;
         }
 
         /* Background canvases */
         #mainCameraBackground,
         #targetCameraBackground {
-            z-index:  1.0;
+            z-index: 1;
         }
 
         /* Foreground canvases */
         #mainCameraForeground,
         #targetCameraForeground {
-            z-index:  2.0;
+            z-index: 2;
+        }
+
+        #mainCameraHud,
+        #targetCameraHud {
+            z-index: 3;
+            mix-blend-mode: lighten;
         }
 
         /* Optional: Draggable div (instead of canvas) */
@@ -75,7 +82,7 @@
             position: absolute;
             width: 20px;
             height: 20px;
-            z-index:  4.0;
+            z-index: 5;
         }
 
         .resize-handle.top-left {
@@ -108,10 +115,13 @@
     <div id="mainCamera">
         <canvas id="mainCameraBackground"></canvas>
         <canvas id="mainCameraForeground"></canvas>
+        <canvas id="mainCameraHud"></canvas>
     </div>
-    <div id="targetCamera" style="width: 200px; height: 200px; top: 40px; right: 10px; display: block;" draggable="true">
+    <div id="targetCamera" style="width: 200px; height: 200px; top: 40px; right: 10px; display: block;"
+        draggable="true">
         <canvas id="targetCameraBackground"></canvas>
         <canvas id="targetCameraForeground"></canvas>
+        <canvas id="targetCameraHud"></canvas>
         <span class="resize-handle top-left"></span>
         <span class="resize-handle top-right"></span>
         <span class="resize-handle bottom-left"></span>

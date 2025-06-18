@@ -192,7 +192,10 @@ export class Game {
         //ctx.shadowBlur =  8.0;
         //ctx.shadowColor = 'rgba(64,  64.0,  255.0, 0.75)';
         if (ship.shield.rapidRechargeEffectTime > 0.0) {
-            ctx.fillStyle = Colour.BlueLight.toRGB();
+            const now = Date.now();
+            ctx.fillStyle = (Math.floor(now / 100) % 2 === 0)
+                ? Colour.BlueLight.toRGB()
+                : Colour.Blue.toRGB();
         } else {
             ctx.fillStyle = Colour.Blue.toRGB();
         }
@@ -206,7 +209,10 @@ export class Game {
         //ctx.shadowColor = 'rgba(64,  255.0,  64.0, 0.75)';
         //ctx.shadowBlur =  8.0;
         if (ship.protectionTime > 0.0) {
-            ctx.fillStyle = Colour.GreenLight.toRGB();
+            const now = Date.now();
+            ctx.fillStyle = (Math.floor(now / 100) % 2 === 0)
+                ? Colour.GreenLight.toRGB()
+                : Colour.Green.toRGB();
         } else {
             ctx.fillStyle = Colour.Green.toRGB();
         }
@@ -259,8 +265,6 @@ export class Game {
         }
         starSystem.projectileManager.draw(ctx, camera);
         starSystem.particleManager.draw(ctx, camera);
-        this.hud.draw(ctx, camera);
-        this.renderTargetView();
 
         ctx.save();
         ctx.fillStyle = Colour.White.toRGB();
@@ -296,9 +300,11 @@ export class Game {
             ctx.restore();
         }
 
+        this.hud.draw(camera.hudCtx, camera);
         if (cameraTarget && cameraTarget instanceof Ship && !cameraTarget.despawned && (cameraTarget.state === 'Flying' || cameraTarget.state === 'Disabled')) {
-            this.drawShipStats(ctx, camera, cameraTarget);
+            this.drawShipStats(camera.hudCtx, camera, cameraTarget);
         }
+        this.renderTargetView();
 
         ctx.restore();
     }
@@ -373,7 +379,7 @@ export class Game {
         ctx.fillText(targetName, camera.screenCenter.width, 20.0);
 
         if (target && target instanceof Ship && !target.despawned && (target.state === 'Flying' || target.state === 'Disabled')) {
-            this.drawShipStats(ctx, camera, target);
+            this.drawShipStats(camera.hudCtx, camera, target);
         }
     }
 }
@@ -391,13 +397,15 @@ export class GameManager {
 
         const mainCameraForegroundCanvas = document.getElementById('mainCameraForeground');
         const mainCameraBackgroundCanvas = document.getElementById('mainCameraBackground');
+        const mainCameraHudCanvas = document.getElementById('mainCameraHud');
         const targetCameraForegroundCanvas = document.getElementById('targetCameraForeground');
         const targetCameraBackgroundCanvas = document.getElementById('targetCameraBackground');
+        const targetCameraHudCanvas = document.getElementById('targetCameraHud');
 
         /** @type {Camera} The main camera tracking the player's ship. */
-        this.mainCamera = new Camera(mainCameraForegroundCanvas, mainCameraBackgroundCanvas, 1.0);
+        this.mainCamera = new Camera(mainCameraForegroundCanvas, mainCameraBackgroundCanvas, mainCameraHudCanvas, 1.0);
         /** @type {TargetCamera} The camera for the target view, rendering a secondary perspective. */
-        this.targetCamera = new TargetCamera(targetCameraForegroundCanvas, targetCameraBackgroundCanvas, 1.0);
+        this.targetCamera = new TargetCamera(targetCameraForegroundCanvas, targetCameraBackgroundCanvas, targetCameraHudCanvas, 1.0);
         /** @type {Ship} The current target for the camera, typically the player's ship. */
         this.cameraTarget = null;
 

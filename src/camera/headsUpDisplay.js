@@ -277,7 +277,7 @@ export class HeadsUpDisplay {
      */
     draw(ctx, camera) {
         ctx.save();
-
+        ctx.clearRect(0, 0, this.size.width, this.size.height);
         let autopilotStatus = this.gameManager.cameraTarget?.pilot?.getStatus();
 
         if (autopilotStatus) {

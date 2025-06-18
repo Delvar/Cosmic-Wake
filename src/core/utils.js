@@ -188,3 +188,14 @@ export function wrapCanvasContext(ctx) {
 
     return wrappedCtx;
 }
+
+/**
+ * Linearly interpolates between a and b by t.
+ * @param {number} start - Start value.
+ * @param {number} end - End value.
+ * @param {number} ratio - Interpolation factor (0.0 to 1.0).
+ * @returns {number}
+ */
+export function lerp(start, end, ratio) {
+    return start + (end - start) * ratio;
+}

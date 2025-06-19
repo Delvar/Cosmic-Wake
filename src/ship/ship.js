@@ -10,7 +10,7 @@ import { Asteroid } from '/src/starSystem/asteroidBelt.js';
 import { Shield } from '/src/ship/shield.js';
 import { Turret } from '/src/weapon/turret.js';
 import { FixedWeapon } from '/src/weapon/fixedWeapon.js';
-import { AiPilot, OfficerAiPilot } from '/src/pilot/aiPilot.js';
+import { AiPilot, CivilianAiPilot, OfficerAiPilot } from '/src/pilot/aiPilot.js';
 import { Pilot, PlayerPilot } from '/src/pilot/pilot.js';
 import { StarSystem } from '/src/starSystem/starSystem.js';
 import { Camera } from '/src/camera/camera.js';
@@ -855,10 +855,15 @@ export class Ship extends GameObject {
             ship.faction = this.faction;
             ship.hullIntegrity = ship.disabledThreshold + 1.0;
             ship.shield.isActive = true;
-            ship.pilot = new OfficerAiPilot(ship, new EscortJob(ship, this));
             ship.state = 'Flying';
             ship.hostiles.length = 0; // Clear hostiles on takeoff
             ship.lastAttacker = null; // Reset last attacker
+
+            if (this.pilot instanceof PlayerPilot) {
+                ship.pilot = new OfficerAiPilot(ship, new EscortJob(ship, this));
+            } else if (this.pilot instanceof AiPilot) {
+                ship.pilot = new CivilianAiPilot(ship, null); // No Job so will land and despawn
+            }
         }
     }
 

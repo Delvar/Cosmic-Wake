@@ -19,20 +19,22 @@ export class AiPilot extends Pilot {
     /**
      * Creates a new AiPilot instance.
      * @param {Ship} ship - The ship to control.
-     * @param {Job} job - The job instance (e.g., WandererJob).
+     * @param {Job|null} job - The job instance (e.g., WandererJob).
      * @param {boolean} [attackDisabledShips=false] - Whether to attack ships that are disabled.
      * @throws {Error} If called directly instead of subclassing.
      */
-    constructor(ship, job, attackDisabledShips = false) {
+    constructor(ship, job = null, attackDisabledShips = false) {
         super(ship);
+        if (job) {
+            // Set the job pilot so it can update back to us
+            job.pilot = this;
+        }
         /** @type {Object} The job instance controlling high-level behavior (e.g., WandererJob). */
         this.job = job;
-        // Set the job pilot so it can update back to us
-        this.job.pilot = this;
         /** @type {boolean} Whether to attack ships that are disabled. */
         this.attackDisabledShips = attackDisabledShips;
         /** @type {string} The current state ('Job', 'Flee', 'Avoid', 'Attack'). */
-        this.state = 'Job';
+        this.state = job ? 'Job' : 'Despawning';
         /** @type {Object.<string, Function>} Map of state names to handler methods. */
         this.stateHandlers = {
             'Job': this.updateJob.bind(this),

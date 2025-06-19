@@ -5,14 +5,15 @@ import { AttackAutopilot } from '/src/autopilot/attackAutopilot.js';
 import { isValidAttackTarget } from '/src/ship/ship.js';
 import { AiPilot, OfficerAiPilot, PirateAiPilot } from '/src/pilot/aiPilot.js';
 import { PlayerPilot } from '/src/pilot/pilot.js';
-import { LandOnPlanetAutopilot } from '/src/autopilot/autopilot.js';
+import { BoardShipAutopilot, LandOnPlanetAutopilot } from '/src/autopilot/autopilot.js';
 import { Ship } from '/src/ship/ship.js';
 import { GameManager } from '/src/core/game.js';
-import { GameObject } from '/src/core/gameObject.js';
+import { GameObject, isValidTarget } from '/src/core/gameObject.js';
 import { FactionRelationship } from '/src/core/faction.js';
+import { Planet } from '/src/starSystem/celestialBody.js';
 
 /**
- * Job for officer ships to attack hostile ships in the system.
+ * Job for officer ships to attack hostile ships, board disabled ships, and land on planets.
  * @extends Job
  */
 export class OfficerJob extends Job {
@@ -20,20 +21,23 @@ export class OfficerJob extends Job {
      * Creates a new OfficerJob instance.
      * @param {Ship} ship - The ship to control.
      * @param {AiPilot} [pilot=null] - The pilot controlling the ship (optional).
-     * @param {boolean} [attackDisabledShips=true] - Whether to stop if the ship is disabled.
+     * @param {boolean} [attackDisabledShips=true] - Whether to attack disabled ships.
      */
     constructor(ship, pilot = null, attackDisabledShips = true) {
         super(ship, pilot);
         /** @type {boolean} Whether to attack a ship that is disabled. */
         this.attackDisabledShips = attackDisabledShips;
-        /** @type {string} The current job state ('Starting', 'Hunting', 'Waiting', 'Landing', 'Failed'). */
+        /** @type {string} The current job state. */
         this.state = 'Starting';
         /** @type {Object.<string, Function>} Map of state names to handler methods. */
         this.stateHandlers = {
             'Starting': this.updateStarting.bind(this),
             'Hunting': this.updateHunting.bind(this),
-            'Waiting': this.updateWaiting.bind(this),
+            'Boarding': this.updateBoarding.bind(this),
+            'Boarded': this.updateBoarded.bind(this),
             'Landing': this.updateLanding.bind(this),
+            'Landed': this.updateLanded.bind(this),
+            'Waiting': this.updateWaiting.bind(this),
             'Failed': () => { }
         };
         /** @type {number} Interval (seconds) between target scans in Hunting state. */
@@ -81,7 +85,7 @@ export class OfficerJob extends Job {
     }
 
     /**
-     * Handles the 'Hunting' state, scanning for hostile targets to attack.
+     * Handles the 'Hunting' state, scanning for hostile or disabled targets.
      * @param {number} deltaTime - Time elapsed since last update (seconds).
      * @param {GameManager} gameManager - The game manager instance for context.
      */
@@ -89,7 +93,15 @@ export class OfficerJob extends Job {
         if (this.ship.state !== 'Flying') return;
 
         if (this.pilot.state === 'Attack') {
-            // Already attacking, let OfficerAiPilot handle
+            // Already attacking, let pilot handle
+            return;
+        }
+        if (this.pilot.autopilot instanceof BoardShipAutopilot) {
+            // Boarding autopilot active, transition to Boarding state
+            this.state = 'Boarding';
+            if (this.ship.debug) {
+                console.log(`${this.constructor.name}: BoardShipAutopilot active, transitioning to Boarding`);
+            }
             return;
         }
 
@@ -108,43 +120,125 @@ export class OfficerJob extends Job {
                 this.ship.target = target;
                 this.pilot.changeState('Attack', new AttackAutopilot(this.ship, target, true));
                 if (this.ship.debug) {
-                    console.log(`${this.constructor.name}: Found target ${target.name}, initiating Attack`);
+                    console.log(`${this.constructor.name}: Found hostile target ${target.name}, initiating Attack`);
                 }
-            } else {
-                const targetPlanet = this.ship.starSystem.getClosestPlanet(this.ship);
-                if (targetPlanet) {
-                    this.ship.target = targetPlanet;
-                    this.pilot.setAutopilot(new LandOnPlanetAutopilot(this.ship, targetPlanet));
-                    this.state = 'Landing';
-                    if (this.ship.debug) {
-                        console.log(`${this.constructor.name}: No hostile target, transitioning to Landing`);
-                    }
-                } else if (this.ship.debug) {
-                    console.log(`${this.constructor.name}: No hostile target or planet found`);
+                return;
+            }
+
+            // No hostiles, look for disabled ships to board
+            target = this.ship.starSystem.getRandomShip(this.ship, null, OfficerJob.isValidBoardingTarget);
+            if (target) {
+                this.ship.target = target;
+                this.pilot.setAutopilot(new BoardShipAutopilot(this.ship, target));
+                this.state = 'Boarding';
+                if (this.ship.debug) {
+                    console.log(`${this.constructor.name}: Found disabled target ${target.name}, initiating Boarding`);
                 }
+                return;
+            }
+
+            // No hostiles or disabled ships, land on closest planet
+            const targetPlanet = this.ship.starSystem.getClosestPlanet(this.ship);
+            if (targetPlanet) {
+                this.ship.target = targetPlanet;
+                this.pilot.setAutopilot(new LandOnPlanetAutopilot(this.ship, targetPlanet));
+                this.state = 'Landing';
+                if (this.ship.debug) {
+                    console.log(`${this.constructor.name}: No targets, transitioning to Landing`);
+                }
+            } else if (this.ship.debug) {
+                console.log(`${this.constructor.name}: No hostile, disabled, or planet targets found`);
             }
         }
     }
 
     /**
-     * Handles the 'Landing' state, finding the closest planet and landing.
+     * Handles the 'Boarding' state, managing boarding of disabled ships.
+     * @param {number} deltaTime - Time elapsed since last update (seconds).
+     * @param {GameManager} gameManager - The game manager instance for context.
+     */
+    updateBoarding(deltaTime, gameManager) {
+        if (this.ship.state === 'Landed' && this.ship.landedObject instanceof Ship) {
+            // Boarding complete, transition to Boarded
+            this.state = 'Boarded';
+            if (this.ship.debug) {
+                console.log(`${this.constructor.name}: Boarding complete, transitioning to Boarded`);
+            }
+            return;
+        }
+        if (!this.pilot.autopilot || !(this.pilot.autopilot instanceof BoardShipAutopilot)) {
+            // Autopilot stopped or failed, try hunting again
+            this.state = 'Hunting';
+            this.nextTargetScan = this.ship.age;
+            if (this.ship.debug) {
+                console.log(`${this.constructor.name}: Boarding autopilot stopped, transitioning to Hunting`);
+            }
+        }
+    }
+
+    /**
+     * Handles the 'Boarded' state, transitioning to landing on a planet.
+     * @param {number} deltaTime - Time elapsed since last update (seconds).
+     * @param {GameManager} gameManager - The game manager instance for context.
+     */
+    updateBoarded(deltaTime, gameManager) {
+        // Find closest planet to land on
+        const targetPlanet = this.ship.starSystem.getClosestPlanet(this.ship);
+        if (targetPlanet) {
+            this.ship.target = targetPlanet;
+            this.pilot.setAutopilot(new LandOnPlanetAutopilot(this.ship, targetPlanet));
+            this.state = 'Landing';
+            if (this.ship.debug) {
+                console.log(`${this.constructor.name}: Boarded, transitioning to Landing on planet`);
+            }
+        } else {
+            this.state = 'Hunting'; // Fallback if no planet
+            if (this.ship.debug) {
+                console.log(`${this.constructor.name}: Boarded, no planet, transitioning to Hunting`);
+            }
+        }
+    }
+
+    /**
+     * Handles the 'Landing' state, managing planet landing.
      * @param {number} deltaTime - Time elapsed since last update (seconds).
      * @param {GameManager} gameManager - The game manager instance for context.
      */
     updateLanding(deltaTime, gameManager) {
+        if (this.ship.state === 'Landed' && this.ship.landedObject instanceof Planet) {
+            // Landed on planet, transition to Landed
+            this.state = 'Landed';
+            if (this.ship.debug) {
+                console.log(`${this.constructor.name}: Landed on planet, transitioning to Landed`);
+            }
+            return;
+        }
+        if (!this.pilot.autopilot || !(this.pilot.autopilot instanceof LandOnPlanetAutopilot)) {
+            // Autopilot stopped or failed, try hunting again
+            this.state = 'Hunting';
+            this.nextTargetScan = this.ship.age;
+            if (this.ship.debug) {
+                console.log(`${this.constructor.name}: Landing autopilot stopped, transitioning to Hunting`);
+            }
+        }
+    }
+
+    /**
+     * Handles the 'Landed' state, transitioning to Waiting.
+     * @param {number} deltaTime - Time elapsed since last update (seconds).
+     * @param {GameManager} gameManager - The game manager instance for context.
+     */
+    updateLanded(deltaTime, gameManager) {
         if (this.ship.state === 'Landed') {
+            this.state = 'Waiting';
             if (this.ship.debug) {
                 console.log(`${this.constructor.name}: Landed, transitioning to Waiting`);
             }
-            this.state = 'Waiting';
-            return;
-        }
-        if (!this.pilot.autopilot) {
-            if (this.ship.debug) {
-                console.log(`${this.constructor.name}: No autopilot, transitioning to Starting`);
-            }
+        } else {
             this.state = 'Starting';
-            return;
+            if (this.ship.debug) {
+                console.log(`${this.constructor.name}: Not landed, transitioning to Starting`);
+            }
         }
     }
 
@@ -162,13 +256,27 @@ export class OfficerJob extends Job {
             return;
         }
 
-        const target = this.ship.starSystem.getRandomShip(this.ship, null, OfficerJob.isValidHostileTarget);
+        // Check for hostiles first
+        let target = this.ship.starSystem.getRandomShip(this.ship, null, OfficerJob.isValidHostileTarget);
         if (target) {
             this.ship.target = target;
             this.pilot.changeState('Attack', new AttackAutopilot(this.ship, target, true));
             this.ship.initiateTakeoff();
             if (this.ship.debug) {
-                console.log(`${this.constructor.name}: Found target ${target.name}, initiating takeoff and Attack`);
+                console.log(`${this.constructor.name}: Found hostile target ${target.name}, initiating takeoff and Attack`);
+            }
+            return;
+        }
+
+        // Check for disabled ships to board
+        target = this.ship.starSystem.getRandomShip(this.ship, null, OfficerJob.isValidBoardingTarget);
+        if (target) {
+            this.ship.target = target;
+            this.pilot.setAutopilot(new BoardShipAutopilot(this.ship, target));
+            this.ship.initiateTakeoff();
+            this.state = 'Boarding';
+            if (this.ship.debug) {
+                console.log(`${this.constructor.name}: Found disabled target ${target.name}, initiating takeoff and Boarding`);
             }
         }
     }
@@ -184,8 +292,21 @@ export class OfficerJob extends Job {
     static isValidHostileTarget(source, target, includeDisabled = false) {
         if (!isValidAttackTarget(source, target, includeDisabled)) return false;
         if (source.getRelationship(target) === FactionRelationship.Hostile) return true;
-        // Check allied ships' hostiles (e.g., Player attacking Civilian)
         if (target instanceof Ship && target.hostiles.some(s => source.getRelationship(s) === FactionRelationship.Allied)) return true;
         return false;
+    }
+
+    /**
+     * Checks if a target is valid for boarding: Disabled and in the same system.
+     * @static
+     * @param {Ship} source - The source ship.
+     * @param {Ship} target - The target ship.
+     * @returns {boolean} True if the target is valid for boarding, false otherwise.
+     */
+    static isValidBoardingTarget(source, target) {
+        if (!(target instanceof Ship)) return false;
+        if (!isValidTarget(source, target)) return false;
+        if (target.state !== 'Disabled') return false;
+        return true;
     }
 }

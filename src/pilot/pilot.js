@@ -4,7 +4,7 @@ import { Vector2D } from '/src/core/vector2d.js';
 import { CelestialBody, JumpGate, Star, Planet } from '/src/starSystem/celestialBody.js';
 import { remapClamp, randomBetween, normalizeAngle } from '/src/core/utils.js';
 import { isValidAttackTarget, Ship } from '/src/ship/ship.js';
-import { TraverseJumpGateAutopilot, LandOnPlanetAutopilot, EscortAutopilot, LandOnAsteroidAutopilot, FlyToTargetAutopilot, Autopilot, FollowShipAutopilot, BoardShipAutopilot } from '/src/autopilot/autopilot.js';
+import { TraverseJumpGateAutopilot, LandOnPlanetAutopilot, EscortAutopilot, LandOnAsteroidAutopilot, FlyToTargetAutopilot, Autopilot, FollowAutopilot, BoardShipAutopilot } from '/src/autopilot/autopilot.js';
 import { AttackAutopilot } from '/src/autopilot/attackAutopilot.js';
 import { Asteroid } from '/src/starSystem/asteroidBelt.js';
 import { GameObject, isValidTarget } from '/src/core/gameObject.js';

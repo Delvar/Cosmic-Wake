@@ -33,9 +33,9 @@ export class Autopilot {
         /** @type {number} Maximum angle deviation to apply thrust. */
         this.thrustAngleLimit = Math.PI / 16.0;
         /** @type {number} Upper threshold for thrust activation. */
-        this.upperVelocityErrorThreshold = this.ship.thrust * (0.15 + Math.random() * 0.1);
+        this.upperVelocityErrorThreshold = Math.max(2 / 60.0 * this.ship.thrust, this.ship.thrust * (0.15 + Math.random() * 0.1));
         /** @type {number} Lower threshold for thrust hysteresis. */
-        this.lowerVelocityErrorThreshold = this.ship.thrust * 0.002;
+        this.lowerVelocityErrorThreshold = Math.max(2 / 60.0 * this.ship.thrust, this.ship.thrust * 0.002);
         /** @type {number} Maximum distance to fire weapons. */
         this.firingRange = 1000.0;
         /** @type {string} Current state of the autopilot (e.g., "Approaching"). */
@@ -140,11 +140,11 @@ export class Autopilot {
      */
     shouldThrust(velocityErrorMagnitude, errorThresholdRatio = 1.0) {
         if (this.ship.isThrusting) {
-            if (velocityErrorMagnitude < this.lowerVelocityErrorThreshold * errorThresholdRatio) {
+            if (velocityErrorMagnitude < Math.max(1 / 60.0 * this.ship.thrust, this.lowerVelocityErrorThreshold * errorThresholdRatio)) {
                 return false;
             }
         } else {
-            if (velocityErrorMagnitude > this.upperVelocityErrorThreshold * errorThresholdRatio) {
+            if (velocityErrorMagnitude > Math.max(1 / 60.0 * this.ship.thrust, this.upperVelocityErrorThreshold * errorThresholdRatio)) {
                 return true;
             }
         }
@@ -415,20 +415,20 @@ export class FlyToTargetAutopilot extends Autopilot {
 }
 
 /**
- * Autopilot that follows a target Ship with a distance band.
+ * Autopilot that follows a target GameObject with a distance band.
  * @extends Autopilot
  */
-export class FollowShipAutopilot extends Autopilot {
+export class FollowAutopilot extends Autopilot {
     /**
-     * Creates a new FollowShipAutopilot instance.
+     * Creates a new FollowAutopilot instance.
      * @param {Ship} ship - The ship to control.
-     * @param {Ship} target - The target ship to follow.
+     * @param {GameObject} target - The target GameObject to follow.
      * @param {number} [minFollowDistance=100.0] - Minimum distance from target center.
      * @param {number} [maxFollowDistance=500.0] - Maximum distance from target center.
      */
     constructor(ship, target, minFollowDistance = 100.0, maxFollowDistance = 500.0) {
         super(ship, target);
-        /** @type {Ship} The target to follow. */
+        /** @type {GameObject} The target to follow. */
         this.target = target;
         /** @type {number} Minimum distance from target center. */
         this.minFollowDistance = minFollowDistance;
@@ -442,9 +442,9 @@ export class FollowShipAutopilot extends Autopilot {
         this.farApproachDistance = this.maxFollowDistance + maxDecelerationDistance + (this.ship.maxVelocity * timeToTurn); // Start slowing down
 
         /** @type {number} Upper threshold for thrust activation. */
-        this.upperVelocityErrorThreshold = this.ship.thrust * 0.25;
+        this.upperVelocityErrorThreshold = Math.max(2 / 60.0 * this.ship.thrust, this.ship.thrust * 0.25);
         /** @type {number} Lower threshold for thrust hysteresis. */
-        this.lowerVelocityErrorThreshold = 5.0;
+        this.lowerVelocityErrorThreshold = 2 / 60.0 * this.ship.thrust;
 
         // Initialize scratch vectors for calculations
         /** @type {Vector2D} Scratch vector for delta to target. */
@@ -462,7 +462,7 @@ export class FollowShipAutopilot extends Autopilot {
         /** @type {Vector2D} Scratch vector for velocity error. */
         this._scratchVelocityError = new Vector2D(0.0, 0.0);
 
-        if (new.target === FollowShipAutopilot) Object.seal(this);
+        if (new.target === FollowAutopilot) Object.seal(this);
     }
 
     /**
@@ -471,8 +471,8 @@ export class FollowShipAutopilot extends Autopilot {
     start() {
         super.start();
 
-        if (!(this.target instanceof Ship)) {
-            this.error = 'Target is not a ship';
+        if (!(this.target instanceof GameObject)) {
+            this.error = 'Target is not a valid game object';
             this.active = false;
             return;
         }
@@ -578,6 +578,7 @@ export class EscortAutopilot extends Autopilot {
         this.stateHandlers = {
             'Starting': this.updateStarting.bind(this),
             'Following': this.updateFollowing.bind(this),
+            'FollowLanding': this.updateFollowLanding.bind(this),
             'Landing': this.updateLanding.bind(this),
             'TraversingJumpGate': this.updateTraversingJumpGate.bind(this),
             'Waiting': this.updateWaiting.bind(this)
@@ -709,13 +710,19 @@ export class EscortAutopilot extends Autopilot {
             } else if (this.ship.state === "Flying") {
                 if (landedObject instanceof Planet) {
                     this.subAutopilot = new LandOnPlanetAutopilot(this.ship, landedObject);
-                } else if (landedObject instanceof Asteroid) {
-                    this.subAutopilot = new LandOnAsteroidAutopilot(this.ship, landedObject);
-                }
-                this.subAutopilot.start();
-                this.state = "Landing";
-                if (this.ship.debug) {
-                    console.log(`EscortAutopilot: Transitioned to Landing on ${landedObject.name}`);
+                    this.subAutopilot.start();
+                    this.state = "Landing";
+                    if (this.ship.debug) {
+                        console.log(`EscortAutopilot: Transitioned to Landing on ${landedObject.name}`);
+                    }
+                } else {
+                    //we dont know what it landed on so just follow the landed object
+                    this.subAutopilot = new FollowAutopilot(this.ship, landedObject, this.minFollowDistance, this.maxFollowDistance);
+                    this.subAutopilot.start()
+                    this.state = "Following";
+                    if (this.ship.debug) {
+                        console.log(`EscortAutopilot: Transitioned to Following ${landedObject.name}`);
+                    }
                 }
             }
             // If ship is in TakingOff or Landing, let those states complete naturally
@@ -726,7 +733,7 @@ export class EscortAutopilot extends Autopilot {
                     console.log("EscortAutopilot: Taking Off to follow target");
                 }
             } else if (this.ship.state === "Flying") {
-                this.subAutopilot = new FollowShipAutopilot(this.ship, this.target, this.minFollowDistance, this.maxFollowDistance);
+                this.subAutopilot = new FollowAutopilot(this.ship, this.target, this.minFollowDistance, this.maxFollowDistance);
                 this.subAutopilot.start();
                 this.state = "Following";
                 if (this.ship.debug) {
@@ -847,7 +854,7 @@ export class EscortAutopilot extends Autopilot {
         if (this.target.state === 'Landing' || this.target.state === 'Landed') {
             const landedObject = this.target.landedObject;
             if (!landedObject) {
-                this.error = 'Target planet not found';
+                this.error = 'Target landed but no landed object set!';
                 this.subAutopilot.stop();
                 this.subAutopilot = null;
                 this.state = 'Starting';
@@ -856,18 +863,26 @@ export class EscortAutopilot extends Autopilot {
                 }
                 return;
             }
-            this.subAutopilot.stop();
             if (landedObject instanceof Planet) {
+                this.subAutopilot.stop();
                 this.subAutopilot = new LandOnPlanetAutopilot(this.ship, landedObject);
-            } else if (landedObject instanceof Asteroid) {
-                this.subAutopilot = new LandOnAsteroidAutopilot(this.ship, landedObject);
+                this.subAutopilot.start();
+                this.state = "Landing";
+                if (this.ship.debug) {
+                    console.log(`EscortAutopilot: Transitioned to Landing on ${landedObject.name}`);
+                }
+                return;
+            } else {
+                //we dont know what it landed on so just follow the landed object
+                this.subAutopilot.stop();
+                this.subAutopilot = new FollowAutopilot(this.ship, landedObject, this.minFollowDistance, this.maxFollowDistance);
+                this.subAutopilot.start()
+                this.state = "FollowLanding";
+                if (this.ship.debug) {
+                    console.log(`EscortAutopilot: Transitioned to FollowLanding ${landedObject.name}`);
+                }
+                return;
             }
-            this.subAutopilot.start();
-            this.state = 'Landing';
-            if (this.ship.debug) {
-                console.log(`EscortAutopilot: Transitioned to Landing on ${landedObject.name}`);
-            }
-            return;
         }
 
         // Handle the escorted ship moving to another star system
@@ -917,6 +932,48 @@ export class EscortAutopilot extends Autopilot {
     }
 
     /**
+     * Handles the 'FollowLanding' state: follows the same body as the escorted ship, aborting if it takes off.
+     * @param {number} deltaTime - Time elapsed in seconds.
+     * @param {GameManager} gameManager - The game manager instance for context.
+     */
+    updateFollowLanding(deltaTime, gameManager) {
+        if (!this.subAutopilot || !this.subAutopilot.active) {
+            console.warn('Sub-autopilot not set or inactive during FollowLanding state');
+            this.subAutopilot = null;
+            this.state = 'Starting';
+            if (this.ship.debug) {
+                console.log('EscortAutopilot: Reset to Starting due to missing or inactive sub-autopilot');
+            }
+            return;
+        }
+
+        // Abort landing if the escorted ship takes off or is flying
+        if (this.target.state === 'TakingOff' || this.target.state === 'Flying') {
+            this.subAutopilot.stop();
+            this.subAutopilot = new FollowAutopilot(this.ship, this.target, this.minFollowDistance, this.maxFollowDistance);
+            this.subAutopilot.start();
+            this.state = 'Following';
+            if (this.ship.debug) {
+                console.log(`EscortAutopilot: Aborted landing, transitioned to Following target ${this.target.name}`);
+            }
+            return;
+        }
+
+        // Continue following the escorted ship
+        this.subAutopilot.update(deltaTime, gameManager);
+        if (!this.subAutopilot.active || this.subAutopilot.error) {
+            console.warn(`Sub-autopilot inactive or errored during FollowLanding state: ${this.subAutopilot.error || 'unknown error'}`);
+            this.subAutopilot.stop();
+            this.subAutopilot = null;
+            this.state = 'Starting';
+            if (this.ship.debug) {
+                console.log('EscortAutopilot: Reset to Starting due to sub-autopilot failure');
+            }
+        }
+    }
+
+
+    /**
      * Handles the 'Landing' state: lands on the same body as the escorted ship, aborting if it takes off.
      * @param {number} deltaTime - Time elapsed in seconds.
      * @param {GameManager} gameManager - The game manager instance for context.
@@ -935,7 +992,7 @@ export class EscortAutopilot extends Autopilot {
         // Abort landing if the escorted ship takes off or is flying
         if (this.target.state === 'TakingOff' || this.target.state === 'Flying') {
             this.subAutopilot.stop();
-            this.subAutopilot = new FollowShipAutopilot(this.ship, this.target, this.minFollowDistance, this.maxFollowDistance);
+            this.subAutopilot = new FollowAutopilot(this.ship, this.target, this.minFollowDistance, this.maxFollowDistance);
             this.subAutopilot.start();
             this.state = 'Following';
             if (this.ship.debug) {
@@ -1039,7 +1096,7 @@ export class EscortAutopilot extends Autopilot {
                     console.log(`EscortAutopilot: Reset to Starting due to jump failure: ${this.subAutopilot.error}`);
                 }
             } else if (this.ship.state === 'Flying' && this.ship.starSystem === this.target.starSystem) {
-                this.subAutopilot = new FollowShipAutopilot(this.ship, this.target, this.minFollowDistance, this.maxFollowDistance);
+                this.subAutopilot = new FollowAutopilot(this.ship, this.target, this.minFollowDistance, this.maxFollowDistance);
                 this.subAutopilot.start();
                 this.state = 'Following';
                 if (this.ship.debug) {

@@ -49,6 +49,17 @@ export class EscortJob extends Job {
             this.error = `Invalid state: ${this.state}`;
             this.state = 'Failed';
         }
+        if (this.ship.state === 'Landed') {
+            if (this.ship.colors.wings !== this.target.colors.wings) {
+                this.ship.colors.wings = this.target.colors.wings;
+            }
+            if (this.ship.colors.hull !== this.target.colors.hull) {
+                this.ship.colors.hull = this.target.colors.hull;
+            }
+            if (this.ship.trail.color !== this.target.trail.color) {
+                this.ship.trail.color = this.target.trail.color;
+            }
+        }
     }
 
     /**

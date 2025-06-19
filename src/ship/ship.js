@@ -195,7 +195,7 @@ export class Ship extends GameObject {
         this.turretMode = 'Full-auto';
         /** @type {FixedWeapon[]} Array of fixed weapons. */
         this.fixedWeapons = [];
-        /** @type {string} Current mode for the lights (e.g., 'Normal', 'Flicker', 'Disabled', 'Warden'). */
+        /** @type {string} Current mode for the lights (e.g., 'Normal', 'Flicker', 'Disabled', 'Warden', 'Rescue'). */
         this.lightMode = 'Normal';
 
         // Initialize feature points and bounding box
@@ -1372,14 +1372,36 @@ export class Ship extends GameObject {
                     // Center lights: Off in Warden mode
                     brightness = 0.0;
                 }
+            } else if (this.lightMode === 'Rescue') {
+                // Cycle time for two full cycles per second (0.5s per cycle)
+                const cycleTime = this.age % 0.5;
+                // Each phase lasts 1/16s (0.0625s)
+                const phaseDuration = 0.0625;
+                // Determine which phase we're in (0 to  7.0)
+                const phase = Math.floor(cycleTime / phaseDuration);
+
+                if (light.x < -3.0) {
+                    // Left side (red): On for phase 0.0 and  2.0, off for 1 and 3
+                    brightness = (phase === 0.0 || phase === 2.0) ? 1 : 0.0;
+                } else if (light.x > 3.0) {
+                    // Right side (blue): On for phase 4 and  6.0, off for 5 and 7
+                    brightness = (phase === 4 || phase === 6.0) ? 1 : 0.0;
+                } else {
+                    // Center lights: Off in Warden mode
+                    brightness = 0.0;
+                }
             } else {
                 const sinAge = Math.sin((this.age * 5.0) - (light.y / this.boundingBox.y));
                 brightness = Math.max(0.0, sinAge) ** 8.0;
             }
 
             if (light.x < -3.0) {
-                // Left: Red
-                colour = colourRed;
+                // Left: Red or Green
+                if (this.lightMode === 'Rescue') {
+                    colour = colourGreen;
+                } else {
+                    colour = colourRed;
+                }
             } else if (light.x > 3.0) {
                 // Right: Green or Blue
                 if (this.lightMode === 'Warden') {
@@ -1392,7 +1414,7 @@ export class Ship extends GameObject {
                 colour = colourWhite;
             }
 
-            const lightRadius = light.radius * (this.lightMode === 'Warden' ? 20 : 5.0) * brightness;
+            const lightRadius = light.radius * (this.lightMode === 'Warden' || this.lightMode === 'Rescue' ? 20 : 5.0) * brightness;
 
             ctx.save();
             ctx.globalCompositeOperation = "lighter";

@@ -130,7 +130,7 @@ export class Game {
                 this.starField.draw(this.mainCamera.backgroundCtx, this.mainCamera, fadeout);
 
                 // Draw starfield for target camera (if visible)
-                if (this.targetCamera && this.targetCamera.foregroundCanvas.parentElement.style.display !== 'none') {
+                if (this.targetCamera /* && this.targetCamera.foregroundCanvas.parentElement.style.display !== 'none' */) {
                     this.starField.draw(this.targetCamera.backgroundCtx, this.targetCamera, 1.0);
                 }
             }
@@ -301,7 +301,7 @@ export class Game {
         }
 
         this.hud.draw(camera.hudCtx, camera);
-        if (cameraTarget && cameraTarget instanceof Ship && !cameraTarget.despawned && (cameraTarget.state === 'Flying' || cameraTarget.state === 'Disabled')) {
+        if (cameraTarget && cameraTarget instanceof Ship) {
             this.drawShipStats(camera.hudCtx, camera, cameraTarget);
         }
         this.renderTargetView();
@@ -327,14 +327,25 @@ export class Game {
         const parent = camera.foregroundCanvas.parentElement;
 
         if (!target) {
-            if (parent.style.display !== 'none') {
-                parent.style.display = 'none';
+            if (parent.style.visibility !== 'hidden') {
+                parent.style.visibility = 'hidden';
+                parent.style.opacity = '0.0';
             }
             return;
         } else {
-            if (parent.style.display !== 'block') {
-                parent.style.display = 'block';
+            if (parent.style.visibility !== 'visible') {
+                parent.style.visibility = 'visible';
+                parent.style.opacity = '1.0';
             }
+        }
+
+        if (target instanceof Ship) {
+            camera.hudCanvas.style.visibility = 'visible';
+            camera.hudCanvas.style.opacity = '1.0';
+            this.drawShipStats(camera.hudCtx, camera, target);
+        } else {
+            camera.hudCanvas.style.visibility = 'hidden';
+            camera.hudCanvas.style.opacity = '0.0';
         }
 
         if (this.manager.cameraTarget.target instanceof Ship) {
@@ -377,10 +388,6 @@ export class Game {
         ctx.textAlign = "center";
         ctx.strokeText(targetName, camera.screenCenter.width, 20.0);
         ctx.fillText(targetName, camera.screenCenter.width, 20.0);
-
-        if (target && target instanceof Ship && !target.despawned && (target.state === 'Flying' || target.state === 'Disabled')) {
-            this.drawShipStats(camera.hudCtx, camera, target);
-        }
     }
 }
 

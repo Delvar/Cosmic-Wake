@@ -662,7 +662,14 @@ export class OfficerAiPilot extends AiPilot {
         }
 
         // Set light mode
-        this.ship.lightMode = this.state === 'Attack' ? 'Warden' : 'Normal';
+        if (this.state === 'Job' && this.job.state === 'Boarding') {
+            this.ship.lightMode = 'Rescue';
+        } else if (this.state === 'Attack') {
+            this.ship.lightMode = 'Warden';
+        } else {
+            this.ship.lightMode = 'Normal';
+        }
+
 
         super.update(deltaTime, gameManager);
     }

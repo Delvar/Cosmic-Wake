@@ -182,21 +182,7 @@ export class OfficerJob extends Job {
      * @param {GameManager} gameManager - The game manager instance for context.
      */
     updateBoarded(deltaTime, gameManager) {
-        // Find closest planet to land on
-        const targetPlanet = this.ship.starSystem.getClosestPlanet(this.ship);
-        if (targetPlanet) {
-            this.ship.target = targetPlanet;
-            this.pilot.setAutopilot(new LandOnPlanetAutopilot(this.ship, targetPlanet));
-            this.state = 'Landing';
-            if (this.ship.debug) {
-                console.log(`${this.constructor.name}: Boarded, transitioning to Landing on planet`);
-            }
-        } else {
-            this.state = 'Hunting'; // Fallback if no planet
-            if (this.ship.debug) {
-                console.log(`${this.constructor.name}: Boarded, no planet, transitioning to Hunting`);
-            }
-        }
+        this.state = 'Hunting';
     }
 
     /**

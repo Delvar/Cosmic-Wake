@@ -40,6 +40,7 @@
             z-index: 4;
             background-color: black;
             border: 1px black solid;
+            transition: visibility 0.5s linear, opacity 0.5s ease-in-out;
         }
 
         /* Canvases: Fill div, stack with z-index */
@@ -70,6 +71,7 @@
         #targetCameraHud {
             z-index: 3;
             mix-blend-mode: lighten;
+            transition: visibility 0.5s linear, opacity 0.5s ease-in-out;
         }
 
         /* Optional: Draggable div (instead of canvas) */
@@ -115,13 +117,17 @@
     <div id="mainCamera">
         <canvas id="mainCameraBackground"></canvas>
         <canvas id="mainCameraForeground"></canvas>
-        <canvas id="mainCameraHud"></canvas>
+        <canvas id="mainCameraHud" style="visibility: visible; opacity: 1;"></canvas>
     </div>
-    <div id="targetCamera" style="width: 200px; height: 200px; top: 40px; right: 10px; display: block;"
-        draggable="true">
+    <div id="targetCamera" style="  width: 200px; 
+                                    height: 200px; 
+                                    top: 40px; 
+                                    right: 10px; 
+                                    visibility: visible;
+                                    opacity: 1;" draggable="true">
         <canvas id="targetCameraBackground"></canvas>
         <canvas id="targetCameraForeground"></canvas>
-        <canvas id="targetCameraHud"></canvas>
+        <canvas id="targetCameraHud" style="visibility: visible; opacity: 1;"></canvas>
         <span class="resize-handle top-left"></span>
         <span class="resize-handle top-right"></span>
         <span class="resize-handle bottom-left"></span>

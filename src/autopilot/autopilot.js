@@ -391,9 +391,6 @@ export class FlyToTargetAutopilot extends Autopilot {
         this._scratchApproachVelocity.set(this._scratchLeadDirection).multiplyInPlace(approachSpeed);
         this._scratchLateralVelocity.set(this._scratchVelocityError).multiplyInPlace(-1.0).subtractInPlace(this._scratchApproachVelocity);
 
-        if (this.ship.debug) {
-            console.log(`approachSpeed ${approachSpeed}`);
-        }
         if (distance < this.arrivalDistance) {
             // Within arrival distance: match target velocity
             this._scratchDesiredVelocity.set(this._scratchLeadDirection)

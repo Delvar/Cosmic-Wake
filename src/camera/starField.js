@@ -146,11 +146,12 @@ export class StarField {
      * @param {CanvasRenderingContext2D} ctx - The canvas rendering context.
      * @param {Camera} camera - The camera object with position (Vector2D) and screenSize (width/height).
      * @param {number} fadeout - the alpha level of the blank out, 1.0 clear to black, < 1.0 leaves trails
+     * @param {number} white - the whiteout amount, 0.0 = black, 1.0 = full white
      */
-    draw(ctx, camera, fadeout) {
+    draw(ctx, camera, fadeout, white) {
         ctx.save();
-
-        ctx.fillStyle = `rgb(0.0,  0.0,  0.0, ${fadeout})`
+        white = Math.round(white * 255.0);
+        ctx.fillStyle = `rgba(${white},  ${white},  ${white}, ${fadeout})`
         ctx.fillRect(0.0, 0.0, camera.screenSize.width, camera.screenSize.height);
 
         if (fadeout < 0.25) {

@@ -107,31 +107,46 @@ export class Game {
             this.timeAccumulator -= this.fixedDeltaTime;
         }
 
-        let fadeout = 1.0;
-        if (this.manager.cameraTarget instanceof Ship && (
-            this.manager.cameraTarget.state === 'JumpingOut' ||
-            this.manager.cameraTarget.state === 'JumpingIn'
-        )) {
-            const ship = this.manager.cameraTarget;
-            if (ship.state === 'JumpingOut') {
-                fadeout = remapClamp(ship.animationTime, 0.0, ship.animationJumpingDuration, 1.0, 0.5) ** 2.0;
-            } else if (ship.state === 'JumpingIn') {
-                fadeout = remapClamp(ship.animationTime, 0.0, ship.animationJumpingDuration, 0.5, 1.0) ** 2.0;
-            }
-            fadeout *= (deltaTime * 50.0);
-            renderStarfield = true;
-        }
+
+        // if (this.manager.cameraTarget instanceof Ship && (
+        //     this.manager.cameraTarget.state === 'JumpingOut' ||
+        //     this.manager.cameraTarget.state === 'JumpingIn'
+        // )) {
+        //     const ship = this.manager.cameraTarget;
+        //     // if (ship.state === 'JumpingOut') {
+        //     //     fadeout = remapClamp(ship.animationTime, 0.0, ship.animationJumpingDuration, 1.0, 0.5) ** 2.0;
+        //     // } else if (ship.state === 'JumpingIn') {
+        //     //     fadeout = remapClamp(ship.animationTime, 0.0, ship.animationJumpingDuration, 0.5, 1.0) ** 2.0;
+        //     // }
+        //     // fadeout *= (60.0);
+        //     renderStarfield = true;
+        // }
 
         if (renderStarfield) {
+            let fadeout = 1.0;
+            let white = 0.0;
             // Render starfield to background canvas
             if (this.starField && this.mainCamera.backgroundCtx) {
+                if (this.manager.cameraTarget instanceof Ship && (
+                    this.manager.cameraTarget.state === 'JumpingOut' ||
+                    this.manager.cameraTarget.state === 'JumpingIn'
+                )) {
+                    const ship = this.manager.cameraTarget;
+                    if (ship.state === 'JumpingOut') {
+                        fadeout = remapClamp(ship.animationTime, ship.animationJumpingDuration * 0.1, ship.animationJumpingDuration, 1.0, 0.1);
+                        white = remapClamp(ship.animationTime, ship.animationJumpingDuration * 0.95, ship.animationJumpingDuration, 0.0, 1.0);
+                    } else if (ship.state === 'JumpingIn') {
+                        fadeout = remapClamp(ship.animationTime, 0.0, ship.animationJumpingDuration * 0.9, 0.1, 1.0);
+                        white = remapClamp(ship.animationTime, 0.0, ship.animationJumpingDuration * 0.05, 1.0, 0.0);
+                    }
 
+                }
                 // Draw starfield for main camera
-                this.starField.draw(this.mainCamera.backgroundCtx, this.mainCamera, fadeout);
+                this.starField.draw(this.mainCamera.backgroundCtx, this.mainCamera, fadeout, white);
 
                 // Draw starfield for target camera (if visible)
                 if (this.targetCamera /* && this.targetCamera.foregroundCanvas.parentElement.style.display !== 'none' */) {
-                    this.starField.draw(this.targetCamera.backgroundCtx, this.targetCamera, 1.0);
+                    this.starField.draw(this.targetCamera.backgroundCtx, this.targetCamera, 1.0, 0.0);
                 }
             }
         }

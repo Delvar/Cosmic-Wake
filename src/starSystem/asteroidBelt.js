@@ -521,10 +521,9 @@ export class Asteroid extends GameObject {
      */
     update(deltaTime) {
         this.orbitAngle += this.orbitSpeed * deltaTime;
-        this.spin += this.spinSpeed * deltaTime;
+        this.spin = normalizeAngle(this.spin + this.spinSpeed * deltaTime);
         this.position.setFromPolar(this.orbitRadius, this.orbitAngle);
         this.velocity.setFromPolar(this.orbitSpeed * this.orbitRadius, this.orbitAngle + Math.PI / 2.0);
         this.orbitAngle %= TWO_PI;
-        this.spin %= TWO_PI;
     }
 }

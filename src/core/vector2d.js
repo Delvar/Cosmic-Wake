@@ -320,6 +320,14 @@ export class Vector2D {
         const dy = this.y - other.y;
         return dx * dx + dy * dy;
     }
+
+    /**
+     * Returns a string representation of the vector.
+     * @returns {string} A string in the format "(x, y)" with components rounded to two decimal places.
+     */
+    toString() {
+        return `(${this.x.toFixed(2)}, ${this.y.toFixed(2)})`;
+    }
 }
 
 Vector2D.Zero = Object.freeze(new Vector2D(0.0, 0.0));

@@ -32,10 +32,10 @@ export class Autopilot {
         this.subAutopilot = null;
         /** @type {number} Maximum angle deviation to apply thrust. */
         this.thrustAngleLimit = Math.PI / 16.0;
-        /** @type {number} Upper threshold for thrust activation. */
-        this.upperVelocityErrorThreshold = Math.max(2 / 60.0 * this.ship.thrust, this.ship.thrust * (0.15 + Math.random() * 0.1));
-        /** @type {number} Lower threshold for thrust hysteresis. */
-        this.lowerVelocityErrorThreshold = Math.max(2 / 60.0 * this.ship.thrust, this.ship.thrust * 0.002);
+        /** @type {number} Upper threshold for thrust activation. between 5 and 15 frames*/
+        this.upperVelocityErrorThreshold = (this.ship.thrust * randomBetween(5.0, 15.0)) / 60.0;
+        /** @type {number} Lower threshold for thrust hysteresis. We use maxThrust for 1 frame*/
+        this.lowerVelocityErrorThreshold = this.ship.thrust / 60.0;
         /** @type {number} Maximum distance to fire weapons. */
         this.firingRange = 1000.0;
         /** @type {string} Current state of the autopilot (e.g., "Approaching"). */
@@ -140,11 +140,11 @@ export class Autopilot {
      */
     shouldThrust(velocityErrorMagnitude, errorThresholdRatio = 1.0) {
         if (this.ship.isThrusting) {
-            if (velocityErrorMagnitude < Math.max(1 / 60.0 * this.ship.thrust, this.lowerVelocityErrorThreshold * errorThresholdRatio)) {
+            if (velocityErrorMagnitude <= this.lowerVelocityErrorThreshold) {
                 return false;
             }
         } else {
-            if (velocityErrorMagnitude > Math.max(1 / 60.0 * this.ship.thrust, this.upperVelocityErrorThreshold * errorThresholdRatio)) {
+            if (velocityErrorMagnitude > Math.max(this.lowerVelocityErrorThreshold, this.upperVelocityErrorThreshold * errorThresholdRatio)) {
                 return true;
             }
         }
@@ -229,6 +229,19 @@ export class Autopilot {
     applyThrustLogic(ship, desiredVelocity, failoverAngle = null, errorThresholdRatio = 1.0, outVelocityError = null) {
         outVelocityError.set(desiredVelocity).subtractInPlace(ship.velocity);
         const velocityErrorMagnitude = outVelocityError.magnitude();
+
+        //Cheat to avoid twitching
+        if (velocityErrorMagnitude <= this.lowerVelocityErrorThreshold) {
+            ship.velocity.set(desiredVelocity); // Snap to desired velocity
+            outVelocityError.set(0.0, 0.0);
+            ship.applyThrust(false);
+            if (failoverAngle === null) {
+                ship.setTargetAngle(desiredVelocity.getAngle());
+            } else {
+                ship.setTargetAngle(failoverAngle instanceof Vector2D ? failoverAngle.getAngle() : failoverAngle);
+            }
+            return false;
+        }
         const desiredAngle = outVelocityError.getAngle();
         const angleToDesired = normalizeAngle(desiredAngle - ship.angle);
         const shouldThrust = this.shouldThrust(velocityErrorMagnitude, errorThresholdRatio);
@@ -288,7 +301,7 @@ export class FlyToTargetAutopilot extends Autopilot {
         /** @type {number} Distance for far approach phase, computed dynamically. */
         this.farApproachDistance = this.arrivalDistance + maxDecelerationDistance + (this.ship.maxVelocity * timeToTurn); // Start slowing down
         /** @type {number} Distance for close approach phase, computed dynamically. */
-        this.closeApproachDistance = this.arrivalDistance + this.arrivalSpeed + (this.arrivalSpeed * timeToTurn * 2.0); // Near target speed
+        this.closeApproachDistance = this.arrivalDistance + (this.arrivalSpeed * 4.0 * timeToTurn * 2.0); // Near target speed
 
         // Initialize scratch vectors for calculations
         /** @type {Vector2D} Scratch vector for delta to target. */
@@ -305,6 +318,11 @@ export class FlyToTargetAutopilot extends Autopilot {
         this._scratchLeadDirection = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for velocity error. */
         this._scratchVelocityError = new Vector2D(0.0, 0.0);
+
+        /** @type {Vector2D} Scratch vector for approach velocity. */
+        this._scratchApproachVelocity = new Vector2D(0.0, 0.0);
+        /** @type {Vector2D} Scratch vector for lateral velocity. */
+        this._scratchLateralVelocity = new Vector2D(0.0, 0.0);
 
         if (new.target === FlyToTargetAutopilot) Object.seal(this);
     }
@@ -344,7 +362,7 @@ export class FlyToTargetAutopilot extends Autopilot {
         );
 
         // Check if arrived: within arrivalDistance and matching target speed
-        if (distance <= this.arrivalDistance && this.ship.velocity.distanceSquaredTo(this.target.velocity) <= this.arrivalSpeed * this.arrivalSpeed) {
+        if (distance <= this.arrivalDistance /*&& this.ship.velocity.distanceSquaredTo(this.target.velocity) <= this.arrivalSpeed * this.arrivalSpeed*/) {
             this.completed = true; // Mark task complete
             this.stop(); // Deactivate autopilot
             return;
@@ -367,40 +385,45 @@ export class FlyToTargetAutopilot extends Autopilot {
 
         let errorThresholdRatio = 1.0; // Default thrust error threshold multiplier
         let failoverAngle = null; // Angle to face when not thrusting
-        // Adjust desired velocity based on distance phase
+
+        // Ensure we are moiving towards the target then Adjust desired velocity based on distance phase
+        const approachSpeed = -this._scratchVelocityError.dot(this._scratchLeadDirection);
+        this._scratchApproachVelocity.set(this._scratchLeadDirection).multiplyInPlace(approachSpeed);
+        this._scratchLateralVelocity.set(this._scratchVelocityError).multiplyInPlace(-1.0).subtractInPlace(this._scratchApproachVelocity);
+
+        if (this.ship.debug) {
+            console.log(`approachSpeed ${approachSpeed}`);
+        }
         if (distance < this.arrivalDistance) {
             // Within arrival distance: match target velocity
             this._scratchDesiredVelocity.set(this._scratchLeadDirection)
-                .multiplyInPlace(remapClamp(distance, 0.0, this.arrivalDistance, 0.0, this.arrivalSpeed)).addInPlace(this.target.velocity);
-            errorThresholdRatio = 0.0;
+                .multiplyInPlace(remapClamp(distance, 0.0, this.arrivalDistance, 0.0, this.arrivalSpeed))
+                .addInPlace(this.target.velocity)
+                .subtractInPlace(this._scratchLateralVelocity);
         } else if (distance < this.closeApproachDistance) {
             // Close approach: slow to arrival speed, face away from target
             this._scratchDesiredVelocity.set(this._scratchLeadDirection)
-                .multiplyInPlace(this.arrivalSpeed).addInPlace(this.target.velocity);
-            const approachSpeed = this.ship.velocity.dot(this._scratchLeadDirection);
-            if (approachSpeed < this.arrivalSpeed * 0.5) {
-                errorThresholdRatio = 0.0;
-            } else {
-                errorThresholdRatio = remapClamp(distance, this.arrivalDistance, this.closeApproachDistance, 0.25, 0.5);
-            }
+                .multiplyInPlace(this.arrivalSpeed)
+                .addInPlace(this.target.velocity)
+                .subtractInPlace(this._scratchLateralVelocity);
             failoverAngle = this._scratchTemp.set(this._scratchDirectionToTarget).multiplyInPlace(-1); // Face away
         } else if (distance < this.farApproachDistance) {
             // Far approach: interpolate speed, face away from target
-            const speed = remapClamp(distance, this.closeApproachDistance, this.farApproachDistance, this.arrivalSpeed, this.ship.maxVelocity);
+            const speed = remapClamp(distance, this.closeApproachDistance, this.farApproachDistance, this.arrivalSpeed * 4.0, this.ship.maxVelocity);
             this._scratchDesiredVelocity.set(this._scratchLeadDirection)
-                .multiplyInPlace(speed).addInPlace(this.target.velocity);
-            const approachSpeed = this.ship.velocity.dot(this._scratchLeadDirection);
-            if (approachSpeed < this.arrivalSpeed * 0.5) {
-                errorThresholdRatio = 0.0;
-            } else {
-                errorThresholdRatio = remapClamp(distance, this.closeApproachDistance, this.farApproachDistance, 0.5, 1.0);
-            }
+                .multiplyInPlace(speed)
+                .addInPlace(this.target.velocity);
             failoverAngle = this._scratchTemp.set(this._scratchDirectionToTarget).multiplyInPlace(-1); // Face away
         } else {
             // Beyond far approach: full speed toward lead position
             this._scratchDesiredVelocity.set(this._scratchLeadDirection)
                 .multiplyInPlace(this.ship.maxVelocity);
             failoverAngle = this._scratchLeadDirection;//.getAngle(); // Face lead
+        }
+
+        // If we are not moving towards the target just force it by overiding the threshold
+        if (approachSpeed < this.arrivalSpeed * 0.5) {
+            errorThresholdRatio = 0.0;
         }
 
         // Apply thrust based on desired velocity and alignment
@@ -440,11 +463,6 @@ export class FollowAutopilot extends Autopilot {
         const maxDecelerationDistance = (this.ship.maxVelocity * this.ship.maxVelocity) / (2 * this.ship.thrust); // Distance to decelerate
         /** @type {number} Distance for far approach phase, computed dynamically. */
         this.farApproachDistance = this.maxFollowDistance + maxDecelerationDistance + (this.ship.maxVelocity * timeToTurn); // Start slowing down
-
-        /** @type {number} Upper threshold for thrust activation. */
-        this.upperVelocityErrorThreshold = Math.max(2 / 60.0 * this.ship.thrust, this.ship.thrust * 0.25);
-        /** @type {number} Lower threshold for thrust hysteresis. */
-        this.lowerVelocityErrorThreshold = 2 / 60.0 * this.ship.thrust;
 
         // Initialize scratch vectors for calculations
         /** @type {Vector2D} Scratch vector for delta to target. */
@@ -1705,14 +1723,15 @@ export class LandOnAsteroidAutopilot extends Autopilot {
      * Updates the autopilot, managing the approach phase, mining initiation, and completion.
      * Restarts the sub-pilot if the ship overshoots and can't mine yet.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @param {GameManager} gameManager - The game manager instance for context.
      * @override
      */
-    update(deltaTime) {
+    update(deltaTime, gameManager) {
         if (!this.active) return;
 
         if (this.subAutopilot && this.subAutopilot.active) {
             // Delegate to sub-pilot for approaching the asteroid
-            this.subAutopilot.update(deltaTime);
+            this.subAutopilot.update(deltaTime, gameManager);
             if (this.subAutopilot.isComplete()) {
                 if (this.subAutopilot.error) {
                     this.error = this.subAutopilot.error;
@@ -1730,6 +1749,7 @@ export class LandOnAsteroidAutopilot extends Autopilot {
                 if (this.ship.canLand(this.target)) {
                     // Initiate mining if conditions are met
                     this.ship.initiateLanding(this.target);
+                    return;
                 } else {
                     // Slow down if not ready to mine (e.g., speed too high)
                     this._scratchVelocityError.set(this.target.velocity).subtractInPlace(this.ship.velocity);

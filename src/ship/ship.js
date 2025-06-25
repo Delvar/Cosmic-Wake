@@ -812,6 +812,8 @@ export class Ship extends GameObject {
             // Rotate with asteroid's spin
             const currentAngularVelocity = t * this.landedObject.spinSpeed;
             this.angle = normalizeAngle(this.angle + currentAngularVelocity * deltaTime);
+        } else if (this.landedObject instanceof Ship) {
+            this.angle = normalizeAngle(lerp(this.startAngle, this.landedObject.angle, t));
         }
 
         // Interpolate position
@@ -857,8 +859,8 @@ export class Ship extends GameObject {
             ship.hullIntegrity = ship.disabledThreshold + 1.0;
             ship.shield.isActive = true;
             ship.state = 'Flying';
-            ship.hostiles.length = 0; // Clear hostiles on takeoff
-            ship.lastAttacker = null; // Reset last attacker
+            ship.hostiles.length = 0;
+            ship.lastAttacker = null;
 
             if (this.pilot instanceof PlayerPilot) {
                 ship.pilot = new OfficerAiPilot(ship, new EscortJob(ship, this));

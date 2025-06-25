@@ -115,6 +115,8 @@ export class Shield {
             this.isActive = false;
             this.restartTime = currentTime + this.restartDelay;
             this.collapseEffectTime = this.collapseEffectMaxTime;
+            this.rapidRechargeEffectTime = 0.0;
+            this.restartEffectTime = 0.0;
             const excessDamage = -this.strength;
             this.strength = 0.0;
             return excessDamage;

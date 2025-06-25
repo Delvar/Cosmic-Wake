@@ -301,7 +301,7 @@ export class FlyToTargetAutopilot extends Autopilot {
         /** @type {number} Distance for far approach phase, computed dynamically. */
         this.farApproachDistance = this.arrivalDistance + maxDecelerationDistance + (this.ship.maxVelocity * timeToTurn); // Start slowing down
         /** @type {number} Distance for close approach phase, computed dynamically. */
-        this.closeApproachDistance = this.arrivalDistance + (this.arrivalSpeed * 4.0 * timeToTurn * 2.0); // Near target speed
+        this.closeApproachDistance = this.arrivalDistance + (this.arrivalSpeed * timeToTurn); // Near target speed
 
         // Initialize scratch vectors for calculations
         /** @type {Vector2D} Scratch vector for delta to target. */

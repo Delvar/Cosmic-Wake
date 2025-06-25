@@ -584,6 +584,7 @@ export class Ship extends GameObject {
         this.setState('JumpingOut');
         this.jumpGate = gate;
         this.startPosition.set(this.position);
+        this.startAngle = this.angle;
         this.lastJumpTime = this.age;
         this.isThrusting = false;
         this.isBraking = false;
@@ -925,10 +926,7 @@ export class Ship extends GameObject {
             this.position.lerpInPlace(this.startPosition, this.jumpGate.position, landTime);
             this._scratchRadialOut.set(this.jumpGate.position).normalizeInPlace();
             const desiredAngle = Math.atan2(this._scratchRadialOut.x, -this._scratchRadialOut.y);
-            const startAngle = this.startAngle || this.angle;
-            if (!this.startAngle) this.startAngle = this.angle;
-            const angleDiff = normalizeAngle(desiredAngle - startAngle);
-            this.angle = startAngle + angleDiff * landTime;
+            this.angle = lerp(this.startAngle, desiredAngle, landTime);
             this.targetAngle = this.angle;
         } else {
             // Second half: Stretch and accelerate outward

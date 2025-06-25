@@ -107,21 +107,6 @@ export class Game {
             this.timeAccumulator -= this.fixedDeltaTime;
         }
 
-
-        // if (this.manager.cameraTarget instanceof Ship && (
-        //     this.manager.cameraTarget.state === 'JumpingOut' ||
-        //     this.manager.cameraTarget.state === 'JumpingIn'
-        // )) {
-        //     const ship = this.manager.cameraTarget;
-        //     // if (ship.state === 'JumpingOut') {
-        //     //     fadeout = remapClamp(ship.animationTime, 0.0, ship.animationJumpingDuration, 1.0, 0.5) ** 2.0;
-        //     // } else if (ship.state === 'JumpingIn') {
-        //     //     fadeout = remapClamp(ship.animationTime, 0.0, ship.animationJumpingDuration, 0.5, 1.0) ** 2.0;
-        //     // }
-        //     // fadeout *= (60.0);
-        //     renderStarfield = true;
-        // }
-
         if (renderStarfield) {
             let fadeout = 1.0;
             let white = 0.0;
@@ -145,7 +130,7 @@ export class Game {
                 this.starField.draw(this.mainCamera.backgroundCtx, this.mainCamera, fadeout, white);
 
                 // Draw starfield for target camera (if visible)
-                if (this.targetCamera /* && this.targetCamera.foregroundCanvas.parentElement.style.display !== 'none' */) {
+                if (this.targetCamera && this.targetCamera.foregroundCanvas.parentElement.style.visibility === 'visible') {
                     this.starField.draw(this.targetCamera.backgroundCtx, this.targetCamera, 1.0, 0.0);
                 }
             }
@@ -557,10 +542,12 @@ export class GameManager {
         this.galaxy.forEach(system => {
             let systemShipsLength = system.ships.length;
             let aiCount = 0.0;
+            let playerCount = 0.0;
             let civilianCount = 0.0;
             let pirateCount = 0.0;
             let officerCount = 0.0;
 
+            const playerFaction = this.factionManager.getFaction('Player');
             const civilianFaction = this.factionManager.getFaction('Civilian');
             const pirateFaction = this.factionManager.getFaction('Pirate');
             const officerFaction = this.factionManager.getFaction('Officer');
@@ -569,18 +556,22 @@ export class GameManager {
                 const ship = system.ships[i];
                 if (ship.pilot instanceof AiPilot) {
                     aiCount++;
-                    if (ship.faction === civilianFaction) {
+                    if (ship.faction === playerFaction) {
+                        playerCount++;
+                    } else if (ship.faction === civilianFaction) {
                         civilianCount++;
                     } else if (ship.faction === pirateFaction) {
                         pirateCount++;
                     } else if (ship.faction === officerFaction) {
                         officerCount++;
                     }
+                } else if ((ship.pilot instanceof PlayerPilot)) {
+                    playerCount++;
                 }
             }
 
             //Despawn landed ships if there are too many in the system
-            if (aiCount > system.maxAiShips) {
+            if (aiCount > system.maxAiShips * 2.0) {
                 let excessCount = aiCount - system.maxAiShips;
                 for (let i = 0.0; i < systemShipsLength && excessCount > 0.0; i++) {
                     const ship = system.ships[i];

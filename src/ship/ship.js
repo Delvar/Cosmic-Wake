@@ -468,6 +468,18 @@ export class Ship extends GameObject {
     }
 
     /**
+     * Determines if this ship can board the target ship.
+     * @param {Ship} targetShip
+     * @returns {boolean}
+     */
+    canBoard(targetShip) {
+        if (!targetShip || !(targetShip instanceof Ship)) return false;
+        if (targetShip.state !== 'Disabled') return false;
+        if (targetShip.position.distanceTo(this.position) > targetShip.radius) return false;
+        return true;
+    }
+
+    /**
      * Initiates landing on a target, setting up animation and state.
      * @param {Planet|Asteroid} target - The target to land on.
      * @returns {boolean} True if landing is initiated, false otherwise.
@@ -489,13 +501,27 @@ export class Ship extends GameObject {
             } else if (this.landedObject instanceof Asteroid) {
                 this.endPosition.set(0.0, 0.0);
                 this.startAngle = this.angle;
-            } else {
-                this.endPosition.set(0.0, 0.0);
-                if (this.landedObject instanceof Ship) {
-                    // this.startAngle = this.angle;
-                    // this.targetAngle = this.landedObject.angle;
-                }
             }
+            this.isThrusting = false;
+            this.isBraking = false;
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Initiates landing on a target, setting up animation and state.
+     * @param {Ship} target - The target to land on.
+     * @returns {boolean} True if landing is initiated, false otherwise.
+     */
+    initiateBoarding(target) {
+        if (this.canBoard(target)) {
+            this.setState('Landing');
+            this.landedObject = target;
+            this.startPosition.set(this.position).subtractInPlace(this.landedObject.position);
+            this.endPosition.set(0.0, 0.0);
+            this.startAngle = this.angle;
+            this.velocity.set(this.landedObject.velocity);
             this.isThrusting = false;
             this.isBraking = false;
             return true;
@@ -603,37 +629,6 @@ export class Ship extends GameObject {
         this.turretMode = modes[nextIndex];
     }
 
-    /**
-     * Determines if this ship can board the target ship.
-     * @param {Ship} targetShip
-     * @returns {boolean}
-     */
-    canBoard(targetShip) {
-        if (!targetShip || !(targetShip instanceof Ship)) return false;
-        if (targetShip.state !== 'Disabled') return false;
-        if (targetShip.position.distanceTo(this.position) > targetShip.radius) return false;
-        return true;
-    }
-
-    /**
-     * Initiates landing on a target, setting up animation and state.
-     * @param {Ship} target - The target to land on.
-     * @returns {boolean} True if landing is initiated, false otherwise.
-     */
-    initiateBoarding(target) {
-        if (this.canBoard(target)) {
-            this.setState('Landing');
-            this.landedObject = target;
-            this.startPosition.set(this.position);
-            this.endPosition.set(target.position);
-            this.startAngle = this.angle;
-            this.velocity.set(target.velocity);
-            this.isThrusting = false;
-            this.isBraking = false;
-            return true;
-        }
-        return false;
-    }
     /**
      * Applies damage to the ship, processing through shields and hull.
      * @param {number} damage - Amount of damage to apply.

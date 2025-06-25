@@ -493,11 +493,9 @@ export class Ship extends GameObject {
                 this.endPosition.set(this.position)
                     .subtractInPlace(this.landedObject.position)
                     .normalizeInPlace()
-                    .multiplyInPlace(this.landedObject.radius * 0.5);
+                    .multiplyInPlace(this.landedObject.radius * randomBetween(-0.75, 0.75));
                 // Increase trail decay during landing
                 this.trail.decayMultiplier = 2.0;
-                // this.startAngle = this.angle;
-                // this.targetAngle = this.angle;
             } else if (this.landedObject instanceof Asteroid) {
                 this.endPosition.set(0.0, 0.0);
                 this.startAngle = this.angle;

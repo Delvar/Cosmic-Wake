@@ -121,15 +121,6 @@ export class PlayerPilot extends Pilot {
         * @param {GameManager} gameManager - The game manager with keys and lastKeys properties.
         */
     handleHostileShipSelection(deltaTime, gameManager) {
-        if (this.ship.state === 'Landed') {
-            this.ship.initiateTakeoff();
-            if (this.ship.debug) {
-                console.log(`PlayerPilot: Initiating takeoff`);
-            }
-            return;
-        }
-        if (this.ship.state !== 'Flying') return;
-
         // Check if current target is hostile
         if (this.ship.target instanceof Ship && PlayerPilot.isValidHostileTarget(this.ship, this.ship.target)) {
             const currentShip = this.ship.target;
@@ -166,15 +157,6 @@ export class PlayerPilot extends Pilot {
      * @param {GameManager} gameManager - The game manager with keys and lastKeys properties.
      */
     handleNeutralShipSelection(deltaTime, gameManager) {
-        if (this.ship.state === 'Landed') {
-            this.ship.initiateTakeoff();
-            if (this.ship.debug) {
-                console.log(`PlayerPilot: Initiating takeoff`);
-            }
-            return;
-        }
-        if (this.ship.state !== 'Flying') return;
-
         // Check if current target is neutral
         if (this.ship.target instanceof Ship && PlayerPilot.isValidNeutralTarget(this.ship, this.ship.target)) {
             const currentShip = this.ship.target;
@@ -211,15 +193,6 @@ export class PlayerPilot extends Pilot {
      * @param {GameManager} gameManager - The game manager with keys and lastKeys properties.
      */
     handleAlliedShipSelection(deltaTime, gameManager) {
-        if (this.ship.state === 'Landed') {
-            this.ship.initiateTakeoff();
-            if (this.ship.debug) {
-                console.log(`PlayerPilot: Initiating takeoff`);
-            }
-            return;
-        }
-        if (this.ship.state !== 'Flying') return;
-
         // Check if current target is allied
         if (this.ship.target instanceof Ship && PlayerPilot.isValidAlliedTarget(this.ship, this.ship.target)) {
             const currentShip = this.ship.target;
@@ -256,14 +229,10 @@ export class PlayerPilot extends Pilot {
      * @param {GameManager} gameManager - The game manager with keys and lastKeys properties.
      */
     handlePlanetLanding(deltaTime, gameManager) {
-        if (this.ship.state === 'Landed') {
+        if (this.ship.state === 'Landed' && this.ship.landedObject instanceof Planet) {
             this.ship.initiateTakeoff();
-            if (this.ship.debug) {
-                console.log(`PlayerPilot: Initiating takeoff`);
-            }
             return;
         }
-        if (this.ship.state !== 'Flying') return;
 
         // Check if over a landable planet
         const planets = this.ship.starSystem.planets;
@@ -305,6 +274,9 @@ export class PlayerPilot extends Pilot {
                     console.log(`PlayerPilot: No valid next planet`);
                 }
             }
+            if (this.autopilot && this.ship.state === 'Landed') {
+                this.ship.initiateTakeoff();
+            }
             return;
         }
 
@@ -314,6 +286,9 @@ export class PlayerPilot extends Pilot {
             this.autopilot.start();
             if (this.ship.debug) {
                 console.log(`PlayerPilot: Autopiloting to targeted planet ${this.ship.target.name}`);
+            }
+            if (this.autopilot && this.ship.state === 'Landed') {
+                this.ship.initiateTakeoff();
             }
             return;
         }
@@ -327,6 +302,9 @@ export class PlayerPilot extends Pilot {
             if (this.ship.debug) {
                 console.log(`PlayerPilot: Autopiloting to closest planet ${closestPlanet.name}`);
             }
+            if (this.autopilot && this.ship.state === 'Landed') {
+                this.ship.initiateTakeoff();
+            }
         } else if (this.ship.debug) {
             console.log(`PlayerPilot: No valid planets in system`);
         }
@@ -338,12 +316,6 @@ export class PlayerPilot extends Pilot {
      * @param {GameManager} gameManager - The game manager with keys and lastKeys properties.
      */
     handleJumpGateLanding(deltaTime, gameManager) {
-        if (this.ship.state === 'Landed') {
-            this.ship.initiateTakeoff();
-            return;
-        }
-        if (this.ship.state !== 'Flying') return;
-
         // Check if over a jump gate
         const jumpGates = this.ship.starSystem.jumpGates;
         let overGate = null;
@@ -377,6 +349,9 @@ export class PlayerPilot extends Pilot {
                     console.log(`PlayerPilot: No valid next jump gate`);
                 }
             }
+            if (this.autopilot && this.ship.state === 'Landed') {
+                this.ship.initiateTakeoff();
+            }
             return;
         }
 
@@ -386,6 +361,9 @@ export class PlayerPilot extends Pilot {
             this.autopilot.start();
             if (this.ship.debug) {
                 console.log(`PlayerPilot: Autopiloting to targeted jump gate ${this.ship.target.name}`);
+            }
+            if (this.autopilot && this.ship.state === 'Landed') {
+                this.ship.initiateTakeoff();
             }
             return;
         }
@@ -399,6 +377,9 @@ export class PlayerPilot extends Pilot {
             if (this.ship.debug) {
                 console.log(`PlayerPilot: Autopiloting to closest jump gate ${closestGate.name}`);
             }
+            if (this.autopilot && this.ship.state === 'Landed') {
+                this.ship.initiateTakeoff();
+            }
         } else if (this.ship.debug) {
             console.log(`PlayerPilot: No valid jump gates in system`);
         }
@@ -410,14 +391,10 @@ export class PlayerPilot extends Pilot {
      * @param {GameManager} gameManager - The game manager with keys and lastKeys properties.
      */
     handleAsteroidLanding(deltaTime, gameManager) {
-        if (this.ship.state === 'Landed') {
+        if (this.ship.state === 'Landed' && this.ship.landedObject instanceof Asteroid) {
             this.ship.initiateTakeoff();
-            if (this.ship.debug) {
-                console.log(`PlayerPilot: Initiating takeoff`);
-            }
             return;
         }
-        if (this.ship.state !== 'Flying') return;
 
         // Check if over an asteroid
         const asteroids = this.ship.starSystem.asteroids;
@@ -460,6 +437,9 @@ export class PlayerPilot extends Pilot {
                     console.log(`PlayerPilot: No valid next asteroid`);
                 }
             }
+            if (this.autopilot && this.ship.state === 'Landed') {
+                this.ship.initiateTakeoff();
+            }
             return;
         }
 
@@ -469,6 +449,9 @@ export class PlayerPilot extends Pilot {
             this.autopilot.start();
             if (this.ship.debug) {
                 console.log(`PlayerPilot: Autopiloting to targeted asteroid ${this.ship.target.name}`);
+            }
+            if (this.autopilot && this.ship.state === 'Landed') {
+                this.ship.initiateTakeoff();
             }
             return;
         }
@@ -482,6 +465,9 @@ export class PlayerPilot extends Pilot {
             if (this.ship.debug) {
                 console.log(`PlayerPilot: Autopiloting to closest asteroid ${closestAsteroid.name}`);
             }
+            if (this.autopilot && this.ship.state === 'Landed') {
+                this.ship.initiateTakeoff();
+            }
         } else if (this.ship.debug) {
             console.log(`PlayerPilot: No valid asteroids in system`);
         }
@@ -493,14 +479,10 @@ export class PlayerPilot extends Pilot {
      * @param {GameManager} gameManager - The game manager with keys and lastKeys properties.
      */
     handleBoardingShipSelection(deltaTime, gameManager) {
-        if (this.ship.state === 'Landed') {
+        if (this.ship.state === 'Landed' && this.ship.landedObject instanceof Ship) {
             this.ship.initiateTakeoff();
-            if (this.ship.debug) {
-                console.log(`PlayerPilot: Initiating takeoff`);
-            }
             return;
         }
-        if (this.ship.state !== 'Flying') return;
 
         // Check for active BoardShipAutopilot
         if (this.autopilot instanceof BoardShipAutopilot && this.autopilot.active) {
@@ -521,6 +503,9 @@ export class PlayerPilot extends Pilot {
                     console.log(`PlayerPilot: No valid next ship`);
                 }
             }
+            if (this.autopilot && this.ship.state === 'Landed') {
+                this.ship.initiateTakeoff();
+            }
             return;
         }
 
@@ -530,6 +515,9 @@ export class PlayerPilot extends Pilot {
             this.autopilot.start();
             if (this.ship.debug) {
                 console.log(`PlayerPilot: Autopiloting to targeted ship ${this.ship.target.name}`);
+            }
+            if (this.autopilot && this.ship.state === 'Landed') {
+                this.ship.initiateTakeoff();
             }
             return;
         }
@@ -542,6 +530,9 @@ export class PlayerPilot extends Pilot {
             this.autopilot.start();
             if (this.ship.debug) {
                 console.log(`PlayerPilot: Autopiloting to closest disabled ship ${closestShip.name}`);
+            }
+            if (this.autopilot && this.ship.state === 'Landed') {
+                this.ship.initiateTakeoff();
             }
         } else if (this.ship.debug) {
             console.log(`PlayerPilot: No valid disabled ships in system`);
@@ -621,37 +612,38 @@ export class PlayerPilot extends Pilot {
             }
             return;
         }
+        if (this.ship.state === 'Flying') {
+            // Manual rotation and movement
+            if (held('ArrowLeft')) {
+                this.ship.setTargetAngle(this.ship.angle - this.ship.rotationSpeed * deltaTime);
+            }
+            if (held('ArrowRight')) {
+                this.ship.setTargetAngle(this.ship.angle + this.ship.rotationSpeed * deltaTime);
+            }
+            this.ship.applyThrust(held('ArrowUp'));
+            this.ship.applyBrakes(held('ArrowDown'));
 
-        // Manual rotation and movement
-        if (held('ArrowLeft')) {
-            this.ship.setTargetAngle(this.ship.angle - this.ship.rotationSpeed * deltaTime);
-        }
-        if (held('ArrowRight')) {
-            this.ship.setTargetAngle(this.ship.angle + this.ship.rotationSpeed * deltaTime);
-        }
-        this.ship.applyThrust(held('ArrowUp'));
-        this.ship.applyBrakes(held('ArrowDown'));
+            // Fire weapon on Spacebar press
+            if (held(' ')) {
+                this.ship.fire();
+            }
 
-        // Fire weapon on Spacebar press
-        if (held(' ') && this.ship.state === 'Flying') {
-            this.ship.fire();
-        }
+            // // Escort a targeted ship ('f' key)
+            if (pressed('f') && this.ship.target instanceof Ship) {
+                this.autopilot = new EscortAutopilot(this.ship, this.ship.target, this.ship.target.radius * 1.5, 500.0);
+                this.autopilot.start();
+            }
 
-        // // Escort a targeted ship ('f' key)
-        if (pressed('f') && this.ship.state === 'Flying' && this.ship.target instanceof Ship) {
-            this.autopilot = new EscortAutopilot(this.ship, this.ship.target, this.ship.target.radius * 1.5, 500.0);
-            this.autopilot.start();
-        }
+            if (pressed('a') && this.ship.target instanceof Ship) {
+                this.autopilot = new AttackAutopilot(this.ship, this.ship.target, this.ship.target.state !== 'Disabled');
+                this.autopilot.start();
+            }
 
-        if (pressed('a') && this.ship.state === 'Flying' && this.ship.target instanceof Ship) {
-            this.autopilot = new AttackAutopilot(this.ship, this.ship.target, this.ship.target.state !== 'Disabled');
-            this.autopilot.start();
-        }
-
-        if (pressed('k')) {
-            this.ship.takeDamage(
-                this.ship.shield.strength > 0.0 ? this.ship.shield.strength : this.ship.hullIntegrity,
-                this.ship.position, this.ship);
+            if (pressed('k')) {
+                this.ship.takeDamage(
+                    this.ship.shield.strength > 0.0 ? this.ship.shield.strength : this.ship.hullIntegrity,
+                    this.ship.position, this.ship);
+            }
         }
     }
 }

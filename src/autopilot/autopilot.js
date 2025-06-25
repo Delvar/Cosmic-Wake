@@ -354,6 +354,16 @@ export class FlyToTargetAutopilot extends Autopilot {
      * @param {GameManager} gameManager - The game manager instance for context.
      */
     update(deltaTime, gameManager) {
+        if (this.ship.state === 'Landed') {
+            if (this.ship.landedObject === this.target) {
+                this.completed = true;
+                this.stop();
+            } else {
+                this.ship.initiateTakeoff();
+            }
+            return;
+        }
+
         // Compute distance and normalized direction to target
         const distance = this.ship.position.getDirectionAndDistanceTo(
             this.target.position,
@@ -363,8 +373,8 @@ export class FlyToTargetAutopilot extends Autopilot {
 
         // Check if arrived: within arrivalDistance and matching target speed
         if (distance <= this.arrivalDistance /*&& this.ship.velocity.distanceSquaredTo(this.target.velocity) <= this.arrivalSpeed * this.arrivalSpeed*/) {
-            this.completed = true; // Mark task complete
-            this.stop(); // Deactivate autopilot
+            this.completed = true;
+            this.stop();
             return;
         }
 

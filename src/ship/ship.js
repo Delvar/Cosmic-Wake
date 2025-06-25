@@ -537,25 +537,27 @@ export class Ship extends GameObject {
         this.setState('TakingOff');
 
         if (this.target && this.target !== this.landedObject) {
-            this._scratchRadialOut.set(this.target.position).subtractInPlace(this.position).normalizeInPlace();
+            this.startPosition.set(this.position).subtractInPlace(this.landedObject.position);
+            this.endPosition.set(this.target.position).subtractInPlace(this.landedObject.position).normalizeInPlace().multiplyInPlace(this.landedObject.radius * 1.5);
         } else {
             if (this.landedObject instanceof Asteroid || this.landedObject instanceof Ship) {
-                this._scratchRadialOut.setFromPolar(1.0, this.angle);
+                this.endPosition.setFromPolar(1.0, this.angle).multiplyInPlace(this.landedObject.radius * 1.5);
             } else {
-                this._scratchRadialOut.setFromPolar(1.0, randomBetween(-Math.PI, Math.PI));
+                this.endPosition.setFromPolar(1.0, randomBetween(-Math.PI, Math.PI)).multiplyInPlace(this.landedObject.radius * 1.5);
             }
+            this.startPosition.set(this.position).subtractInPlace(this.landedObject.position);
         }
 
-        this.startPosition.set(this.position).subtractInPlace(this.landedObject.position);
-        this.endPosition.set(this._scratchRadialOut).multiplyInPlace(this.landedObject.radius * 1.5);
         this.targetAngle = this._scratchRadialOut.set(this.endPosition).subtractInPlace(this.startPosition).getAngle();
         if (this.landedObject instanceof Planet) {
-            // Start in teh right direction
+            // Start in the right direction
             this.startAngle = this.angle = this.targetAngle;
             // Remove ship from planet's landed list if applicable
             this.landedObject.removeLandedShip(this);
             // Reset trail decay
             this.trail.decayMultiplier = 1.0;
+            //Clear the trail so we dont get artifacts
+            this.trail.clear();
         } else {
             this.startAngle = this.targetAngle = this.angle;
         }
@@ -827,6 +829,7 @@ export class Ship extends GameObject {
                 this.hullIntegrity = this.maxHull;
                 this.shield.isActive = true;
                 this.shield.strength = this.shield.maxStrength;
+                this.trail.clear();
             } else if (this.landedObject instanceof Asteroid) {
                 this.shipScale = 0.8;
                 this.startAngle = normalizeAngle(this.angle - this.landedObject.spin);

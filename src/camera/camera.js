@@ -31,8 +31,6 @@ export class Camera {
 
         /** @type {HTMLCanvasElement} The main canvas for rendering. */
         this.backgroundCanvas = backgroundCanvas;
-        /** @type {CanvasRenderingContext2D} The 2D rendering context for the main canvas. */
-        this.backgroundCtx = this.backgroundCanvas.getContext('2d', { alpha: false });
 
         /** @type {HTMLCanvasElement} The canvas for rendering the HUD. */
         this.hudCanvas = hudCanvas;
@@ -104,8 +102,7 @@ export class Camera {
 
         this.foregroundCanvas.width = screenSizeX;
         this.foregroundCanvas.height = screenSizeY;
-        this.backgroundCanvas.width = screenSizeX;
-        this.backgroundCanvas.height = screenSizeY;
+
         this.foregroundCtx.font = 'bolder 16px "Century Gothic Paneuropean", "Century Gothic", "CenturyGothic", "AppleGothic", sans-serif';
 
         if (this.hudCanvas) {

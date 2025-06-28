@@ -62,7 +62,6 @@ export class Game {
         // Initialize canvas size
         this.resizeMainCamera();
         this.resizeTargetCamera();
-        //this.targetCamera.resize(200.0, 200.0);
         if (new.target === Game) Object.seal(this);
     }
 
@@ -72,6 +71,7 @@ export class Game {
     resizeMainCamera() {
         this.mainCamera.resize(window.innerWidth, window.innerHeight);
         this.hud.resize(window.innerWidth, window.innerHeight);
+        this.starField.resize('main', window.innerWidth, window.innerHeight);
     }
 
     /**
@@ -80,6 +80,7 @@ export class Game {
     resizeTargetCamera() {
         const parent = this.targetCamera.foregroundCanvas.parentElement;
         this.targetCamera.resize(parent.clientWidth, parent.clientHeight);
+        this.starField.resize('target', parent.clientWidth, parent.clientHeight);
     }
 
     /**
@@ -107,11 +108,11 @@ export class Game {
             this.timeAccumulator -= this.fixedDeltaTime;
         }
 
-        if (renderStarfield) {
+        if (renderStarfield || this.starField.useWorker) {
             let fadeout = 1.0;
             let white = 0.0;
             // Render starfield to background canvas
-            if (this.starField && this.mainCamera.backgroundCtx) {
+            if (this.starField) {
                 if (this.manager.cameraTarget instanceof Ship && (
                     this.manager.cameraTarget.state === 'JumpingOut' ||
                     this.manager.cameraTarget.state === 'JumpingIn'
@@ -127,11 +128,10 @@ export class Game {
 
                 }
                 // Draw starfield for main camera
-                this.starField.draw(this.mainCamera.backgroundCtx, this.mainCamera, fadeout, white);
-
+                this.starField.draw('main', this.mainCamera, fadeout, white);
                 // Draw starfield for target camera (if visible)
                 if (this.targetCamera && this.targetCamera.foregroundCanvas.parentElement.style.visibility === 'visible') {
-                    this.starField.draw(this.targetCamera.backgroundCtx, this.targetCamera, 1.0, 0.0);
+                    this.starField.draw('target', this.targetCamera, 1.0, 0.0);
                 }
             }
         }
@@ -416,6 +416,11 @@ export class GameManager {
         /** @type {Ship} The current target for the camera, typically the player's ship. */
         this.cameraTarget = null;
 
+        /** @type {StarField} The starfield for rendering background stars. */
+        this.starField = new StarField(10, 1000.0, 10.0, true, 10.0);
+        this.starField.addCanvas('main', mainCameraBackgroundCanvas);
+        this.starField.addCanvas('target', targetCameraBackgroundCanvas);
+
         /** @type {Object.<string, boolean>} Tracks the current state of keyboard inputs. */
         this.keys = {};
         /** @type {Object.<string, boolean>} Tracks the previous state of keyboard inputs for detecting changes. */
@@ -434,8 +439,6 @@ export class GameManager {
         /** @type {PlayerPilot} The pilot controlling the player's ship. */
         this.playerPilot = new PlayerPilot(this.playerShip);
         this.cameraTarget = this.playerShip;
-        /** @type {StarField} The starfield for rendering background stars. */
-        this.starField = new StarField(20, 1000.0, 5.0);
         /** @type {HeadsUpDisplay} The HUD for displaying game information. */
         this.hud = new HeadsUpDisplay(this, window.innerWidth, window.innerHeight);
         /** @type {number} Timer for controlling zoom text display duration. */

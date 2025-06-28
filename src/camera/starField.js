@@ -1,260 +1,142 @@
 // /src/camera/starField.js
 
+import { StarFieldWorker } from '/src/camera/starFieldWorker.js';
 import { Camera } from '/src/camera/camera.js';
-import { TWO_PI, remapRange01, remapClamp, SimpleRNG, hash } from '/src/core/utils.js';
-import { Vector2D } from '/src/core/vector2d.js';
 
 /**
- * Represents a procedurally generated starfield with parallax effects across multiple layers.
- * Uses a fixed colour palette per layer for efficient batch rendering.
+ * A lightweight proxy for rendering a starfield, delegating to either main-thread or worker-based rendering.
+ * Manages canvas contexts and communicates with a Web Worker or a local StarFieldWorker instance to render the starfield.
+ * Supports multiple canvases identified by name and handles initialization, rendering, resizing, and cleanup.
  */
 export class StarField {
     /**
      * Creates a new StarField instance.
-     * @param {number} [starsPerCell=20.0] - Number of stars per grid cell.
+     * @param {number} [starsPerCell=20.0] - Number of stars per grid cell in the starfield.
      * @param {number} [gridSize=1000.0] - Size of each grid cell in world coordinates.
-     * @param {number} [coloursPerLayer=10.0] - Number of colors per layer for rendering.
+     * @param {number} [coloursPerLayer=10.0] - Number of colors per parallax layer for rendering.
+     * @param {boolean} [useWorker=false] - Whether to use a Web Worker for rendering. Falls back to main thread if false or unsupported.
+     * @param {number} [layers=5.0] - Number of parallax layers in the starfield.
      */
-    constructor(starsPerCell = 20.0, gridSize = 1000.0, coloursPerLayer = 10.0) {
-        /** @type {number} Number of stars per grid cell. */
-        this.starsPerCell = starsPerCell;
-        /** @type {number} Size of each grid cell in world coordinates. */
-        this.gridSize = gridSize;
-        /** @type {number} Number of parallax layers in the starfield. */
-        this.layers = 5.0;
-        /** @type {number[]} Array of parallax factors for each layer (affects scrolling speed). */
-        this.parallaxFactors = [0.1, 0.3, 0.5, 0.7, 0.9];
-        /** @type {number} Number of colors per layer for rendering. */
-        this.coloursPerLayer = coloursPerLayer;
-        /** @type {boolean} Whether to round star positions to whole numbers, to speed up rendering. */
-        this.rounding = false;
+    constructor(starsPerCell = 20.0, gridSize = 1000.0, coloursPerLayer = 10.0, useWorker = false, layers = 5.0) {
+        /** @type {boolean} Whether to use a Web Worker for rendering. */
+        this.useWorker = useWorker && typeof OffscreenCanvas !== 'undefined' && typeof Worker !== 'undefined';
 
-        /** @type {Map} Cache storing star data for grid cells to improve performance. */
-        this.starCache = new Map();
-        /** @type {number} Maximum number of cells to cache (~30 KB with 20 stars/cell). */
-        this.maxCacheSize = 500.0;
+        /** @type {Object.<string, HTMLCanvasElement>} Map of canvas names to HTML canvas elements (main thread only).*/
+        this.canvasMap = {};
 
-        /** @type {Array<Array>} Scratch array for grouping stars by color during rendering. */
-        this.starsByColourScratch = new Array(coloursPerLayer);
-        for (let i = 0.0; i < coloursPerLayer; i++) {
-            this.starsByColourScratch[i] = []; // Pre-allocate inner arrays
+        /** @type {Object.<string, OffscreenCanvas>} Map of canvas names to OffscreenCanvas instances (worker mode only). */
+        this.offScreenCanvasMap = {};
+
+        /** @type {Object.<string, CanvasRenderingContext2D>} Map of canvas names to 2D rendering contexts. */
+        this.ctxMap = {};
+
+        /** @type {Worker|null} The Web Worker instance for rendering, or null if not using a worker. */
+        this.worker = null;
+
+        /** @type {StarFieldWorker|null} The StarFieldWorker instance for main-thread rendering, or null if using a worker. */
+        this.renderer = null;
+
+        //Start the web worker
+        if (this.useWorker) {
+            try {
+                this.worker = new Worker('/src/camera/starFieldWorkerWrapper.js', { type: 'module' });
+                // Send initialization data to worker
+                this.worker.postMessage({
+                    type: 'init',
+                    starsPerCell,
+                    gridSize,
+                    coloursPerLayer,
+                    layers
+                });
+            } catch (e) {
+                console.warn('Module-based worker not supported, falling back to main thread:', e);
+                this.useWorker = false;
+                this.renderer = new StarFieldWorker(starsPerCell, gridSize, coloursPerLayer, layers);
+            }
+        } else {
+            // Main-thread mode
+            this.renderer = new StarFieldWorker(starsPerCell, gridSize, coloursPerLayer, layers);
         }
-
-        /** @type {number} Initial number of visible stars for position buffer allocation. */
-        this.initialVisibleStars = 2500.0;
-        /** @type {Float32Array} Buffer storing star positions [x1, y1, x2, y2, ...]. */
-        this.positionPool = new Float32Array(this.initialVisibleStars * 2.0);
-        /** @type {number} Current index in the position pool for adding new stars. */
-        this.positionIndex = 0.0;
-
-        // Reusable Vector2D instances for coordinate transformations
-        /** @type {Vector2D} Scratch vector for the world position of a grid cell. */
-        this._scratchCellWorldPos = new Vector2D(0.0, 0.0);
-        /** @type {Vector2D} Scratch vector for the screen position of a grid cell. */
-        this._scratchScreenCellPos = new Vector2D(0.0, 0.0);
-        /** @type {Vector2D} Scratch vector for the screen position of an individual star. */
-        this._scratchStarScreenPos = new Vector2D(0.0, 0.0);
-        /** @type {Vector2D} Scratch vector for the full screen dimensions. */
-        this._scratchScreenSize = new Vector2D(0.0, 0.0);
-        /** @type {Vector2D} Scratch vector for half the screen dimensions for centering. */
-        this._scratchHalfScreenSize = new Vector2D(0.0, 0.0);
-        /** @type {Vector2D} Scratch vector for the relative position of a star within a cell. */
-        this._scratchStarRelPos = new Vector2D(0.0, 0.0);
-
-        /** @type {Array<Array<string>>} Pre-generated color palettes for each layer, containing HSL color strings. */
-        this.colourPalettes = this.generateColourPalettes();
-
         if (new.target === StarField) Object.seal(this);
     }
 
     /**
-     * Generates colour palettes for each layer based on depth.
-     * @returns {Array<Array<string>>} Array of colour palettes, one per layer.
+     * Adds a canvas for rendering the starfield.
+     * In worker mode, transfers control to an OffscreenCanvas; in main-thread mode, stores the canvas and its context.
+     * @param {string} name - The unique identifier for the canvas.
+     * @param {HTMLCanvasElement} canvas - The HTML canvas element to render the starfield to.
      */
-    generateColourPalettes() {
-        const palettes = [];
-        for (let layer = 0.0; layer < this.layers; layer++) {
-            const layerRatio = layer / (this.layers - 1.0);
-            const distanceRatio = 1 - layerRatio;
-            const palette = [];
-            for (let c = 0.0; c < this.coloursPerLayer; c++) {
-                const hue = Math.floor(Math.random() * 360.0);
-                const minSaturation = remapRange01(distanceRatio, 0.0, 30.0);
-                const maxSaturation = remapRange01(distanceRatio, 10.0, 50.0);
-                const saturation = Math.floor(minSaturation + Math.random() * (maxSaturation - minSaturation));
-                const minLightness = remapRange01(distanceRatio, 80.0, 20.0);
-                const maxLightness = remapRange01(distanceRatio, 100.0, 60.0);
-                const lightness = Math.floor(minLightness + Math.random() * (maxLightness - minLightness));
-                palette.push(`hsl(${hue}, ${saturation}%, ${lightness}%)`);
-            }
-            palettes.push(palette);
-        }
-        return palettes;
-    }
-
-    /**
-     * Generates stars for a specific grid cell and layer using a single Uint8Array.
-     * @param {number} i - The x-index of the grid cell.
-     * @param {number} j - The y-index of the grid cell.
-     * @param {number} layer - The layer index (0 to  4.0).
-     * @param {number} starCount - Number of stars in the cell.
-     * @param {Array<string>} palette - The layer's colour palette.
-     * @returns {Uint8Array} Star data: [relX, relY, colourIdx, ...]
-     */
-    generateStarsForCell(i, j, layer, starCount, palette) {
-        const seed = hash(i, j, layer);
-        const rng = new SimpleRNG(seed);
-        const starData = new Uint8Array(starCount * 3.0);
-
-        for (let k = 0.0; k < starCount; k++) {
-            const baseIdx = k * 3.0;
-            starData[baseIdx] = Math.floor(rng.next() * 256.0);
-            starData[baseIdx + 1.0] = Math.floor(rng.next() * 256.0);
-            starData[baseIdx + 2.0] = Math.floor(rng.next() * palette.length);
-        }
-
-        return starData;
-    }
-
-    /**
-     * Expands the positionPool if it’s too small to hold all visible stars.
-     * @param {number} requiredStars - Number of stars needed.
-     */
-    expandPositionPool(requiredStars) {
-        const currentCapacity = this.positionPool.length / 2.0; // Current max stars
-        if (requiredStars <= currentCapacity) return;
-
-        const newCapacity = Math.max(requiredStars, currentCapacity + 100.0); // Expand to requiredStars or current + 100
-        const newPool = new Float32Array(newCapacity * 2.0);
-        newPool.set(this.positionPool); // Copy existing data
-        this.positionPool = newPool;
-    }
-
-    /**
-     * Prunes the starCache to keep it under maxCacheSize by removing the oldest entries.
-     */
-    pruneCache() {
-        const keys = this.starCache.keys();
-        while (this.starCache.size > this.maxCacheSize) {
-            const oldestKey = keys.next().value;
-            this.starCache.delete(oldestKey);
+    addCanvas(name, canvas) {
+        if (this.useWorker) {
+            const offscreen = canvas.transferControlToOffscreen()
+            this.offScreenCanvasMap[name] = offscreen;
+            this.worker.postMessage({
+                type: 'addCanvas',
+                name: name,
+                canvas: offscreen
+            }, [offscreen]);
+        } else {
+            this.canvasMap[name] = canvas;
+            this.ctxMap[name] = canvas.getContext('2d', { alpha: false });
         }
     }
 
     /**
-     * Renders the starfield to the canvas, batching stars by colour.
-     * @param {CanvasRenderingContext2D} ctx - The canvas rendering context.
-     * @param {Camera} camera - The camera object with position (Vector2D) and screenSize (width/height).
-     * @param {number} fadeout - the alpha level of the blank out, 1.0 clear to black, < 1.0 leaves trails
-     * @param {number} white - the whiteout amount, 0.0 = black, 1.0 = full white
+     * Renders the starfield to the specified canvas.
+     * In worker mode, sends a render message to the worker; in main-thread mode, delegates to the StarFieldWorker instance.
+     * @param {string} name - The name of the canvas to render to.
+     * @param {Camera} camera - The camera object with position (Vector2D) and zoom properties.
+     * @param {number} fadeout - The alpha level for background fade, where 1.0 clears to black and < 1.0 leaves trails.
+     * @param {number} white - The whiteout amount, where 0.0 is black and 1.0 is full white.
      */
-    draw(ctx, camera, fadeout, white) {
-        ctx.save();
-        white = Math.round(white * 255.0);
-        ctx.fillStyle = `rgba(${white},  ${white},  ${white}, ${fadeout})`
-        ctx.fillRect(0.0, 0.0, camera.screenSize.width, camera.screenSize.height);
-
-        if (fadeout < 0.25) {
-            ctx.globalCompositeOperation = 'screen';
+    draw(name, camera, fadeout, white) {
+        if (this.useWorker) {
+            this.worker.postMessage({
+                type: 'render',
+                name: name,
+                cameraPositionX: camera.position.x,
+                cameraPositionY: camera.position.y,
+                cameraZoom: camera.zoom,
+                fadeout: fadeout,
+                white: white
+            });
+        } else {
+            const ctx = this.ctxMap[name];
+            this.renderer.draw(ctx, camera.position.x, camera.position.y, camera.zoom, fadeout, white);
         }
+    }
 
-        this._scratchScreenSize.set(camera.screenSize.width, camera.screenSize.height);
-        this._scratchHalfScreenSize.set(this._scratchScreenSize).multiplyInPlace(0.5);
-
-        this.positionIndex = 0.0;
-
-        const layerFrom = Math.round(remapClamp(camera.zoom, 0.5, 1.0, this.layers - 3.0, 0.0));
-        const layerTo = Math.max(layerFrom, (fadeout < 0.27 ? 3.0 : this.layers));
-
-        for (let layer = layerFrom; layer < layerTo; layer++) {
-            const parallaxFactor = this.parallaxFactors[layer];
-
-            const starsByColour = this.starsByColourScratch;
-            for (let i = 0.0; i < this.coloursPerLayer; i++) {
-                starsByColour[i].length = 0.0;
-            }
-
-            const parallaxZoom = parallaxFactor * camera.zoom;
-            const layerRatio = layer / (this.layers - 1.0);
-            const distanceRatio = 1 - layerRatio;
-            const starCount = Math.round(1 + (this.starsPerCell * distanceRatio * distanceRatio));
-
-            // Calculate visible grid bounds
-            const visibleWidth = camera.screenSize.width / parallaxZoom;
-            const visibleHeight = camera.screenSize.height / parallaxZoom;
-            const visibleLeft = camera.position.x - visibleWidth / 2.0;
-            const visibleRight = camera.position.x + visibleWidth / 2.0;
-            const visibleTop = camera.position.y - visibleHeight / 2.0;
-            const visibleBottom = camera.position.y + visibleHeight / 2.0;
-
-            const gridLeft = Math.floor(visibleLeft / this.gridSize);
-            const gridRight = Math.ceil(visibleRight / this.gridSize);
-            const gridTop = Math.floor(visibleTop / this.gridSize);
-            const gridBottom = Math.ceil(visibleBottom / this.gridSize);
-
-            const cellScreenWidth = this.gridSize * parallaxZoom;
-            const cellScreenHeight = this.gridSize * parallaxZoom;
-
-            const palette = this.colourPalettes[layer];
-
-            for (let i = gridLeft; i < gridRight; i++) {
-                for (let j = gridTop; j < gridBottom; j++) {
-                    const cacheKey = ((i % 1000.0 + 1000.0) % 1000.0) * 1e4 + ((j % 1000.0 + 1000.0) % 1000.0) * 1e1 + layer;
-                    let starData = this.starCache.get(cacheKey);
-                    if (!starData) {
-                        starData = this.generateStarsForCell(i, j, layer, starCount, palette);
-                        this.starCache.set(cacheKey, starData);
-                    }
-
-                    this._scratchCellWorldPos.set(i * this.gridSize, j * this.gridSize);
-                    this._scratchScreenCellPos.set(this._scratchCellWorldPos)
-                        .subtractInPlace(camera.position)
-                        .multiplyInPlace(parallaxZoom)
-                        .addInPlace(this._scratchHalfScreenSize);
-
-                    for (let k = 0.0; k < starCount; k++) {
-                        const baseIdx = k * 3.0;
-                        const relX = starData[baseIdx] / 255.0;
-                        const relY = starData[baseIdx + 1.0] / 255.0;
-                        const colourIdx = starData[baseIdx + 2];
-
-                        this._scratchStarRelPos.set(relX * cellScreenWidth, relY * cellScreenHeight);
-                        this._scratchStarScreenPos.set(this._scratchScreenCellPos).addInPlace(this._scratchStarRelPos);
-
-                        if (this._scratchStarScreenPos.x >= 0.0 && this._scratchStarScreenPos.x < this._scratchScreenSize.x &&
-                            this._scratchStarScreenPos.y >= 0.0 && this._scratchStarScreenPos.y < this._scratchScreenSize.y) {
-                            if (this.positionIndex >= this.positionPool.length / 2.0) {
-                                this.expandPositionPool(this.positionIndex + 1.0);
-                            }
-                            const posIdx = this.positionIndex * 2.0;
-                            this.positionPool[posIdx] = this._scratchStarScreenPos.x;
-                            this.positionPool[posIdx + 1.0] = this._scratchStarScreenPos.y;
-                            starsByColour[colourIdx].push(posIdx);
-                            this.positionIndex++;
-                        }
-                    }
-                }
-            }
-
-            const size = remapClamp(layer, 0.0, this.layers - 1.0, 1.0, 3.0);
-            const halfSize = size / 2.0;
-            for (let colourIdx = 0.0; colourIdx < palette.length; colourIdx++) {
-                const positions = starsByColour[colourIdx];
-                if (positions.length) {
-                    ctx.fillStyle = palette[colourIdx];
-                    for (const posIdx of positions) {
-                        const x = this.positionPool[posIdx];
-                        const y = this.positionPool[posIdx + 1];
-                        if (this.rounding) {
-                            ctx.fillRect(Math.round(x), Math.round(y), Math.round(size), Math.round(size));
-                        } else {
-                            ctx.fillRect(x - halfSize, y - halfSize, size, size);
-                        }
-                    }
-                }
-            }
+    /**
+     * Resizes the specified canvas to the given dimensions.
+     * In worker mode, sends a resize message to the worker; in main-thread mode, updates the canvas directly.
+     * @param {string} name - The name of the canvas to resize.
+     * @param {number} width - The new width of the canvas in pixels.
+     * @param {number} height - The new height of the canvas in pixels.
+     */
+    resize(name, width, height) {
+        if (this.useWorker) {
+            this.worker.postMessage({
+                type: 'resize',
+                name: name,
+                width: width,
+                height: height
+            });
+        } else {
+            const canvas = this.canvasMap[name];
+            canvas.width = width;
+            canvas.height = height;
         }
-        this.pruneCache();
-        ctx.restore();
+    }
+
+    /**
+     * Cleans up resources by terminating the worker (if used) and clearing canvas maps.
+     */
+    destroy() {
+        if (this.useWorker && this.worker) {
+            this.worker.terminate();
+            this.worker = null;
+            this.offScreenCanvasMap = {};
+            this.ctxMap = {};
+        }
     }
 }

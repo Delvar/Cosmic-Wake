@@ -25,39 +25,6 @@ const colourBlue = new Colour(0.0, 0.0, 1.0);
 const colourWhite = new Colour(1.0, 1.0, 1.0);
 
 /**
- * Generates a random, sometimes quirky, name for a ship.
- * @returns {string} the generated name.
- */
-function generateShipName() {
-    const prefixes = [
-        "Star", "Void", "Nova", "Astro", "Hyper", "Galacto", "Nebula",
-        "Cosmo", "Solar", "Lunar", "Stellar", "Eclipse", "Quantum", "Ion",
-        "Pulse", "Graviton", "Meteor", "Celestial",
-        "Mega", "Disco", "Funky", "Wobbly", "Gizmo", "Bloop", "Snaccident"
-    ];
-    const roots = [
-        "lance", "reaver", "scout", "wing", "drifter", "navigator", "breaker",
-        "strike", "voyager", "frigate", "cruiser", "probe", "dread", "spire",
-        "runner", "falcon", "comet", "raider",
-        "tickler", "wobbler", "floof", "noodle", "blasterpants", "zoomzoom", "chugger"
-    ];
-    const suffixes = [
-        "-X", "-on", "-ia", "-or", "-tron", "-ix", "-us", "-ex", "-is", "-oid",
-        "-ara", "-tek", "-nova", "-pulse",
-        "-inator", "-zoid", "-omatic", "-erino", "-splosion", "-licious", "-pants"
-    ];
-    const upperFirst = (word) => word.charAt(0).toUpperCase() + word.slice(1);
-    const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
-    const root = (Math.random() > 0.5) ? roots[Math.floor(Math.random() * roots.length)] : ' ' + upperFirst(roots[Math.floor(Math.random() * roots.length)]);
-    let name = `${prefix}${root}`;
-    const addSuffix = Math.random() < 0.2;
-    if (addSuffix) name += suffixes[Math.floor(Math.random() * suffixes.length)];
-    const addNumber = Math.random() < (addSuffix ? 0.05 : 0.2);
-    if (addNumber) name += ` ${Math.floor(Math.random() * 99.0) + 1.0}`;
-    return name;
-}
-
-/**
  * Checks if a target is still valid (not despawned and exists in the galaxy).
  * @param {Ship} source - The source game object to validate.
  * @param {Ship} target - The target game object to validate.
@@ -97,9 +64,11 @@ export class Ship extends GameObject {
         /** @type {Ship[]} List of hostile ships. */
         this.hostiles = [];
         /** @type {string} Unique name for the ship, generated randomly. */
-        this.name = generateShipName();
+        this.name = 'unnamed';
         /** @type {number} Rotation speed in radians per second. */
         this.rotationSpeed = Math.PI;
+        /** @type {number} the radius in world units. */
+        this.radius = 20.0;
         /** @type {number} Thrust acceleration in units per second squared. */
         this.thrust = 250.0;
         /** @type {number} Maximum velocity in units per second. */

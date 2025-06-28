@@ -20,6 +20,7 @@ import { StarSystem } from '/src/starSystem/starSystem.js';
 import { EscortJob } from '/src/job/escortJob.js';
 import { FactionManager, FactionRelationship } from './faction.js';
 import { Colour } from '/src/core/colour.js';
+import { generateShipName } from '/src/ship/shipNameGenerator.js';
 //import { wrapCanvasContext } from '/src/core/utils.js';
 
 /**
@@ -462,12 +463,14 @@ export class GameManager {
         escort01.colors.wings = this.playerShip.colors.wings;
         escort01.colors.hull = this.playerShip.colors.hull;
         escort01.trail.color = this.playerShip.trail.color;
+        escort01.name = generateShipName(escort01);
         this.galaxy[0].addGameObject(escort01);
         this.playerShip.setTarget(escort01);
         this.playerShip.turretMode = 'Target-only';
 
         // Set player pilot
         this.playerShip.pilot = this.playerPilot;
+        this.playerShip.name = generateShipName(this.playerShip);
         this.galaxy[0].ships.push(this.playerShip);
 
         // Initialize game systems
@@ -642,6 +645,7 @@ export class GameManager {
                     aiShip.shipScale = 0.0;
                     aiShip.velocity.set(0.0, 0.0);
                     aiShip.landedObject = spawnPlanet;
+                    aiShip.name = generateShipName(aiShip);
                     spawnPlanet.addLandedShip(aiShip);
                     system.addGameObject(aiShip);
 
@@ -660,6 +664,7 @@ export class GameManager {
                             escort.shipScale = 0.0;
                             escort.velocity.set(0.0, 0.0);
                             escort.landedObject = spawnPlanet;
+                            escort.name = generateShipName(escort);
                             spawnPlanet.addLandedShip(escort);
                             system.addGameObject(escort);
                             if (escort.faction === civilianFaction) {

@@ -29,7 +29,7 @@ export class AiPilot extends Pilot {
             // Set the job pilot so it can update back to us
             job.pilot = this;
         }
-        /** @type {Object} The job instance controlling high-level behavior (e.g., WandererJob). */
+        /** @type {Job} The job instance controlling high-level behavior (e.g., WandererJob). */
         this.job = job;
         /** @type {boolean} Whether to attack ships that are disabled. */
         this.attackDisabledShips = attackDisabledShips;

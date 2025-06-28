@@ -165,15 +165,11 @@ export class StarFieldWorker {
      * @param {number} white - the whiteout amount, 0.0 = black, 1.0 = full white
      */
     draw(ctx, cameraPostionX, cameraPostionY, cameraZoom, fadeout, white) {
-        // const seconds = new Date().getSeconds();
-        // const colours = ['red', 'green', 'blue'];
-        // const colour = colours[seconds % colours.length];
         const screenWidth = ctx.canvas.width;
         const screenHeight = ctx.canvas.height;
         ctx.save();
         white = Math.round(white * 255.0);
         ctx.fillStyle = `rgba(${white},  ${white},  ${white}, ${fadeout})`;
-        //ctx.fillStyle = colour;
         ctx.fillRect(0.0, 0.0, screenWidth, screenHeight);
 
         if (fadeout < 0.25) {
@@ -182,13 +178,6 @@ export class StarFieldWorker {
 
         this._scratchScreenSize.set(screenWidth, screenHeight);
         this._scratchHalfScreenSize.set(this._scratchScreenSize).multiplyInPlace(0.5);
-
-        ctx.fillStyle = 'red';
-        ctx.fillRect(this._scratchHalfScreenSize.x - 2.5, this._scratchHalfScreenSize.y - 2.5, 5.0, 5.0);
-        ctx.fillStyle = 'green';
-        ctx.fillRect(this._scratchScreenSize.x - 5.0, this._scratchScreenSize.y - 5.0, 5.0, 5.0);
-        ctx.fillStyle = 'blue';
-        ctx.fillRect(0.0, 0.0, 5.0, 5.0);
 
         this.positionIndex = 0.0;
 

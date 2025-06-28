@@ -21,8 +21,11 @@ export class StarField {
         /** @type {boolean} Whether to use a Web Worker for rendering. */
         this.useWorker = useWorker && typeof OffscreenCanvas !== 'undefined' && typeof Worker !== 'undefined';
 
-        /** @type {Object.<string, HTMLCanvasElement>} Map of canvas names to HTML canvas elements (main thread only).*/
+        /** @type {Object.<string, HTMLCanvasElement>} Map of canvas names to HTML canvas elements (main thread only). */
         this.canvasMap = {};
+
+        /** @type {Object.<string, Object>} Map of canvas names to rendering data (e.g., camera parameters). */
+        this.dataMap = {};
 
         /** @type {Object.<string, OffscreenCanvas>} Map of canvas names to OffscreenCanvas instances (worker mode only). */
         this.offScreenCanvasMap = {};
@@ -90,19 +93,41 @@ export class StarField {
      * @param {number} white - The whiteout amount, where 0.0 is black and 1.0 is full white.
      */
     draw(name, camera, fadeout, white) {
+        const data = this.dataMap[name] || { dirty: true };
+
+        if (
+            !data.dirty &&
+            camera.position.x == data.cameraPositionX &&
+            camera.position.y == data.cameraPositionY &&
+            camera.zoom == data.cameraZoom &&
+            fadeout == data.fadeout &&
+            white == data.white
+        ) {
+            return;
+        }
+
+        data.cameraPositionX = camera.position.x;
+        data.cameraPositionY = camera.position.y;
+        data.cameraZoom = camera.zoom;
+        data.fadeout = fadeout;
+        data.white = white;
+        data.dirty = false;
+        this.dataMap[name] = data;
+
         if (this.useWorker) {
             this.worker.postMessage({
                 type: 'render',
                 name: name,
-                cameraPositionX: camera.position.x,
-                cameraPositionY: camera.position.y,
-                cameraZoom: camera.zoom,
-                fadeout: fadeout,
-                white: white
+                cameraPositionX: data.cameraPositionX,
+                cameraPositionY: data.cameraPositionY,
+                cameraZoom: data.cameraZoom,
+                fadeout: data.fadeout,
+                white: data.white,
+                dirty: true
             });
         } else {
             const ctx = this.ctxMap[name];
-            this.renderer.draw(ctx, camera.position.x, camera.position.y, camera.zoom, fadeout, white);
+            this.renderer.draw(ctx, data.cameraPositionX, data.cameraPositionY, data.cameraZoom, data.fadeout, data.white);
         }
     }
 
@@ -114,6 +139,9 @@ export class StarField {
      * @param {number} height - The new height of the canvas in pixels.
      */
     resize(name, width, height) {
+        const data = this.dataMap[name] || {};
+        data.dirty = true;
+
         if (this.useWorker) {
             this.worker.postMessage({
                 type: 'resize',

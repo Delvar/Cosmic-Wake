@@ -108,7 +108,7 @@ export class Game {
             this.timeAccumulator -= this.fixedDeltaTime;
         }
 
-        if (renderStarfield || this.starField.useWorker) {
+        if (renderStarfield) {
             let fadeout = 1.0;
             let white = 0.0;
             // Render starfield to background canvas

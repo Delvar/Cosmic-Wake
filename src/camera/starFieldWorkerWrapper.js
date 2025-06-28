@@ -13,34 +13,19 @@ class StarFieldWorkerWrapper {
      * Initializes properties, sets up message handlers, and starts the rendering loop.
      */
     constructor() {
-        /**
-         * @type {StarFieldWorker|null} The StarFieldWorker instance for rendering the starfield.
-         * @private
-         */
+        /** @type {StarFieldWorker|null} The StarFieldWorker instance for rendering the starfield. */
         this.starField = null;
 
-        /**
-         * @type {Object.<string, OffscreenCanvas>} Map of canvas names to OffscreenCanvas instances.
-         * @private
-         */
+        /** @type {Object.<string, OffscreenCanvas>} Map of canvas names to OffscreenCanvas instances. */
         this.canvasMap = {};
 
-        /**
-         * @type {Object.<string, CanvasRenderingContext2D>} Map of canvas names to 2D rendering contexts.
-         * @private
-         */
+        /** @type {Object.<string, CanvasRenderingContext2D>} Map of canvas names to 2D rendering contexts. */
         this.ctxMap = {};
 
-        /**
-         * @type {Object.<string, Object>} Map of canvas names to rendering data (e.g., camera parameters).
-         * @private
-         */
+        /** @type {Object.<string, Object>} Map of canvas names to rendering data (e.g., camera parameters). */
         this.dataMap = {};
 
-        /**
-         * @type {Object.<string, Function>} Map of message types to their handler functions.
-         * @private
-         */
+        /** @type {Object.<string, Function>} Map of message types to their handler functions. */
         this.messageHandlers = {
             'init': this.handleInit.bind(this),
             'resize': this.handleResize.bind(this),
@@ -48,10 +33,7 @@ class StarFieldWorkerWrapper {
             'addCanvas': this.handleAddCanvas.bind(this)
         };
 
-        /**
-         * @type {Function} Bound render method for the animation loop.
-         * @private
-         */
+        /** @type {Function} Bound render method for the animation loop. */
         this.render = this.render.bind(this);
         this.render();
         if (new.target === StarFieldWorkerWrapper) Object.seal(this);
@@ -99,6 +81,8 @@ class StarFieldWorkerWrapper {
         const canvas = this.canvasMap[name];
         canvas.width = data.width;
         canvas.height = data.height;
+        const oldData = this.dataMap[name] || {};
+        oldData.dirty = true;
     }
 
     /**
@@ -115,7 +99,6 @@ class StarFieldWorkerWrapper {
         const name = data.name;
         const ctx = this.ctxMap[name];
         this.dataMap[name] = data;
-        // this.starField.draw(ctx, data.cameraPositionX, data.cameraPositionY, data.cameraZoom, data.fadeout, data.white);
     }
 
     /**
@@ -142,9 +125,11 @@ class StarFieldWorkerWrapper {
             if (!name) continue;
             const data = this.dataMap[name];
             if (!data) continue;
+            if (!data.dirty) continue;
             const ctx = this.ctxMap[name];
             if (!ctx) continue;
             this.starField.draw(ctx, data.cameraPositionX, data.cameraPositionY, data.cameraZoom, data.fadeout, data.white);
+            data.dirty = false;
         }
         requestAnimationFrame(this.render);
     }

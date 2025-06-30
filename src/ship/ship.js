@@ -457,7 +457,7 @@ export class Ship extends GameObject {
         if (this.canLand(target)) {
             this.setState('Landing');
             this.landedObject = target;
-            this.startPosition.set(this.position).subtractInPlace(this.landedObject.position);
+            this.startPosition.set(this.velocity).multiplyInPlace(1.0 / 60.0).addInPlace(this.position).subtractInPlace(this.landedObject.position);
             if (this.landedObject instanceof Planet) {
                 this.endPosition.set(this.position)
                     .subtractInPlace(this.landedObject.position)
@@ -485,10 +485,9 @@ export class Ship extends GameObject {
         if (this.canBoard(target)) {
             this.setState('Landing');
             this.landedObject = target;
-            this.startPosition.set(this.position).subtractInPlace(this.landedObject.position);
+            this.startPosition.set(this.velocity).multiplyInPlace(1.0 / 60.0).addInPlace(this.position).subtractInPlace(this.landedObject.position);
             this.endPosition.set(0.0, 0.0);
             this.startAngle = this.angle;
-            this.velocity.set(this.landedObject.velocity);
             this.isThrusting = false;
             this.isBraking = false;
             return true;
@@ -803,8 +802,7 @@ export class Ship extends GameObject {
                 this.shipScale = 0.8;
                 this.startAngle = normalizeAngle(this.angle - this.landedObject.spin);
             } else if (this.landedObject instanceof Ship) {
-                // Update landing start position with ship's velocity
-                this.startPosition.addInPlace(this._scratchTemp.set(this.landedObject.velocity).multiplyInPlace(deltaTime));
+                this.position.set(this.endPosition).addInPlace(this.landedObject.position);
                 this.angle = this.landedObject.angle;
             }
         }

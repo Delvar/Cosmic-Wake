@@ -16,7 +16,7 @@ export class Camera {
      * @param {HTMLCanvasElement} [hudCanvas=null] - The canvas for rendering the HUD (optional).
      * @param {number} [zoom=1] - The initial zoom level (default is  1.0).
      */
-    constructor(foregroundCanvas, backgroundCanvas, hudCanvas = null, zoom = 1.0) {
+    constructor(foregroundCanvas, backgroundCanvas, hudCanvas = null, hudOutlineCanvas = null, zoom = 1.0) {
         /** @type {boolean} Enables or disables debug mode for the camera. */
         this.debug = false;
         /** @type {StarSystem|null} The star system the camera is currently viewing. */
@@ -36,6 +36,11 @@ export class Camera {
         this.hudCanvas = hudCanvas;
         /** @type {CanvasRenderingContext2D} The 2D rendering context for the HUD canvas. */
         this.hudCtx = this.hudCanvas ? this.hudCanvas.getContext('2d') : null;
+
+        /** @type {HTMLCanvasElement} The canvas for rendering the HUD. */
+        this.hudOutlineCanvas = hudOutlineCanvas;
+        /** @type {CanvasRenderingContext2D} The 2D rendering context for the HUD canvas. */
+        this.hudOutlineCtx = this.hudOutlineCanvas ? this.hudOutlineCanvas.getContext('2d') : null;
 
         /** @type {Vector2D} The size of the screen in pixels. */
         this.screenSize = new Vector2D(0.0, 0.0);
@@ -109,6 +114,10 @@ export class Camera {
             this.hudCanvas.width = screenSizeX;
             this.hudCanvas.height = screenSizeY;
             this.hudCtx.font = 'bolder 16px "Century Gothic Paneuropean", "Century Gothic", "CenturyGothic", "AppleGothic", sans-serif';
+        }
+        if (this.hudOutlineCanvas) {
+            this.hudOutlineCanvas.width = screenSizeX;
+            this.hudOutlineCanvas.height = screenSizeY;
         }
 
         this._updateWorldBounds(); // Update world-space bounds
@@ -292,8 +301,8 @@ export class TargetCamera extends Camera {
      * @param {HTMLCanvasElement} hudCanvas - The canvas for rendering the HUD.
      * @param {number} [zoom=1] - The initial zoom level (default is  1.0).
      */
-    constructor(foregroundCanvas, backgroundCanvas, hudCanvas, zoom = 1.0) {
-        super(foregroundCanvas, backgroundCanvas, hudCanvas, zoom);
+    constructor(foregroundCanvas, backgroundCanvas, hudCanvas = null, hudOutlineCanvas = null, zoom = 1.0) {
+        super(foregroundCanvas, backgroundCanvas, hudCanvas, hudOutlineCanvas, zoom);
         /** @type {number} Cache for the last target size to avoid recomputing zoom. */
         this.lastTargetSize = null;
         /** @type {number} Cache for the last zoom level to detect changes. */

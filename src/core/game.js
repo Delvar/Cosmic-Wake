@@ -174,24 +174,30 @@ export class Game {
     /**
      * Draws the ships Shields and Hull to the screen
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
+     * @param {CanvasRenderingContext2D} outlineCtx - The canvas rendering context for darker outlines.
      * @param {Camera} camera - The camera object for world-to-screen conversion.
      * @param {Ship} ship - The ship object to get the stats from.
      */
-    drawShipStats(ctx, camera, ship) {
-        ctx.save();
+    drawShipStats(ctx, outlineCtx, camera, ship) {
+        const white = 'white';
+        const black = 'black';
+
         const shieldRatio = remapClamp(ship.shield.strength, 0.0, ship.shield.maxStrength, 0.0, 1.0);
         const hullRatio = remapClamp(ship.hullIntegrity, 0.0, ship.maxHull, 0.0, 1.0);
         const centerX = camera.screenCenter.x;
         const barHeight = 8.0;
         const barGap = 8.0;
-        const barWidth = camera.screenSize.width - barGap * 2.0;
-        let top = camera.screenSize.height - barGap - barHeight;
+        const barWidth = Math.round(camera.screenSize.width - barGap * 2.0);
+        let top = Math.round(camera.screenSize.height - barGap - barHeight);
         let width = Math.round(barWidth * shieldRatio * 0.5);
-        //ctx.shadowBlur =  0.0;
+
         ctx.fillStyle = Colour.BlueDark.toRGB();
         ctx.fillRect(barGap, top, barWidth, barHeight);
-        //ctx.shadowBlur =  8.0;
-        //ctx.shadowColor = 'rgba(64,  64.0,  255.0, 0.75)';
+
+        outlineCtx.strokeStyle = black;
+        outlineCtx.lineWidth = 1.0;
+        outlineCtx.strokeRect(barGap - 0.5, top - 0.5, barWidth + 1.0, barHeight + 1.0);
+
         if (ship.shield.rapidRechargeEffectTime > 0.0) {
             const now = Date.now();
             ctx.fillStyle = (Math.floor(now / 100) % 2 === 0)
@@ -204,11 +210,10 @@ export class Game {
 
         top = top - barGap - barHeight;
         width = Math.round(barWidth * hullRatio * 0.5);
-        //ctx.shadowBlur =  0.0;
         ctx.fillStyle = Colour.GreenDark.toRGB();
         ctx.fillRect(barGap, top, barWidth, barHeight);
-        //ctx.shadowColor = 'rgba(64,  255.0,  64.0, 0.75)';
-        //ctx.shadowBlur =  8.0;
+        outlineCtx.strokeRect(barGap - 0.5, top - 0.5, barWidth + 1.0, barHeight + 1.0);
+
         if (ship.protectionTime > 0.0) {
             const now = Date.now();
             ctx.fillStyle = (Math.floor(now / 100) % 2 === 0)
@@ -218,7 +223,6 @@ export class Game {
             ctx.fillStyle = Colour.Green.toRGB();
         }
         ctx.fillRect(centerX - width, top, width * 2.0, barHeight);
-        ctx.restore();
     }
 
     /**
@@ -301,9 +305,9 @@ export class Game {
             ctx.restore();
         }
 
-        this.hud.draw(camera.hudCtx, camera);
+        this.hud.draw(camera.hudCtx, camera.hudOutlineCtx, camera);
         if (cameraTarget && cameraTarget instanceof Ship) {
-            this.drawShipStats(camera.hudCtx, camera, cameraTarget);
+            this.drawShipStats(camera.hudCtx, camera.hudOutlineCtx, camera, cameraTarget);
         }
         this.renderTargetView();
 
@@ -343,10 +347,14 @@ export class Game {
         if (target instanceof Ship) {
             camera.hudCanvas.style.visibility = 'visible';
             camera.hudCanvas.style.opacity = '1.0';
-            this.drawShipStats(camera.hudCtx, camera, target);
+            camera.hudOutlineCanvas.style.visibility = 'visible';
+            camera.hudOutlineCanvas.style.opacity = '1.0';
+            this.drawShipStats(camera.hudCtx, camera.hudOutlineCtx, camera, target);
         } else {
             camera.hudCanvas.style.visibility = 'hidden';
             camera.hudCanvas.style.opacity = '0.0';
+            camera.hudOutlineCanvas.style.visibility = 'hidden';
+            camera.hudOutlineCanvas.style.opacity = '0.0';
         }
 
         if (this.manager.cameraTarget.target instanceof Ship) {
@@ -406,14 +414,16 @@ export class GameManager {
         const mainCameraForegroundCanvas = document.getElementById('mainCameraForeground');
         const mainCameraBackgroundCanvas = document.getElementById('mainCameraBackground');
         const mainCameraHudCanvas = document.getElementById('mainCameraHud');
+        const mainCameraHudOutlineCanvas = document.getElementById('mainCameraHudOutline');
         const targetCameraForegroundCanvas = document.getElementById('targetCameraForeground');
         const targetCameraBackgroundCanvas = document.getElementById('targetCameraBackground');
         const targetCameraHudCanvas = document.getElementById('targetCameraHud');
+        const targetCameraHudOutlineCanvas = document.getElementById('targetCameraHudOutline');
 
         /** @type {Camera} The main camera tracking the player's ship. */
-        this.mainCamera = new Camera(mainCameraForegroundCanvas, mainCameraBackgroundCanvas, mainCameraHudCanvas, 1.0);
+        this.mainCamera = new Camera(mainCameraForegroundCanvas, mainCameraBackgroundCanvas, mainCameraHudCanvas, mainCameraHudOutlineCanvas, 1.0);
         /** @type {TargetCamera} The camera for the target view, rendering a secondary perspective. */
-        this.targetCamera = new TargetCamera(targetCameraForegroundCanvas, targetCameraBackgroundCanvas, targetCameraHudCanvas, 1.0);
+        this.targetCamera = new TargetCamera(targetCameraForegroundCanvas, targetCameraBackgroundCanvas, targetCameraHudCanvas, targetCameraHudOutlineCanvas, 1.0);
         /** @type {Ship} The current target for the camera, typically the player's ship. */
         this.cameraTarget = null;
 

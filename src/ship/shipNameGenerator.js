@@ -298,6 +298,7 @@ export function generateShipName(ship) {
         name = data.prefixes[jobName] + name;
     }
 
+    console.log(name);
     return name;
 }
 

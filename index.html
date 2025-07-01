@@ -67,10 +67,17 @@
             z-index: 2;
         }
 
+        #mainCameraHudOutline,
+        #targetCameraHudOutline {
+            z-index: 3;
+            mix-blend-mode: multiply;
+            transition: visibility 0.5s linear, opacity 0.5s ease-in-out;
+        }
+
         #mainCameraHud,
         #targetCameraHud {
-            z-index: 3;
-            mix-blend-mode: lighten;
+            z-index: 4;
+            mix-blend-mode: plus-lighter;
             transition: visibility 0.5s linear, opacity 0.5s ease-in-out;
         }
 
@@ -117,6 +124,7 @@
     <div id="mainCamera">
         <canvas id="mainCameraBackground"></canvas>
         <canvas id="mainCameraForeground"></canvas>
+        <canvas id="mainCameraHudOutline" style="visibility: visible; opacity: 1;"></canvas>
         <canvas id="mainCameraHud" style="visibility: visible; opacity: 1;"></canvas>
     </div>
     <div id="targetCamera" style="  width: 200px; 
@@ -127,6 +135,7 @@
                                     opacity: 1;" draggable="true">
         <canvas id="targetCameraBackground"></canvas>
         <canvas id="targetCameraForeground"></canvas>
+        <canvas id="targetCameraHudOutline" style="visibility: visible; opacity: 1;"></canvas>
         <canvas id="targetCameraHud" style="visibility: visible; opacity: 1;"></canvas>
         <span class="resize-handle top-left"></span>
         <span class="resize-handle top-right"></span>

@@ -60,40 +60,93 @@ const nameData = {
             'Golden', 'Blue', 'Silver', 'Bright', 'Wistful', 'Noble', 'Swift', 'Lucky',
             'Radiant', 'Misty', 'Bold', 'Serene', 'Starlit', 'Gentle', 'Hopeful',
             'Cosmic', 'Lunar', 'Stellar', 'Nebulous', 'Glinting', 'Velvet', 'Tranquil',
-            'Vivid', 'Celestial', 'Auroral', 'Ethereal', 'Shimmering', 'Pristine', 'Soaring'
+            'Vivid', 'Celestial', 'Auroral', 'Ethereal', 'Shimmering', 'Pristine', 'Soaring',
+            'Lone', 'Fabled', 'Wandering', 'Starbound', 'Humble', 'Jolly', 'Fated',
+            'Whimsical', 'Dreamy', 'Gallant', 'Merry', 'Charming', 'Enchanted'
         ],
         nouns: [
             'Star', 'Horizon', 'Comet', 'Nebula', 'Voyage', 'Dawn', 'Falcon', 'Rose',
             'Sky', 'Quest', 'Phoenix', 'Dream', 'Aurora', 'Pathfinder', 'Beacon',
             'Galaxy', 'Meteor', 'Drift', 'Venture', 'Eclipse', 'Nova', 'Orbit',
-            'Wanderer', 'Zephyr', 'Crest', 'Pulsar', 'Mirage', 'Oasis', 'Trailblazer'
+            'Wanderer', 'Zephyr', 'Crest', 'Pulsar', 'Mirage', 'Oasis', 'Trailblazer',
+            'Folly', 'Hope', 'Hero', 'Road', 'Life', 'End', 'Starlight',
+            'Journey', 'Destiny', 'Wish', 'Saga', 'Vow', 'Legend', 'Spark'
         ],
         names: [
             'John', 'Mary', 'James', 'Elizabeth', 'William', 'Sarah', 'Thomas', 'Emma',
             'Charles', 'Anna', 'Henry', 'Clara', 'Edward', 'Jane', 'Robert',
             'Alice', 'George', 'Lucy', 'Samuel', 'Grace', 'Oliver', 'Rose', 'Benjamin',
-            'Eleanor', 'David', 'Sophia', 'Michael', 'Lily', 'Isaac'
+            'Eleanor', 'David', 'Sophia', 'Michael', 'Lily', 'Isaac', 'Amelia', 'Joseph',
+            'Charlotte', 'Daniel', 'Margaret', 'Evelyn', 'Theodore', 'Violet', 'Nathan',
+            'Isabelle', 'Leo', 'Matilda'
+        ],
+        personifiedNouns: [
+            'Fellow', 'Lady', 'Rogue', 'Wanderer', 'Companion', 'Nomad', 'Friend', 'Pilgrim',
+            'Traveler', 'Seeker', 'Dreamer', 'Bard', 'Vagabond', 'Maverick', 'Poet', 'Sage',
+            'Scout', 'Drifter', 'Visionary'
+        ],
+        places: [
+            'Earth', 'Mars', 'Venus', 'Luna', 'Jupiter', 'Saturn', 'Nebula', 'Sol',
+            'Alpha Centauri', 'Sirius', 'Proxima', 'Vega', 'Andromeda',
+            'Europa', 'Titan', 'Orion', 'Pleiades', 'Betelgeuse', 'Rigel', 'Polaris'
         ],
         suffixes: ['-tek', '-nova', '-pulse', '-ara', '-ix', '-on', '-oid'],
         patterns: {
             small: [
-                { weight: 0.8, fn: () => `${randomChoice(nameData.Civilian.adjectives)} ${randomChoice(nameData.Civilian.nouns)}` },
-                { weight: 0.15, fn: () => `${randomChoice(nameData.Civilian.nouns)} ${randomChoice(nameData.Civilian.nouns)}` },
-                { weight: 0.05, fn: () => `${randomChoice(nameData.fun.prefixes)} ${randomChoice(nameData.fun.roots)}${Math.random() < 0.2 ? randomChoice(nameData.fun.suffixes) : ''}${Math.random() < 0.2 ? ' ' + randomSmallNumber() : ''}` }
+                // Humorous grandiose name for small ships
+                { weight: 1.0, fn: () => `${randomChoice(nameData.Civilian.names)}${Math.random() < 0.75 ? ' The ' : ' '}${randomChoice(nameData.Civilian.adjectives)} Of ${randomChoice(nameData.Civilian.places)}` }, // e.g., "Alice The Hero Of Mars"
+                // Standard poetic name
+                { weight: 1.0, fn: () => `${Math.random() < 0.75 ? 'The ' : ''}${randomChoice(nameData.Civilian.adjectives)} ${randomChoice(nameData.Civilian.nouns)}` }, // e.g., "The Golden Sky"
+                // Simple single noun
+                { weight: 1.0, fn: () => `The ${randomChoice(nameData.Civilian.nouns)}` }, // e.g., "The End"
+                // Quirky personified name
+                { weight: 1.0, fn: () => `The ${randomChoice(nameData.Civilian.adjectives)} ${randomChoice(nameData.Civilian.personifiedNouns)}` }, // e.g., "The Jolly Fellow"
+                // Simple adjective-noun
+                { weight: 1.0, fn: () => `${randomChoice(nameData.Civilian.adjectives)} ${randomChoice(nameData.Civilian.nouns)}` }, // e.g., "Swift Horizon"
+                // Noun combination
+                { weight: 1.0, fn: () => `${randomChoice(nameData.Civilian.nouns)} ${randomChoice(nameData.Civilian.nouns)}` }, // e.g., "Star Quest"
+                // Personal adjective-name
+                { weight: 1.0, fn: () => `${randomChoice(nameData.Civilian.adjectives)} ${randomChoice(nameData.Civilian.names)}` }, // e.g., "Humble Henry"
+                // Poetic noun-personified
+                { weight: 1.0, fn: () => `${randomChoice(nameData.Civilian.nouns)} ${randomChoice(nameData.Civilian.personifiedNouns)}` }, // e.g., "Star Wanderer"
+                // Fun quirky name
+                { weight: 1.0, fn: () => `${Math.random() < 0.5 ? 'The ' : ''}${randomChoice(nameData.fun.prefixes)} ${randomChoice(nameData.fun.roots)}${Math.random() < 0.2 ? randomChoice(nameData.fun.suffixes) : ''}${Math.random() < 0.2 ? ' ' + randomSmallNumber() : ''}` } // e.g., "The Disco Noodle 42"
             ],
             medium: [
-                { weight: 0.35, fn: () => `${randomChoice(nameData.Civilian.adjectives)} ${randomChoice(nameData.Civilian.nouns)}` },
-                { weight: 0.25, fn: () => `${randomChoice(nameData.Civilian.nouns)} ${randomChoice(nameData.Civilian.nouns)}` },
-                { weight: 0.2, fn: () => `${randomChoice(nameData.Civilian.names)}'s ${randomChoice(nameData.Civilian.nouns)}` },
-                { weight: 0.15, fn: () => `${randomChoice(nameData.Civilian.nouns)}'s ${randomChoice(nameData.Civilian.adjectives)} ${randomChoice(nameData.Civilian.nouns)}` },
-                { weight: 0.05, fn: () => `${randomChoice(nameData.fun.prefixes)} ${randomChoice(nameData.fun.roots)}${Math.random() < 0.2 ? randomChoice(nameData.fun.suffixes) : ''}${Math.random() < 0.2 ? ' ' + randomSmallNumber() : ''}` }
+                // Standard poetic name
+                { weight: 1.0, fn: () => `${Math.random() < 0.75 ? 'The ' : ''}${randomChoice(nameData.Civilian.adjectives)} ${randomChoice(nameData.Civilian.nouns)}` }, // e.g., "The Misty Horizon"
+                // Noun combination
+                { weight: 1.0, fn: () => `${randomChoice(nameData.Civilian.nouns)} ${randomChoice(nameData.Civilian.nouns)}` }, // e.g., "Nova Drift"
+                // Possessive name
+                { weight: 1.0, fn: () => `${randomChoice(nameData.Civilian.names)}'s ${randomChoice(nameData.Civilian.nouns)}` }, // e.g., "Jane's Folly"
+                // Place-based possessive
+                { weight: 1.0, fn: () => `${Math.random() < 0.5 ? 'The ' : ''}${randomChoice(nameData.Civilian.places)}'s ${randomChoice(nameData.Civilian.nouns)}` }, // e.g., "The Earth’s Hope"
+                // Complex possessive
+                { weight: 1.0, fn: () => `${Math.random() < 0.5 ? 'The ' : ''}${randomChoice(nameData.Civilian.nouns)}'s ${randomChoice(nameData.Civilian.adjectives)} ${randomChoice(nameData.Civilian.nouns)}` }, // e.g., "The Star’s Golden Voyage"
+                // Poetic complex name
+                { weight: 1.0, fn: () => `${Math.random() < 0.5 ? 'The ' : ''}${randomChoice(nameData.Civilian.adjectives)} ${randomChoice(nameData.Civilian.nouns)} Of ${randomChoice(nameData.Civilian.nouns)}` }, // e.g., "The Misty Road Of Life"
+                // Narrative personified
+                { weight: 1.0, fn: () => `${Math.random() < 0.5 ? 'The ' : ''}${randomChoice(nameData.Civilian.names)}'s ${randomChoice(nameData.Civilian.adjectives)} ${randomChoice(nameData.Civilian.personifiedNouns)}` }, // e.g., "The John’s Jolly Fellow"
+                // Fun quirky name
+                { weight: 1.0, fn: () => `${Math.random() < 0.5 ? 'The ' : ''}${randomChoice(nameData.fun.prefixes)} ${randomChoice(nameData.fun.roots)}${Math.random() < 0.2 ? randomChoice(nameData.fun.suffixes) : ''}${Math.random() < 0.2 ? ' ' + randomSmallNumber() : ''}` } // e.g., "Funky Floofinator"
             ],
             large: [
-                { weight: 0.35, fn: () => `${randomChoice(nameData.Civilian.adjectives)} ${randomChoice(nameData.Civilian.nouns)}` },
-                { weight: 0.25, fn: () => `${randomChoice(nameData.Civilian.names)}'s ${randomChoice(nameData.Civilian.nouns)}` },
-                { weight: 0.2, fn: () => `${randomChoice(nameData.Civilian.nouns)}'s ${randomChoice(nameData.Civilian.adjectives)} ${randomChoice(nameData.Civilian.nouns)}` },
-                { weight: 0.15, fn: () => `${randomChoice(nameData.Civilian.adjectives)} ${randomChoice(nameData.Civilian.nouns)}${Math.random() < 0.2 ? randomChoice(nameData.Civilian.suffixes) : ''}` },
-                { weight: 0.05, fn: () => `${randomChoice(nameData.fun.prefixes)} ${randomChoice(nameData.fun.roots)}${Math.random() < 0.2 ? randomChoice(nameData.fun.suffixes) : ''}${Math.random() < 0.2 ? ' ' + randomSmallNumber() : ''}` }
+                // Epic place-based
+                { weight: 1.0, fn: () => `${randomChoice(nameData.Civilian.nouns)} Of ${randomChoice(nameData.Civilian.places)}` }, // e.g., "Hero Of Mars"
+                // Place-based possessive
+                { weight: 1.0, fn: () => `${Math.random() < 0.5 ? 'The ' : ''}${randomChoice(nameData.Civilian.places)}'s ${randomChoice(nameData.Civilian.nouns)}` }, // e.g., "The Mars’ Dawn"
+                // Possessive name
+                { weight: 1.0, fn: () => `${randomChoice(nameData.Civilian.names)}'s ${randomChoice(nameData.Civilian.nouns)}` }, // e.g., "Humble Henry"
+                // Poetic with suffix
+                { weight: 1.0, fn: () => `${Math.random() < 0.75 ? 'The ' : ''}${randomChoice(nameData.Civilian.adjectives)} ${randomChoice(nameData.Civilian.nouns)}${Math.random() < 0.3 ? randomChoice(nameData.Civilian.suffixes) : ''}` }, // e.g., "The Bright Comet-tek"
+                // Complex possessive
+                { weight: 1.0, fn: () => `${Math.random() < 0.5 ? 'The ' : ''}${randomChoice(nameData.Civilian.nouns)}'s ${randomChoice(nameData.Civilian.adjectives)} ${randomChoice(nameData.Civilian.nouns)}` }, // e.g., "The Star’s Golden Voyage"
+                // Narrative personified
+                { weight: 1.0, fn: () => `${Math.random() < 0.5 ? 'The ' : ''}${randomChoice(nameData.Civilian.names)}'s ${randomChoice(nameData.Civilian.adjectives)} ${randomChoice(nameData.Civilian.personifiedNouns)}` }, // e.g., "The Mary’s Wistful Wanderer"
+                // Poetic complex name
+                { weight: 1.0, fn: () => `${Math.random() < 0.5 ? 'The ' : ''}${randomChoice(nameData.Civilian.adjectives)} ${randomChoice(nameData.Civilian.nouns)} Of ${randomChoice(nameData.Civilian.nouns)}` }, // e.g., "The Misty Road Of Life"
+                // Fun quirky name
+                { weight: 1.0, fn: () => `${Math.random() < 0.5 ? 'The ' : ''}${randomChoice(nameData.fun.prefixes)} ${randomChoice(nameData.fun.roots)}${Math.random() < 0.2 ? randomChoice(nameData.fun.suffixes) : ''}${Math.random() < 0.2 ? ' ' + randomSmallNumber() : ''}` } // e.g., "The Disco Noodle 42"
             ]
         }
     },
@@ -241,9 +294,9 @@ const nameData = {
             'Bouncy', 'Jolly', 'Wacko', 'Zesty'
         ],
         roots: [
-            'tickler', 'wobbler', 'floof', 'noodle', 'blasterpants', 'zoomzoom', 'chugger',
-            'sparkler', 'bopper', 'whizz', 'fluffel', 'gizmo', 'doodler', 'snoozle',
-            'waffler', 'popper', 'zapper', 'bloopster', 'fizzler', 'twirler'
+            'Tickler', 'Wobbler', 'Floof', 'Noodle', 'Blasterpants', 'Zoomzoom', 'Chugger',
+            'Sparkler', 'Bopper', 'Whizz', 'Fluffel', 'Gizmo', 'Doodler', 'Snoozle',
+            'Waffler', 'Popper', 'Zapper', 'Bloopster', 'Fizzler', 'Twirler'
         ],
         suffixes: [
             '-inator', '-zoid', '-omatic', '-erino', '-splosion', '-licious', '-pants',
@@ -271,7 +324,7 @@ export function generateShipName(ship) {
     let sizeCategory;
     if (ship.radius < 50) {
         sizeCategory = 'small';
-    } else if (ship.radius < 200) {
+    } else if (ship.radius < 100) {
         sizeCategory = 'medium';
     } else {
         sizeCategory = 'large';

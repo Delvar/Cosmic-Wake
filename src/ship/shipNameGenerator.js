@@ -52,197 +52,243 @@ function getJobName(job) {
 }
 
 /**
- * Word lists and patterns for ship name generation.
+ * Word Lists
+ */
+const wordLists = {
+    NeutralAdjective: [
+        'Swift', 'Bright', 'Bold', 'Serene', 'Vivid', 'Tranquil', 'Glinting', 'Soaring',
+        'Lunar', 'Stellar', 'Cosmic', 'Pristine', 'Radiant', 'Charming', 'Gallant',
+        'Clear', 'Silent', 'Steady', 'Calm', 'Gleaming'
+    ],
+    PositiveAdjective: [
+        'Golden', 'Wistful', 'Noble', 'Lucky', 'Hopeful', 'Misty', 'Celestial', 'Auroral',
+        'Ethereal', 'Shimmering', 'Humble', 'Jolly', 'Fated', 'Whimsical', 'Dreamy', 'Merry',
+        'Enchanted', 'Lone', 'Fabled', 'Wandering', 'Starbound', 'Gallant', 'Blessed', 'Radiant',
+        'Joyful', 'Serendipitous'
+    ],
+    NegativeAdjective: [
+        'Bloody', 'Crimson', 'Dark', 'Savage', 'Black', 'Grim', 'Rusty', 'Wicked',
+        'Fierce', 'Tattered', 'Deadly', 'Sinister', 'Vile', 'Shadow', 'Iron',
+        'Feral', 'Cursed', 'Gloom', 'Vicious', 'Dread'
+    ],
+    NeutralNoun: [
+        'Star', 'Horizon', 'Comet', 'Nebula', 'Voyage', 'Dawn', 'Falcon', 'Sky',
+        'Orbit', 'Galaxy', 'Meteor', 'Drift', 'Venture', 'Eclipse', 'Nova', 'Crest',
+        'Pulsar', 'Mirage', 'Oasis', 'Trailblazer', 'Zephyr', 'Journey', 'Saga', 'Legend',
+        'Beacon', 'Path', 'Wave', 'Tide', 'Nexus'
+    ],
+    PositiveNoun: [
+        'Rose', 'Quest', 'Phoenix', 'Dream', 'Aurora', 'Pathfinder', 'Beacon', 'Hope',
+        'Folly', 'Hero', 'Road', 'Life', 'End', 'Starlight', 'Destiny', 'Wish', 'Vow',
+        'Spark', 'Glory', 'Faith', 'Joy', 'Vision', 'Peace', 'Harmony', 'Dawn', 'Dreams',
+        'Stars'
+    ],
+    NegativeNoun: [
+        'Skull', 'Dagger', 'Revenge', 'Storm', 'Serpent', 'Raider', 'Plague', 'Hawk',
+        'Viper', 'Cutlass', 'Ruin', 'Ghost', 'Slaughter', 'Abyss', 'Raven', 'Kraken',
+        'Scourge', 'Bane', 'Marauder', 'Fang'
+    ],
+    NeutralNames: [
+        'John', 'Mary', 'James', 'Elizabeth', 'William', 'Sarah', 'Thomas', 'Emma',
+        'Charles', 'Anna', 'Henry', 'Clara', 'Edward', 'Jane', 'Robert', 'Alice',
+        'George', 'Lucy', 'Samuel', 'Grace', 'Oliver', 'Rose', 'Benjamin', 'Eleanor',
+        'David', 'Sophia', 'Michael', 'Lily', 'Isaac', 'Amelia', 'Joseph', 'Charlotte',
+        'Daniel', 'Margaret', 'Evelyn', 'Theodore', 'Violet', 'Nathan', 'Isabelle', 'Leo',
+        'Matilda'
+    ],
+    NegativeNames: [
+        'Blackbeard', 'Dracula', 'Mordred', 'Vexan', 'Cain', 'Ravenna', 'Judas', 'Lilith',
+        'Khan', 'Seren', 'Grendel', 'Medusa', 'Rasputin', 'Horus', 'Vlad', 'Calico',
+        'Barbossa', 'Kidd', 'Drake', 'Morgan', 'Lafitte', 'Bonnet', 'Rackham', 'Vane',
+        'Teach'
+    ],
+    PersonifiedNouns: [
+        'Fellow', 'Lady', 'Rogue', 'Wanderer', 'Companion', 'Nomad', 'Friend', 'Pilgrim',
+        'Traveler', 'Seeker', 'Dreamer', 'Bard', 'Vagabond', 'Maverick', 'Poet', 'Sage',
+        'Scout', 'Drifter', 'Visionary', 'Explorer', 'Knight', 'Starfarer'
+    ],
+    Places: [
+        'Earth', 'Mars', 'Venus', 'Luna', 'Jupiter', 'Saturn', 'Nebula', 'Sol',
+        'Alpha Centauri', 'Sirius', 'Proxima', 'Vega', 'Andromeda', 'Europa', 'Titan',
+        'Orion', 'Pleiades', 'Betelgeuse', 'Rigel', 'Polaris', 'Eridanus', 'Centaurus'
+    ],
+    Suffixes: ['-tek', '-nova', '-pulse', '-ara', '-ix', '-on', '-oid'],
+    FunPrefixes: [
+        'Disco', 'Funky', 'Wobbly', 'Gizmo', 'Bloop', 'Snaccident', 'Mega', 'Zany',
+        'Nifty', 'Whacky', 'Zippy', 'Bonkers', 'Kooky', 'Nutty', 'Silly', 'Giddy',
+        'Bouncy', 'Jolly', 'Wacko', 'Zesty'
+    ],
+    FunRoots: [
+        'Tickler', 'Wobbler', 'Floof', 'Noodle', 'Blasterpants', 'Zoomzoom', 'Chugger',
+        'Sparkler', 'Bopper', 'Whizz', 'Fluffel', 'Gizmo', 'Doodler', 'Snoozle',
+        'Waffler', 'Popper', 'Zapper', 'Bloopster', 'Fizzler', 'Twirler'
+    ],
+    FunSuffixes: [
+        '-inator', '-zoid', '-omatic', '-erino', '-splosion', '-licious', '-pants',
+        '-tastic', '-oodle', '-rama', '-palooza', '-mageddon', '-zap', '-boom'
+    ],
+    NatoAlphabet: [
+        'Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo', 'Foxtrot', 'Golf', 'Hotel',
+        'India', 'Juliett', 'Kilo', 'Lima', 'Mike', 'November', 'Oscar', 'Papa',
+        'Quebec', 'Romeo', 'Sierra', 'Tango', 'Uniform', 'Victor', 'Whiskey', 'Xray',
+        'Yankee', 'Zulu'
+    ]
+};
+
+/**
+ * Helper functions for template-based name generation.
+ */
+function The() { return Math.random() < 0.75 ? 'The ' : ''; }
+function NeutralAdjective() { return randomChoice(wordLists.NeutralAdjective); }
+function PositiveAdjective() { return randomChoice(wordLists.PositiveAdjective); }
+function NegativeAdjective() { return randomChoice(wordLists.NegativeAdjective); }
+function NeutralNoun() { return randomChoice(wordLists.NeutralNoun); }
+function PositiveNoun() { return randomChoice(wordLists.PositiveNoun); }
+function NegativeNoun() { return randomChoice(wordLists.NegativeNoun); }
+function NeutralNames() { return randomChoice(wordLists.NeutralNames); } // Plain names, e.g., "Henry"
+function NeutralPossessiveNames() {
+    const name = randomChoice(wordLists.NeutralNames);
+    return `${name}${name.endsWith('s') ? "'" : "'s"}`; // e.g., "James’" or "Mary’s"
+}
+function NegativePossessiveNames() {
+    const name = randomChoice(wordLists.NegativeNames);
+    return `${name}${name.endsWith('s') ? "'" : "'s"}`; // e.g., "Blackbeard’s" or "Dracula’s"
+}
+function PersonifiedNouns() { return randomChoice(wordLists.PersonifiedNouns); }
+function Places() { return randomChoice(wordLists.Places); }
+function Suffixes() { return randomChoice(wordLists.Suffixes); }
+function FunPrefixes() { return randomChoice(wordLists.FunPrefixes); }
+function FunRoots() { return randomChoice(wordLists.FunRoots); }
+function FunSuffixes() { return randomChoice(wordLists.FunSuffixes); }
+function Number() { return randomSmallNumber(); }
+function NatoAlphabet() { return randomChoice(wordLists.NatoAlphabet); }
+function JobName(ship) { return getJobName(ship.pilot?.job); }
+
+/**
+ * Patterns for ship name generation.
  */
 const nameData = {
     Civilian: {
-        adjectives: [
-            'Golden', 'Blue', 'Silver', 'Bright', 'Wistful', 'Noble', 'Swift', 'Lucky',
-            'Radiant', 'Misty', 'Bold', 'Serene', 'Starlit', 'Gentle', 'Hopeful',
-            'Cosmic', 'Lunar', 'Stellar', 'Nebulous', 'Glinting', 'Velvet', 'Tranquil',
-            'Vivid', 'Celestial', 'Auroral', 'Ethereal', 'Shimmering', 'Pristine', 'Soaring',
-            'Lone', 'Fabled', 'Wandering', 'Starbound', 'Humble', 'Jolly', 'Fated',
-            'Whimsical', 'Dreamy', 'Gallant', 'Merry', 'Charming', 'Enchanted'
-        ],
-        nouns: [
-            'Star', 'Horizon', 'Comet', 'Nebula', 'Voyage', 'Dawn', 'Falcon', 'Rose',
-            'Sky', 'Quest', 'Phoenix', 'Dream', 'Aurora', 'Pathfinder', 'Beacon',
-            'Galaxy', 'Meteor', 'Drift', 'Venture', 'Eclipse', 'Nova', 'Orbit',
-            'Wanderer', 'Zephyr', 'Crest', 'Pulsar', 'Mirage', 'Oasis', 'Trailblazer',
-            'Folly', 'Hope', 'Hero', 'Road', 'Life', 'End', 'Starlight',
-            'Journey', 'Destiny', 'Wish', 'Saga', 'Vow', 'Legend', 'Spark'
-        ],
-        names: [
-            'John', 'Mary', 'James', 'Elizabeth', 'William', 'Sarah', 'Thomas', 'Emma',
-            'Charles', 'Anna', 'Henry', 'Clara', 'Edward', 'Jane', 'Robert',
-            'Alice', 'George', 'Lucy', 'Samuel', 'Grace', 'Oliver', 'Rose', 'Benjamin',
-            'Eleanor', 'David', 'Sophia', 'Michael', 'Lily', 'Isaac', 'Amelia', 'Joseph',
-            'Charlotte', 'Daniel', 'Margaret', 'Evelyn', 'Theodore', 'Violet', 'Nathan',
-            'Isabelle', 'Leo', 'Matilda'
-        ],
-        personifiedNouns: [
-            'Fellow', 'Lady', 'Rogue', 'Wanderer', 'Companion', 'Nomad', 'Friend', 'Pilgrim',
-            'Traveler', 'Seeker', 'Dreamer', 'Bard', 'Vagabond', 'Maverick', 'Poet', 'Sage',
-            'Scout', 'Drifter', 'Visionary'
-        ],
-        places: [
-            'Earth', 'Mars', 'Venus', 'Luna', 'Jupiter', 'Saturn', 'Nebula', 'Sol',
-            'Alpha Centauri', 'Sirius', 'Proxima', 'Vega', 'Andromeda',
-            'Europa', 'Titan', 'Orion', 'Pleiades', 'Betelgeuse', 'Rigel', 'Polaris'
-        ],
-        suffixes: ['-tek', '-nova', '-pulse', '-ara', '-ix', '-on', '-oid'],
         patterns: {
             small: [
                 // Humorous grandiose name for small ships
-                { weight: 1.0, fn: () => `${randomChoice(nameData.Civilian.names)}${Math.random() < 0.75 ? ' The ' : ' '}${randomChoice(nameData.Civilian.adjectives)} Of ${randomChoice(nameData.Civilian.places)}` }, // e.g., "Alice The Hero Of Mars"
+                { weight: 1.0, fn: () => `${NeutralNames()} ${The()}${PositiveAdjective()} Of ${Places()}` }, // e.g., "Alice The Hero Of Mars"
                 // Standard poetic name
-                { weight: 1.0, fn: () => `${Math.random() < 0.75 ? 'The ' : ''}${randomChoice(nameData.Civilian.adjectives)} ${randomChoice(nameData.Civilian.nouns)}` }, // e.g., "The Golden Sky"
+                { weight: 1.0, fn: () => `${The()}${PositiveAdjective()} ${NeutralNoun()}` }, // e.g., "The Golden Sky"
                 // Simple single noun
-                { weight: 1.0, fn: () => `The ${randomChoice(nameData.Civilian.nouns)}` }, // e.g., "The End"
+                { weight: 1.0, fn: () => `The ${NeutralNoun()}` }, // e.g., "The End"
                 // Quirky personified name
-                { weight: 1.0, fn: () => `The ${randomChoice(nameData.Civilian.adjectives)} ${randomChoice(nameData.Civilian.personifiedNouns)}` }, // e.g., "The Jolly Fellow"
+                { weight: 1.0, fn: () => `${The()}${PositiveAdjective()} ${PersonifiedNouns()}` }, // e.g., "The Jolly Fellow"
                 // Simple adjective-noun
-                { weight: 1.0, fn: () => `${randomChoice(nameData.Civilian.adjectives)} ${randomChoice(nameData.Civilian.nouns)}` }, // e.g., "Swift Horizon"
+                { weight: 1.0, fn: () => `${PositiveAdjective()} ${NeutralNoun()}` }, // e.g., "Swift Horizon"
                 // Noun combination
-                { weight: 1.0, fn: () => `${randomChoice(nameData.Civilian.nouns)} ${randomChoice(nameData.Civilian.nouns)}` }, // e.g., "Star Quest"
+                { weight: 1.0, fn: () => `${NeutralNoun()} ${NeutralNoun()}` }, // e.g., "Nova Drift"
                 // Personal adjective-name
-                { weight: 1.0, fn: () => `${randomChoice(nameData.Civilian.adjectives)} ${randomChoice(nameData.Civilian.names)}` }, // e.g., "Humble Henry"
+                { weight: 1.0, fn: () => `${PositiveAdjective()} ${NeutralNames()}` }, // e.g., "Humble Henry"
                 // Poetic noun-personified
-                { weight: 1.0, fn: () => `${randomChoice(nameData.Civilian.nouns)} ${randomChoice(nameData.Civilian.personifiedNouns)}` }, // e.g., "Star Wanderer"
+                { weight: 1.0, fn: () => `${NeutralNoun()} ${PersonifiedNouns()}` }, // e.g., "Star Wanderer"
                 // Fun quirky name
-                { weight: 1.0, fn: () => `${Math.random() < 0.5 ? 'The ' : ''}${randomChoice(nameData.fun.prefixes)} ${randomChoice(nameData.fun.roots)}${Math.random() < 0.2 ? randomChoice(nameData.fun.suffixes) : ''}${Math.random() < 0.2 ? ' ' + randomSmallNumber() : ''}` } // e.g., "The Disco Noodle 42"
+                { weight: 1.0, fn: () => `${The()}${FunPrefixes()} ${FunRoots()}${Math.random() < 0.2 ? FunSuffixes() : ''}${Math.random() < 0.2 ? ' ' + Number() : ''}` } // e.g., "The Disco Noodle 42"
             ],
             medium: [
                 // Standard poetic name
-                { weight: 1.0, fn: () => `${Math.random() < 0.75 ? 'The ' : ''}${randomChoice(nameData.Civilian.adjectives)} ${randomChoice(nameData.Civilian.nouns)}` }, // e.g., "The Misty Horizon"
+                { weight: 1.0, fn: () => `${The()}${PositiveAdjective()} ${NeutralNoun()}` }, // e.g., "The Misty Horizon"
                 // Noun combination
-                { weight: 1.0, fn: () => `${randomChoice(nameData.Civilian.nouns)} ${randomChoice(nameData.Civilian.nouns)}` }, // e.g., "Nova Drift"
+                { weight: 1.0, fn: () => `${NeutralNoun()} ${NeutralNoun()}` }, // e.g., "Nova Drift"
                 // Possessive name
-                { weight: 1.0, fn: () => `${randomChoice(nameData.Civilian.names)}'s ${randomChoice(nameData.Civilian.nouns)}` }, // e.g., "Jane's Folly"
+                { weight: 1.0, fn: () => `${NeutralPossessiveNames()} ${PositiveNoun()}` }, // e.g., "Jane’s Folly"
                 // Place-based possessive
-                { weight: 1.0, fn: () => `${Math.random() < 0.5 ? 'The ' : ''}${randomChoice(nameData.Civilian.places)}'s ${randomChoice(nameData.Civilian.nouns)}` }, // e.g., "The Earth’s Hope"
+                { weight: 1.0, fn: () => `${The()}${Places()}'s ${PositiveNoun()}` }, // e.g., "The Earth’s Hope"
                 // Complex possessive
-                { weight: 1.0, fn: () => `${Math.random() < 0.5 ? 'The ' : ''}${randomChoice(nameData.Civilian.nouns)}'s ${randomChoice(nameData.Civilian.adjectives)} ${randomChoice(nameData.Civilian.nouns)}` }, // e.g., "The Star’s Golden Voyage"
+                { weight: 1.0, fn: () => `${The()}${NeutralNoun()}'s ${PositiveAdjective()} ${NeutralNoun()}` }, // e.g., "The Star’s Golden Voyage"
                 // Poetic complex name
-                { weight: 1.0, fn: () => `${Math.random() < 0.5 ? 'The ' : ''}${randomChoice(nameData.Civilian.adjectives)} ${randomChoice(nameData.Civilian.nouns)} Of ${randomChoice(nameData.Civilian.nouns)}` }, // e.g., "The Misty Road Of Life"
+                { weight: 1.0, fn: () => `${The()}${PositiveAdjective()} ${NeutralNoun()} Of ${PositiveNoun()}` }, // e.g., "The Misty Road Of Life"
                 // Narrative personified
-                { weight: 1.0, fn: () => `${Math.random() < 0.5 ? 'The ' : ''}${randomChoice(nameData.Civilian.names)}'s ${randomChoice(nameData.Civilian.adjectives)} ${randomChoice(nameData.Civilian.personifiedNouns)}` }, // e.g., "The John’s Jolly Fellow"
+                { weight: 1.0, fn: () => `${The()}${NeutralPossessiveNames()} ${PositiveAdjective()} ${PersonifiedNouns()}` }, // e.g., "The John’s Jolly Fellow"
                 // Fun quirky name
-                { weight: 1.0, fn: () => `${Math.random() < 0.5 ? 'The ' : ''}${randomChoice(nameData.fun.prefixes)} ${randomChoice(nameData.fun.roots)}${Math.random() < 0.2 ? randomChoice(nameData.fun.suffixes) : ''}${Math.random() < 0.2 ? ' ' + randomSmallNumber() : ''}` } // e.g., "Funky Floofinator"
+                { weight: 1.0, fn: () => `${The()}${FunPrefixes()} ${FunRoots()}${Math.random() < 0.2 ? FunSuffixes() : ''}${Math.random() < 0.2 ? ' ' + Number() : ''}` } // e.g., "Funky Floofinator"
             ],
             large: [
                 // Epic place-based
-                { weight: 1.0, fn: () => `${randomChoice(nameData.Civilian.nouns)} Of ${randomChoice(nameData.Civilian.places)}` }, // e.g., "Hero Of Mars"
+                { weight: 1.0, fn: () => `${PositiveNoun()} Of ${Places()}` }, // e.g., "Hero Of Mars"
                 // Place-based possessive
-                { weight: 1.0, fn: () => `${Math.random() < 0.5 ? 'The ' : ''}${randomChoice(nameData.Civilian.places)}'s ${randomChoice(nameData.Civilian.nouns)}` }, // e.g., "The Mars’ Dawn"
+                { weight: 1.0, fn: () => `${The()}${Places()}'s ${PositiveNoun()}` }, // e.g., "The Mars’ Dawn"
                 // Possessive name
-                { weight: 1.0, fn: () => `${randomChoice(nameData.Civilian.names)}'s ${randomChoice(nameData.Civilian.nouns)}` }, // e.g., "Humble Henry"
+                { weight: 1.0, fn: () => `${NeutralPossessiveNames()} ${PositiveNoun()}` }, // e.g., "Humble Henry"
                 // Poetic with suffix
-                { weight: 1.0, fn: () => `${Math.random() < 0.75 ? 'The ' : ''}${randomChoice(nameData.Civilian.adjectives)} ${randomChoice(nameData.Civilian.nouns)}${Math.random() < 0.3 ? randomChoice(nameData.Civilian.suffixes) : ''}` }, // e.g., "The Bright Comet-tek"
+                { weight: 1.0, fn: () => `${The()}${PositiveAdjective()} ${NeutralNoun()}${Math.random() < 0.3 ? Suffixes() : ''}` }, // e.g., "The Bright Comet-tek"
                 // Complex possessive
-                { weight: 1.0, fn: () => `${Math.random() < 0.5 ? 'The ' : ''}${randomChoice(nameData.Civilian.nouns)}'s ${randomChoice(nameData.Civilian.adjectives)} ${randomChoice(nameData.Civilian.nouns)}` }, // e.g., "The Star’s Golden Voyage"
+                { weight: 1.0, fn: () => `${The()}${NeutralNoun()}'s ${PositiveAdjective()} ${NeutralNoun()}` }, // e.g., "The Star’s Golden Voyage"
                 // Narrative personified
-                { weight: 1.0, fn: () => `${Math.random() < 0.5 ? 'The ' : ''}${randomChoice(nameData.Civilian.names)}'s ${randomChoice(nameData.Civilian.adjectives)} ${randomChoice(nameData.Civilian.personifiedNouns)}` }, // e.g., "The Mary’s Wistful Wanderer"
+                { weight: 1.0, fn: () => `${The()}${NeutralPossessiveNames()} ${PositiveAdjective()} ${PersonifiedNouns()}` }, // e.g., "The Mary’s Wistful Wanderer"
                 // Poetic complex name
-                { weight: 1.0, fn: () => `${Math.random() < 0.5 ? 'The ' : ''}${randomChoice(nameData.Civilian.adjectives)} ${randomChoice(nameData.Civilian.nouns)} Of ${randomChoice(nameData.Civilian.nouns)}` }, // e.g., "The Misty Road Of Life"
+                { weight: 1.0, fn: () => `${The()}${PositiveAdjective()} ${NeutralNoun()} Of ${PositiveNoun()}` }, // e.g., "The Misty Road Of Life"
                 // Fun quirky name
-                { weight: 1.0, fn: () => `${Math.random() < 0.5 ? 'The ' : ''}${randomChoice(nameData.fun.prefixes)} ${randomChoice(nameData.fun.roots)}${Math.random() < 0.2 ? randomChoice(nameData.fun.suffixes) : ''}${Math.random() < 0.2 ? ' ' + randomSmallNumber() : ''}` } // e.g., "The Disco Noodle 42"
+                { weight: 1.0, fn: () => `${The()}${FunPrefixes()} ${FunRoots()}${Math.random() < 0.2 ? FunSuffixes() : ''}${Math.random() < 0.2 ? ' ' + Number() : ''}` } // e.g., "The Disco Noodle 42"
             ]
         }
     },
     Pirate: {
-        adjectives: [
-            'Bloody', 'Crimson', 'Dark', 'Savage', 'Black', 'Grim', 'Rusty', 'Wicked',
-            'Fierce', 'Tattered', 'Deadly', 'Sinister', 'Vile', 'Shadow', 'Iron',
-            'Feral', 'Cursed', 'Gloom', 'Vicious', 'Dread', 'Murky', 'Sable', 'Brutal',
-            'Ragged', 'Foul', 'Dire', 'Gruesome', 'Noxious', 'Blighted', 'Ruthless'
-        ],
-        nouns: [
-            'Skull', 'Dagger', 'Revenge', 'Storm', 'Serpent', 'Raider', 'Plague', 'Hawk',
-            'Viper', 'Cutlass', 'Ruin', 'Ghost', 'Slaughter', 'Abyss', 'Raven',
-            'Kraken', 'Scourge', 'Bane', 'Marauder', 'Fang', 'Tempest', 'Doombringer',
-            'Specter', 'Corsair', 'Wraith', 'Reaper', 'Havoc', 'Nightmare', 'Venom'
-        ],
-        sinisterNames: [
-            'Blackbeard', 'Dracula', 'Mordred', 'Vexan', 'Cain', 'Ravenna', 'Judas',
-            'Lilith', 'Khan', 'Seren', 'Grendel', 'Medusa', 'Rasputin', 'Horus', 'Vlad',
-            'Calico', 'Barbossa', 'Kidd', 'Drake', 'Morgan', 'Lafitte', 'Bonnet',
-            'Rackham', 'Vane', 'Teach', 'Scourge', 'Malice', 'Dreadlock', 'Ironclad'
-        ],
-        badOutcomes: [
-            'Doom', 'Ruin', 'Death', 'Torment', 'Chaos', 'Plunder', 'Misery', 'Wrath',
-            'Fury', 'Darkness', 'Blight', 'Malice', 'Hell', 'Ragnarok', 'Betrayal',
-            'Carnage', 'Despair', 'Annihilation', 'Oblivion', 'Peril', 'Cataclysm',
-            'Vengeance', 'Horror', 'Devastation', 'Treachery', 'Agony', 'Inferno'
-        ],
         patterns: {
             small: [
-                { weight: 0.85, fn: () => `${randomChoice(nameData.Pirate.adjectives)} ${randomChoice(nameData.Pirate.nouns)}` },
-                { weight: 0.1, fn: () => `${randomChoice(nameData.Pirate.nouns)} of ${randomChoice(nameData.Pirate.badOutcomes)}` },
-                { weight: 0.05, fn: () => `${randomChoice(nameData.fun.prefixes)} ${randomChoice(nameData.fun.roots)}${Math.random() < 0.2 ? randomChoice(nameData.fun.suffixes) : ''}${Math.random() < 0.2 ? ' ' + randomSmallNumber() : ''}` }
+                // Standard menacing name
+                { weight: 1.0, fn: () => `${NegativeAdjective()} ${NegativeNoun()}` }, // e.g., "Bloody Skull"
+                // Outcome-based name
+                { weight: 1.0, fn: () => `${NegativeNoun()} of ${PositiveNoun()}` }, // e.g., "Storm of Ruin"
+                // Fun quirky name
+                { weight: 1.0, fn: () => `${The()}${FunPrefixes()} ${FunRoots()}${Math.random() < 0.2 ? FunSuffixes() : ''}${Math.random() < 0.2 ? ' ' + Number() : ''}` } // e.g., "The Wobbly Bloopster"
             ],
             medium: [
-                { weight: 0.35, fn: () => `${randomChoice(nameData.Pirate.adjectives)} ${randomChoice(nameData.Pirate.nouns)}` },
-                {
-                    weight: 0.3, fn: () => {
-                        const name = randomChoice(nameData.Pirate.sinisterNames);
-                        return `${name}${name.endsWith('s') ? "'" : "'s"} ${randomChoice(nameData.Pirate.nouns)}`;
-                    }
-                },
-                { weight: 0.3, fn: () => `${randomChoice(nameData.Pirate.nouns)} of ${randomChoice(nameData.Pirate.badOutcomes)}` },
-                { weight: 0.05, fn: () => `${randomChoice(nameData.fun.prefixes)} ${randomChoice(nameData.fun.roots)}${Math.random() < 0.2 ? randomChoice(nameData.fun.suffixes) : ''}${Math.random() < 0.2 ? ' ' + randomSmallNumber() : ''}` }
+                // Standard menacing name
+                { weight: 1.0, fn: () => `${NegativeAdjective()} ${NegativeNoun()}` }, // e.g., "Grim Dagger"
+                // Possessive name
+                { weight: 1.0, fn: () => `${NegativePossessiveNames()} ${NegativeNoun()}` }, // e.g., "Blackbeard’s Viper"
+                // Outcome-based name
+                { weight: 1.0, fn: () => `${NegativeNoun()} of ${PositiveNoun()}` }, // e.g., "Raven of Doom"
+                // Fun quirky name
+                { weight: 1.0, fn: () => `${The()}${FunPrefixes()} ${FunRoots()}${Math.random() < 0.2 ? FunSuffixes() : ''}${Math.random() < 0.2 ? ' ' + Number() : ''}` } // e.g., "Funky Zoomzoom 23"
             ],
             large: [
-                {
-                    weight: 0.45, fn: () => {
-                        const name = randomChoice(nameData.Pirate.sinisterNames);
-                        return `${name}${name.endsWith('s') ? "'" : "'s"} ${randomChoice(nameData.Pirate.nouns)}`;
-                    }
-                },
-                { weight: 0.45, fn: () => `${randomChoice(nameData.Pirate.nouns)} of ${randomChoice(nameData.Pirate.badOutcomes)}` },
-                { weight: 0.1, fn: () => `${randomChoice(nameData.fun.prefixes)} ${randomChoice(nameData.fun.roots)}${Math.random() < 0.2 ? randomChoice(nameData.fun.suffixes) : ''}${Math.random() < 0.2 ? ' ' + randomSmallNumber() : ''}` }
+                // Possessive name
+                { weight: 1.0, fn: () => `${NegativePossessiveNames()} ${NegativeNoun()}` }, // e.g., "Dracula’s Ruin"
+                // Outcome-based name
+                { weight: 1.0, fn: () => `${NegativeNoun()} of ${PositiveNoun()}` }, // e.g., "Kraken of Vengeance"
+                // Menacing with suffix
+                { weight: 1.0, fn: () => `${The()}${NegativeAdjective()} ${NegativeNoun()}${Math.random() < 0.3 ? Suffixes() : ''}` }, // e.g., "The Sinister Abyss-tek"
+                // Fun quirky name
+                { weight: 1.0, fn: () => `${The()}${FunPrefixes()} ${FunRoots()}${Math.random() < 0.2 ? FunSuffixes() : ''}${Math.random() < 0.2 ? ' ' + Number() : ''}` } // e.g., "The Disco Noodle 42"
             ]
         }
     },
     Officer: {
-        adjectives: [
-            'Valiant', 'Steadfast', 'Resolute', 'Stern', 'Noble', 'Vigilant', 'Stalwart',
-            'Bold', 'Unyielding', 'Just', 'Swift', 'Gallant', 'True', 'Iron', 'Firm',
-            'Dauntless', 'Upright', 'Stout', 'Brave', 'Regal', 'Dutiful', 'Honest',
-            'Relentless', 'Sturdy', 'Trusty', 'Intrepid', 'Righteous', 'Gallant', 'Faithful'
-        ],
-        nouns: [
-            'Sentinel', 'Guardian', 'Defender', 'Citadel', 'Fortress', 'Shield', 'Beacon',
-            'Vindicator', 'Pillar', 'Bulwark', 'Sentry', 'Bastion', 'Watch', 'Lance', 'Star',
-            'Rampart', 'Ward', 'Stronghold', 'Tower', 'Aegis', 'Protector', 'Paragon',
-            'Vigil', 'Anchor', 'Spear', 'Haven', 'Fort', 'Command', 'Justice'
-        ],
-        virtues: [
-            'Honor', 'Justice', 'Duty', 'Order', 'Valor', 'Strength', 'Glory', 'Courage',
-            'Resolve', 'Truth', 'Vigilance', 'Liberty', 'Fortitude', 'Pride', 'Unity',
-            'Loyalty', 'Integrity', 'Nobility', 'Sacrifice', 'Endurance', 'Discipline',
-            'Wisdom', 'Resilience', 'Conviction', 'Freedom', 'Heroism', 'Steadfastness'
-        ],
-        natoAlphabet: [
-            'Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo', 'Foxtrot', 'Golf', 'Hotel',
-            'India', 'Juliett', 'Kilo', 'Lima', 'Mike', 'November', 'Oscar', 'Papa',
-            'Quebec', 'Romeo', 'Sierra', 'Tango', 'Uniform', 'Victor', 'Whiskey', 'Xray',
-            'Yankee', 'Zulu'
-        ],
         patterns: {
             small: [
-                { weight: 0.45, fn: ship => `${getJobName(ship.pilot?.job)} ${randomChoice(nameData.Officer.natoAlphabet)} ${randomSerialNumber()}` },
-                { weight: 0.45, fn: ship => `${getJobName(ship.pilot?.job)} ${randomSerialNumber()}` },
-                { weight: 0.1, fn: () => `${randomChoice(nameData.fun.prefixes)} ${randomChoice(nameData.fun.roots)}${Math.random() < 0.2 ? randomChoice(nameData.fun.suffixes) : ''}${Math.random() < 0.2 ? ' ' + randomSmallNumber() : ''}` }
+                // Job-based with NATO alphabet
+                { weight: 1.0, fn: ship => `${JobName(ship)} ${NatoAlphabet()} ${randomSerialNumber()}` }, // e.g., "Patrol Alpha 123"
+                // Job-based with number
+                { weight: 1.0, fn: ship => `${JobName(ship)} ${randomSerialNumber()}` }, // e.g., "Escort 456"
+                // Fun quirky name
+                { weight: 1.0, fn: () => `${The()}${FunPrefixes()} ${FunRoots()}${Math.random() < 0.2 ? FunSuffixes() : ''}${Math.random() < 0.2 ? ' ' + Number() : ''}` } // e.g., "The Zany Sparkler"
             ],
             medium: [
-                { weight: 0.4, fn: () => `${randomChoice(nameData.Officer.adjectives)} ${randomChoice(nameData.Officer.nouns)}` },
-                { weight: 0.4, fn: () => `${randomChoice(nameData.Officer.nouns)} of ${randomChoice(nameData.Officer.virtues)}` },
-                { weight: 0.2, fn: () => `${randomChoice(nameData.fun.prefixes)} ${randomChoice(nameData.fun.roots)}${Math.random() < 0.2 ? randomChoice(nameData.fun.suffixes) : ''}${Math.random() < 0.2 ? ' ' + randomSmallNumber() : ''}` }
+                // Standard virtuous name
+                { weight: 1.0, fn: () => `${PositiveAdjective()} ${NeutralNoun()}` }, // e.g., "Noble Sentinel"
+                // Virtue-based name
+                { weight: 1.0, fn: () => `${NeutralNoun()} of ${PositiveNoun()}` }, // e.g., "Guardian of Honor"
+                // Job-based with NATO alphabet
+                { weight: 1.0, fn: ship => `${JobName(ship)} ${NatoAlphabet()} ${randomSerialNumber()}` }, // e.g., "Patrol Bravo 789"
+                // Fun quirky name
+                { weight: 1.0, fn: () => `${The()}${FunPrefixes()} ${FunRoots()}${Math.random() < 0.2 ? FunSuffixes() : ''}${Math.random() < 0.2 ? ' ' + Number() : ''}` } // e.g., "Kooky Gizmo 17"
             ],
             large: [
-                { weight: 0.5, fn: () => `${randomChoice(nameData.Officer.nouns)} of ${randomChoice(nameData.Officer.virtues)}` },
-                { weight: 0.5, fn: () => `${randomChoice(nameData.Officer.adjectives)} ${randomChoice(nameData.Officer.nouns)}` }
+                // Virtue-based name
+                { weight: 1.0, fn: () => `${NeutralNoun()} of ${PositiveNoun()}` }, // e.g., "Citadel of Justice"
+                // Standard virtuous name
+                { weight: 1.0, fn: () => `${PositiveAdjective()} ${NeutralNoun()}` }, // e.g., "Valiant Fortress"
+                // Poetic with suffix
+                { weight: 1.0, fn: () => `${The()}${PositiveAdjective()} ${NeutralNoun()}${Math.random() < 0.3 ? Suffixes() : ''}` }, // e.g., "The Steadfast Shield-tek"
+                // Fun quirky name
+                { weight: 1.0, fn: () => `${The()}${FunPrefixes()} ${FunRoots()}${Math.random() < 0.2 ? FunSuffixes() : ''}${Math.random() < 0.2 ? ' ' + Number() : ''}` } // e.g., "The Disco Noodle 42"
             ]
         },
         prefixes: {
@@ -254,54 +300,36 @@ const nameData = {
         }
     },
     Player: {
-        adjectives: [
-            'Brave', 'Swift', 'Bold', 'Lucky', 'Free', 'Stellar', 'Bright', 'Daring',
-            'Valiant', 'Heroic', 'Cosmic', 'Wander', 'Starborn', 'Fearless', 'Epic',
-            'Gallant', 'Radiant', 'Noble', 'Intrepid', 'Vivid', 'Spirited', 'Grand',
-            'Adventurous', 'Luminous', 'Dazzling', 'Valorous', 'Dynamic', 'Exalted'
-        ],
-        nouns: [
-            'Voyager', 'Quest', 'Star', 'Pathfinder', 'Explorer', 'Horizon', 'Nova',
-            'Destiny', 'Pioneer', 'Venture', 'Odyssey', 'Comet', 'Galaxy', 'Drift', 'Dream',
-            'Trailblazer', 'Beacon', 'Journey', 'Starlight', 'Vanguard', 'Aurora', 'Crusader',
-            'Nomad', 'Eclipse', 'Zephyr', 'Paragon', 'Seeker', 'Harbinger', 'Legacy'
-        ],
-        suffixes: ['-tek', '-nova', '-pulse', '-ara', '-ix', '-on', '-oid'],
         patterns: {
             small: [
-                { weight: 0.8, fn: () => `${randomChoice(nameData.Player.adjectives)} ${randomChoice(nameData.Player.nouns)}` },
-                { weight: 0.15, fn: () => `${randomChoice(nameData.Player.nouns)} ${randomChoice(nameData.Player.nouns)}` },
-                { weight: 0.05, fn: () => `${randomChoice(nameData.fun.prefixes)} ${randomChoice(nameData.fun.roots)}${Math.random() < 0.2 ? randomChoice(nameData.fun.suffixes) : ''}${Math.random() < 0.2 ? ' ' + randomSmallNumber() : ''}` }
+                // Standard heroic name
+                { weight: 1.0, fn: () => `${PositiveAdjective()} ${PositiveNoun()}` }, // e.g., "Brave Voyager"
+                // Noun combination
+                { weight: 1.0, fn: () => `${PositiveNoun()} ${PositiveNoun()}` }, // e.g., "Star Quest"
+                // Fun quirky name
+                { weight: 1.0, fn: () => `${The()}${FunPrefixes()} ${FunRoots()}${Math.random() < 0.2 ? FunSuffixes() : ''}${Math.random() < 0.2 ? ' ' + Number() : ''}` } // e.g., "The Zany Bloopster"
             ],
             medium: [
-                { weight: 0.4, fn: () => `${randomChoice(nameData.Player.adjectives)} ${randomChoice(nameData.Player.nouns)}` },
-                { weight: 0.35, fn: () => `${randomChoice(nameData.Player.nouns)} ${randomChoice(nameData.Player.nouns)}` },
-                { weight: 0.2, fn: () => `${randomChoice(nameData.Player.nouns)} of ${randomChoice(nameData.Player.nouns)}` },
-                { weight: 0.05, fn: () => `${randomChoice(nameData.fun.prefixes)} ${randomChoice(nameData.fun.roots)}${Math.random() < 0.2 ? randomChoice(nameData.fun.suffixes) : ''}${Math.random() < 0.2 ? ' ' + randomSmallNumber() : ''}` }
+                // Standard heroic name
+                { weight: 1.0, fn: () => `${PositiveAdjective()} ${PositiveNoun()}` }, // e.g., "Daring Explorer"
+                // Noun combination
+                { weight: 1.0, fn: () => `${PositiveNoun()} ${PositiveNoun()}` }, // e.g., "Nova Destiny"
+                // Outcome-based name
+                { weight: 1.0, fn: () => `${PositiveNoun()} of ${PositiveNoun()}` }, // e.g., "Quest of Glory"
+                // Fun quirky name
+                { weight: 1.0, fn: () => `${The()}${FunPrefixes()} ${FunRoots()}${Math.random() < 0.2 ? FunSuffixes() : ''}${Math.random() < 0.2 ? ' ' + Number() : ''}` } // e.g., "Funky Zoomzoom 23"
             ],
             large: [
-                { weight: 0.4, fn: () => `${randomChoice(nameData.Player.adjectives)} ${randomChoice(nameData.Player.nouns)}` },
-                { weight: 0.35, fn: () => `${randomChoice(nameData.Player.nouns)} of ${randomChoice(nameData.Player.nouns)}` },
-                { weight: 0.2, fn: () => `${randomChoice(nameData.Player.adjectives)} ${randomChoice(nameData.Player.nouns)}${Math.random() < 0.2 ? randomChoice(nameData.Player.suffixes) : ''}` },
-                { weight: 0.05, fn: () => `${randomChoice(nameData.fun.prefixes)} ${randomChoice(nameData.fun.roots)}${Math.random() < 0.2 ? randomChoice(nameData.fun.suffixes) : ''}${Math.random() < 0.2 ? ' ' + randomSmallNumber() : ''}` }
+                // Outcome-based name
+                { weight: 1.0, fn: () => `${PositiveNoun()} of ${PositiveNoun()}` }, // e.g., "Destiny of Hope"
+                // Standard heroic name
+                { weight: 1.0, fn: () => `${PositiveAdjective()} ${PositiveNoun()}` }, // e.g., "Valiant Odyssey"
+                // Heroic with suffix
+                { weight: 1.0, fn: () => `${The()}${PositiveAdjective()} ${PositiveNoun()}${Math.random() < 0.3 ? Suffixes() : ''}` }, // e.g., "The Radiant Star-tek"
+                // Fun quirky name
+                { weight: 1.0, fn: () => `${The()}${FunPrefixes()} ${FunRoots()}${Math.random() < 0.2 ? FunSuffixes() : ''}${Math.random() < 0.2 ? ' ' + Number() : ''}` } // e.g., "The Disco Noodle 42"
             ]
         }
-    },
-    fun: {
-        prefixes: [
-            'Disco', 'Funky', 'Wobbly', 'Gizmo', 'Bloop', 'Snaccident', 'Mega', 'Zany',
-            'Nifty', 'Whacky', 'Zippy', 'Bonkers', 'Kooky', 'Nutty', 'Silly', 'Giddy',
-            'Bouncy', 'Jolly', 'Wacko', 'Zesty'
-        ],
-        roots: [
-            'Tickler', 'Wobbler', 'Floof', 'Noodle', 'Blasterpants', 'Zoomzoom', 'Chugger',
-            'Sparkler', 'Bopper', 'Whizz', 'Fluffel', 'Gizmo', 'Doodler', 'Snoozle',
-            'Waffler', 'Popper', 'Zapper', 'Bloopster', 'Fizzler', 'Twirler'
-        ],
-        suffixes: [
-            '-inator', '-zoid', '-omatic', '-erino', '-splosion', '-licious', '-pants',
-            '-tastic', '-oodle', '-rama', '-palooza', '-mageddon', '-zap', '-boom'
-        ]
     }
 };
 

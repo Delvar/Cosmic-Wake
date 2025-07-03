@@ -109,32 +109,45 @@ export class Game {
             this.timeAccumulator -= this.fixedDeltaTime;
         }
 
-        if (renderStarfield) {
+        if (renderStarfield && this.starField) {
             let fadeout = 1.0;
             let white = 0.0;
+            const target = this.manager.cameraTarget;
             // Render starfield to background canvas
-            if (this.starField) {
-                if (this.manager.cameraTarget instanceof Ship && (
-                    this.manager.cameraTarget.state === 'JumpingOut' ||
-                    this.manager.cameraTarget.state === 'JumpingIn'
-                )) {
-                    const ship = this.manager.cameraTarget;
-                    if (ship.state === 'JumpingOut') {
-                        fadeout = remapClamp(ship.animationTime, ship.animationJumpingDuration * 0.1, ship.animationJumpingDuration, 1.0, 0.1);
-                        white = remapClamp(ship.animationTime, ship.animationJumpingDuration * 0.95, ship.animationJumpingDuration, 0.0, 1.0);
-                    } else if (ship.state === 'JumpingIn') {
-                        fadeout = remapClamp(ship.animationTime, 0.0, ship.animationJumpingDuration * 0.9, 0.1, 1.0);
-                        white = remapClamp(ship.animationTime, 0.0, ship.animationJumpingDuration * 0.05, 1.0, 0.0);
-                    }
-
-                }
-                // Draw starfield for main camera
-                this.starField.draw('main', this.mainCamera, fadeout, white);
-                // Draw starfield for target camera (if visible)
-                if (this.targetCamera && this.targetCamera.foregroundCanvas.parentElement.style.visibility === 'visible') {
-                    this.starField.draw('target', this.targetCamera, 1.0, 0.0);
+            if (target instanceof Ship && (
+                target.state === 'JumpingOut' ||
+                target.state === 'JumpingIn'
+            )) {
+                if (target.state === 'JumpingOut') {
+                    fadeout = remapClamp(target.animationTime, target.animationJumpingDuration * 0.1, target.animationJumpingDuration, 1.0, 0.1);
+                    white = remapClamp(target.animationTime, target.animationJumpingDuration * 0.95, target.animationJumpingDuration, 0.0, 1.0);
+                } else if (target.state === 'JumpingIn') {
+                    fadeout = remapClamp(target.animationTime, 0.0, target.animationJumpingDuration * 0.9, 0.1, 1.0);
+                    white = remapClamp(target.animationTime, 0.0, target.animationJumpingDuration * 0.05, 1.0, 0.0);
                 }
             }
+            // Draw starfield for main camera
+            this.starField.draw('main', this.mainCamera, fadeout, white);
+        }
+        if (renderStarfield && this.starField && this.targetCamera && this.targetCamera.foregroundCanvas.parentElement.style.visibility === 'visible') {
+            let fadeout = 1.0;
+            let white = 0.0;
+            const target = this.manager.cameraTarget.target;
+            // Render starfield to background canvas
+            if (target instanceof Ship && (
+                target.state === 'JumpingOut' ||
+                target.state === 'JumpingIn'
+            )) {
+                if (target.state === 'JumpingOut') {
+                    fadeout = remapClamp(target.animationTime, target.animationJumpingDuration * 0.1, target.animationJumpingDuration, 1.0, 0.1);
+                    white = remapClamp(target.animationTime, target.animationJumpingDuration * 0.95, target.animationJumpingDuration, 0.0, 1.0);
+                } else if (target.state === 'JumpingIn') {
+                    fadeout = remapClamp(target.animationTime, 0.0, target.animationJumpingDuration * 0.9, 0.1, 1.0);
+                    white = remapClamp(target.animationTime, 0.0, target.animationJumpingDuration * 0.05, 1.0, 0.0);
+                }
+            }
+            // Draw starfield for target camera (if visible)
+            this.starField.draw('target', this.targetCamera, fadeout, white);
         }
 
         // Render game to foreground canvas at variable frame rate

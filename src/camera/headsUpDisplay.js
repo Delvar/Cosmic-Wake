@@ -220,7 +220,7 @@ export class HeadsUpDisplay {
         ctx.lineWidth = 1.0;
 
         outlineCtx.fillStyle = white;
-        outlineCtx.lineWidth = 1.0;
+        outlineCtx.lineWidth = 2.0;
 
         // Calculate base to align arrow's left/right points with ring's outer edge
         const outerRadius = ringRadius + this.ringLineWidth / 2.0;

@@ -354,12 +354,12 @@ export class Ship extends GameObject {
             return;
         }
 
-        if (newState === 'Disabled') {
+        if (newState === 'Disabled' || newState === 'Exploding') {
             if (this.debug) {
                 console.log(`new state: ${newState}, light mode: Flicker, original light mode: ${this.lightMode}`);
             }
             this.lightMode = 'Flicker';
-        } else if (this.lightMode !== 'Normal') {
+        } else if (this.lightMode === 'Flicker') {
             if (this.debug) {
                 console.log(`new state: ${newState}, light mode: Normal, original light mode: ${this.lightMode}`);
             }
@@ -976,11 +976,10 @@ export class Ship extends GameObject {
             this.target = null;
             // Initialize explosion timer
             this.explosionTime = 0.0;
-
+            this.lightMode = 'Flicker';
             this._getRandomPointInBoundingBox(this._scratchExplosionPos);
             this._applyExplosionImpulse(this._scratchExplosionPos, this.explosionForce, this.explosionTorque);
             this.starSystem.particleManager.spawnExplosion(this._scratchExplosionPos, this.radius * 0.5, this.velocity);
-
             return;
         }
 

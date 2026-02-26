@@ -190,8 +190,9 @@ export class Game {
      * @param {CanvasRenderingContext2D} outlineCtx - The canvas rendering context for darker outlines.
      * @param {Camera} camera - The camera object for world-to-screen conversion.
      * @param {Ship} ship - The ship object to get the stats from.
+     * @param {boolean} useLayeredRendering - Whether to use layered rendering mode.
      */
-    drawShipStats(ctx, outlineCtx, camera, ship) {
+    drawShipStats(ctx, outlineCtx, camera, ship, useLayeredRendering = true) {
         const white = 'white';
         const black = 'black';
 
@@ -204,38 +205,42 @@ export class Game {
         let top = Math.round(camera.screenSize.height - barGap - barHeight);
         let width = Math.round(barWidth * shieldRatio * 0.5);
 
-        ctx.fillStyle = Colour.BlueDark.toRGB();
-        ctx.fillRect(barGap, top, barWidth, barHeight);
+        // Use appropriate context based on rendering mode
+        const drawCtx = useLayeredRendering ? ctx : camera.foregroundCtx;
+        const outlineCtx2 = useLayeredRendering ? outlineCtx : camera.foregroundCtx;
 
-        outlineCtx.strokeStyle = black;
-        outlineCtx.lineWidth = 1.0;
-        outlineCtx.strokeRect(barGap - 0.5, top - 0.5, barWidth + 1.0, barHeight + 1.0);
+        drawCtx.fillStyle = Colour.BlueDark.toRGB();
+        drawCtx.fillRect(barGap, top, barWidth, barHeight);
+
+        outlineCtx2.strokeStyle = black;
+        outlineCtx2.lineWidth = 1.0;
+        outlineCtx2.strokeRect(barGap - 0.5, top - 0.5, barWidth + 1.0, barHeight + 1.0);
 
         if (ship.shield.rapidRechargeEffectTime > 0.0) {
             const now = Date.now();
-            ctx.fillStyle = (Math.floor(now / 100) % 2 === 0)
+            drawCtx.fillStyle = (Math.floor(now / 100) % 2 === 0)
                 ? Colour.BlueLight.toRGB()
                 : Colour.Blue.toRGB();
         } else {
-            ctx.fillStyle = Colour.Blue.toRGB();
+            drawCtx.fillStyle = Colour.Blue.toRGB();
         }
-        ctx.fillRect(centerX - width, top, width * 2.0, barHeight);
+        drawCtx.fillRect(centerX - width, top, width * 2.0, barHeight);
 
         top = top - barGap - barHeight;
         width = Math.round(barWidth * hullRatio * 0.5);
-        ctx.fillStyle = Colour.GreenDark.toRGB();
-        ctx.fillRect(barGap, top, barWidth, barHeight);
-        outlineCtx.strokeRect(barGap - 0.5, top - 0.5, barWidth + 1.0, barHeight + 1.0);
+        drawCtx.fillStyle = Colour.GreenDark.toRGB();
+        drawCtx.fillRect(barGap, top, barWidth, barHeight);
+        outlineCtx2.strokeRect(barGap - 0.5, top - 0.5, barWidth + 1.0, barHeight + 1.0);
 
         if (ship.protectionTime > 0.0) {
             const now = Date.now();
-            ctx.fillStyle = (Math.floor(now / 100) % 2 === 0)
+            drawCtx.fillStyle = (Math.floor(now / 100) % 2 === 0)
                 ? Colour.GreenLight.toRGB()
                 : Colour.Green.toRGB();
         } else {
-            ctx.fillStyle = Colour.Green.toRGB();
+            drawCtx.fillStyle = Colour.Green.toRGB();
         }
-        ctx.fillRect(centerX - width, top, width * 2.0, barHeight);
+        drawCtx.fillRect(centerX - width, top, width * 2.0, barHeight);
     }
 
     /**
@@ -257,7 +262,8 @@ export class Game {
 
         ctx.save();
         ctx.clearRect(0.0, 0.0, camera.screenSize.width, camera.screenSize.height);
-
+        // ctx.fillStyle=Colour.Blue.toHex();
+        // ctx.fillRect( 0.0, 0.0, camera.screenSize.width, camera.screenSize.height);
         const cameraTarget = this.manager.cameraTarget;
         if (!cameraTarget || cameraTarget.despawned) {
             this.manager.cameraTarget = null;
@@ -318,9 +324,9 @@ export class Game {
             ctx.restore();
         }
 
-        this.hud.draw(camera.hudCtx, camera.hudOutlineCtx, camera);
+        this.hud.draw(camera.foregroundCtx, camera.hudCtx, camera.hudOutlineCtx, camera, this.manager.useLayeredHudRendering);
         if (cameraTarget && cameraTarget instanceof Ship) {
-            this.drawShipStats(camera.hudCtx, camera.hudOutlineCtx, camera, cameraTarget);
+            this.drawShipStats(camera.hudCtx, camera.hudOutlineCtx, camera, cameraTarget, this.manager.useLayeredHudRendering);
         }
         this.renderTargetView();
 
@@ -362,7 +368,7 @@ export class Game {
             camera.hudCanvas.style.opacity = '1.0';
             camera.hudOutlineCanvas.style.visibility = 'visible';
             camera.hudOutlineCanvas.style.opacity = '1.0';
-            this.drawShipStats(camera.hudCtx, camera.hudOutlineCtx, camera, target);
+            this.drawShipStats(camera.hudCtx, camera.hudOutlineCtx, camera, target, this.manager.useLayeredHudRendering);
         } else {
             camera.hudCanvas.style.visibility = 'hidden';
             camera.hudCanvas.style.opacity = '0.0';

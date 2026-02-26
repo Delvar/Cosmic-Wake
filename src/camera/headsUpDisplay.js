@@ -107,17 +107,111 @@ export class HeadsUpDisplay {
     }
 
     /**
-     * Draws a circle around the targetd ship.
-     * @param {CanvasRenderingContext2D} ctx - The canvas rendering context.
-     * @param {CanvasRenderingContext2D} outlineCtx - The canvas rendering context for darker outlines.
+     * Helper method to draw a stroke-filled arc based on rendering mode.
+     * @param {CanvasRenderingContext2D} ctx - The primary canvas context.
+     * @param {CanvasRenderingContext2D} outlineCtx - The outline canvas context.
+     * @param {boolean} useLayeredRendering - Whether to use layered rendering mode.
+     * @param {number} x - Center X coordinate.
+     * @param {number} y - Center Y coordinate.
+     * @param {number} radius - Radius of the arc.
+     * @param {string} fillColour - Fill color (RGB string).
+     * @param {string} strokeColour - Stroke color (RGB string).
+     * @param {number} lineWidth - Line width in pixels.
+     */
+    drawArc(ctx, outlineCtx, useLayeredRendering, x, y, radius, fillColour, strokeColour, lineWidth) {
+        if (useLayeredRendering) {
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0.0, TWO_PI);
+            ctx.strokeStyle = strokeColour;
+            ctx.lineWidth = lineWidth;
+            ctx.stroke();
+        } else {
+            // Draw to foreground canvas directly with outline
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0.0, TWO_PI);
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = lineWidth + 2.0;
+            ctx.stroke();
+            ctx.strokeStyle = strokeColour;
+            ctx.lineWidth = lineWidth;
+            ctx.stroke();
+        }
+    }
+
+    /**
+     * Helper method to draw text based on rendering mode.
+     * @param {CanvasRenderingContext2D} ctx - The primary canvas context.
+     * @param {CanvasRenderingContext2D} outlineCtx - The outline canvas context.
+     * @param {boolean} useLayeredRendering - Whether to use layered rendering mode.
+     * @param {string} text - Text to draw.
+     * @param {number} x - X coordinate.
+     * @param {number} y - Y coordinate.
+     * @param {string} fillColour - Fill color (RGB string).
+     */
+    drawText(ctx, outlineCtx, useLayeredRendering, text, x, y, fillColour = 'white') {
+        const black = 'black';
+        if (useLayeredRendering) {
+            ctx.fillStyle = fillColour;
+            ctx.fillText(text, x, y);
+        } else {
+            // Draw directly to foreground canvas with outline
+            ctx.strokeStyle = black;
+            ctx.lineWidth = 2.0;
+            ctx.strokeText(text, x, y);
+            ctx.fillStyle = fillColour;
+            ctx.fillText(text, x, y);
+        }
+    }
+
+    /**
+     * Helper method to draw HUD text based on rendering mode.
+     * Handles outline drawing in direct mode and layered rendering in HUD mode.
+     * @param {CanvasRenderingContext2D} foregroundCtx - The foreground context.
+     * @param {CanvasRenderingContext2D} hudCtx - The HUD context.
+     * @param {CanvasRenderingContext2D} hudOutlineCtx - The HUD outline context.
+     * @param {boolean} useLayeredRendering - Whether to use layered rendering mode.
+     * @param {string} text - Text to draw.
+     * @param {number} x - X coordinate.
+     * @param {number} y - Y coordinate.
+     * @param {string} fillColour - Fill color (RGB string).
+     * @param {string} textAlign - Text alignment ('left', 'center', 'right').
+     */
+    drawHudText(foregroundCtx, hudCtx, hudOutlineCtx, useLayeredRendering, text, x, y, fillColour = 'white', textAlign = 'center') {
+        if (useLayeredRendering) {
+            hudOutlineCtx.save();
+            hudOutlineCtx.strokeStyle = 'black';
+            hudOutlineCtx.lineWidth = 2.0;
+            hudOutlineCtx.textAlign = textAlign;
+            hudOutlineCtx.strokeText(text, x, y);
+            hudOutlineCtx.restore();
+
+            hudCtx.save();
+            hudCtx.fillStyle = fillColour;
+            hudCtx.textAlign = textAlign;
+            hudCtx.fillText(text, x, y);
+            hudCtx.restore();
+        } else {
+            foregroundCtx.save();
+            foregroundCtx.strokeStyle = 'black';
+            foregroundCtx.lineWidth = 2.0;
+            foregroundCtx.textAlign = textAlign;
+            foregroundCtx.strokeText(text, x, y);
+            foregroundCtx.fillStyle = fillColour;
+            foregroundCtx.fillText(text, x, y);
+            foregroundCtx.restore();
+        }
+    }
+
+    /**
+     * Draws a circle around the targeted ship.
+     * @param {CanvasRenderingContext2D} foregroundCtx - The foreground context.
+     * @param {CanvasRenderingContext2D} hudCtx - The canvas rendering context.
+     * @param {CanvasRenderingContext2D} hudOutlineCtx - The canvas rendering context for darker outlines.
      * @param {Camera} camera - The camera object for coordinate transformations.
+     * @param {boolean} useLayeredRendering - Whether to use layered rendering mode.
      * @param {GameObject} [target=null] - The target object.
      */
-    drawTargetCircle(ctx, outlineCtx, camera, target = null) {
-        const white = 'white';
-        const black = 'black';
-
-        // Draw rectangle around the target
+    drawTargetCircle(foregroundCtx, hudCtx, hudOutlineCtx, camera, useLayeredRendering, target = null) {
         if (!target) {
             return;
         }
@@ -132,225 +226,259 @@ export class HeadsUpDisplay {
 
         camera.worldToScreen(target.position, this._scratchScreenPos);
 
-        ctx.save();
-        outlineCtx.save();
-
         const scale = target instanceof Ship ? target.shipScale : 1.0;
+        const radius = camera.worldToSize(target.radius * scale) + 5.0;
 
-        ctx.beginPath();
-        ctx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, camera.worldToSize(target.radius * scale) + 5.0, 0.0, TWO_PI);
-        // ctx.lineWidth = 2.5;
-        // ctx.strokeStyle = Colour.Black.toRGB();
-        // ctx.stroke();
-        ctx.lineWidth = 2.0;
-
-        outlineCtx.beginPath();
-        outlineCtx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, camera.worldToSize(target.radius * scale) + 5.0, 0.0, TWO_PI);
-        outlineCtx.lineWidth = 4.0;
-        outlineCtx.strokeStyle = black;
-        outlineCtx.stroke();
-        outlineCtx.lineWidth = 2.0;
-        outlineCtx.strokeStyle = white;
-
+        let strokeColour = Colour.Neutral.toRGB();
         if (target instanceof Ship) {
             if (target.state === 'Disabled') {
-                ctx.strokeStyle = Colour.Disabled.toRGB();
+                strokeColour = Colour.Disabled.toRGB();
             } else if (target.state === 'Exploding') {
-                // Alternate between Grey and Black every 0.5 seconds
                 const now = Date.now();
-                ctx.strokeStyle = (Math.floor(now / 250) % 2 === 0)
+                strokeColour = (Math.floor(now / 250) % 2 === 0)
                     ? Colour.Disabled.toRGB()
                     : Colour.Black.toRGB();
             } else {
                 switch (this.gameManager.cameraTarget.getRelationship(target)) {
                     case FactionRelationship.Allied:
-                        ctx.strokeStyle = Colour.Allied.toRGB();
+                        strokeColour = Colour.Allied.toRGB();
                         break;
                     case FactionRelationship.Neutral:
-                        ctx.strokeStyle = Colour.Neutral.toRGB();
+                        strokeColour = Colour.Neutral.toRGB();
                         break;
                     case FactionRelationship.Hostile:
-                        ctx.strokeStyle = Colour.Hostile.toRGB();
+                        strokeColour = Colour.Hostile.toRGB();
                         break;
                 }
             }
-        } else {
-            ctx.strokeStyle = Colour.Neutral.toRGB();
         }
 
-        ctx.stroke();
-        outlineCtx.stroke();
-        ctx.restore();
-        outlineCtx.restore();
+        if (useLayeredRendering) {
+            hudCtx.save();
+            hudOutlineCtx.save();
+
+            hudCtx.beginPath();
+            hudCtx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, radius, 0.0, TWO_PI);
+            hudCtx.lineWidth = 2.0;
+            hudCtx.strokeStyle = strokeColour;
+            hudCtx.stroke();
+
+            hudOutlineCtx.beginPath();
+            hudOutlineCtx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, radius, 0.0, TWO_PI);
+            hudOutlineCtx.lineWidth = 4.0;
+            hudOutlineCtx.strokeStyle = Colour.Black.toRGB();
+            hudOutlineCtx.stroke();
+            hudOutlineCtx.lineWidth = 2.0;
+            hudOutlineCtx.strokeStyle = Colour.White.toRGB();
+            hudOutlineCtx.stroke();
+
+            hudCtx.restore();
+            hudOutlineCtx.restore();
+        } else {
+            foregroundCtx.save();
+            foregroundCtx.beginPath();
+            foregroundCtx.arc(this._scratchScreenPos.x, this._scratchScreenPos.y, radius, 0.0, TWO_PI);
+            foregroundCtx.lineWidth = 4.0;
+            foregroundCtx.strokeStyle = Colour.Black.toRGB();
+            foregroundCtx.stroke();
+            foregroundCtx.lineWidth = 2.0;
+            foregroundCtx.strokeStyle = strokeColour;
+            foregroundCtx.stroke();
+            foregroundCtx.restore();
+        }
+
     }
 
     /**
      * Draws a navigational ring with arrows and optional name tags for objects in the star system.
-     * The ring is centered on the camera's screen center, with arrows indicating objects outside the ring.
-     * @param {CanvasRenderingContext2D} ctx - The canvas rendering context for drawing.
-     * @param {CanvasRenderingContext2D} outlineCtx - The canvas rendering context for darker outlines.
+     * @param {CanvasRenderingContext2D} foregroundCtx - The foreground context.
+     * @param {CanvasRenderingContext2D} hudCtx - The HUD context.
+     * @param {CanvasRenderingContext2D} hudOutlineCtx - The HUD outline context.
      * @param {Camera} camera - The camera object for world-to-screen coordinate transformations.
+     * @param {boolean} useLayeredRendering - Whether to use layered rendering mode.
      * @param {Colour} ringColour - The color of the ring and arrows.
      * @param {number} ringRadius - The radius of the ring in screen space.
-     * @param {GameObject[]} [objects=[]] - Array of game objects (e.g., planets, ships) to draw arrows or names for.
+     * @param {GameObject[]} [objects=[]] - Array of game objects to draw arrows or names for.
      * @param {GameObject|null} [target=null] - The target object, which gets a larger arrow if outside the ring.
      */
-    drawRing(ctx, outlineCtx, camera, ringColour, ringRadius, objects = [], target = null) {
+    drawRing(foregroundCtx, hudCtx, hudOutlineCtx, camera, useLayeredRendering, ringColour, ringRadius, objects = [], target = null) {
         const white = 'white';
         const black = 'black';
-        ctx.save();
-        outlineCtx.save();
-
-        //Draw ring outline
-        // ctx.strokeStyle = Colour.Black.toRGB();
-        // ctx.lineWidth = this.ringLineWidth + 1.0;
-        // ctx.beginPath();
-        // ctx.arc(camera.screenCenter.x, camera.screenCenter.y, ringRadius, 0.0, TWO_PI);
-        // ctx.stroke();
-
-        outlineCtx.strokeStyle = black;
-        outlineCtx.lineWidth = this.ringLineWidth + 2.0;
-        outlineCtx.beginPath();
-        outlineCtx.arc(camera.screenCenter.x, camera.screenCenter.y, ringRadius, 0.0, TWO_PI);
-        outlineCtx.stroke();
-
-        //Draw all the arrows
         const colour = ringColour.toRGB();
-        ctx.fillStyle = colour;
-        ctx.lineWidth = 1.0;
-
-        outlineCtx.fillStyle = white;
-        outlineCtx.lineWidth = 2.0;
-
-        // Calculate base to align arrow's left/right points with ring's outer edge
         const outerRadius = ringRadius + this.ringLineWidth / 2.0;
-        const arrowWidth = 5.0; // Half-width of arrow base
+        const arrowWidth = 5.0;
         const base = ringRadius - Math.sqrt(outerRadius * outerRadius - arrowWidth * arrowWidth) + 1.0;
 
+        // Build ring path
+        const ringPath = new Path2D();
+        ringPath.arc(camera.screenCenter.x, camera.screenCenter.y, ringRadius, 0.0, TWO_PI);
+
+        // Build arrows path by accumulating transformed arrow paths
+        const arrowsPath = new Path2D();
         for (let i = 0.0; i < objects.length; i++) {
             const body = objects[i];
             if (body === this.gameManager.cameraTarget) continue;
             camera.worldToCamera(body.position, this._scratchCameraPos);
             const squareMagnitude = this._scratchCameraPos.squareMagnitude();
-            camera.worldToScreen(body.position, this._scratchScreenPos);
 
             if (squareMagnitude > ringRadius * ringRadius) {
                 const angle = Math.atan2(this._scratchCameraPos.x, -this._scratchCameraPos.y);
                 const arrowX = camera.screenCenter.x + Math.sin(angle) * ringRadius;
                 const arrowY = camera.screenCenter.y - Math.cos(angle) * ringRadius;
 
-                ctx.save();
-                outlineCtx.save();
-                ctx.beginPath();
-                ctx.translate(arrowX, arrowY);
-                ctx.rotate(angle);
-
-                outlineCtx.beginPath();
-                outlineCtx.translate(arrowX, arrowY);
-                outlineCtx.rotate(angle);
-
-                ctx.moveTo(arrowWidth, base);  // Bottom right
-                outlineCtx.moveTo(arrowWidth, base);  // Bottom right
+                // Create arrow in local coordinates
+                const arrowPath = new Path2D();
+                arrowPath.moveTo(arrowWidth, base);
 
                 if (body === target) {
-                    ctx.lineTo(0.0, -20.0);            // Tip up
-                    outlineCtx.lineTo(0.0, -20.0);            // Tip up
+                    arrowPath.lineTo(0.0, -20.0);
                 } else {
                     const length = remapClamp(squareMagnitude, 0.0, this.maxRadius * this.maxRadius, -10.0, base);
-                    ctx.lineTo(0.0, length);         // Tip up
-                    outlineCtx.lineTo(0.0, length);         // Tip up
+                    arrowPath.lineTo(0.0, length);
                 }
-                ctx.lineTo(-arrowWidth, base); // Bottom left
-                outlineCtx.lineTo(-arrowWidth, base); // Bottom left
-                ctx.stroke();
-                ctx.fill();
+                arrowPath.lineTo(-arrowWidth, base);
+                arrowPath.closePath();
 
-                outlineCtx.stroke();
-                outlineCtx.fill();
+                // Create transformation matrix for this arrow
+                const transform = new DOMMatrix();
+                transform.translateSelf(arrowX, arrowY);
+                transform.rotateSelf(angle * 180 / Math.PI);
 
-                ctx.restore();
-                outlineCtx.restore();
+                // Add transformed arrow to main arrows path
+                arrowsPath.addPath(arrowPath, transform);
             }
         }
 
-        //draw the ring last to cover any artifacts
-        ctx.lineWidth = this.ringLineWidth;
-        ctx.beginPath();
-        ctx.arc(camera.screenCenter.x, camera.screenCenter.y, ringRadius, 0.0, TWO_PI);
-        ctx.strokeStyle = colour;
-        ctx.stroke();
+        // Draw paths in order: outline first, then main shapes
+        if (useLayeredRendering) {
+            hudOutlineCtx.save();
+            hudCtx.save();
 
-        outlineCtx.lineWidth = this.ringLineWidth;
-        outlineCtx.beginPath();
-        outlineCtx.arc(camera.screenCenter.x, camera.screenCenter.y, ringRadius, 0.0, TWO_PI);
-        outlineCtx.strokeStyle = white;
-        outlineCtx.stroke();
+            // 1. Draw ring black outline
+            hudOutlineCtx.strokeStyle = black;
+            hudOutlineCtx.lineWidth = this.ringLineWidth + 2.0;
+            hudOutlineCtx.stroke(ringPath);
 
-        ctx.restore();
-        outlineCtx.restore();
+            // 2. Draw arrows black outline
+            hudOutlineCtx.strokeStyle = black;
+            hudOutlineCtx.lineWidth = 2.0;
+            hudOutlineCtx.stroke(arrowsPath);
+
+            // 3. Draw ring white infill
+            hudOutlineCtx.strokeStyle = white;
+            hudOutlineCtx.lineWidth = this.ringLineWidth;
+            hudOutlineCtx.stroke(ringPath);
+
+            // 4. Draw arrows white infill
+            hudOutlineCtx.fillStyle = white;
+            hudOutlineCtx.fill(arrowsPath);
+
+            // 5. Draw ring colour
+            hudCtx.strokeStyle = colour;
+            hudCtx.lineWidth = this.ringLineWidth;
+            hudCtx.stroke(ringPath);
+
+            // 6. Draw arrows colour
+            hudCtx.fillStyle = colour;
+            hudCtx.lineWidth = 0.0;
+            hudCtx.fill(arrowsPath);
+
+            hudOutlineCtx.restore();
+            hudCtx.restore();
+        } else {
+            foregroundCtx.save();
+
+            // 1. Draw ring outline
+            foregroundCtx.strokeStyle = black;
+            foregroundCtx.lineWidth = this.ringLineWidth + 2.0;
+            foregroundCtx.stroke(ringPath);
+
+            // 2. Draw arrows outline
+            foregroundCtx.strokeStyle = black;
+            foregroundCtx.lineWidth = 2.0;
+            foregroundCtx.stroke(arrowsPath);
+
+            // 3. Draw ring
+            foregroundCtx.strokeStyle = colour;
+            foregroundCtx.lineWidth = this.ringLineWidth;
+            foregroundCtx.stroke(ringPath);
+
+            // 4. Draw arrows
+            foregroundCtx.fillStyle = colour;
+            foregroundCtx.fill(arrowsPath);
+
+            foregroundCtx.restore();
+        }
     }
 
     /**
      * Draws name tags for objects inside the given ring.
      * @param {CanvasRenderingContext2D} ctx - The canvas rendering context for drawing.
+     * @param {CanvasRenderingContext2D} outlineCtx - The canvas rendering context for darker outlines.
      * @param {Camera} camera - The camera object for world-to-screen coordinate transformations.
+     * @param {boolean} useLayeredRendering - Whether to use layered rendering mode.
      * @param {number} ringRadius - The radius of the ring in screen space.
-     * @param {GameObject[]} [objects=[]] - Array of game objects (e.g., planets, ships) to draw arrows or names for.
+     * @param {GameObject[]} [objects=[]] - Array of game objects to draw names for.
      */
-    drawNames(ctx, camera, ringRadius, objects = []) {
+    drawNames(ctx, outlineCtx, camera, useLayeredRendering, ringRadius, objects = []) {
         ctx.save();
         ctx.fillStyle = Colour.White.toRGB();
         ctx.textAlign = 'center';
-        ctx.strokeStyle = Colour.Black.toRGB();
-        ctx.lineWidth = 2.0;
+
+        if (useLayeredRendering) {
+            ctx.strokeStyle = Colour.Black.toRGB();
+            ctx.lineWidth = 2.0;
+        } else {
+            ctx.strokeStyle = Colour.Black.toRGB();
+            ctx.lineWidth = 2.0;
+        }
 
         for (let i = 0.0; i < objects.length; i++) {
             const body = objects[i];
             camera.worldToCamera(body.position, this._scratchCameraPos);
             const squareMagnitude = this._scratchCameraPos.squareMagnitude();
-            // Label for bodies inside their ring
             if (squareMagnitude < ringRadius * ringRadius) {
                 ctx.beginPath();
                 camera.worldToScreen(body.position, this._scratchScreenPos);
                 const scaledRadius = camera.worldToSize(body.radius);
-                ctx.strokeText(body.name, this._scratchScreenPos.x, this._scratchScreenPos.y + scaledRadius + camera.worldToSize(20.0));
-                ctx.fillText(body.name, this._scratchScreenPos.x, this._scratchScreenPos.y + scaledRadius + camera.worldToSize(20.0));
+                const textY = this._scratchScreenPos.y + scaledRadius + camera.worldToSize(20.0);
+                ctx.strokeText(body.name, this._scratchScreenPos.x, textY);
+                ctx.fillText(body.name, this._scratchScreenPos.x, textY);
             }
         }
         ctx.restore();
     }
 
     /**
-     * Draws HUD elements like rings, arrows, and labels on the canvas.
-     * @param {CanvasRenderingContext2D} ctx - The canvas rendering context.
-     * @param {CanvasRenderingContext2D} outlineCtx - The canvas rendering context for darker outlines.
-     * @param {Camera} camera - The camera object for coordinate transformations.
+     * Draws the autopilot status text at the top center of the screen.
+     * @param {CanvasRenderingContext2D} foregroundCtx - The foreground context.
+     * @param {CanvasRenderingContext2D} hudCtx - The HUD context.
+     * @param {CanvasRenderingContext2D} hudOutlineCtx - The HUD outline context.
+     * @param {boolean} useLayeredRendering - Whether to use layered rendering mode.
      */
-    draw(ctx, outlineCtx, camera) {
-        ctx.save();
-        outlineCtx.restore();
-        ctx.clearRect(0, 0, this.size.width, this.size.height);
-        outlineCtx.clearRect(0, 0, this.size.width, this.size.height);
+    drawAutopilotStatus(foregroundCtx, hudCtx, hudOutlineCtx, useLayeredRendering) {
+        const autopilotStatus = this.gameManager.cameraTarget?.pilot?.getStatus();
+        if (!autopilotStatus) return;
 
-        let autopilotStatus = this.gameManager.cameraTarget?.pilot?.getStatus();
+        this.drawHudText(foregroundCtx, hudCtx, hudOutlineCtx, useLayeredRendering, autopilotStatus, this.size.width / 2.0, 20.0, Colour.White.toRGB(), 'center');
+    }
 
-        if (autopilotStatus) {
-            ctx.fillStyle = Colour.White.toRGB();
-            //ctx.strokeStyle = Colour.Black.toRGB();
-            ctx.textAlign = "center";
-            // Top middle of screen
-            //ctx.strokeText(autopilotStatus, this.size.width / 2.0, 20.0)
-            ctx.fillText(autopilotStatus, this.size.width / 2.0, 20.0);
-
-            //outlineCtx.fillStyle = 'white';
-            outlineCtx.strokeStyle = 'black';
-            outlineCtx.textAlign = "center";
-            // Top middle of screen
-            outlineCtx.strokeText(autopilotStatus, this.size.width / 2.0, 20.0)
-            //ctx.fillText(autopilotStatus, this.size.width / 2.0, 20.0);
+    /**
+     * Draws HUD elements like rings, arrows, and labels on the canvas.
+     * @param {CanvasRenderingContext2D} foregroundCtx - The foreground context for direct rendering mode.
+     * @param {CanvasRenderingContext2D} hudCtx - The canvas rendering context.
+     * @param {CanvasRenderingContext2D} hudOutlineCtx - The canvas rendering context for darker outlines.
+     * @param {Camera} camera - The camera object for coordinate transformations.
+     * @param {boolean} useLayeredRendering - Whether to use layered rendering mode.
+     */
+    draw(foregroundCtx, hudCtx, hudOutlineCtx, camera, useLayeredRendering = true) {
+        if (useLayeredRendering) {
+            hudCtx.clearRect(0, 0, this.size.width, this.size.height);
+            hudOutlineCtx.clearRect(0, 0, this.size.width, this.size.height);
         }
 
-        // Determine the current target
+        this.drawAutopilotStatus(foregroundCtx, hudCtx, hudOutlineCtx, useLayeredRendering);
+
         let target = null;
         if (
             this.gameManager.cameraTarget &&
@@ -358,9 +486,6 @@ export class HeadsUpDisplay {
             isValidTarget(this.gameManager.cameraTarget, this.gameManager.cameraTarget.target)
         ) {
             target = this.gameManager.cameraTarget.target;
-        }
-        if (target) {
-            this.drawTargetCircle(ctx, outlineCtx, camera, target);
         }
 
         this._scratchAlliedShips.length = 0.0;
@@ -396,32 +521,28 @@ export class HeadsUpDisplay {
             this._scratchNeutralShips.push(...camera.starSystem.ships);
         }
 
-        // Draw jumpGate
-        this.drawRing(ctx, outlineCtx, camera, this.jumpGateRingColour, this.jumpGateRingRadius, camera.starSystem.jumpGates, target);
-        // Draw planet ring
-        this.drawRing(ctx, outlineCtx, camera, this.planetRingColour, this.planetRingRadius, camera.starSystem.planets, target);
-        // Draw asteroid ring
-        this.drawRing(ctx, outlineCtx, camera, this.asteroidRingColour, this.asteroidRingRadius, camera.starSystem.asteroids, target);
-        // Draw ship rings
+        this.drawRing(foregroundCtx, hudCtx, hudOutlineCtx, camera, useLayeredRendering, this.jumpGateRingColour, this.jumpGateRingRadius, camera.starSystem.jumpGates, target);
+        this.drawRing(foregroundCtx, hudCtx, hudOutlineCtx, camera, useLayeredRendering, this.planetRingColour, this.planetRingRadius, camera.starSystem.planets, target);
+        this.drawRing(foregroundCtx, hudCtx, hudOutlineCtx, camera, useLayeredRendering, this.asteroidRingColour, this.asteroidRingRadius, camera.starSystem.asteroids, target);
+
         if (this._scratchAlliedShips.length > 0.0) {
-            this.drawRing(ctx, outlineCtx, camera, this.shipAlliedRingColour, this.shipAlliedRingRadius, this._scratchAlliedShips, target);
+            this.drawRing(foregroundCtx, hudCtx, hudOutlineCtx, camera, useLayeredRendering, this.shipAlliedRingColour, this.shipAlliedRingRadius, this._scratchAlliedShips, target);
         }
         if (this._scratchNeutralShips.length > 0.0) {
-            this.drawRing(ctx, outlineCtx, camera, this.shipNeutralRingColour, this.shipNeutralRingRadius, this._scratchNeutralShips, target);
+            this.drawRing(foregroundCtx, hudCtx, hudOutlineCtx, camera, useLayeredRendering, this.shipNeutralRingColour, this.shipNeutralRingRadius, this._scratchNeutralShips, target);
         }
         if (this._scratchHostileShips.length > 0.0) {
-            this.drawRing(ctx, outlineCtx, camera, this.shipHostileRingColour, this.shipHostileRingRadius, this._scratchHostileShips, target);
+            this.drawRing(foregroundCtx, hudCtx, hudOutlineCtx, camera, useLayeredRendering, this.shipHostileRingColour, this.shipHostileRingRadius, this._scratchHostileShips, target);
         }
         if (this._scratchDisabledShips.length > 0.0) {
-            this.drawRing(ctx, outlineCtx, camera, this.shipDisabledRingColour, this.shipDisabledRingRadius, this._scratchDisabledShips, target);
+            this.drawRing(foregroundCtx, hudCtx, hudOutlineCtx, camera, useLayeredRendering, this.shipDisabledRingColour, this.shipDisabledRingRadius, this._scratchDisabledShips, target);
         }
 
-        // Draw jumpGate names
-        this.drawNames(ctx, outlineCtx, camera, this.jumpGateRingRadius, camera.starSystem.jumpGates);
-        // Draw planet names
-        this.drawNames(ctx, outlineCtx, camera, this.planetRingRadius, camera.starSystem.planets);
+        this.drawNames(hudCtx, hudOutlineCtx, camera, useLayeredRendering, this.jumpGateRingRadius, camera.starSystem.jumpGates);
+        this.drawNames(hudCtx, hudOutlineCtx, camera, useLayeredRendering, this.planetRingRadius, camera.starSystem.planets);
 
-        outlineCtx.restore();
-        ctx.restore();
+        if (target) {
+            this.drawTargetCircle(foregroundCtx, hudCtx, hudOutlineCtx, camera, useLayeredRendering, target);
+        }
     }
 }

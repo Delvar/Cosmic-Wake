@@ -118,6 +118,7 @@ export class Camera {
         if (this.hudOutlineCanvas) {
             this.hudOutlineCanvas.width = screenSizeX;
             this.hudOutlineCanvas.height = screenSizeY;
+            this.hudOutlineCtx.font = 'bolder 16px "Century Gothic Paneuropean", "Century Gothic", "CenturyGothic", "AppleGothic", sans-serif';
         }
 
         this._updateWorldBounds(); // Update world-space bounds

@@ -72,6 +72,8 @@
             z-index: 3;
             mix-blend-mode: multiply;
             transition: visibility 0.5s linear, opacity 0.5s ease-in-out;
+            /* Hide these when not using layered rendering */
+            display: none;
         }
 
         #mainCameraHud,
@@ -79,6 +81,16 @@
             z-index: 4;
             mix-blend-mode: plus-lighter;
             transition: visibility 0.5s linear, opacity 0.5s ease-in-out;
+            /* Hide these when not using layered rendering */
+            display: none;
+        }
+
+        /* Show when layered rendering is enabled (via JS class) */
+        body.layered-hud-mode #mainCameraHud,
+        body.layered-hud-mode #mainCameraHudOutline,
+        body.layered-hud-mode #targetCameraHud,
+        body.layered-hud-mode #targetCameraHudOutline {
+            display: block;
         }
 
         /* Optional: Draggable div (instead of canvas) */
@@ -120,7 +132,7 @@
     </style>
 </head>
 
-<body>
+<body class="layered-hud-mode">
     <div id="mainCamera">
         <canvas id="mainCameraBackground"></canvas>
         <canvas id="mainCameraForeground"></canvas>

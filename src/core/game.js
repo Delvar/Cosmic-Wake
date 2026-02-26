@@ -423,6 +423,8 @@ export class GameManager {
     constructor() {
         /** @type {boolean} Enables or disables debug mode for the game. */
         this.debug = false;
+        /** @type {boolean} When true, uses layered canvases with blend modes. When false, draws directly to foreground. */
+        this.useLayeredHudRendering = true;
 
         const mainCameraForegroundCanvas = document.getElementById('mainCameraForeground');
         const mainCameraBackgroundCanvas = document.getElementById('mainCameraBackground');
@@ -798,6 +800,16 @@ export class GameManager {
             if (e.key === '-' || e.key === '_') {
                 this.mainCamera.setZoom(this.mainCamera.zoom - 0.1);
                 this.zoomTextTimer = 120.0;
+            }
+
+            if (e.key === 'h' || e.key === 'H') {
+                this.useLayeredHudRendering = !this.useLayeredHudRendering;
+                if (this.useLayeredHudRendering) {
+                    document.body.classList.add('layered-hud-mode');
+                } else {
+                    document.body.classList.remove('layered-hud-mode');
+                }
+                console.log("Layered HUD Rendering: ", this.useLayeredHudRendering);
             }
 
         });

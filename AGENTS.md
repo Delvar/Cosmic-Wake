@@ -253,3 +253,13 @@ Cosmic Wake is a space simulation game built with vanilla JavaScript and Canvas.
 - **Configuration:** `jsconfig.json` for IDE support
 - **Linting:** `eslint.config.mjs`
 - **Deployment:** Static files (no build step required)
+
+---
+
+## Project Planning
+
+### TODO Roadmap
+- **File:** `TODO.md`
+- Tracks planned gameplay systems, UI work, and other roadmap items that have not been implemented yet
+- Use it to record feature ideas as actionable tasks with enough detail to guide future implementation
+- Prefer adding entries that describe both the player-facing feature and any supporting system work needed behind it

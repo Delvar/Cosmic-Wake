@@ -186,6 +186,10 @@ export class Ship extends GameObject {
         /** @type {number} Time the ship becomes invulnerable . */
         this.protectionTime = 0.0;
 
+        // Cargo storage (units/slots, integer)
+        this.cargoCapacity = 100; // default per-ship max capacity
+        this.cargo = {}; // { [CommodityType]: integer }
+
         // Scratch vectors to avoid memory allocations in main loop
         /** @type {Vector2D} Temporary vector for thrust calculations. */
         this._scratchThrustVector = new Vector2D(0.0, 0.0);
@@ -211,6 +215,66 @@ export class Ship extends GameObject {
         this._scratchExplosionPos = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Temporary vector for explosion force. */
         this._scratchForce = new Vector2D(0.0, 0.0);
+    }
+    /**
+     * Total cargo currently stored (sum of all quantities).
+     * Computed on request to avoid separate state tracking.
+     */
+    get cargoUsed() {
+        let total = 0;
+        for (const qty of Object.values(this.cargo)) {
+            total += qty;
+        }
+        return total;
+    }
+
+    /**
+     * Get how much of a given commodity is currently stored.
+     * @param {string} type - CommodityType key
+     */
+    getCargoAmount(type) {
+        return this.cargo[type] || 0;
+    }
+
+    /**
+     * Attempt to add cargo to this ship.
+     * @param {string} type - CommodityType key
+     * @param {number} amount - integer units to add
+     * @returns {number} amount that could NOT be stored (leftover)
+     */
+    addCargo(type, amount) {
+        amount = Math.max(0, Math.floor(amount));
+        if (amount === 0) return 0;
+
+        const available = Math.max(0, this.cargoCapacity - this.cargoUsed);
+        const stored = Math.min(amount, available);
+        if (stored > 0) {
+            this.cargo[type] = (this.cargo[type] || 0) + stored;
+        }
+        return amount - stored;
+    }
+
+    /**
+     * Remove cargo from this ship.
+     * @param {string} type - CommodityType key
+     * @param {number} amount - integer units to remove
+     * @returns {number} amount actually removed
+     */
+    removeCargo(type, amount) {
+        amount = Math.max(0, Math.floor(amount));
+        if (amount === 0) return 0;
+
+        const have = this.cargo[type] || 0;
+        const removed = Math.min(amount, have);
+        if (removed > 0) {
+            const remaining = have - removed;
+            if (remaining > 0) {
+                this.cargo[type] = remaining;
+            } else {
+                delete this.cargo[type];
+            }
+        }
+        return removed;
     }
 
     /**

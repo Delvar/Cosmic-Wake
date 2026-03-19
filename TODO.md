@@ -2,9 +2,9 @@
 
 ## Core Cargo Systems
 
-- [ ] **Cargo types** - Define the global cargo catalogue (for example: metals, food, medical supplies, fuel) and give each type a base price plus a price range.
-- [ ] **Cargo on ships** - Add ship cargo storage, including per-ship cargo capacity and a structured way to track cargo in each hold.
-- [ ] **Cargo in system** - Create an in-system cargo manager to store, update, and render floating cargo containers, similar to the projectile manager.
+- [X] **Cargo types** - Define the global cargo catalogue (for example: metals, food, medical supplies, fuel) and give each type a base price plus a price range.
+- [X] **Cargo on ships** - Add ship cargo storage, including per-ship cargo capacity and a structured way to track cargo in each hold.
+- [X] **Cargo in system** - Create an in-system cargo manager to store, update, and render floating cargo containers, similar to the projectile manager.
 
 ## Economy Design
 

@@ -21,7 +21,7 @@ import { EscortJob } from '/src/job/escortJob.js';
 import { FactionManager, FactionRelationship } from './faction.js';
 import { Colour } from '/src/core/colour.js';
 import { generateShipName } from '/src/ship/shipNameGenerator.js';
-//import { wrapCanvasContext } from '/src/core/utils.js';
+import { Commodities, CommodityType } from '/src/core/commodity.js';
 
 /**
  * Handles the game loop, rendering, and updates for the game.
@@ -193,7 +193,7 @@ export class Game {
      * @param {boolean} useLayeredRendering - Whether to use layered rendering mode.
      */
     drawShipStats(ctx, outlineCtx, camera, ship, useLayeredRendering = true) {
-        const white = 'white';
+        //const white = 'white';
         const black = 'black';
 
         const shieldRatio = remapClamp(ship.shield.strength, 0.0, ship.shield.maxStrength, 0.0, 1.0);
@@ -262,8 +262,7 @@ export class Game {
 
         ctx.save();
         ctx.clearRect(0.0, 0.0, camera.screenSize.width, camera.screenSize.height);
-        // ctx.fillStyle=Colour.Blue.toHex();
-        // ctx.fillRect( 0.0, 0.0, camera.screenSize.width, camera.screenSize.height);
+
         const cameraTarget = this.manager.cameraTarget;
         if (!cameraTarget || cameraTarget.despawned) {
             this.manager.cameraTarget = null;
@@ -284,6 +283,7 @@ export class Game {
         for (let i = 0.0; i < starSystem.jumpGates.length; i++) {
             starSystem.jumpGates[i].draw(ctx, camera);
         }
+        starSystem.cargoManager.draw(ctx, camera);
         for (let i = 0.0; i < starSystem.ships.length; i++) {
             starSystem.ships[i].draw(ctx, camera);
         }
@@ -543,6 +543,7 @@ export class GameManager {
             }
             starSystem.projectileManager.update(deltaTime);
             starSystem.particleManager.update(deltaTime);
+            starSystem.cargoManager.update(deltaTime);
         }
         Object.assign(this.lastKeys, this.keys);
     }
@@ -575,6 +576,8 @@ export class GameManager {
      */
     spawnAiShipsIfNeeded(currentTime) {
         if (currentTime != 0.0 && (currentTime - this.lastSpawnTime < this.spawnInterval)) return;
+        // Quick hack to test cargo containers by droping them from the player
+        //this.playerShip.starSystem.cargoManager.spawn(this.playerShip.position, this.playerShip.velocity, CommodityType.FOOD, 1);
 
         this.galaxy.forEach(system => {
             let systemShipsLength = system.ships.length;
@@ -682,6 +685,14 @@ export class GameManager {
 
                     //spawn escorts
                     if (aiShip instanceof Freighter || aiShip instanceof StarBarge) {
+                        // Fill cargo randomly
+                        const commodities = Object.values(CommodityType);
+                        while (aiShip.cargoUsed < aiShip.cargoCapacity) {
+                            const type = commodities[Math.floor(Math.random() * commodities.length)];
+                            const remaining = aiShip.cargoCapacity - aiShip.cargoUsed;
+                            const amount = Math.floor(Math.random() * remaining) + 1;
+                            aiShip.addCargo(type, amount);
+                        }
                         const escortCount = Math.round(Math.random() * (aiShip instanceof Freighter ? 4 : 2.0));
                         for (let i = 0.0; i < escortCount; i++) {
                             const escort = new Fighter(spawnPlanet.position.x, spawnPlanet.position.y, system, aiShip.faction);
@@ -906,5 +917,4 @@ export class GameManager {
 }
 
 // Initialize the game manager and expose it to the window object
-// @ts-ignore
 window.gameManager = new GameManager();

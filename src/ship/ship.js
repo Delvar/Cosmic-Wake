@@ -190,6 +190,11 @@ export class Ship extends GameObject {
         this.cargoCapacity = 100; // default per-ship max capacity
         this.cargo = {}; // { [CommodityType]: integer }
 
+        /** @type {boolean} Whether the ship is jettisoning cargo. */
+        this.isJettisoning = false;
+        /** @type {number} Time until next jettison event. */
+        this.nextJettisonTime = 0.0;
+
         // Scratch vectors to avoid memory allocations in main loop
         /** @type {Vector2D} Temporary vector for thrust calculations. */
         this._scratchThrustVector = new Vector2D(0.0, 0.0);
@@ -663,6 +668,26 @@ export class Ship extends GameObject {
     }
 
     /**
+     * Starts the jettison process if the ship is flying.
+     * @returns {boolean} True if started successfully.
+     */
+    startJettison() {
+        if (this.state !== 'Flying') {
+            return false;
+        }
+        this.isJettisoning = true;
+        this.nextJettisonTime = 0.0;
+        return true;
+    }
+
+    /**
+     * Stops the jettison process.
+     */
+    stopJettison() {
+        this.isJettisoning = false;
+    }
+
+    /**
      * Applies damage to the ship, processing through shields and hull.
      * @param {number} damage - Amount of damage to apply.
      * @param {Vector2D} hitPosition - World-space position of the hit.
@@ -751,6 +776,11 @@ export class Ship extends GameObject {
             this.shield.update(deltaTime, this.age);
         }
 
+        // Ensure we stop Jettisoning if we stop flying
+        if (this.state != 'Flying' && this.isJettisoning) {
+            this.stopJettison();
+        }
+
         // Call the appropriate state handler
         const handler = this.stateHandlers[this.state];
         if (handler) {
@@ -773,6 +803,41 @@ export class Ship extends GameObject {
             this.thrustTime -= deltaTime;
             this.thrustTime = Math.max(0.0, this.thrustTime);
         }
+    }
+
+    /**
+     * Jettisons up to `count` cargo containers from the ship's hold, starting from first available commodity type.
+     * Each container holds 1-25 units (random). Stops early if no cargo remains.
+     * @param {number} [count=1] - Maximum number of containers to dump.
+     * @param {Vector2D} [position=null] - World position to spawn containers (defaults to `this.position`).
+     * @returns {boolean} True if all `count` containers were successfully dumped, false if stopped early due to no cargo.
+     */
+    jettisonRandomCargoContainers(count = 1, position = null) {
+        if (count <= 0) return false;
+        if (!position) position = this.position;
+
+        let dumped = false;
+        for (let i = count; i > 0; i--) {
+            for (const type of Object.keys(this.cargo)) {
+                const amount = this.getCargoAmount(type);
+                if (amount > 0) {
+                    const maxDump = Math.min(25, amount);
+                    const dumpAmount = Math.floor(Math.random() * maxDump) + 1;
+                    const removed = this.removeCargo(type, dumpAmount);
+                    if (removed > 0) {
+                        this.starSystem.cargoManager.spawn(position, this.velocity, type, removed);
+                        dumped = true;
+                    }
+                    break;
+                }
+            }
+            // Stop if no cargo left
+            if (!dumped || this.cargoUsed === 0) {
+                return false;
+            }
+
+        }
+        return true;
     }
 
     /**
@@ -799,6 +864,18 @@ export class Ship extends GameObject {
             return;
         }
 
+        // Jettison cargo if process is active
+        if (this.isJettisoning) {
+            this.nextJettisonTime += deltaTime;
+            const JETTISON_INTERVAL = 0.2; // 5 containers per second
+            if (this.nextJettisonTime >= JETTISON_INTERVAL) {
+                this.nextJettisonTime -= JETTISON_INTERVAL;
+                if (!this.jettisonRandomCargoContainers(1)) {
+                    this.stopJettison();
+                }
+            }
+        }
+
         // Rotate towards target angle
         const angleDiff = normalizeAngle(this.targetAngle - this.angle);
         this.angle += Math.min(Math.max(angleDiff, -this.rotationSpeed * deltaTime), this.rotationSpeed * deltaTime);
@@ -806,8 +883,7 @@ export class Ship extends GameObject {
 
         if (this.isThrusting) {
             // Apply thrust in the direction the ship is facing
-            this._scratchThrustVector.set(Math.sin(this.angle), -Math.cos(this.angle))
-                .multiplyInPlace(this.thrust * deltaTime);
+            this._scratchThrustVector.set(Math.sin(this.angle), -Math.cos(this.angle)).multiplyInPlace(this.thrust * deltaTime);
             this.velocity.addInPlace(this._scratchThrustVector);
         } else if (this.isBraking) {
             // Align with velocity direction to slow down
@@ -1077,6 +1153,11 @@ export class Ship extends GameObject {
 
             this.starSystem.particleManager.spawnExplosion(this._scratchExplosionPos, this.radius * 2.0, this.velocity);
 
+            // Dump all remaining cargo before despawn
+            while (this.cargoUsed > 0) {
+                this.jettisonRandomCargoContainers(10);
+            }
+
             // Despawn the ship
             this.despawn();
 
@@ -1106,6 +1187,9 @@ export class Ship extends GameObject {
 
             // Spawn particles with scaled radius
             this.starSystem.particleManager.spawnExplosion(this._scratchExplosionPos, explosionRadius, this.velocity);
+
+            // Jettison a cargo container on some explosion
+            this.jettisonRandomCargoContainers((Math.random() < 0.1) ? 1 : 0, this._scratchExplosionPos);
 
             // Reduce hull integrity
             const hullReduction = 1.0 + (2.0 * explosionSizeRatio);

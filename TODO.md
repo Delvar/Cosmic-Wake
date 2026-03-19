@@ -15,7 +15,8 @@
 ## Cargo Interactions
 
 - [ ] **Cargo pickup** - When a ship with available cargo space passes over a cargo pod or crate, move as much cargo as possible into the hold and leave any excess behind.
-- [ ] **Cargo jettisoning from ships** - Allow the player and AI to eject cargo into space.
+- [X] **Cargo jettisoning from ships** - Allow the player and AI to eject cargo into space.
+- [X] **Cargo jettisoning from destroyed ships** - Any cargo onboard gets jettisoned as it explodes.
 - [ ] **Cargo capture when boarding** - During boarding, allow the player and AI to seize cargo and transfer it between ships.
 - [ ] **Cargo mining** - When mining, add extracted raw materials such as ore and rock directly to the ship's cargo hold.
 

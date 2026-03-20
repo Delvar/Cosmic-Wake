@@ -5,7 +5,7 @@
 - [X] **Cargo types** - Define the global cargo catalogue (for example: metals, food, medical supplies, fuel) and give each type a base price plus a price range.
 - [X] **Cargo on ships** - Add ship cargo storage, including per-ship cargo capacity and a structured way to track cargo in each hold.
 - [X] **Cargo in system** - Create an in-system cargo manager to store, update, and render floating cargo containers, similar to the projectile manager.
-- [ ] **Cargo container auto-pickup** - Enable automatic pickup of cargo containers when the ship passes over them in the system. Player-facing: Ships collect cargo by flying over containers. Supporting systems: Cargo manager collision/proximity detection with ships, capacity checks before transfer, partial cargo handling for excess, despawn collected containers.
+- [X] **Cargo container auto-pickup** - Enable automatic pickup of cargo containers when the ship passes over them in the system. Player-facing: Ships collect cargo by flying over containers. Supporting systems: Cargo manager collision/proximity detection with ships, capacity checks before transfer, partial cargo handling for excess, despawn collected containers.
 
 ## Economy Design
 
@@ -15,7 +15,7 @@
 
 ## Cargo Interactions
 
-- [ ] **Cargo pickup** - When a ship with available cargo space passes over a cargo pod or crate, move as much cargo as possible into the hold and leave any excess behind.
+- [X] **Cargo pickup** - When a ship with available cargo space passes over a cargo pod or crate, move as much cargo as possible into the hold and leave any excess behind.
 - [X] **Cargo jettisoning from ships** - Allow the player and AI to eject cargo into space.
 - [X] **Cargo jettisoning from destroyed ships** - Any cargo onboard gets jettisoned as it explodes.
 - [ ] **Cargo capture when boarding** - During boarding, allow the player and AI to seize cargo and transfer it between ships.

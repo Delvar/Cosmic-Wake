@@ -189,6 +189,8 @@ export class Ship extends GameObject {
         // Cargo storage (units/slots, integer)
         this.cargoCapacity = 100; // default per-ship max capacity
         this.cargo = {}; // { [CommodityType]: integer }
+        /** @type {boolean} Whether automatic cargo container pickup is enabled. */
+        this.autoPickupCargo = true;
 
         /** @type {boolean} Whether the ship is jettisoning cargo. */
         this.isJettisoning = false;
@@ -280,6 +282,31 @@ export class Ship extends GameObject {
             }
         }
         return removed;
+    }
+
+    /**
+     * Checks if the ship's cargo is at full capacity.
+     * @returns {boolean} True if cargo is full, false otherwise.
+     */
+    isCargoFull() {
+        return this.cargoUsed >= this.cargoCapacity;
+    }
+
+    /**
+     * Starts automatic cargo container pickup if cargo is not full.
+     */
+    startAutoPickup() {
+        this.stopJettison();
+        if (!this.isCargoFull()) {
+            this.autoPickupCargo = true;
+        }
+    }
+
+    /**
+     * Stops automatic cargo container pickup.
+     */
+    stopAutoPickup() {
+        this.autoPickupCargo = false;
     }
 
     /**
@@ -593,7 +620,7 @@ export class Ship extends GameObject {
             this.landedObject.removeLandedShip(this);
             // Reset trail decay
             this.trail.decayMultiplier = 1.0;
-            //Clear the trail so we dont get artifacts
+            //Clear the trail so we do not get artifacts
             this.trail.clear();
         } else {
             this.startAngle = this.targetAngle = this.angle;
@@ -677,6 +704,7 @@ export class Ship extends GameObject {
         }
         this.isJettisoning = true;
         this.nextJettisonTime = 0.0;
+        this.stopAutoPickup();
         return true;
     }
 
@@ -776,9 +804,14 @@ export class Ship extends GameObject {
             this.shield.update(deltaTime, this.age);
         }
 
-        // Ensure we stop Jettisoning if we stop flying
-        if (this.state != 'Flying' && this.isJettisoning) {
-            this.stopJettison();
+        // Ensure we stop Jettisoning or Pickup if we stop flying
+        if (this.state != 'Flying') {
+            if (this.isJettisoning) {
+                this.stopJettison();
+            }
+            if (this.autoPickupCargo) {
+                this.stopAutoPickup();
+            }
         }
 
         // Call the appropriate state handler
@@ -903,6 +936,23 @@ export class Ship extends GameObject {
         // Update position based on velocity
         this._scratchVelocityDelta.set(this.velocity).multiplyInPlace(deltaTime);
         this.position.addInPlace(this._scratchVelocityDelta);
+
+        // Auto-pickup cargo containers if enabled
+        if (this.autoPickupCargo) {
+            const overlapping = this.starSystem.cargoContainerManager.getOverlappingContainers(this);
+            for (const container of overlapping) {
+                const availableSpace = this.cargoCapacity - this.cargoUsed;
+                if (availableSpace > 0) {
+                    const amountToTake = Math.min(container.amount, availableSpace);
+                    if (this.starSystem.cargoContainerManager.pickupFromContainer(container, amountToTake)) {
+                        this.addCargo(container.commodityType, amountToTake);
+                    }
+                }
+            }
+            if (this.isCargoFull()) {
+                this.stopAutoPickup();
+            }
+        }
     }
 
     /**
@@ -1222,7 +1272,7 @@ export class Ship extends GameObject {
      * @param {Vector2D} out - The vector to store the world-space position.
      */
     _getRandomPointInBoundingBox(out) {
-        // Generate random point in unrotated bounding box, centered at (0.0,0)
+        // Generate random point in unrotated bounding box, centred at (0.0,0)
         const halfWidth = this.boundingBox.x * 0.5;
         const halfHeight = this.boundingBox.y * 0.5;
         const x = randomBetween(-halfWidth, halfWidth);

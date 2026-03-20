@@ -470,13 +470,13 @@ export class GameManager {
         this.playerShip = new Interceptor(spawnPlanet.position.x + spawnPlanet.radius * 1.5, spawnPlanet.position.y, this.galaxy[0], this.factionManager.getFaction('Player'));
 
         //FIXME: Hack to test cargo space and jettisoning
-        const commodities = Object.values(CommodityType);
-        while (this.playerShip.cargoUsed < this.playerShip.cargoCapacity) {
-            const type = commodities[Math.floor(Math.random() * commodities.length)];
-            const remaining = this.playerShip.cargoCapacity - this.playerShip.cargoUsed;
-            const amount = Math.floor(Math.random() * remaining) + 1;
-            this.playerShip.addCargo(type, amount);
-        }
+        // const commodities = Object.values(CommodityType);
+        // while (this.playerShip.cargoUsed < this.playerShip.cargoCapacity) {
+        //     const type = commodities[Math.floor(Math.random() * commodities.length)];
+        //     const remaining = this.playerShip.cargoCapacity - this.playerShip.cargoUsed;
+        //     const amount = Math.floor(Math.random() * remaining) + 1;
+        //     this.playerShip.addCargo(type, amount);
+        // }
         /** @type {PlayerPilot} The pilot controlling the player's ship. */
         this.playerPilot = new PlayerPilot(this.playerShip);
         this.cameraTarget = this.playerShip;
@@ -585,7 +585,7 @@ export class GameManager {
      */
     spawnAiShipsIfNeeded(currentTime) {
         if (currentTime != 0.0 && (currentTime - this.lastSpawnTime < this.spawnInterval)) return;
-        // Quick hack to test cargo containers by droping them from the player
+        // Quick hack to test cargo containers by dropping them from the player
         //this.playerShip.starSystem.cargoManager.spawn(this.playerShip.position, this.playerShip.velocity, CommodityType.FOOD, 1);
 
         this.galaxy.forEach(system => {

@@ -6,6 +6,7 @@ import { TWO_PI, randomBetween, remapClamp, normalizeAngle } from '/src/core/uti
 import { StarSystem } from './starSystem.js';
 import { Camera } from '/src/camera/camera.js';
 import { Colour } from '/src/core/colour.js';
+import { Ship } from '/src/ship/ship.js';
 
 /**
  * Manages active cargo containers in a star system, handling updates, rendering, and lifecycle.
@@ -38,6 +39,8 @@ export class CargoContainerManager {
         this._scratchScreenPos = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch for delta pos. */
         this._scratchDeltaPos = new Vector2D(0.0, 0.0);
+        /** @type {Vector2D} Scratch for local position in ship's space. */
+        this._scratchLocalPos = new Vector2D(0.0, 0.0);
 
         if (new.target === CargoContainerManager) Object.seal(this);
     }
@@ -60,6 +63,59 @@ export class CargoContainerManager {
         const container = new CargoContainer();
         container.reset(position, velocity, angle, angularVelocity, commodityType, amount, this.currentTime);
         this.cargoContainers.push(container);
+    }
+
+    /**
+     * Gets a list of cargo containers overlapping with the ship.
+     * @param {Ship} ship - The ship to check overlaps for.
+     * @returns {CargoContainer[]} Array of overlapping containers.
+     */
+    getOverlappingContainers(ship) {
+        const overlapping = [];
+        for (const container of this.cargoContainers) {
+            const distSq = ship.position.distanceSquaredTo(container.position);
+            const combinedRadius = ship.radius + container.radius;
+            if (distSq > combinedRadius * combinedRadius) {
+                continue; // Too far, skip
+            }
+
+            // Check rotated bounding box for precise collision
+            this._scratchLocalPos.set(container.position).subtractInPlace(ship.position);
+            const cosAngle = Math.cos(-ship.angle);
+            const sinAngle = Math.sin(-ship.angle);
+            const localX = this._scratchLocalPos.x * cosAngle - this._scratchLocalPos.y * sinAngle;
+            const localY = this._scratchLocalPos.x * sinAngle + this._scratchLocalPos.y * cosAngle;
+            // Check if point is within bounding box
+            const halfWidth = ship.boundingBox.x * 0.5;
+            const halfHeight = ship.boundingBox.y * 0.5;
+            if (Math.abs(localX) <= halfWidth && Math.abs(localY) <= halfHeight) {
+                overlapping.push(container);
+            }
+        }
+        return overlapping;
+    }
+
+    /**
+     * Attempts to pick up a specified amount from a cargo container.
+     * Deducts the amount from the container and despawns it if empty.
+     * @param {CargoContainer} container - The container to pick up from.
+     * @param {number} amount - The amount to deduct.
+     * @returns {boolean} True if pickup was successful, false otherwise.
+     */
+    pickupFromContainer(container, amount) {
+        if (!this.cargoContainers.includes(container) || amount <= 0) {
+            return false;
+        }
+        const actualAmount = Math.min(amount, container.amount);
+        container.amount -= actualAmount;
+        if (container.amount <= 0) {
+            // Despawn empty container
+            const index = this.cargoContainers.indexOf(container);
+            if (index !== -1) {
+                this.cargoContainers.splice(index, 1);
+            }
+        }
+        return true;
     }
 
     /**

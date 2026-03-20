@@ -13,7 +13,7 @@ import { Asteroid, AsteroidBelt } from '/src/starSystem/asteroidBelt.js';
 import { removeObjectFromArrayInPlace } from '/src/core/utils.js';
 import { ProjectileManager } from '/src/starSystem/projectileManager.js';
 import { ParticleManager } from '/src/starSystem/particleManager.js';
-import { CargoManager } from '/src/starSystem/cargoManager.js';
+import { CargoContainerManager } from '/src/starSystem/cargoContainerManager.js';
 
 /**
  * Represents a star system containing celestial bodies, ships, and connections to other systems.
@@ -39,8 +39,8 @@ export class StarSystem {
         this.projectileManager = new ProjectileManager(this);
         /** @type {ParticleManager} Manager for handling particles in the star system. */
         this.particleManager = new ParticleManager(this);
-        /** @type {CargoManager} Manager for handling cargo containers in the star system. */
-        this.cargoManager = new CargoManager(this);
+        /** @type {CargoContainerManager} Manager for handling cargo containers in the star system. */
+        this.cargoContainerManager = new CargoContainerManager(this);
         /** @type {Array<CelestialBody>} Array of stars in the star system. */
         this.stars = stars;
         /** @type {Array<CelestialBody>} Array of planets in the star system. */

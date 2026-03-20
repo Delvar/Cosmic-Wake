@@ -1,4 +1,4 @@
-// /src/starSystem/cargoManager.js
+// /src/starSystem/cargoContainerManager.js
 
 import { Vector2D } from '/src/core/vector2d.js';
 import { CargoContainer } from './cargoContainer.js';
@@ -10,7 +10,7 @@ import { Colour } from '/src/core/colour.js';
 /**
  * Manages active cargo containers in a star system, handling updates, rendering, and lifecycle.
  */
-export class CargoManager {
+export class CargoContainerManager {
     /**
      * @param {StarSystem} starSystem - The parent star system.
      */
@@ -39,7 +39,7 @@ export class CargoManager {
         /** @type {Vector2D} Scratch for delta pos. */
         this._scratchDeltaPos = new Vector2D(0.0, 0.0);
 
-        if (new.target === CargoManager) Object.seal(this);
+        if (new.target === CargoContainerManager) Object.seal(this);
     }
 
     /**

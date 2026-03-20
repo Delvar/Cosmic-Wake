@@ -283,7 +283,7 @@ export class Game {
         for (let i = 0.0; i < starSystem.jumpGates.length; i++) {
             starSystem.jumpGates[i].draw(ctx, camera);
         }
-        starSystem.cargoManager.draw(ctx, camera);
+        starSystem.cargoContainerManager.draw(ctx, camera);
         for (let i = 0.0; i < starSystem.ships.length; i++) {
             starSystem.ships[i].draw(ctx, camera);
         }
@@ -552,7 +552,7 @@ export class GameManager {
             }
             starSystem.projectileManager.update(deltaTime);
             starSystem.particleManager.update(deltaTime);
-            starSystem.cargoManager.update(deltaTime);
+            starSystem.cargoContainerManager.update(deltaTime);
         }
         Object.assign(this.lastKeys, this.keys);
     }

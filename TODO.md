@@ -5,6 +5,7 @@
 - [X] **Cargo types** - Define the global cargo catalogue (for example: metals, food, medical supplies, fuel) and give each type a base price plus a price range.
 - [X] **Cargo on ships** - Add ship cargo storage, including per-ship cargo capacity and a structured way to track cargo in each hold.
 - [X] **Cargo in system** - Create an in-system cargo manager to store, update, and render floating cargo containers, similar to the projectile manager.
+- [ ] **Cargo container auto-pickup** - Enable automatic pickup of cargo containers when the ship passes over them in the system. Player-facing: Ships collect cargo by flying over containers. Supporting systems: Cargo manager collision/proximity detection with ships, capacity checks before transfer, partial cargo handling for excess, despawn collected containers.
 
 ## Economy Design
 
@@ -44,3 +45,4 @@
 - [ ] **Comms response system** - Create the response logic so ships and factions can react differently to hails, distress calls, demands, and surrender attempts.
 - [ ] **Self-destruct confirmation window** - Add a dedicated self-destruct window with a prominent activation control and a clear confirmation step.
 - [ ] **Self-destruct countdown flow** - Implement the armed self-destruct timer, audiovisual warning state, and final ship explosion sequence after activation.
+- [ ] **Cargo pickup HUD notifications** - Add fading, scrolling notification list to HUD (right/left side) for cargo pickups: show cargo type + quantity per entry; flash on pickup, fade alpha over time; new entries push older up; max lines/height drops oldest. Player-facing: Clear feedback on collections. Supporting: Event from cargo system to HeadsUpDisplay, render queue with timers/positions.

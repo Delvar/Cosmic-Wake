@@ -825,7 +825,7 @@ export class Ship extends GameObject {
                     const dumpAmount = Math.floor(Math.random() * maxDump) + 1;
                     const removed = this.removeCargo(type, dumpAmount);
                     if (removed > 0) {
-                        this.starSystem.cargoManager.spawn(position, this.velocity, type, removed);
+                        this.starSystem.cargoContainerManager.spawn(position, this.velocity, type, removed);
                         dumped = true;
                     }
                     break;

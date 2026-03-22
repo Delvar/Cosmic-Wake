@@ -17,6 +17,7 @@ import { Camera } from '/src/camera/camera.js';
 import { EscortAutopilot, FlyToTargetAutopilot } from '/src/autopilot/autopilot.js';
 import { Faction, FactionRelationship } from '/src/core/faction.js';
 import { EscortJob } from '/src/job/escortJob.js';
+import { CommodityType } from '/src/core/commodity.js';
 
 //Colours used for the lights
 const colourRed = new Colour(1.0, 0.0, 0.0);
@@ -96,6 +97,11 @@ export class Ship extends GameObject {
             wings: this.generateRandomColor(),
             hull: this.generateRandomGrey()
         };
+
+        /** @type {boolean} Whether mining is enabled when landed on an asteroid. */
+        this.miningEnabled = false;
+        /** @type {number} Timer for mining intervals in seconds. */
+        this.miningTimer = 0.0;
 
         /** @type {GameObject|null} Current target (e.g., planet, asteroid, ship). */
         this.target = null;
@@ -464,6 +470,17 @@ export class Ship extends GameObject {
 
         this.state = newState;
         this.animationTime = 0.0; // Reset animation timer for new state
+
+        // Ensure we stop Jettisoning or Pickup if we stop flying
+        if (newState !== 'Flying') {
+            if (this.isJettisoning) {
+                this.stopJettison();
+            }
+            if (this.autoPickupCargo) {
+                this.stopAutoPickup();
+            }
+        }
+        if (newState !== 'Landed') this.miningEnabled = false;
     }
 
     /**
@@ -507,6 +524,25 @@ export class Ship extends GameObject {
      */
     applyBrakes(braking) {
         this.isBraking = braking;
+    }
+
+    /**
+     * Starts mining if conditions are met (landed on asteroid with cargo space).
+     * @returns {boolean} True if started successfully.
+     */
+    startMining() {
+        if (this.state === 'Landed' && this.landedObject instanceof Asteroid && !this.isCargoFull()) {
+            this.miningEnabled = true;
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Stops mining.
+     */
+    stopMining() {
+        this.miningEnabled = false;
     }
 
     /**
@@ -1008,6 +1044,11 @@ export class Ship extends GameObject {
             this.position.set(this.landedObject.position);
             this.velocity.set(this.landedObject.velocity);
             this.angle = this.landedObject.spin + this.startAngle;
+
+            // Auto-start mining if not already mining
+            if (!this.miningEnabled) {
+                this.startMining();
+            }
         } else if (this.landedObject instanceof Ship) {
             const ship = this.landedObject;
             this.velocity.set(ship.velocity);
@@ -1026,6 +1067,22 @@ export class Ship extends GameObject {
             } else if (this.pilot instanceof AiPilot) {
                 ship.pilot = new CivilianAiPilot(ship, null); // No Job so will land and despawn
             }
+        }
+
+        // Mining logic
+        if (this.landedObject instanceof Asteroid && this.miningEnabled && !this.isCargoFull()) {
+            this.miningTimer += deltaTime;
+            if (this.miningTimer >= 1.0) {
+                this.miningTimer = 0.0;
+                const commodity = Math.random() < 0.5 ? CommodityType.METALLIC_ORES : CommodityType.WATER;
+                const amount = Math.floor(Math.random() * 5) + 1;
+                const leftover = this.addCargo(commodity, amount);
+                if (leftover > 0) {
+                    this.miningEnabled = false;
+                }
+            }
+        } else if (this.miningEnabled) {
+            this.miningEnabled = false;
         }
     }
 

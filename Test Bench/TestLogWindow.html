@@ -105,65 +105,6 @@
         </div>
         <button id="add-btn">＋ Add Log Entry</button>
     </div>
-    <script>
-        class UILog {
-            constructor() {
-                this.inner = document.getElementById('log-inner');
-                this.maxLines = 7;
-                this.maxAge = 5000;
-                this.interval = setInterval(() => this._checkAges(), 250);
-            }
-            log(message) {
-                const line = document.createElement('div');
-                line.className = 'log-line in';
-                line.textContent = message;
-                line.timestamp = Date.now();
-                this.inner.appendChild(line);
-                if (this.inner.children.length >= this.maxLines) {
-                    let linesToRemove = this.inner.children.length - this.maxLines;
-                    for (let i = 0; i < linesToRemove; i++) {
-                        this.inner.children[0].remove();
-                    }
-                    const top = this.inner.children[0];
-                    if (!top.classList.contains('out')) {
-                        top.classList.add('out');
-                    }
-                }
-            }
-            _checkAges() {
-                const now = Date.now();
-                for (let i = 0; i < this.inner.children.length; i++) {
-                    const child = this.inner.children[i];
-                    const age = now - child.timestamp;
-                    if (age > 1000 && child.classList.contains('in')) {
-                        child.classList.remove('in');
-                    }
-                    if (age > this.maxAge && !child.classList.contains('out')) {
-                        child.classList.add('out');
-                    }
-                    if (age > (this.maxAge + 1000) && child.classList.contains('out')) {
-                        child.parentElement.removeChild(child);
-                        i--;
-                    }
-                }
-            }
-        }
-        const logger = new UILog();
-        const sampleMsgs = ["Health Potion +2", "Sword upgraded", "+85 Gold", "Goblin defeated", "Mana Crystal acquired", "Rare herb found", "Level Up!", "Critical strike", "Boots of Speed", "Enemy stunned"];
-        let count = 1;
-        document.getElementById('add-btn').onclick = () => {
-            const text = sampleMsgs[Math.floor(Math.random() * sampleMsgs.length)];
-            logger.log(text + ` #${count++}`);
-        };
-        let text = sampleMsgs[Math.floor(Math.random() * sampleMsgs.length)];
-        logger.log(text + ` #${count++}`);
-        text = sampleMsgs[Math.floor(Math.random() * sampleMsgs.length)];
-        logger.log(text + ` #${count++}`);
-        text = sampleMsgs[Math.floor(Math.random() * sampleMsgs.length)];
-        logger.log(text + ` #${count++}`);
-        text = sampleMsgs[Math.floor(Math.random() * sampleMsgs.length)];
-        logger.log(text + ` #${count++}`);
-    </script>
 </body>
 
 </html>

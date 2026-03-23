@@ -22,6 +22,7 @@ import { FactionManager, FactionRelationship } from './faction.js';
 import { Colour } from '/src/core/colour.js';
 import { generateShipName } from '/src/ship/shipNameGenerator.js';
 import { Commodities, CommodityType } from '/src/core/commodity.js';
+import { UiLog } from '/src/ui/UiLog.js'
 
 /**
  * Handles the game loop, rendering, and updates for the game.
@@ -440,6 +441,7 @@ export class GameManager {
         const targetCameraBackgroundCanvas = document.getElementById('targetCameraBackground');
         const targetCameraHudCanvas = document.getElementById('targetCameraHud');
         const targetCameraHudOutlineCanvas = document.getElementById('targetCameraHudOutline');
+        const logArea = document.getElementById('log-inner');
 
         /** @type {Camera} The main camera tracking the player's ship. */
         this.mainCamera = new Camera(mainCameraForegroundCanvas, mainCameraBackgroundCanvas, mainCameraHudCanvas, mainCameraHudOutlineCanvas, 1.0);
@@ -447,6 +449,9 @@ export class GameManager {
         this.targetCamera = new TargetCamera(targetCameraForegroundCanvas, targetCameraBackgroundCanvas, targetCameraHudCanvas, targetCameraHudOutlineCanvas, 1.0);
         /** @type {Ship} The current target for the camera, typically the player's ship. */
         this.cameraTarget = null;
+
+        /** @type {UiLog} The logging class that displayed on screen */
+        this.uiLog = new UiLog(logArea);
 
         /** @type {StarField} The starfield for rendering background stars. */
         this.starField = new StarField(10, 1000.0, 10.0, true, 10.0);
@@ -468,6 +473,7 @@ export class GameManager {
         this.initializeFactions();
         /** @type {Ship} The player's ship, positioned relative to a planet. */
         this.playerShip = new Interceptor(spawnPlanet.position.x + spawnPlanet.radius * 1.5, spawnPlanet.position.y, this.galaxy[0], this.factionManager.getFaction('Player'));
+        this.playerShip.uiLog = this.uiLog;
 
         //FIXME: Hack to test cargo space and jettisoning
         // const commodities = Object.values(CommodityType);
@@ -757,6 +763,7 @@ export class GameManager {
     cycleNextAiShip() {
         if (this.cameraTarget) {
             this.cameraTarget.debug = false;
+            this.cameraTarget.uiLog = null;
         }
         const ships = this.mainCamera.starSystem.ships;
         if (ships.length === 0.0) return;
@@ -764,6 +771,7 @@ export class GameManager {
         const nextIndex = (currentIndex + 1.0) % ships.length;
         this.cameraTarget = ships[nextIndex];
         this.cameraTarget.debug = this.debug;
+        this.cameraTarget.uiLog = this.uiLog;
     }
 
     /**
@@ -804,8 +812,10 @@ export class GameManager {
             if (e.key === 'q') {
                 if (this.cameraTarget) {
                     this.cameraTarget.debug = false;
+                    this.cameraTarget.uiLog = null;
                 }
                 this.cameraTarget = this.playerShip;
+                this.cameraTarget.uiLog = this.uiLog;
             }
             if (e.key === 'd' || e.key === 'D') {
                 this.debug = !this.debug;

@@ -129,6 +129,81 @@
             right: -4px;
             cursor: nwse-resize;
         }
+
+        /* Log list */
+        .ui-log {
+            position: absolute;
+            bottom: 45px;
+            left: 10px;
+            width: 390px;
+            /* border: 2px solid #ff0000; */
+            box-sizing: border-box;
+            z-index: 5;
+        }
+
+        .log-inner {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            height: 100%;
+            /* border: 2px solid #1eff00; */
+            box-sizing: border-box;
+        }
+
+        .log-line {
+            /* padding: 7px 14px; */
+            /* margin: 4px 0px; */
+            /* background: rgba(75, 75, 75, 0.979); */
+            /* border-radius: 6px; */
+            /* font-size: 15px; */
+            color: #eee;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
+            /* line-height: 1.3; */
+            height: 22px;
+            line-height: 22px;
+            display: flex;
+        }
+
+        .log-line.in {
+            opacity: 1;
+            align-items: start;
+            transition: all 380ms ease-out;
+
+            @starting-style {
+                opacity: 0;
+                height: 0px;
+                margin-top: 0px;
+                margin-bottom: 0px;
+                padding-top: 0px;
+                padding-bottom: 0px;
+            }
+        }
+
+        .log-line.out {
+            opacity: 0;
+            height: 0px;
+            margin-top: 0px;
+            margin-bottom: 0px;
+            padding-top: 0px;
+            padding-bottom: 0px;
+            align-items: end;
+            transition: all 380ms ease-out;
+        }
+
+        button {
+            position: absolute;
+            top: 35px;
+            right: 35px;
+            padding: 14px 28px;
+            font-size: 17px;
+            background: #e94560;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(233, 69, 96, 0.4);
+            z-index: 5;
+        }
     </style>
 </head>
 
@@ -154,6 +229,10 @@
         <span class="resize-handle bottom-left"></span>
         <span class="resize-handle bottom-right"></span>
     </div>
+    <div class="ui-log">
+        <div class="log-inner" id="log-inner"></div>
+    </div>
+    <!-- <button id="add-btn">＋ Add Log Entry</button> -->
     <script type="module" src="src/core/game.js"></script>
 </body>
 

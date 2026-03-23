@@ -75,6 +75,10 @@ export class StarSystem {
             asteroidBelt.init();
         }
 
+        /**
+         * Seals this instance if directly instantiated (`new Shield()`),
+         * but skips for subclasses. Prevents adding/deleting properties.
+         */
         if (new.target === StarSystem) Object.seal(this);
     }
 
@@ -87,7 +91,6 @@ export class StarSystem {
         if (!(gameObject instanceof GameObject)) {
             return false;
         }
-
         if (gameObject instanceof Ship) {
             removeObjectFromArrayInPlace(gameObject, this.ships);
         } else if (gameObject instanceof Planet) {

@@ -17,7 +17,8 @@ import { Camera } from '/src/camera/camera.js';
 import { EscortAutopilot, FlyToTargetAutopilot } from '/src/autopilot/autopilot.js';
 import { Faction, FactionRelationship } from '/src/core/faction.js';
 import { EscortJob } from '/src/job/escortJob.js';
-import { CommodityType } from '/src/core/commodity.js';
+import { CommodityType, Commodities } from '/src/core/commodity.js';
+import { UiLog } from '/src/ui/uiLog.js';
 
 //Colours used for the lights
 const colourRed = new Colour(1.0, 0.0, 0.0);
@@ -189,12 +190,16 @@ export class Ship extends GameObject {
         this.hullIntegrity = this.maxHull;
         /** @type {number} Hull hullIntegrity below which the ship becomes disabled. */
         this.disabledThreshold = this.maxHull * 0.1;
-        /** @type {number} Time the ship becomes invulnerable . */
+        /** @type {number} Time the ship becomes invulnerable. */
         this.protectionTime = 0.0;
 
-        // Cargo storage (units/slots, integer)
-        this.cargoCapacity = 100; // default per-ship max capacity
-        this.cargo = {}; // { [CommodityType]: integer }
+        /** @type {number} Maximum cargo capacity in units. */
+        this.cargoCapacity = 100;
+        /** @type {Object.<string, number>} Cargo storage as a map of commodity types to quantities. */
+        this.cargo = {};
+        /** @type {UiLog|null} Optional UI log for displaying cargo pickup messages. */
+        this.uiLog = null;
+
         /** @type {boolean} Whether automatic cargo container pickup is enabled. */
         this.autoPickupCargo = true;
 
@@ -228,6 +233,12 @@ export class Ship extends GameObject {
         this._scratchExplosionPos = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Temporary vector for explosion force. */
         this._scratchForce = new Vector2D(0.0, 0.0);
+
+        /**
+         * Seals this instance if directly instantiated (`new Shield()`),
+         * but skips for subclasses. Prevents adding/deleting properties.
+         */
+        if (new.target === Ship) Object.seal(this);
     }
     /**
      * Total cargo currently stored (sum of all quantities).
@@ -263,6 +274,7 @@ export class Ship extends GameObject {
         const stored = Math.min(amount, available);
         if (stored > 0) {
             this.cargo[type] = (this.cargo[type] || 0) + stored;
+            if (this.uiLog) this.uiLog.log(`Picked Up ${Commodities[type].name} x ${stored}`);
         }
         return amount - stored;
     }

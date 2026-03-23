@@ -19,12 +19,13 @@
 - [X] **Cargo jettisoning from ships** - Allow the player and AI to eject cargo into space.
 - [X] **Cargo jettisoning from destroyed ships** - Any cargo onboard gets jettisoned as it explodes.
 - [ ] **Cargo capture when boarding** - During boarding, allow the player and AI to seize cargo and transfer it between ships.
-- [ ] **Cargo mining** - When mining, add extracted raw materials such as ore and rock directly to the ship's cargo hold.
+- [X] **Cargo mining** - When mining, add extracted raw materials such as ore and rock directly to the ship's cargo hold.
 
 ## AI Behaviours
 
 - [ ] **Cargo AI pickup** - Update AI ships so they can collect cargo found in space.
 - [ ] **AI trading** - Create a trader AI that travels between planets, buying and selling cargo for profit.
+- [ ] **Random cargo on civilian ships** - Add a small amount of random cargo to all civilian ships when they spawn to make them more interesting and provide trading opportunities.
 
 ## Interface and Interaction Windows
 
@@ -45,4 +46,5 @@
 - [ ] **Comms response system** - Create the response logic so ships and factions can react differently to hails, distress calls, demands, and surrender attempts.
 - [ ] **Self-destruct confirmation window** - Add a dedicated self-destruct window with a prominent activation control and a clear confirmation step.
 - [ ] **Self-destruct countdown flow** - Implement the armed self-destruct timer, audiovisual warning state, and final ship explosion sequence after activation.
-- [ ] **Cargo pickup HUD notifications** - Add fading, scrolling notification list to HUD (right/left side) for cargo pickups: show cargo type + quantity per entry; flash on pickup, fade alpha over time; new entries push older up; max lines/height drops oldest. Player-facing: Clear feedback on collections. Supporting: Event from cargo system to HeadsUpDisplay, render queue with timers/positions.
+- [X] **Cargo pickup HUD notifications** - Add fading, scrolling notification list to HUD (right/left side) for cargo pickups: show cargo type + quantity per entry; flash on pickup, fade alpha over time; new entries push older up; max lines/height drops oldest. Player-facing: Clear feedback on collections. Supporting: Event from cargo system to HeadsUpDisplay, render queue with timers/positions.
+- [ ] **Extended ship UI logging** - Expand the ship UI log to include notifications for other events like landing on planets/asteroids, taking off, entering autopilot modes, combat engagements, and system jumps.

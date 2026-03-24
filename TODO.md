@@ -25,10 +25,10 @@
 
 - [ ] **Cargo AI pickup** - Update AI ships so they can collect cargo found in space.
 - [ ] **AI trading** - Create a trader AI that travels between planets, buying and selling cargo for profit.
-- [ ] **Random cargo on civilian ships** - Add a small amount of random cargo to all civilian ships when they spawn to make them more interesting and provide trading opportunities.
+- [X] **Random cargo on civilian ships** - Add a small amount of random cargo to all civilian ships when they spawn to make them more interesting and provide trading opportunities.
 - [ ] **Civilian cargo jettison during flee** - When civilian ships are under attack and begin to flee, add a chance they will jettison all cargo to lighten the load and escape faster.
 - [ ] **Pirate opportunistic cargo collection** - When pirates are attacking other ships and no one is attacking them back, and there's cargo in the area, give them a high chance to stop attacking and collect the cargo instead.
-- [ ] **Pirate cargo selling behavior** - If pirates are full of cargo, they will jump out of system and land on a planet to sell their stolen commodities.
+- [ ] **Pirate cargo selling behaviour** - If pirates are full of cargo, they will jump out of system and land on a planet to sell their stolen commodities.
 - [ ] **Civilian opportunistic cargo pickup** - Civilians in smaller/faster ships with free cargo room may attempt to pickup cargo in the system if it's not too far away.
 
 ## Interface and Interaction Windows

@@ -135,7 +135,7 @@ export class Autopilot {
     /**
      * Given a velocity error decide if we we should thrust or not including hysteresis.
      * @param {number} velocityErrorMagnitude Magnitude of the error between teh current velocity and the desired velocity.
-     * @param {number} [errorThresholdRatio=1.0] The ratio for the error threshold, lofer is more accurate but can cause twitching.
+     * @param {number} [errorThresholdRatio=1.0] The ratio for the error threshold, lower is more accurate but can cause twitching.
      * @returns {boolean} True if should thrust, false if not.
      */
     shouldThrust(velocityErrorMagnitude, errorThresholdRatio = 1.0) {
@@ -222,7 +222,7 @@ export class Autopilot {
     * @param {Ship} ship - The ship to control.
     * @param {Vector2D} desiredVelocity - Desired velocity vector.
     * @param {number|Vector2D|null} [failoverAngle=null] - Angle to face when not thrusting, or null.
-    * @param {number} [errorThresholdRatio=1.0] The ratio for the error threshold, lofer is more accurate but can cause twitching.
+    * @param {number} [errorThresholdRatio=1.0] The ratio for the error threshold, lower is more accurate but can cause twitching.
     * @param {Vector2D} [outVelocityError=null] - Output vector for velocity error.
     * @returns {boolean} True if thrusting, false otherwise.
     */
@@ -396,7 +396,7 @@ export class FlyToTargetAutopilot extends Autopilot {
         let errorThresholdRatio = 1.0; // Default thrust error threshold multiplier
         let failoverAngle = null; // Angle to face when not thrusting
 
-        // Ensure we are moiving towards the target then Adjust desired velocity based on distance phase
+        // Ensure we are moving towards the target then Adjust desired velocity based on distance phase
         const approachSpeed = -this._scratchVelocityError.dot(this._scratchLeadDirection);
         this._scratchApproachVelocity.set(this._scratchLeadDirection).multiplyInPlace(approachSpeed);
         this._scratchLateralVelocity.set(this._scratchVelocityError).multiplyInPlace(-1.0).subtractInPlace(this._scratchApproachVelocity);
@@ -428,7 +428,7 @@ export class FlyToTargetAutopilot extends Autopilot {
             failoverAngle = this._scratchLeadDirection;//.getAngle(); // Face lead
         }
 
-        // If we are not moving towards the target just force it by overiding the threshold
+        // If we are not moving towards the target just force it by overriding the threshold
         if (approachSpeed < this.arrivalSpeed * 0.5) {
             errorThresholdRatio = 0.0;
         }
@@ -443,6 +443,9 @@ export class FlyToTargetAutopilot extends Autopilot {
         );
     }
 }
+
+
+
 
 /**
  * Autopilot that follows a target GameObject with a distance band.
@@ -554,7 +557,7 @@ export class FollowAutopilot extends Autopilot {
             failoverAngle = this.target.velocity;
             errorThresholdRatio = remapClamp(distance, 0.0, this.minFollowDistance, 0.0, 0.1); // Tighten thrust threshold
         } else if (distance >= this.minFollowDistance && distance < this.maxFollowDistance) {
-            //FIXME: implement manuver speed here, -20.0, 20.0
+            //FIXME: implement manoeuvre speed here, -20.0, 20.0
             const speed = remapClamp(distance, this.minFollowDistance, this.maxFollowDistance, -Ship.LANDING_SPEED, Ship.LANDING_SPEED);
             this._scratchDesiredVelocity.set(this._scratchLeadDirection).multiplyInPlace(speed).addInPlace(this.target.velocity);
             failoverAngle = (this.target.velocity.x === 0.0 && this.target.velocity.y === 0.0) ? this.target.angle : this.target.velocity;
@@ -587,7 +590,7 @@ export class EscortAutopilot extends Autopilot {
     /**
      * Creates a new EscortAutopilot instance.
      * @param {Ship} ship - The ship to control.
-     * @param {Ship} target - The target ship to escore.
+     * @param {Ship} target - The target ship to escort.
      * @param {number} [minFollowDistance=100] - Minimum distance from target center.
      * @param {number} [maxFollowDistance=500] - Maximum distance from target center.
      */
@@ -667,7 +670,7 @@ export class EscortAutopilot extends Autopilot {
     }
 
     /**
-     * Handles the 'Starting' state: figure out where we are in relation to the target and switch to whatver state is required.
+     * Handles the 'Starting' state: figure out where we are in relation to the target and switch to whatever state is required.
      * @param {number} deltaTime - Time elapsed in seconds.
      * @param {GameManager} gameManager - The game manager instance for context.
      */
@@ -741,7 +744,7 @@ export class EscortAutopilot extends Autopilot {
                         console.log(`EscortAutopilot: Transitioned to Landing on ${landedObject.name}`);
                     }
                 } else {
-                    //we dont know what it landed on so just follow the landed object
+                    //we don't know what it landed on so just follow the landed object
                     this.subAutopilot = new FollowAutopilot(this.ship, landedObject, this.minFollowDistance, this.maxFollowDistance);
                     this.subAutopilot.start()
                     this.state = "Following";
@@ -898,7 +901,7 @@ export class EscortAutopilot extends Autopilot {
                 }
                 return;
             } else {
-                //we dont know what it landed on so just follow the landed object
+                //we don't know what it landed on so just follow the landed object
                 this.subAutopilot.stop();
                 this.subAutopilot = new FollowAutopilot(this.ship, landedObject, this.minFollowDistance, this.maxFollowDistance);
                 this.subAutopilot.start()
@@ -2059,8 +2062,9 @@ export class LandOnPlanetDespawnAutopilot extends Autopilot {
     /**
      * Updates the autopilot, managing landing and despawning.
      * @param {number} deltaTime - Time elapsed in seconds.
+     * @param {GameManager} gameManager - The game manager instance for context.
      */
-    update(deltaTime) {
+    update(deltaTime, gameManager) {
         if (!this.active) return;
         if (!this.target || this.target.isDespawned()) {
             this.target = this.ship.starSystem?.getClosestPlanet(this.ship);
@@ -2074,7 +2078,7 @@ export class LandOnPlanetDespawnAutopilot extends Autopilot {
         }
 
         if (this.subAutopilot && this.subAutopilot.active) {
-            this.subAutopilot.update(deltaTime);
+            this.subAutopilot.update(deltaTime, gameManager);
             if (this.subAutopilot.isComplete()) {
                 if (this.subAutopilot.error) {
                     this.error = this.subAutopilot.error;
@@ -2174,7 +2178,7 @@ export class AvoidAutopilot extends Autopilot {
             this._scratchDirectionToTarget
         );
 
-        // Compute desired velocity away from threat and towrads system center
+        // Compute desired velocity away from threat and towards system center
         this._scratchDesiredVelocity.set(this.ship.position).normalizeInPlace().multiplyInPlace(0.5).addInPlace(this._scratchDirectionToTarget).normalizeInPlace().multiplyInPlace(-this.ship.maxVelocity);
 
         // Apply thrust with hysteresis
@@ -2201,4 +2205,3 @@ export class AvoidAutopilot extends Autopilot {
         return this.error ? `${baseStatus}, Error: ${this.error}` : baseStatus;
     }
 }
-

@@ -42,7 +42,7 @@ Cosmic Wake is a space simulation game built with vanilla JavaScript and Canvas.
 ### Celestial Bodies
 - **File:** `celestialBody.js`
 - **Classes:** Star, Planet, JumpGate
-- Render as colored circles with optional rings and labels
+- Render as coloured circles with optional rings and labels
 - Planets support landing mechanics and docking
 
 ### Asteroids
@@ -73,7 +73,7 @@ Cosmic Wake is a space simulation game built with vanilla JavaScript and Canvas.
 
 ### Autopilots
 - **Files:** `autopilot.js`, `attackAutopilot.js`
-- **Base Class:** `Autopilot` - tactical navigation and maneuvers
+- **Base Class:** `Autopilot` - tactical navigation and manoeuvres
 - **Navigation Modes:**
   - FlyToTarget, LandOnPlanet, LandOnAsteroid, TraverseJumpGate, Escort, Follow
 - **Combat Modes:**
@@ -207,14 +207,14 @@ Cosmic Wake is a space simulation game built with vanilla JavaScript and Canvas.
 #### Pilot States (AiPilot)
 - **Job:** Executing assigned job
 - **Flee:** Running from threat
-- **Avoid:** Maneuvering around obstacle
+- **Avoid:** Manoeuvring around obstacle
 - **Attack:** Combat engagement
 - **Despawning:** Landing and disappearing
 
 #### Job States (example: WandererJob)
 - **Starting:** Initial setup, taking off
 - **Planning:** Calculating route
-- **Traveling:** Moving toward target
+- **Travelling:** Moving toward target
 - **Waiting:** Docked, waiting before next leg
 - **Failed:** Unable to proceed
 

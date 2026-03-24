@@ -253,6 +253,14 @@ export class Ship extends GameObject {
     }
 
     /**
+     * Total available cargo space (capacity minus used).
+     * Computed on request.
+     */
+    get cargoAvailable() {
+        return this.cargoCapacity - this.cargoUsed;
+    }
+
+    /**
      * Get how much of a given commodity is currently stored.
      * @param {string} type - CommodityType key
      */

@@ -1,7 +1,7 @@
 // /src/autopilot/attackAutopilot.js
 
 import { Vector2D } from '/src/core/vector2d.js';
-import { Autopilot, FlyToTargetAutopilot } from '/src/autopilot/autopilot.js';
+import { Autopilot } from '/src/autopilot/autopilot.js';
 import { remapClamp, randomBetween, clamp } from '/src/core/utils.js';
 import { GameObject } from '/src/core/gameObject.js';
 import { Ship, isValidAttackTarget } from '/src/ship/ship.js';
@@ -765,8 +765,9 @@ export class InRangeAttackAutopilot extends Autopilot {
     /**
      * Updates the autopilot, maintaining 100–450 unit range and firing with lead-aiming.
      * @param {number} deltaTime - Time elapsed in seconds.
+     * @param {GameManager} gameManager - The game manager instance for context.
      */
-    update(deltaTime) {
+    update(deltaTime, gameManager) {
         if (!this.active) return;
         if (!this.target || !isValidAttackTarget(this.ship, this.target, !this.stopOnDisabled)) {
             this.completed = true;

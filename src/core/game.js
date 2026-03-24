@@ -433,14 +433,14 @@ export class GameManager {
         /** @type {boolean} When true, uses layered canvases with blend modes. When false, draws directly to foreground. */
         this.useLayeredHudRendering = true;
 
-        const mainCameraForegroundCanvas = document.getElementById('mainCameraForeground');
-        const mainCameraBackgroundCanvas = document.getElementById('mainCameraBackground');
-        const mainCameraHudCanvas = document.getElementById('mainCameraHud');
-        const mainCameraHudOutlineCanvas = document.getElementById('mainCameraHudOutline');
-        const targetCameraForegroundCanvas = document.getElementById('targetCameraForeground');
-        const targetCameraBackgroundCanvas = document.getElementById('targetCameraBackground');
-        const targetCameraHudCanvas = document.getElementById('targetCameraHud');
-        const targetCameraHudOutlineCanvas = document.getElementById('targetCameraHudOutline');
+        const mainCameraForegroundCanvas = /** @type {HTMLCanvasElement} */ (document.getElementById('mainCameraForeground'));
+        const mainCameraBackgroundCanvas = /** @type {HTMLCanvasElement} */ (document.getElementById('mainCameraBackground'));
+        const mainCameraHudCanvas = /** @type {HTMLCanvasElement} */ (document.getElementById('mainCameraHud'));
+        const mainCameraHudOutlineCanvas = /** @type {HTMLCanvasElement} */ (document.getElementById('mainCameraHudOutline'));
+        const targetCameraForegroundCanvas = /** @type {HTMLCanvasElement} */ (document.getElementById('targetCameraForeground'));
+        const targetCameraBackgroundCanvas = /** @type {HTMLCanvasElement} */ (document.getElementById('targetCameraBackground'));
+        const targetCameraHudCanvas = /** @type {HTMLCanvasElement} */ (document.getElementById('targetCameraHud'));
+        const targetCameraHudOutlineCanvas = /** @type {HTMLCanvasElement} */ (document.getElementById('targetCameraHudOutline'));
         const logArea = document.getElementById('log-inner');
 
         /** @type {Camera} The main camera tracking the player's ship. */
@@ -688,6 +688,14 @@ export class GameManager {
                         }
                         //aiShip.colors.wings.set(0.0,  1.0,  0.0,  1.0);
                         civilianCount++;
+                        if (!(aiShip instanceof Freighter || aiShip instanceof StarBarge)) {
+                            const commodities = Object.values(CommodityType);
+                            const type = commodities[Math.floor(Math.random() * commodities.length)];
+                            const amount = Math.min(10, aiShip.cargoAvailable);
+                            if (amount > 0) {
+                                aiShip.addCargo(type, amount);
+                            }
+                        }
                     }
                     aiShip.trail.color = aiShip.colors.wings.toRGBA(0.5);
                     aiShip.setState('Landed');
@@ -698,13 +706,13 @@ export class GameManager {
                     spawnPlanet.addLandedShip(aiShip);
                     system.addGameObject(aiShip);
 
-                    //spawn escorts
+                    //spawn escorts and load with cargo
                     if (aiShip instanceof Freighter || aiShip instanceof StarBarge) {
                         // Fill cargo randomly
                         const commodities = Object.values(CommodityType);
-                        while (aiShip.cargoUsed < aiShip.cargoCapacity) {
+                        while (aiShip.cargoAvailable > 0) {
                             const type = commodities[Math.floor(Math.random() * commodities.length)];
-                            const remaining = aiShip.cargoCapacity - aiShip.cargoUsed;
+                            const remaining = aiShip.cargoAvailable;
                             const amount = Math.floor(Math.random() * remaining) + 1;
                             aiShip.addCargo(type, amount);
                         }
@@ -864,7 +872,7 @@ export class GameManager {
         let startX, startY, startWidth, startHeight, startRight, startTop, corner;
 
         handles.forEach((handle) => {
-            handle.addEventListener('mousedown', (e) => {
+            handle.addEventListener('mousedown', /** @param {MouseEvent} e */(e) => {
                 e.preventDefault(); // Prevent drag interference
                 isResizing = true;
                 corner = handle.classList[1]; // e.g., 'top-left'
@@ -936,4 +944,5 @@ export class GameManager {
 }
 
 // Initialize the game manager and expose it to the window object
+// @ts-ignore
 window.gameManager = new GameManager();

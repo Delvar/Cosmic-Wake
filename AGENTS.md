@@ -1,6 +1,7 @@
 # Cosmic Wake - Project Documentation
 
 Cosmic Wake is a space simulation game built with vanilla JavaScript and Canvas. It features a procedurally-generated galaxy with multiple star systems, ships with AI pilots, faction relationships, and dynamic combat and trading mechanics.
+- The code uses UK English spellings (e.g., "autopilot", and "colour").
 
 ## Core Architecture
 
@@ -236,22 +237,12 @@ Cosmic Wake is a space simulation game built with vanilla JavaScript and Canvas.
 
 ---
 
-## Testing Infrastructure
-
-### Test Bench
-- **File:** `TestAsteroidPerformance.html`
-- Benchmarks asteroid rendering methods (JS, Canvas SaveRestore, Path2D, etc.)
-- Compares FPS across different draw strategies
-- Reference for optimization targets
-
----
-
 ## Build & Deployment
 
 - **Module System:** ES6 modules (import/export)
 - **Entry Point:** `index.html` loads game via `<script>` tag
 - **Configuration:** `jsconfig.json` for IDE support
-- **Linting:** `eslint.config.mjs`
+- **Linting:** `eslint.config.mjs` (only lint on request)
 - **Deployment:** Static files (no build step required)
 
 ---

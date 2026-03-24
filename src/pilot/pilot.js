@@ -1,4 +1,4 @@
-// /src/pilot.js
+// /src/pilot/pilot.js
 
 import { Vector2D } from '/src/core/vector2d.js';
 import { CelestialBody, JumpGate, Star, Planet } from '/src/starSystem/celestialBody.js';
@@ -25,7 +25,10 @@ export class Pilot {
         this.ship = ship;
         /** @type {Autopilot|null} The active autopilot controlling ship navigation (e.g., FlyToTargetAutopilot). */
         this.autopilot = null;
-
+        /**
+         * Seals this instance if directly instantiated (`new Shield()`),
+         * but skips for subclasses. Prevents adding/deleting properties.
+         */
         if (new.target === Pilot) Object.seal(this);
     }
 
@@ -599,6 +602,24 @@ export class PlayerPilot extends Pilot {
         // Boarding ship selection ('b' or 'B' key)
         if (pressed('b') || pressed('B')) {
             this.handleBoardingShipSelection(deltaTime, gameManager);
+        }
+
+        // Retrieving Cargo toggle ('p' or 'P' key)
+        if (pressed('p') || pressed('P')) {
+            if (this.ship.isRetrievingCargo) {
+                this.ship.stopRetrievingCargo();
+            } else {
+                this.ship.startRetrievingCargo();
+            }
+        }
+
+        // Jettison toggle ('d')
+        if (pressed('d')) {
+            if (this.ship.isJettisoningCargo) {
+                this.ship.stopJettison();
+            } else {
+                this.ship.startJettison();
+            }
         }
 
         // Update autopilot if active

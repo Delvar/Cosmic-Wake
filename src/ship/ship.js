@@ -18,7 +18,7 @@ import { EscortAutopilot, FlyToTargetAutopilot } from '/src/autopilot/autopilot.
 import { Faction, FactionRelationship } from '/src/core/faction.js';
 import { EscortJob } from '/src/job/escortJob.js';
 import { CommodityType, Commodities } from '/src/core/commodity.js';
-import { UiLog } from '/src/ui/uiLog.js';
+import { UiLog } from '/src/ui/uiLog.js'
 
 //Colours used for the lights
 const colourRed = new Colour(1.0, 0.0, 0.0);
@@ -201,10 +201,10 @@ export class Ship extends GameObject {
         this.uiLog = null;
 
         /** @type {boolean} Whether automatic cargo container pickup is enabled. */
-        this.autoPickupCargo = true;
+        this.isRetrievingCargo = true;
 
         /** @type {boolean} Whether the ship is jettisoning cargo. */
-        this.isJettisoning = false;
+        this.isJettisoningCargo = false;
         /** @type {number} Time until next jettison event. */
         this.nextJettisonTime = 0.0;
 
@@ -311,20 +311,38 @@ export class Ship extends GameObject {
     }
 
     /**
-     * Starts automatic cargo container pickup if cargo is not full.
+     * Starts retrieving cargo containers if cargo is not full.
+     * @returns {boolean} True if started successfully.
      */
-    startAutoPickup() {
-        this.stopJettison();
-        if (!this.isCargoFull()) {
-            this.autoPickupCargo = true;
+    startRetrievingCargo() {
+        if (this.state !== 'Flying') {
+            return false;
         }
+        if (this.isRetrievingCargo == true) {
+            if (this.uiLog) this.uiLog.log('Retrieving cargo already started');
+            return true;
+        }
+        if (this.isCargoFull()) {
+            if (this.uiLog) this.uiLog.log('Retrieving cargo aborted, no cargo room');
+            return false;
+        }
+        this.stopJettison();
+        this.isRetrievingCargo = true;
+        if (this.uiLog) this.uiLog.log('Retrieving cargo started');
+        return true;
     }
 
     /**
-     * Stops automatic cargo container pickup.
+     * Stops retrieving cargo containers.
+     * @returns {boolean} True if stopped successfully.
      */
-    stopAutoPickup() {
-        this.autoPickupCargo = false;
+    stopRetrievingCargo() {
+        if (this.isRetrievingCargo == false) {
+            return false;
+        }
+        this.isRetrievingCargo = false;
+        if (this.uiLog) this.uiLog.log('Retrieving cargo stopped');
+        return true;
     }
 
     /**
@@ -485,11 +503,11 @@ export class Ship extends GameObject {
 
         // Ensure we stop Jettisoning or Pickup if we stop flying
         if (newState !== 'Flying') {
-            if (this.isJettisoning) {
+            if (this.isJettisoningCargo) {
                 this.stopJettison();
             }
-            if (this.autoPickupCargo) {
-                this.stopAutoPickup();
+            if (this.isRetrievingCargo) {
+                this.stopRetrievingCargo();
             }
         }
         if (newState !== 'Landed') this.miningEnabled = false;
@@ -750,17 +768,32 @@ export class Ship extends GameObject {
         if (this.state !== 'Flying') {
             return false;
         }
-        this.isJettisoning = true;
+        if (this.isJettisoningCargo == true) {
+            if (this.uiLog) this.uiLog.log('Jettison already started');
+            return true;
+        }
+        if (this.cargoUsed == 0) {
+            if (this.uiLog) this.uiLog.log('Jettison aborted, no cargo');
+            return false;
+        }
+        this.stopRetrievingCargo();
+        this.isJettisoningCargo = true;
         this.nextJettisonTime = 0.0;
-        this.stopAutoPickup();
+        if (this.uiLog) this.uiLog.log('Jettison started');
         return true;
     }
 
     /**
      * Stops the jettison process.
+     * @returns {boolean} True if stopped successfully.
      */
     stopJettison() {
-        this.isJettisoning = false;
+        if (this.isJettisoningCargo == false) {
+            return false;
+        }
+        this.isJettisoningCargo = false;
+        if (this.uiLog) this.uiLog.log('Jettison stopped');
+        return true;
     }
 
     /**
@@ -854,11 +887,11 @@ export class Ship extends GameObject {
 
         // Ensure we stop Jettisoning or Pickup if we stop flying
         if (this.state != 'Flying') {
-            if (this.isJettisoning) {
+            if (this.isJettisoningCargo) {
                 this.stopJettison();
             }
-            if (this.autoPickupCargo) {
-                this.stopAutoPickup();
+            if (this.isRetrievingCargo) {
+                this.stopRetrievingCargo();
             }
         }
 
@@ -946,7 +979,7 @@ export class Ship extends GameObject {
         }
 
         // Jettison cargo if process is active
-        if (this.isJettisoning) {
+        if (this.isJettisoningCargo) {
             this.nextJettisonTime += deltaTime;
             const JETTISON_INTERVAL = 0.2; // 5 containers per second
             if (this.nextJettisonTime >= JETTISON_INTERVAL) {
@@ -986,7 +1019,7 @@ export class Ship extends GameObject {
         this.position.addInPlace(this._scratchVelocityDelta);
 
         // Auto-pickup cargo containers if enabled
-        if (this.autoPickupCargo) {
+        if (this.isRetrievingCargo) {
             const overlapping = this.starSystem.cargoContainerManager.getOverlappingContainers(this);
             for (const container of overlapping) {
                 const availableSpace = this.cargoCapacity - this.cargoUsed;
@@ -998,7 +1031,7 @@ export class Ship extends GameObject {
                 }
             }
             if (this.isCargoFull()) {
-                this.stopAutoPickup();
+                this.stopRetrievingCargo();
             }
         }
     }
@@ -1200,7 +1233,7 @@ export class Ship extends GameObject {
         } else {
             const takeOffTime = remapClamp(t, jumpInRatio, 1.0, 0.0, 1.0);
             // Second half: Expand and stop
-            this.shipScale = this.shipScale = remapClamp(takeOffTime, 0.0, 1.0, 0.25, 1.0);
+            this.shipScale = remapClamp(takeOffTime, 0.0, 1.0, 0.25, 1.0);
             this.stretchFactor = 1.0;
             this.velocity.set(0.0, 0.0);
             this.startPosition.set(this._scratchRadialOut).multiplyInPlace(this.jumpGate.radius * -1.0).addInPlace(this.jumpGate.position);

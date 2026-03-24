@@ -22,7 +22,7 @@ import { FactionManager, FactionRelationship } from './faction.js';
 import { Colour } from '/src/core/colour.js';
 import { generateShipName } from '/src/ship/shipNameGenerator.js';
 import { Commodities, CommodityType } from '/src/core/commodity.js';
-import { UiLog } from '/src/ui/UiLog.js'
+import { UiLog } from '/src/ui/uiLog.js'
 
 /**
  * Handles the game loop, rendering, and updates for the game.
@@ -817,7 +817,7 @@ export class GameManager {
                 this.cameraTarget = this.playerShip;
                 this.cameraTarget.uiLog = this.uiLog;
             }
-            if (e.key === 'd' || e.key === 'D') {
+            if (e.key === 'D') {
                 this.debug = !this.debug;
                 if (this.cameraTarget) {
                     this.cameraTarget.debug = this.debug;

@@ -65,6 +65,8 @@ Do not open `index.html` directly with `file://`. The game uses ES modules with 
 | `A` | Attack the current ship target using attack autopilot |
 | `F` | Escort / follow the current ship target |
 | `U` | Cycle turret mode |
+| `d` | Toggle cargo jettison |
+| `P` | Toggle cargo retrieval |
 
 Manual arrow-key input cancels the current autopilot and, if you are landed, initiates takeoff.
 
@@ -79,6 +81,7 @@ Manual arrow-key input cancels the current autopilot and, if you are landed, ini
 | `M` | Land on a nearby asteroid, take off from an asteroid, or autopilot/cycle to an asteroid |
 | `J` | Use a jump gate if you are on it, or autopilot/cycle to a jump gate |
 | `B` | Board a disabled ship, take off from it, or autopilot/cycle to another disabled ship |
+| `C` | Start or stop cargo collection autopilot |
 
 These interaction keys are context-sensitive. If you are already over a valid object, the action happens immediately. Otherwise the same key usually starts an autopilot toward the current or nearest valid target, and repeated presses cycle through candidates.
 
@@ -110,7 +113,8 @@ The target camera appears when your current camera ship has a valid target.
 2. Use the arrow keys to fly manually, or press `L`, `M`, or `J` to let autopilot handle travel.
 3. Press `Space` to fire, or `A` to let the ship run an attack autopilot against the selected target.
 4. Once a hostile ship is disabled, press `B` to attempt boarding.
-5. Use `Tab` to spectate other ships and `Q` to return to your own interceptor.
+5. Press `C` to start collecting cargo containers floating in space.
+6. Use `Tab` to spectate other ships and `Q` to return to your own interceptor.
 
 ## Project Structure
 

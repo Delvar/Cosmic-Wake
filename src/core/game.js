@@ -406,6 +406,7 @@ export class Game {
         for (let i = 0.0; i < starSystem.jumpGates.length; i++) {
             starSystem.jumpGates[i].draw(ctx, camera);
         }
+        starSystem.cargoContainerManager.draw(ctx, camera);
         for (let i = 0.0; i < starSystem.ships.length; i++) {
             starSystem.ships[i].draw(ctx, camera);
         }

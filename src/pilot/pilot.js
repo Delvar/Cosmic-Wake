@@ -14,6 +14,7 @@ import { FactionRelationship } from '/src/core/faction.js';
 import { EscortAutopilot } from '/src/autopilot/escortAutopilot.js';
 import { TraverseJumpGateAutopilot } from '/src/autopilot/traverseJumpGateAutopilot.js';
 import { BoardShipAutopilot } from '/src/autopilot/boardShipAutopilot.js';
+import { CargoCollectorAutopilot } from '/src/autopilot/cargoCollectorAutopilot.js';
 
 /**
  * Base class for AI and player pilots, providing a common interface for ship control.
@@ -481,6 +482,43 @@ export class PlayerPilot extends Pilot {
     }
 
     /**
+     * Handles cargo collection autopilot for 'c'/'C' key press.
+     * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @param {GameManager} gameManager - The game manager with keys and lastKeys properties.
+     */
+    handleCargoCollection(deltaTime, gameManager) {
+        if (this.autopilot instanceof CargoCollectorAutopilot && this.autopilot.active) {
+            this.autopilot.stop();
+            this.autopilot = null;
+            if (this.ship.debug) {
+                console.log('PlayerPilot: Stopped cargo collection');
+            }
+            return;
+        }
+
+        if (this.ship.isCargoFull()) {
+            if (this.ship.debug) {
+                console.log('PlayerPilot: Cannot start cargo collection, cargo full');
+            }
+            return;
+        }
+
+        const manager = this.ship.starSystem.cargoContainerManager;
+        if (!manager.getClosestContainer(this.ship)) {
+            if (this.ship.debug) {
+                console.log('PlayerPilot: No cargo containers in system');
+            }
+            return;
+        }
+
+        this.autopilot = new CargoCollectorAutopilot(this.ship);
+        this.autopilot.start();
+        if (this.ship.debug) {
+            console.log('PlayerPilot: Started cargo collection');
+        }
+    }
+
+    /**
      * Handles boarding ship selection for 'b'/'B' key press.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
      * @param {GameManager} gameManager - The game manager with keys and lastKeys properties.
@@ -601,6 +639,11 @@ export class PlayerPilot extends Pilot {
         if (pressed('u') || pressed('U')) {
             this.ship.cycleTurretMode();
             console.log(`Turret mode changed to: ${this.ship.turretMode}`);
+        }
+
+        // Cargo collection ('c' or 'C' key)
+        if (pressed('c') || pressed('C')) {
+            this.handleCargoCollection(deltaTime, gameManager);
         }
 
         // Boarding ship selection ('b' or 'B' key)

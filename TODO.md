@@ -23,7 +23,7 @@
 
 ## AI Behaviours
 
-- [ ] **Cargo AI pickup** - Update AI ships so they can collect cargo found in space.
+- [X] **Cargo AI pickup** - Update AI ships so they can collect cargo found in space.
 - [ ] **AI trading** - Create a trader AI that travels between planets, buying and selling cargo for profit.
 - [X] **Random cargo on civilian ships** - Add a small amount of random cargo to all civilian ships when they spawn to make them more interesting and provide trading opportunities.
 - [X] **Civilian cargo jettison during flee** - When civilian ships are under attack and begin to flee, add a chance they will jettison all cargo to lighten the load and escape faster.

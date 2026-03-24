@@ -2,7 +2,7 @@
 
 import { Vector2D } from '/src/core/vector2d.js';
 import { CargoContainer } from './cargoContainer.js';
-import { TWO_PI, randomBetween, remapClamp, normalizeAngle } from '/src/core/utils.js';
+import { TWO_PI, randomBetween, remapClamp, normalizeAngle, removeObjectFromArrayInPlace } from '/src/core/utils.js';
 import { StarSystem } from './starSystem.js';
 import { Camera } from '/src/camera/camera.js';
 import { Colour } from '/src/core/colour.js';
@@ -60,9 +60,27 @@ export class CargoContainerManager {
 
         const angle = randomBetween(0.0, TWO_PI);
         const angularVelocity = randomBetween(-Math.PI, Math.PI);
-        const container = new CargoContainer();
-        container.reset(position, velocity, angle, angularVelocity, commodityType, amount, this.currentTime);
+        const container = new CargoContainer(position, velocity, angle, angularVelocity, commodityType, amount, this.currentTime, this.starSystem);
         this.cargoContainers.push(container);
+    }
+
+    /**
+     * Gets the closest cargo container with amount > 0 to the ship.
+     * @param {Ship} ship - The ship to find closest container for.
+     * @returns {CargoContainer|null} The closest container or null if none.
+     */
+    getClosestContainer(ship) {
+        let closest = null;
+        let minDistSq = Infinity;
+        for (const c of this.cargoContainers) {
+            if (c.amount <= 0) continue;
+            const distSq = ship.position.distanceSquaredTo(c.position);
+            if (distSq < minDistSq) {
+                minDistSq = distSq;
+                closest = c;
+            }
+        }
+        return closest;
     }
 
     /**
@@ -110,12 +128,17 @@ export class CargoContainerManager {
         container.amount -= actualAmount;
         if (container.amount <= 0) {
             // Despawn empty container
-            const index = this.cargoContainers.indexOf(container);
-            if (index !== -1) {
-                this.cargoContainers.splice(index, 1);
-            }
+            container.despawn();
         }
         return true;
+    }
+
+    /**
+     * Removes a cargo container from the manager's list.
+     * @param {CargoContainer} container - The container to remove.
+     */
+    removeCargoContainer(container) {
+        removeObjectFromArrayInPlace(container, this.cargoContainers);
     }
 
     /**

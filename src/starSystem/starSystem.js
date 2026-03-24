@@ -14,6 +14,7 @@ import { removeObjectFromArrayInPlace } from '/src/core/utils.js';
 import { ProjectileManager } from '/src/starSystem/projectileManager.js';
 import { ParticleManager } from '/src/starSystem/particleManager.js';
 import { CargoContainerManager } from '/src/starSystem/cargoContainerManager.js';
+import { CargoContainer } from '/src/starSystem/cargoContainer.js';
 
 /**
  * Represents a star system containing celestial bodies, ships, and connections to other systems.
@@ -101,6 +102,8 @@ export class StarSystem {
             removeObjectFromArrayInPlace(gameObject, this.jumpGates);
         } else if (gameObject instanceof Asteroid) {
             this.asteroidBelt.removeAsteroid(gameObject);
+        } else if (gameObject instanceof CargoContainer) {
+            this.cargoContainerManager.removeCargoContainer(gameObject);
         } else {
             console.warn(`removeGameObject of none supported GameObject`, gameObject);
             return false;

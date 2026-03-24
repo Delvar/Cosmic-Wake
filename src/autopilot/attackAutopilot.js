@@ -1,7 +1,7 @@
 // /src/autopilot/attackAutopilot.js
 
 import { Vector2D } from '/src/core/vector2d.js';
-import { Autopilot } from '/src/autopilot/autopilot.js';
+import { Autopilot, FlyToTargetAutopilot } from '/src/autopilot/autopilot.js';
 import { remapClamp, randomBetween, clamp } from '/src/core/utils.js';
 import { GameObject } from '/src/core/gameObject.js';
 import { Ship, isValidAttackTarget } from '/src/ship/ship.js';

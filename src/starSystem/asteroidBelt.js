@@ -499,6 +499,8 @@ export class Asteroid extends GameObject {
         this.position.setFromPolar(this.orbitRadius, this.orbitAngle);
         /** @type {Vector2D} Scratch vector for screen position calculations. */
         this._scratchScreenPos = new Vector2D();
+        /** @type {string} The name of the asteroid. */
+        this.name = 'Asteroid ' + Math.floor(10000 + (Math.random() * 80000)).toString().padStart(4, '0') + '-' + Math.floor(Math.random() * 99).toString().padStart(2, '0');
 
         if (new.target === Asteroid) Object.seal(this);
     }

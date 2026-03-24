@@ -16,6 +16,7 @@ import { MinerJob } from '/src/job/minerJob.js';
 import { PirateJob } from '/src/job/pirateJob.js';
 import { OfficerJob } from '/src/job/officerJob.js';
 import { CelestialBody, Planet } from '/src/starSystem/celestialBody.js';
+import { CargoContainer } from '/src/starSystem/cargoContainer.js';
 import { StarSystem } from '/src/starSystem/starSystem.js';
 import { EscortJob } from '/src/job/escortJob.js';
 import { FactionManager, FactionRelationship } from './faction.js';
@@ -23,6 +24,7 @@ import { Colour } from '/src/core/colour.js';
 import { generateShipName } from '/src/ship/shipNameGenerator.js';
 import { Commodities, CommodityType } from '/src/core/commodity.js';
 import { UiLog } from '/src/ui/uiLog.js'
+import { Asteroid } from '/src/starSystem/asteroidBelt.js';
 
 /**
  * Handles the game loop, rendering, and updates for the game.
@@ -412,7 +414,14 @@ export class Game {
         }
         starSystem.projectileManager.draw(ctx, camera);
         starSystem.particleManager.draw(ctx, camera);
-        const targetName = (target instanceof Ship || target instanceof CelestialBody) ? target.name : "Unnamed Object";
+        let targetName;
+        if (target instanceof CargoContainer) {
+            targetName = `Container of ${Commodities[target.commodityType].name}`;
+        } else if (target instanceof Ship || target instanceof CelestialBody || target instanceof Asteroid) {
+            targetName = target.name;
+        } else {
+            targetName = "Unnamed Object";
+        }
         ctx.fillStyle = Colour.White.toRGB();
         ctx.strokeStyle = Colour.Black.toRGB();
         ctx.textAlign = "center";

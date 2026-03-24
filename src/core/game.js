@@ -664,7 +664,7 @@ export class GameManager {
                         console.warn('spawnAiShipsIfNeeded: No spawnPlanet found!');
                         return;
                     }
-                    if (officerCount < 4.0) {
+                    if (officerCount < 2.0) {
                         //spawn officer
                         //aiShip = createRandomFastShip(spawnPlanet.position.x, spawnPlanet.position.y, system, officerFaction);
                         aiShip = new Fighter(spawnPlanet.position.x, spawnPlanet.position.y, system, officerFaction);

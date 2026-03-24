@@ -2,10 +2,13 @@
 
 import { Job } from '/src/job/job.js';
 import { AttackAutopilot } from '/src/autopilot/attackAutopilot.js';
+import { FleeAutopilot } from '/src/autopilot/fleeAutopilot.js';
+import { CargoCollectorAutopilot } from '/src/autopilot/cargoCollectorAutopilot.js';
 import { isValidAttackTarget, Ship } from '/src/ship/ship.js';
 import { AiPilot, PirateAiPilot } from '/src/pilot/aiPilot.js';
 import { GameManager } from '/src/core/game.js';
 import { FactionRelationship } from '/src/core/faction.js';
+import { LandOnPlanetDespawnAutopilot } from '/src/autopilot/landOnPlanetDespawnAutopilot.js';
 
 /**
  * Job for pirate ships to take off and attack non-pirate targets.
@@ -22,12 +25,13 @@ export class PirateJob extends Job {
         super(ship, pilot);
         /** @type {boolean} Whether to attack a ship that is disabled. */
         this.attackDisabledShips = attackDisabledShips;
-        /** @type {string} The current job state ('Starting', 'Hunting', 'Failed'). */
+        /** @type {string} The current job state ('Starting', 'Hunting', 'Collecting', 'Failed'). */
         this.state = 'Starting';
         /** @type {Object.<string, Function>} Map of state names to handler methods. */
         this.stateHandlers = {
             'Starting': this.updateStarting.bind(this),
             'Hunting': this.updateHunting.bind(this),
+            'Collecting': this.updateCollecting.bind(this),
             'Failed': () => { }
         };
         /** @type {number} Interval (seconds) between target scans in Hunting state. */
@@ -65,10 +69,9 @@ export class PirateJob extends Job {
             this.ship.initiateTakeoff();
         } else if (this.ship.state === 'Flying') {
             if (this.ship.debug) {
-                console.log(`${this.constructor.name}: Ship flying, transitioning to Hunting`);
+                console.log(`${this.constructor.name}: Ship flying, transitioning to Collecting`);
             }
-            this.state = 'Hunting';
-            this.nextTargetScan = this.ship.age;
+            this.state = 'Collecting';
         }
     }
 
@@ -78,7 +81,19 @@ export class PirateJob extends Job {
      * @param {GameManager} gameManager - The game manager instance for context.
      */
     updateHunting(deltaTime, gameManager) {
-        if (this.ship.state !== 'Flying') return;
+        if (this.ship.state !== 'Flying') {
+            this.sate = 'Starting';
+            return;
+        }
+
+        //If we are attacking and we spot some cargo, break off and go collect it.
+        if (this.ship.starSystem.cargoContainerManager.hasCargoContainer()) {
+            if (this.ship.debug) {
+                console.log('AiPilot: Spotted cargo, transitioning to Collecting');
+            }
+            this.state = 'Collecting';
+            return;
+        }
 
         if (this.pilot.state === 'Attack') {
             // Already attacking, let PirateAiPilot handle
@@ -91,9 +106,15 @@ export class PirateJob extends Job {
             // Prioritize hostiles
             let target = this.ship.hostiles.find(s => this.ship.getRelationship(s) === FactionRelationship.Hostile && isValidAttackTarget(this.ship, s, this.attackDisabledShips));
 
-            // Fallback to random non-pirate ship
+            // Fallback to ship with most cargo
             if (!target) {
-                target = this.ship.starSystem.getRandomShip(this.ship, null, PirateJob.isValidPirateTarget);
+                let maxCargo = 0;
+                for (const s of this.ship.starSystem.ships) {
+                    if (PirateJob.isValidPirateTarget(this.ship, s) && s.cargoUsed > maxCargo) {
+                        target = s;
+                        maxCargo = s.cargoUsed;
+                    }
+                }
             }
 
             if (target) {
@@ -104,6 +125,35 @@ export class PirateJob extends Job {
                 }
             } else if (this.ship.debug) {
                 console.log(`${this.constructor.name}: No valid target found`);
+            }
+        }
+    }
+
+    /**
+     * Handles the 'Collecting' state, collecting cargo or fleeing if full.
+     * @param {number} deltaTime - Time elapsed since last update (seconds).
+     * @param {GameManager} gameManager - The game manager instance for context.
+     */
+    updateCollecting(deltaTime, gameManager) {
+        // use CargoCollectorAutopilot
+        if (!this.pilot.autopilot || !(this.pilot.autopilot instanceof CargoCollectorAutopilot)) {
+            this.pilot.setAutopilot(new CargoCollectorAutopilot(this.ship));
+        }
+
+        //Did the auto pilot complete? we either have no cargo room left or there are no cargo containers available.
+        if (this.pilot.autopilot.isComplete()) {
+            if (this.ship.isCargoFull()) {
+                //FIXME: need to add a state where the pirate heads home to sell or repair.
+                if (this.ship.debug) {
+                    console.log('AiPilot: Job ended, Pirate Cargo Full, transitioning to Despawning');
+                }
+                this.pilot.changeState('Despawning', new LandOnPlanetDespawnAutopilot(this.ship));
+            } else {
+                if (this.ship.debug) {
+                    console.log(`${this.constructor.name}: Ship flying, transitioning to Hunting`);
+                }
+                this.state = 'Hunting';
+                this.nextTargetScan = this.ship.age;
             }
         }
     }

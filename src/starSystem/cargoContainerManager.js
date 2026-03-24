@@ -142,6 +142,14 @@ export class CargoContainerManager {
     }
 
     /**
+     * Returns true if there is any cargo in the system.
+     * @returns {boolean} True there are any cargo containers in the system.
+     */
+    hasCargoContainer() {
+        return this.cargoContainers.length > 0;
+    }
+
+    /**
      * Updates positions, applies drag and rotation.
      * @param {number} deltaTime
      */

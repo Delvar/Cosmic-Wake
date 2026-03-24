@@ -13,6 +13,7 @@ import { Job } from '/src/job/job.js';
 import { GameManager } from '/src/core/game.js';
 import { GameObject } from '/src/core/gameObject.js';
 import { FactionRelationship } from '/src/core/faction.js';
+import { CargoCollectorAutopilot } from '/src/autopilot/cargoCollectorAutopilot.js';
 
 /**
  * Base AI pilot with common states and reaction handling.
@@ -92,6 +93,17 @@ export class AiPilot extends Pilot {
             }
             this.changeState('Despawning', new LandOnPlanetDespawnAutopilot(this.ship));
             return;
+        }
+
+        //FIXME: cehck we are not being attacked directly before breaking off?
+        //If we are attacking and we spot some cargo, break off and go collect it.
+        if (this.ship.state === 'Flying' && this.state == 'Attack') {
+            if (this.ship.starSystem.cargoContainerManager.hasCargoContainer()) {
+                if (this.ship.debug) {
+                    console.log('AiPilot: Spotted cargo, stopping attack');
+                }
+                this.changeState('Job', null);
+            }
         }
 
         // Execute active autopilot
@@ -515,7 +527,8 @@ export class PirateAiPilot extends AiPilot {
      */
     update(deltaTime, gameManager) {
         // Check shields/hull for immediate flee
-        if (this.ship.state === 'Flying' && ((this.ship.shield && this.ship.shield.strength <= 0.0) || !this.ship.shield) && remapClamp(this.ship.hullIntegrity, 0.0, this.ship.maxHull, 0.0, 1.0) < 0.5) {
+        if (this.ship.state === 'Flying' && ((this.ship.shield && this.ship.shield.strength <= 0.0) || !this.ship.shield) && remapClamp(this.ship.hullIntegrity, 0.0, this.ship.maxHull, 0.0, 1.0) < 0.75) {
+            //FIXME: array.find
             const target = this.ship.hostiles.find(s => this.ship.getRelationship(s) === FactionRelationship.Hostile && isValidAttackTarget(this.ship, s, false));
             if (target) {
                 if (this.ship.debug) {
@@ -523,6 +536,23 @@ export class PirateAiPilot extends AiPilot {
                 }
                 this.changeState('Flee', new FleeAutopilot(this.ship, target));
                 return;
+            }
+        }
+        if (this.state === 'Attack') {
+            const manager = this.ship.starSystem.cargoContainerManager;
+            if (manager) {
+                const closest = manager.getClosestContainer(this.ship);
+                if (closest) {
+                    const distSq = this._scratchDistance.set(closest.position).subtractInPlace(this.ship.position).squareMagnitude();
+                    if (distSq < 500 * 500.0) {
+                        if (this.ship.debug) {
+                            console.log('Attack: Cargo container nearby, switching to Collecting');
+                        }
+                        this.changeState('Job');
+                        this.job.state = 'Collecting';
+                        return;
+                    }
+                }
             }
         }
         super.update(deltaTime, gameManager);

@@ -2,7 +2,7 @@
 
 import { Job } from '/src/job/job.js';
 import { Vector2D } from '/src/core/vector2d.js';
-import { LandOnPlanetAutopilot, TraverseJumpGateAutopilot } from '/src/autopilot/autopilot.js';
+import { LandOnPlanetAutopilot } from '/src/autopilot/landOnPlanetAutopilot.js';
 import { CelestialBody, JumpGate, Planet } from '/src/starSystem/celestialBody.js';
 import { isValidTarget } from '/src/core/gameObject.js';
 import { Ship } from '/src/ship/ship.js';
@@ -10,6 +10,7 @@ import { AiPilot } from '/src/pilot/aiPilot.js';
 import { GameManager } from '/src/core/game.js';
 import { StarSystem } from '/src/starSystem/starSystem.js';
 import { Asteroid } from '/src/starSystem/asteroidBelt.js';
+import { TraverseJumpGateAutopilot } from '/src/autopilot/traverseJumpGateAutopilot.js';
 
 /**
  * Job for a ship to wander between planets, prioritizing different star systems.
@@ -23,7 +24,7 @@ export class WandererJob extends Job {
      */
     constructor(ship, pilot = null) {
         super(ship, pilot);
-        /** @type {string} The current job state ('Starting', 'Traveling', 'Waiting'). */
+        /** @type {string} The current job state ('Starting', 'Travelling', 'Waiting'). */
         this.state = 'Starting';
         /** @type {CelestialBody|Asteroid|JumpGate|null} The current navigation target (jump gate or planet). */
         this.target = null;
@@ -38,7 +39,7 @@ export class WandererJob extends Job {
         /** @type {Object.<string, Function>} Map of state names to handler methods. */
         this.stateHandlers = {
             Starting: this.updateStarting.bind(this),
-            Traveling: this.updateTraveling.bind(this),
+            Travelling: this.updateTravelling.bind(this),
             Waiting: this.updateWaiting.bind(this),
             'Failed': () => { }
         };
@@ -85,17 +86,17 @@ export class WandererJob extends Job {
         }
 
         if (this.ship.debug) {
-            console.log(`WandererJob: Planned target ${this.target?.name}, transitioning to Traveling`);
+            console.log(`WandererJob: Planned target ${this.target?.name}, transitioning to Travelling`);
         }
-        this.state = 'Traveling';
+        this.state = 'Travelling';
     }
 
     /**
-     * Handles the 'Traveling' state, managing takeoff and navigation to the target.
+     * Handles the 'Travelling' state, managing takeoff and navigation to the target.
      * @param {number} deltaTime - Time elapsed since last update (seconds).
      * @param {GameManager} gameManager - The game manager instance for context.
      */
-    updateTraveling(deltaTime, gameManager) {
+    updateTravelling(deltaTime, gameManager) {
         if (this.ship.state === 'Landed' && this.target === this.finalTarget && this.route.length === 0.0) {
             if (this.ship.debug) {
                 console.log(`WandererJob: Landed at final target ${this.target?.name}, transitioning to Waiting`);
@@ -150,11 +151,17 @@ export class WandererJob extends Job {
         }
 
         if (!this.pilot.autopilot) {
-            const AutopilotClass = this.target instanceof JumpGate ? TraverseJumpGateAutopilot : LandOnPlanetAutopilot;
-            if (this.ship.debug) {
-                console.log(`WandererJob: Setting ${AutopilotClass.name} for ${this.target.name}`);
+            if (this.target instanceof JumpGate) {
+                if (this.ship.debug) {
+                    console.log(`WandererJob: Setting TraverseJumpGateAutopilot for ${this.target.name}`);
+                }
+                this.pilot.setAutopilot(new TraverseJumpGateAutopilot(this.ship, this.target));
+            } else if (this.target instanceof JumpGate) {
+                if (this.ship.debug) {
+                    console.log(`WandererJob: Setting LandOnPlanetAutopilot for ${this.target.name}`);
+                }
+                this.pilot.setAutopilot(new LandOnPlanetAutopilot(this.ship, this.target));
             }
-            this.pilot.setAutopilot(new AutopilotClass(this.ship, this.target));
         }
 
         if (this.pilot.autopilot?.isComplete()) {
@@ -197,7 +204,8 @@ export class WandererJob extends Job {
      */
     planRoute() {
         const currentSystem = this.ship.starSystem;
-        const excludePlanet = this.ship.state === 'Landed' ? this.ship.landedObject : null;
+        const excludePlanet = (this.ship.state === 'Landed' && this.ship.landedObject instanceof Planet) ? this.ship.landedObject : null;
+
         if (this.ship.debug) {
             console.log(`WandererJob: Planning route, system: ${currentSystem.name}, exclude: ${excludePlanet?.name || 'none'}`);
         }
@@ -220,7 +228,7 @@ export class WandererJob extends Job {
     /**
      * Plans a route to a planet in a different star system.
      * @param {StarSystem} currentSystem - The current star system.
-     * @param {CelestialBody|Asteroid|null} excludePlanet - Planet to exclude.
+     * @param {Planet|null} excludePlanet - Planet to exclude.
      * @returns {boolean} True if a valid route was planned, false otherwise.
      */
     planCrossSystemRoute(currentSystem, excludePlanet) {
@@ -323,7 +331,7 @@ export class WandererJob extends Job {
 //         this._scratchVector = new Vector2D();
 //         this.stateHandlers = {
 //             Starting: this.updateStarting.bind(this),
-//             Traveling: this.updateTraveling.bind(this),
+//             Travelling: this.updateTravelling.bind(this),
 //             Waiting: this.updateWaiting.bind(this)
 //         };
 //     }
@@ -357,12 +365,12 @@ export class WandererJob extends Job {
 //         }
 
 //         if (this.ship.debug) {
-//             console.log(`WandererJob: Planned target ${this.target?.name}, transitioning to Traveling`);
+//             console.log(`WandererJob: Planned target ${this.target?.name}, transitioning to Travelling`);
 //         }
-//         this.state = 'Traveling';
+//         this.state = 'Travelling';
 //     }
 
-//     updateTraveling(deltaTime, gameManager) {
+//     updateTravelling(deltaTime, gameManager) {
 //         if (this.ship.state === 'Landed' && this.target === this.finalTarget && this.route.length ===  0.0) {
 //             if (this.ship.debug) {
 //                 console.log(`WandererJob: Landed at final target ${this.target?.name}, transitioning to Waiting`);
@@ -567,7 +575,7 @@ export class WandererJob extends Job {
 //      */
 //     constructor(ship, pilot = null) {
 //         super(ship, pilot);
-//         /** @type {string} The current job state ('Starting', 'Planning', 'Traveling', 'Waiting'). */
+//         /** @type {string} The current job state ('Starting', 'Planning', 'Travelling', 'Waiting'). */
 //         this.state = 'Starting';
 //         /** @type {CelestialBody|Asteroid|null} The current navigation target (jump gate or planet). */
 //         this.target = null;
@@ -585,7 +593,7 @@ export class WandererJob extends Job {
 //         this.stateHandlers = {
 //             'Starting': this.updateStarting.bind(this),
 //             'Planning': this.updatePlanning.bind(this),
-//             'Traveling': this.updateTraveling.bind(this),
+//             'Travelling': this.updateTravelling.bind(this),
 //             'Waiting': this.updateWaiting.bind(this)
 //         };
 //     }
@@ -650,16 +658,16 @@ export class WandererJob extends Job {
 //                 console.log('WandererJob: Planning route');
 //             }
 //             this.planRoute();
-//             this.state = 'Traveling';
+//             this.state = 'Travelling';
 //         }
 //     }
 
 //     /**
-//      * Handles the 'Traveling' state, navigating to the target.
+//      * Handles the 'Travelling' state, navigating to the target.
 //      * @param {number} deltaTime - Time elapsed since last update (seconds).
 //      * @param {GameManager} gameManager - The game manager instance for context.
 //      */
-//     updateTraveling(deltaTime, gameManager) {
+//     updateTravelling(deltaTime, gameManager) {
 //         if (this.ship.state === 'Landed' && this.target === this.finalTarget && this.route.length ===  0.0) {
 //             if (this.ship.debug) {
 //                 console.log('WandererJob: Landed at final target, transitioning to Waiting');

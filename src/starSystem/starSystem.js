@@ -43,7 +43,7 @@ export class StarSystem {
         this.cargoContainerManager = new CargoContainerManager(this);
         /** @type {Array<CelestialBody>} Array of stars in the star system. */
         this.stars = stars;
-        /** @type {Array<CelestialBody>} Array of planets in the star system. */
+        /** @type {Array<Planet>} Array of planets in the star system. */
         this.planets = planets;
         /** @type {Array<JumpGate>} Array of jump gates in the star system. */
         this.jumpGates = [];
@@ -85,7 +85,7 @@ export class StarSystem {
     /**
      * Given a game object it removes it from the relevant arrays
      * @param {GameObject} gameObject - The GameObject to remove
-     * @returns {boolean} true if the GameObejct was not found or removed, false if it was invalid or not removed
+     * @returns {boolean} true if the GameObject was not found or removed, false if it was invalid or not removed
      */
     removeGameObject(gameObject) {
         if (!(gameObject instanceof GameObject)) {
@@ -112,7 +112,7 @@ export class StarSystem {
     /**
      * Given a game object it adds it to the relevant arrays
      * @param {GameObject} gameObject - The GameObject to remove
-     * @returns {boolean} true if the GameObejct added
+     * @returns {boolean} true if the GameObject added
      */
     addGameObject(gameObject) {
         if (!(gameObject instanceof GameObject)) {
@@ -214,7 +214,7 @@ export class StarSystem {
 
     /**
      * @param {Ship} [ship=null] the ship looking for a target
-     * @param {GameObject} [exclude=null] exclude this other GameObject
+     * @param {Planet} [exclude=null] exclude this other GameObject
      * @return {Planet|null} The selected body, or null if none available.
      */
     getRandomPlanet(ship = null, exclude = null) {

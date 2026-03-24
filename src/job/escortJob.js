@@ -1,7 +1,7 @@
 // /src/job/escortJob.js
 
 import { AttackAutopilot } from "/src/autopilot/attackAutopilot.js";
-import { EscortAutopilot } from "/src/autopilot/autopilot.js";
+import { EscortAutopilot } from '/src/autopilot/escortAutopilot.js';
 import { GameManager } from "/src/core/game.js";
 import { isValidTarget } from "/src/core/gameObject.js";
 import { Job } from "/src/job/job.js";

@@ -157,14 +157,14 @@ export class StarFieldWorker {
 
     /**
      * Renders the starfield to the canvas, batching stars by colour.
-     * @param {CanvasRenderingContext2D} ctx - The canvas rendering context.
-     * @param {number} cameraPostionX - The world x position of the camera.
-     * @param {number} cameraPostionY - The world y position of the camera.
+     * @param {OffscreenCanvasRenderingContext2D|CanvasRenderingContext2D} ctx - The canvas rendering context.
+     * @param {number} cameraPositionX - The world x position of the camera.
+     * @param {number} cameraPositionY - The world y position of the camera.
      * @param {number} cameraZoom - The zoom of the camera.
      * @param {number} fadeout - the alpha level of the blank out, 1.0 clear to black, < 1.0 leaves trails
-     * @param {number} white - the whiteout amount, 0.0 = black, 1.0 = full white
+     * @param {number} white - the white-out amount, 0.0 = black, 1.0 = full white
      */
-    draw(ctx, cameraPostionX, cameraPostionY, cameraZoom, fadeout, white) {
+    draw(ctx, cameraPositionX, cameraPositionY, cameraZoom, fadeout, white) {
         const screenWidth = ctx.canvas.width;
         const screenHeight = ctx.canvas.height;
         ctx.save();
@@ -199,10 +199,10 @@ export class StarFieldWorker {
             // Calculate visible grid bounds
             const visibleWidth = screenWidth / parallaxZoom;
             const visibleHeight = screenHeight / parallaxZoom;
-            const visibleLeft = cameraPostionX - visibleWidth / 2.0;
-            const visibleRight = cameraPostionX + visibleWidth / 2.0;
-            const visibleTop = cameraPostionY - visibleHeight / 2.0;
-            const visibleBottom = cameraPostionY + visibleHeight / 2.0;
+            const visibleLeft = cameraPositionX - visibleWidth / 2.0;
+            const visibleRight = cameraPositionX + visibleWidth / 2.0;
+            const visibleTop = cameraPositionY - visibleHeight / 2.0;
+            const visibleBottom = cameraPositionY + visibleHeight / 2.0;
 
             const gridLeft = Math.floor(visibleLeft / this.gridSize);
             const gridRight = Math.ceil(visibleRight / this.gridSize);
@@ -226,8 +226,8 @@ export class StarFieldWorker {
 
                     this._scratchCellWorldPos.set(i * this.gridSize, j * this.gridSize);
                     this._scratchScreenCellPos.set(this._scratchCellWorldPos);
-                    this._scratchScreenCellPos.x -= cameraPostionX;
-                    this._scratchScreenCellPos.y -= cameraPostionY;
+                    this._scratchScreenCellPos.x -= cameraPositionX;
+                    this._scratchScreenCellPos.y -= cameraPositionY;
                     this._scratchScreenCellPos.multiplyInPlace(parallaxZoom).addInPlace(this._scratchHalfScreenSize);
 
                     for (let k = 0.0; k < starCount; k++) {

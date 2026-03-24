@@ -34,7 +34,7 @@ class AsteroidShape {
             centerPoint.y += this.points[i * 2 + 1];
         }
 
-        // Recenter the asteroid if one side sticks out too far
+        // Recentre the asteroid if one side sticks out too far
         centerPoint.divideInPlace(numPoints);
         for (let i = 0.0; i < numPoints; i++) {
             this.points[i * 2] -= centerPoint.x;

@@ -3,14 +3,14 @@
 import { Job } from '/src/job/job.js';
 import { AttackAutopilot } from '/src/autopilot/attackAutopilot.js';
 import { isValidAttackTarget } from '/src/ship/ship.js';
-import { AiPilot, OfficerAiPilot, PirateAiPilot } from '/src/pilot/aiPilot.js';
-import { PlayerPilot } from '/src/pilot/pilot.js';
-import { BoardShipAutopilot, LandOnPlanetAutopilot } from '/src/autopilot/autopilot.js';
+import { AiPilot } from '/src/pilot/aiPilot.js';
+import { LandOnPlanetAutopilot } from '/src/autopilot/landOnPlanetAutopilot.js';
 import { Ship } from '/src/ship/ship.js';
 import { GameManager } from '/src/core/game.js';
-import { GameObject, isValidTarget } from '/src/core/gameObject.js';
+import { isValidTarget } from '/src/core/gameObject.js';
 import { FactionRelationship } from '/src/core/faction.js';
 import { Planet } from '/src/starSystem/celestialBody.js';
+import { BoardShipAutopilot } from '/src/autopilot/boardShipAutopilot.js';
 
 /**
  * Job for officer ships to attack hostile ships, board disabled ships, and land on planets.

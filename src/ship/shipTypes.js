@@ -6,7 +6,7 @@ import { Ship } from '/src/ship/ship.js';
 import { StarSystem } from '/src/starSystem/starSystem.js';
 
 /**
- * Represents a Flivver, a fast and agile spaceship type optimized for quick maneuvers.
+ * Represents a Flivver, a fast and agile spaceship type optimized for quick manoeuvres.
  * Extends Ship to inherit core navigation, landing, and jumping functionality.
  * @extends Ship
  */
@@ -1765,7 +1765,7 @@ export class Interceptor extends Ship {
 }
 
 /**
- * Represents a Fighter, a fast and maneuverable spaceship designed for combat.
+ * Represents a Fighter, a fast and manoeuvrable spaceship designed for combat.
  * Extends Ship to inherit core navigation, landing, and jumping functionality.
  * @extends Ship
  */

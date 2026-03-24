@@ -181,20 +181,20 @@ export class HeadsUpDisplay {
             hudOutlineCtx.save();
             hudOutlineCtx.strokeStyle = 'black';
             hudOutlineCtx.lineWidth = 2.0;
-            hudOutlineCtx.textAlign = textAlign;
+            hudOutlineCtx.textAlign = /** @type {CanvasTextAlign} */ (textAlign);
             hudOutlineCtx.strokeText(text, x, y);
             hudOutlineCtx.restore();
 
             hudCtx.save();
             hudCtx.fillStyle = fillColour;
-            hudCtx.textAlign = textAlign;
+            hudCtx.textAlign = /** @type {CanvasTextAlign} */ (textAlign);;
             hudCtx.fillText(text, x, y);
             hudCtx.restore();
         } else {
             foregroundCtx.save();
             foregroundCtx.strokeStyle = 'black';
             foregroundCtx.lineWidth = 2.0;
-            foregroundCtx.textAlign = textAlign;
+            foregroundCtx.textAlign = /** @type {CanvasTextAlign} */ (textAlign);;
             foregroundCtx.strokeText(text, x, y);
             foregroundCtx.fillStyle = fillColour;
             foregroundCtx.fillText(text, x, y);

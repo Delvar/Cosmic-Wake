@@ -1,7 +1,8 @@
 // /src/autopilot/attackAutopilot.js
 
 import { Vector2D } from '/src/core/vector2d.js';
-import { Autopilot, FlyToTargetAutopilot } from '/src/autopilot/autopilot.js';
+import { Autopilot } from '/src/autopilot/autopilot.js';
+import { FlyToTargetAutopilot } from '/src/autopilot/flyToTargetAutopilot.js';
 import { remapClamp, randomBetween, clamp } from '/src/core/utils.js';
 import { GameObject } from '/src/core/gameObject.js';
 import { Ship, isValidAttackTarget } from '/src/ship/ship.js';
@@ -25,7 +26,7 @@ export class AttackAutopilot extends Autopilot {
         this.target = target;
         /** @type {boolean} Whether to stop autopilot if the ship is disabled. */
         this.stopOnDisabled = stopOnDisabled;
-        /** @type {string} Attack pattern: "orbit", "flyby", or "inrange". */
+        /** @type {string} Attack pattern: "orbit", "flyby", or "in_range". */
         this.pattern = null;
         /** @type {string} Current state: "Approaching" or "Attacking". */
         this.state = "Approaching";
@@ -42,7 +43,7 @@ export class AttackAutopilot extends Autopilot {
             Approaching: this.updateApproaching.bind(this),
             Attacking: this.updateAttacking.bind(this)
         };
-        /** @type {number} the remaining time to execute the selected attack patern. */
+        /** @type {number} the remaining time to execute the selected attack pattern. */
         this.attackTime = 0.0;
 
         if (new.target === AttackAutopilot) Object.seal(this);
@@ -51,7 +52,7 @@ export class AttackAutopilot extends Autopilot {
     /**
      * Determines the attack pattern based on ship max velocity.
      * @param {number} maxVelocity - The ship's maximum velocity.
-     * @returns {string} The pattern ("inrange", "orbit", "flyby").
+     * @returns {string} The pattern ("in_range", "orbit", "flyby").
      */
     determinePattern(maxVelocity) {
         if (maxVelocity > 150.0) {
@@ -61,7 +62,7 @@ export class AttackAutopilot extends Autopilot {
                 return "flyby";
             }
         } else {
-            return "inrange";
+            return "in_range";
         }
     }
 
@@ -143,7 +144,7 @@ export class AttackAutopilot extends Autopilot {
         this.attackTime = Math.random() * 5.0 + 5.0;
         this.pattern = this.determinePattern(this.ship.maxVelocity);
         // Initialize pattern-specific sub-autopilot
-        if (this.pattern === "inrange") {
+        if (this.pattern === "in_range") {
             this.subAutopilot = new InRangeAttackAutopilot(this.ship, this.target, this.stopOnDisabled);
         } else if (this.pattern === "orbit") {
             this.subAutopilot = new OrbitAttackAutopilot(this.ship, this.target, this.stopOnDisabled);
@@ -398,7 +399,7 @@ export class OrbitAttackAutopilot extends Autopilot {
         // Determine orbit direction using cross product
         const crossProduct = leadDirection.x * this.ship.velocity.y - leadDirection.y * this.ship.velocity.x;
         if (crossProduct >= 0.0) {
-            this._scratchTangent.set(-leadDirection.y, leadDirection.x); // Counterclockwise
+            this._scratchTangent.set(-leadDirection.y, leadDirection.x); // counter-clockwise
         } else {
             this._scratchTangent.set(leadDirection.y, -leadDirection.x); // Clockwise
         }
@@ -445,7 +446,7 @@ export class FlybyAttackAutopilot extends Autopilot {
         this.minRange = 100.0;
         /** @type {number} Maximum distance to loop back for another pass. */
         this.maxRange = this.firingRange * 1.1;
-        /** @type {number} The length of tiem we have been turning. */
+        /** @type {number} The length of item we have been turning. */
         this.turningTime = 0.0;
         /** @type {number} Speed of projectiles for lead aiming. */
         this.projectileSpeed = 1000.0;

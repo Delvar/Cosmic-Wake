@@ -1,15 +1,19 @@
 // /src/pilot/pilot.js
 
 import { Vector2D } from '/src/core/vector2d.js';
-import { CelestialBody, JumpGate, Star, Planet } from '/src/starSystem/celestialBody.js';
-import { remapClamp, randomBetween, normalizeAngle } from '/src/core/utils.js';
+import { JumpGate, Planet } from '/src/starSystem/celestialBody.js';
 import { isValidAttackTarget, Ship } from '/src/ship/ship.js';
-import { TraverseJumpGateAutopilot, LandOnPlanetAutopilot, EscortAutopilot, LandOnAsteroidAutopilot, FlyToTargetAutopilot, Autopilot, FollowAutopilot, BoardShipAutopilot } from '/src/autopilot/autopilot.js';
+import { Autopilot } from '/src/autopilot/autopilot.js';
+import { LandOnAsteroidAutopilot } from '/src/autopilot/landOnAsteroidAutopilot.js';
+import { LandOnPlanetAutopilot } from '/src/autopilot/landOnPlanetAutopilot.js';
 import { AttackAutopilot } from '/src/autopilot/attackAutopilot.js';
 import { Asteroid } from '/src/starSystem/asteroidBelt.js';
-import { GameObject, isValidTarget } from '/src/core/gameObject.js';
+import { isValidTarget } from '/src/core/gameObject.js';
 import { GameManager } from '/src/core/game.js';
 import { FactionRelationship } from '/src/core/faction.js';
+import { EscortAutopilot } from '/src/autopilot/escortAutopilot.js';
+import { TraverseJumpGateAutopilot } from '/src/autopilot/traverseJumpGateAutopilot.js';
+import { BoardShipAutopilot } from '/src/autopilot/boardShipAutopilot.js';
 
 /**
  * Base class for AI and player pilots, providing a common interface for ship control.
@@ -1465,7 +1469,7 @@ export class PlayerPilot extends Pilot {
 //                 this.state = 'FlyingToHomePlanet';
 //             }
 //         } else if (this.ship.state === 'TakingOff' || this.ship.state === 'Landing') {
-//             //wait for the animation to compelte
+//             //wait for the animation to complete
 //         } else {
 //             console.warn(`Invalid ship state '${this.ship.state}' in MiningAiPilot updateIdle`, this.ship.landedObject);
 //         }

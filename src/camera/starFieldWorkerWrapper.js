@@ -19,7 +19,7 @@ class StarFieldWorkerWrapper {
         /** @type {Object.<string, OffscreenCanvas>} Map of canvas names to OffscreenCanvas instances. */
         this.canvasMap = {};
 
-        /** @type {Object.<string, CanvasRenderingContext2D>} Map of canvas names to 2D rendering contexts. */
+        /** @type {Object.<string, OffscreenCanvasRenderingContext2D>} Map of canvas names to 2D rendering contexts. */
         this.ctxMap = {};
 
         /** @type {Object.<string, Object>} Map of canvas names to rendering data (e.g., camera parameters). */
@@ -93,11 +93,10 @@ class StarFieldWorkerWrapper {
      * @param {number} data.cameraPositionY - The world y position of the camera.
      * @param {number} data.cameraZoom - The zoom level of the camera.
      * @param {number} data.fadeout - The alpha level for background fade (1.0 clears to black, < 1.0 leaves trails).
-     * @param {number} data.white - The whiteout amount (0.0 = black, 1.0 = full white).
+     * @param {number} data.white - The white-out amount (0.0 = black, 1.0 = full white).
      */
     handleRender(data) {
         const name = data.name;
-        const ctx = this.ctxMap[name];
         this.dataMap[name] = data;
     }
 
@@ -112,7 +111,7 @@ class StarFieldWorkerWrapper {
         const name = data.name;
         const canvas = data.canvas;
         this.canvasMap[name] = canvas;
-        this.ctxMap[name] = canvas.getContext('2d', { alpha: false });
+        this.ctxMap[name] = /** @type {OffscreenCanvasRenderingContext2D} */ (canvas.getContext('2d', { alpha: false }));
     }
 
     /**

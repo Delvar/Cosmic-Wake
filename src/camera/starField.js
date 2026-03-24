@@ -80,7 +80,7 @@ export class StarField {
             }, [offscreen]);
         } else {
             this.canvasMap[name] = canvas;
-            this.ctxMap[name] = canvas.getContext('2d', { alpha: false });
+            this.ctxMap[name] = (canvas.getContext('2d', { alpha: false }));
         }
     }
 
@@ -90,7 +90,7 @@ export class StarField {
      * @param {string} name - The name of the canvas to render to.
      * @param {Camera} camera - The camera object with position (Vector2D) and zoom properties.
      * @param {number} fadeout - The alpha level for background fade, where 1.0 clears to black and < 1.0 leaves trails.
-     * @param {number} white - The whiteout amount, where 0.0 is black and 1.0 is full white.
+     * @param {number} white - The white-out amount, where 0.0 is black and 1.0 is full white.
      */
     draw(name, camera, fadeout, white) {
         const data = this.dataMap[name] || { dirty: true };

@@ -309,7 +309,7 @@ const nameData = {
 
 /**
  * Generates a name for a ship based on its faction, job, and size (radius).
- * @param {Ship} ship - The ship object with faction, pilot, and radius properties.
+ * @param {Ship|MockShip} ship - The ship object with faction, pilot, and radius properties.
  * @returns {string} The generated ship name.
  * @throws {Error} If the ship or faction is invalid.
  */
@@ -352,6 +352,32 @@ export function generateShipName(ship) {
     return name;
 }
 
+// Mock Faction class
+class MockFaction {
+    constructor(name) {
+        this.name = name;
+    }
+    getName() {
+        return this.name;
+    }
+}
+
+// Mock AiPilot class
+class MockAiPilot {
+    constructor(job) {
+        this.job = job ? { constructor: { name: job } } : null;
+    }
+}
+
+// Mock AiPilot class
+class MockShip {
+    constructor(job) {
+        this.faction = null;
+        this.pilot = null;
+        this.radius = null;
+    }
+}
+
 /**
  * Generates a random ship name for testing purposes by simulating a ship with a random faction, job, and size.
  * @returns {string} A randomly generated ship name.
@@ -363,29 +389,12 @@ export function generateRandomShipName() {
     // List of possible jobs (null simulates no job)
     const jobs = [null, 'EscortJob', 'MinerJob', 'OfficerJob', 'PirateJob', 'WandererJob'];
 
-    // Mock Faction class
-    class MockFaction {
-        constructor(name) {
-            this.name = name;
-        }
-        getName() {
-            return this.name;
-        }
-    }
-
-    // Mock AiPilot class
-    class MockAiPilot {
-        constructor(job) {
-            this.job = job ? { constructor: { name: job } } : null;
-        }
-    }
-
     // Create a mock ship
-    const ship = {
-        faction: new MockFaction(randomChoice(factions)),
-        pilot: randomChoice(jobs) ? new MockAiPilot(randomChoice(jobs)) : null,
-        radius: Math.random() * 300 // Random radius (0–300 to cover small, medium, large)
-    };
+    const ship = new MockShip();
+    ship.faction = new MockFaction(randomChoice(factions));
+    ship.pilot = randomChoice(jobs) ? new MockAiPilot(randomChoice(jobs)) : null;
+    ship.radius = Math.random() * 300; // Random radius (0–300 to cover small, medium, large)
+
 
     // Use existing generateShipName function
     return generateShipName(ship);

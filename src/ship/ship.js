@@ -14,7 +14,7 @@ import { AiPilot, CivilianAiPilot, OfficerAiPilot } from '/src/pilot/aiPilot.js'
 import { Pilot, PlayerPilot } from '/src/pilot/pilot.js';
 import { StarSystem } from '/src/starSystem/starSystem.js';
 import { Camera } from '/src/camera/camera.js';
-import { EscortAutopilot, FlyToTargetAutopilot } from '/src/autopilot/autopilot.js';
+import { FlyToTargetAutopilot } from '/src/autopilot/flyToTargetAutopilot.js';
 import { Faction, FactionRelationship } from '/src/core/faction.js';
 import { EscortJob } from '/src/job/escortJob.js';
 import { CommodityType, Commodities } from '/src/core/commodity.js';

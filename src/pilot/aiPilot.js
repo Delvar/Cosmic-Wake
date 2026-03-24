@@ -3,7 +3,10 @@
 import { Pilot } from '/src/pilot/pilot.js';
 import { Ship, isValidAttackTarget } from '/src/ship/ship.js';
 import { Vector2D } from '/src/core/vector2d.js';
-import { Autopilot, AvoidAutopilot, FleeAutopilot, LandOnPlanetDespawnAutopilot } from '/src/autopilot/autopilot.js';
+import { Autopilot } from '/src/autopilot/autopilot.js';
+import { FleeAutopilot } from '/src/autopilot/fleeAutopilot.js';
+import { LandOnPlanetDespawnAutopilot } from '/src/autopilot/landOnPlanetDespawnAutopilot.js';
+import { AvoidAutopilot } from '/src/autopilot/avoidAutopilot.js';
 import { AttackAutopilot } from '/src/autopilot/attackAutopilot.js';
 import { remapClamp } from '/src/core/utils.js';
 import { Job } from '/src/job/job.js';
@@ -21,7 +24,7 @@ export class AiPilot extends Pilot {
      * @param {Ship} ship - The ship to control.
      * @param {Job|null} job - The job instance (e.g., WandererJob).
      * @param {boolean} [attackDisabledShips=false] - Whether to attack ships that are disabled.
-     * @throws {Error} If called directly instead of subclassing.
+     * @throws {Error} If called directly instead of sub classing.
      */
     constructor(ship, job = null, attackDisabledShips = false) {
         super(ship);
@@ -108,7 +111,7 @@ export class AiPilot extends Pilot {
             }
             if (this.autopilot.isComplete()) {
                 if (this.ship.debug) {
-                    console.log(`${this.autopilot.constructor.name} is complete, nulling`);
+                    console.log(`${this.autopilot.constructor.name} is complete, setting to null`);
                 }
                 this.setAutopilot(null);
             }

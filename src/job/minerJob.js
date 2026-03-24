@@ -1,7 +1,8 @@
 // /src/job/minerJob.js
 
 import { Job } from '/src/job/job.js';
-import { LandOnAsteroidAutopilot, LandOnPlanetAutopilot } from '/src/autopilot/autopilot.js';
+import { LandOnAsteroidAutopilot } from '/src/autopilot/landOnAsteroidAutopilot.js';
+import { LandOnPlanetAutopilot } from '/src/autopilot/landOnPlanetAutopilot.js';
 import { randomBetween } from '/src/core/utils.js';
 import { Vector2D } from '/src/core/vector2d.js';
 import { isValidTarget } from '/src/core/gameObject.js';

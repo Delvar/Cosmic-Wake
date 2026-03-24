@@ -44,7 +44,7 @@ export class UiLog {
         const line = document.createElement('div');
         line.className = 'log-line in';
         line.textContent = message;
-        line.timestamp = Date.now();
+        line.dataset.timestamp = Date.now().toString();
         this.inner.appendChild(line);
         if (this.inner.children.length >= this.maxLines) {
             let linesToRemove = this.inner.children.length - this.maxLines;
@@ -64,9 +64,14 @@ export class UiLog {
      */
     _checkAges() {
         const now = Date.now();
-        for (let i = 0; i < this.inner.children.length; i++) {
-            const child = this.inner.children[i];
-            const age = now - child.timestamp;
+
+        for (let i = this.inner.children.length - 1; i >= 0; i--) {
+            /** @type {HTMLDivElement} */
+            const child = /** @type {HTMLDivElement} */ (this.inner.children[i]);
+
+            const timestamp = parseInt(child.dataset.timestamp, 10);
+            const age = now - timestamp;
+
             if (age > 1000 && child.classList.contains('in')) {
                 child.classList.remove('in');
             }
@@ -75,7 +80,6 @@ export class UiLog {
             }
             if (age > (this.maxAge + 1000) && child.classList.contains('out')) {
                 child.parentElement.removeChild(child);
-                i--;
             }
         }
     }

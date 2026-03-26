@@ -128,6 +128,57 @@ If you are here to play or lightly tweak the game, the main files to know are:
 
 For a fuller architecture breakdown, developer-oriented file map, and system notes, see [`AGENTS.md`](AGENTS.md).
 
+## AI System Overview
+
+This section provides a high-level overview of the AI architecture in Cosmic Wake, focusing on how NPC ships are controlled and behave. The system is modular to allow flexible, personality-driven behaviors while reusing common navigation and combat logic. It consists of Pilots (for control), Autopilots (for specific manoeuvres), and Jobs (for goal-oriented lifecycles).
+
+### Pilots: Core Control Layer
+Pilots are the primary interface for controlling ships, handling both player input and AI decision-making.
+
+- **Base Pilot**: An abstract class providing a common interface for all ship control. It manages basic inputs like thrust, rotation, and firing.
+- **PlayerPilot**: Handles human-controlled ships via browser inputs (keyboard/mouse). It supports manual control but can also use autopilots for assisted navigation.
+- **AiPilot**: Base class for AI-controlled ships with built-in reactive behaviors. It uses a state machine to switch between modes like 'Job' (goal pursuit), 'Attack' (combat), 'Flee' (evasion), 'Avoid' (obstacle dodging), and 'Despawning' (removal from game). In the 'Job' state, it delegates to an assigned Job for high-level goals.
+
+AI Pilots come in specialized subclasses that define "personality" through behaviors switching logic:
+- **CivilianAiPilot**: Timid and evasive. Prioritizes fleeing from threats early, only fighting if cornered or shields are low. Avoids combat unless necessary.
+- **PirateAiPilot**: Aggressive and opportunistic. Less likely to flee (only when hull is critically low), prioritizes capturing cargo/loot over prolonged fights, and breaks off attacks to collect floating cargo.
+- **OfficerAiPilot**: Disciplined and protective. Attacks threats aggressively, including disabled ships; less prone to fleeing; focuses on maintaining order by boarding or eliminating hostiles.
+
+These differences in switching logic create varied NPC personalities—e.g., civilians run quickly, pirates chase loot greedily, and officers pursue relentlessly—without tying behaviors to specific ship types.
+
+### Autopilots: Modular Manoeuvres
+Behaviors are implemented through chainable Autopilot classes, which handle specific tactical actions or navigation sequences. Autopilots are not full AI controllers but reusable "modules" that compute inputs (e.g., thrust, rotation) to achieve a task.
+
+- **Key Examples**: FlyToTarget (basic navigation), LandOnPlanet (docking), AttackAutopilot (combat pursuit), FleeAutopilot (evasion), TraverseJumpGate (system travel).
+- **Chainability**: Autopilots can be sequenced or nested (e.g., approach a target, then orbit and attack).
+- **Universal Use**: Any pilot (AI or Player) can activate an autopilot. For players, this enables "assisted" modes like auto-landing; for AI, it provides building blocks for complex actions.
+
+This modularity allows sharing logic across pilots—e.g., a player could use an AttackAutopilot for help in combat, while an AI chains it with FleeAutopilot for hit-and-run tactics.
+
+### Jobs: Goal-Oriented Lifecycles
+Jobs define the high-level "purpose" or lifecycle of an AI ship, deciding what the pilot should do next based on the job's internal state. They run within the AiPilot's 'Job' state and configure autopilots to achieve goals.
+
+- **How Jobs Work**:
+  - A job evaluates the situation (e.g., scan for targets, check cargo) and sets an appropriate autopilot on the pilot (it doesn't hold the autopilot itself).
+  - Jobs manage state machines for multi-step goals, chaining autopilots as needed (e.g., fly to asteroid → mine → return home).
+  - The job can interrupt itself to trigger pilot-level reactions (e.g., switch to 'Flee' if threatened) or end when complete (e.g., cargo full).
+  - If paused (e.g., for game events), jobs can resume from saved states.
+
+- **Job Types** (Modular and Extensible):
+  - **WandererJob**: Travels between planets/systems, simulating traders or explorers.
+  - **PirateJob**: Hunts targets, attacks for loot, collects cargo.
+  - **OfficerJob**: Patrols, attacks hostiles, boards disabled ships.
+  - **MinerJob**: Mines asteroids, returns to base to unload.
+  - **EscortJob**: Follows and protects a specific ship.
+
+Jobs are not tied to pilot types, enabling creative combinations (e.g., a PirateAiPilot with a WandererJob could simulate a "pirate trader" that wanders but attacks opportunistically). This keeps the system flexible for new behaviors.
+
+### Why This Architecture?
+- **Personality via Pilots**: AiPilot subclasses encapsulate reactive "personality" (e.g., when to flee vs. fight), making NPCs feel distinct without bloating job logic.
+- **Reusability via Autopilots**: Modular manoeuvres reduce code duplication—any pilot can use them for tasks like landing or attacking, supporting both AI and player assistance.
+- **Goal Flexibility via Jobs**: Jobs handle long-term lifecycles and complex sequences, allowing easy addition of new NPC roles (e.g., a future "TraderJob" for buying/selling) without changing pilot code.
+- **Overall Benefits**: The layered design (Pilots → Autopilots → Jobs) creates emergent, believable AI behaviors in a dynamic galaxy, while being extensible for new features like custom missions or player AI companions.
+
 ## Notes For Contributors
 
 - The project uses ES modules and is intended to be served as static files

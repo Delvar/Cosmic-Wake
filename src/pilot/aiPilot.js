@@ -95,7 +95,7 @@ export class AiPilot extends Pilot {
             return;
         }
 
-        //FIXME: cehck we are not being attacked directly before breaking off?
+        //FIXME: check we are not being attacked directly before breaking off?
         //If we are attacking and we spot some cargo, break off and go collect it.
         if (this.ship.state === 'Flying' && this.state == 'Attack') {
             if (this.ship.starSystem.cargoContainerManager.hasCargoContainer()) {

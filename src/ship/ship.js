@@ -10,7 +10,8 @@ import { Asteroid } from '/src/starSystem/asteroidBelt.js';
 import { Shield } from '/src/ship/shield.js';
 import { Turret } from '/src/weapon/turret.js';
 import { FixedWeapon } from '/src/weapon/fixedWeapon.js';
-import { AiPilot, CivilianAiPilot, OfficerAiPilot } from '/src/pilot/aiPilot.js';
+import { AiPilot } from '/src/pilot/aiPilot.js';
+import { OfficerAiPilot } from '/src/pilot/officerAiPilot.js';
 import { Pilot, PlayerPilot } from '/src/pilot/pilot.js';
 import { StarSystem } from '/src/starSystem/starSystem.js';
 import { Camera } from '/src/camera/camera.js';
@@ -19,6 +20,7 @@ import { Faction, FactionRelationship } from '/src/core/faction.js';
 import { EscortJob } from '/src/job/escortJob.js';
 import { CommodityType, Commodities } from '/src/core/commodity.js';
 import { UiLog } from '/src/ui/uiLog.js'
+import { CivilianAiPilot } from '/src/pilot/civilianAiPilot.js';
 
 //Colours used for the lights
 const colourRed = new Colour(1.0, 0.0, 0.0);

@@ -10,7 +10,9 @@ import { HeadsUpDisplay } from '/src/camera/headsUpDisplay.js';
 import { PlayerPilot } from '/src/pilot/pilot.js';
 import { createGalaxy } from '/src/core/galaxy.js';
 import { isValidTarget } from '/src/core/gameObject.js';
-import { AiPilot, CivilianAiPilot, PirateAiPilot, OfficerAiPilot } from '/src/pilot/aiPilot.js';
+import { AiPilot } from '/src/pilot/aiPilot.js';
+import { OfficerAiPilot } from '/src/pilot/officerAiPilot.js';
+import { PirateAiPilot } from '/src/pilot/pirateAiPilot.js';
 import { WandererJob } from '/src/job/wandererJob.js';
 import { MinerJob } from '/src/job/minerJob.js';
 import { PirateJob } from '/src/job/pirateJob.js';
@@ -25,6 +27,7 @@ import { generateShipName } from '/src/ship/shipNameGenerator.js';
 import { Commodities, CommodityType } from '/src/core/commodity.js';
 import { UiLog } from '/src/ui/uiLog.js'
 import { Asteroid } from '/src/starSystem/asteroidBelt.js';
+import { CivilianAiPilot } from '/src/pilot/civilianAiPilot.js';
 
 /**
  * Handles the game loop, rendering, and updates for the game.

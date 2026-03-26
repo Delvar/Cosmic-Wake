@@ -7,6 +7,7 @@ import { FactionRelationship } from '/src/core/faction.js';
 import { isValidAttackTarget, Ship } from '/src/ship/ship.js';
 import { Job } from '/src/job/job.js';
 import { GameManager } from '/src/core/game.js';
+import { CargoCollectorAutopilot } from '/src/autopilot/cargoCollectorAutopilot.js';
 
 /**
  * AI pilot for civilian ships, focusing on avoidance and fleeing.
@@ -34,6 +35,21 @@ export class CivilianAiPilot extends AiPilot {
      * @param {GameManager} gameManager - The game manager instance for context.
      */
     update(deltaTime, gameManager) {
+        // Opportunistic cargo collection if safe and cargo nearby
+        if (this.ship.state === 'Flying' && this.state != 'Collecting' && this.state != 'Despawning' && !this.ship.isCargoFull() && this.isSafe() && this.ship.starSystem.cargoContainerManager.hasCargoContainer() && !this.ship.isCargoFull()) {
+            const manager = this.ship.starSystem.cargoContainerManager;
+            const closest = manager.getClosestContainer(this.ship);
+            if (closest) {
+                const distSq = this._scratchDistance.set(closest.position).subtractInPlace(this.ship.position).squareMagnitude();
+                if (distSq < 250.0 * 250.0) {
+                    if (this.ship.debug) {
+                        console.log(`${this.constructor.name}: Safe and cargo nearby, opportunistic collecting`);
+                    }
+                    this.changeState('Collecting', new CargoCollectorAutopilot(this.ship));
+                    return;
+                }
+            }
+        }
         super.update(deltaTime, gameManager);
     }
 
@@ -48,7 +64,7 @@ export class CivilianAiPilot extends AiPilot {
             const target = this.ship.hostiles.find(s => this.ship.getRelationship(s) === FactionRelationship.Hostile && isValidAttackTarget(this.ship, s, this.attackDisabledShips));
             if (target) {
                 if (this.ship.debug) {
-                    console.log('Job: Shields down, switching to Flee');
+                    console.log(`${this.constructor.name}: Job: Shields down, switching to Flee`);
                 }
                 this.changeState('Flee', new FleeAutopilot(this.ship, target));
                 return;
@@ -66,7 +82,7 @@ export class CivilianAiPilot extends AiPilot {
                         .subtractInPlace(this.ship.position).squareMagnitude();
                     if (distanceSq < 500 * 500.0) {
                         if (this.ship.debug) {
-                            console.log('Job: Hostile within 500 units, switching to Avoid');
+                            console.log(`${this.constructor.name}: Job: Hostile within 500 units, switching to Avoid`);
                         }
                         this.changeState('Avoid', new AvoidAutopilot(this.ship, hostile));
                         return;
@@ -91,7 +107,7 @@ export class CivilianAiPilot extends AiPilot {
             const target = this.ship.hostiles.find(s => this.ship.getRelationship(s) === FactionRelationship.Hostile && isValidAttackTarget(this.ship, s, this.attackDisabledShips));
             if (target) {
                 if (this.ship.debug) {
-                    console.log('Avoid: Shields down, switching to Flee');
+                    console.log(`${this.constructor.name}: Avoid: Shields down, switching to Flee`);
                 }
                 this.changeState('Flee', new FleeAutopilot(this.ship, target));
                 return;
@@ -103,7 +119,7 @@ export class CivilianAiPilot extends AiPilot {
             const target = this.ship.hostiles.find(s => this.ship.getRelationship(s) === FactionRelationship.Hostile && isValidAttackTarget(this.ship, s, false));
             if (target) {
                 if (this.ship.debug) {
-                    console.log('Avoid: Timeout or complete and not safe, switching to Flee');
+                    console.log(`${this.constructor.name}: Avoid: Timeout or complete and not safe, switching to Flee`);
                 }
                 this.changeState('Flee', new FleeAutopilot(this.ship, target));
                 return;
@@ -131,14 +147,14 @@ export class CivilianAiPilot extends AiPilot {
         if (this.ship.shield && this.ship.shield.strength <= 0.0) {
             if (this.ship.hostiles.includes(source) && isValidAttackTarget(this.ship, source, false)) {
                 if (this.ship.debug) {
-                    console.log('onDamage: Shields down, switching to Flee');
+                    console.log(`${this.constructor.name}: onDamage: Shields down, switching to Flee`);
                 }
                 this.changeState('Flee', new FleeAutopilot(this.ship, source));
             }
         } else if (this.state !== 'Avoid' && this.state !== 'Flee') {
             if (this.ship.hostiles.includes(source) && isValidAttackTarget(this.ship, source, false)) {
                 if (this.ship.debug) {
-                    console.log('onDamage: Hostile detected, switching to Avoid');
+                    console.log(`${this.constructor.name}: onDamage: Hostile detected, switching to Avoid`);
                 }
                 this.changeState('Avoid', new AvoidAutopilot(this.ship, source));
             }

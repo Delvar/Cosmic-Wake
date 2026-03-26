@@ -29,7 +29,7 @@
 - [X] **Civilian cargo jettison during flee** - When civilian ships are under attack and begin to flee, add a chance they will jettison all cargo to lighten the load and escape faster.
 - [X] **Pirate opportunistic cargo collection** - When pirates are attacking other ships and no one is attacking them back, and there's cargo in the area, give them a high chance to stop attacking and collect the cargo instead.
 - [ ] **Pirate cargo selling behaviour** - If pirates are full of cargo, they will jump out of system and land on a planet to sell their stolen commodities.
-- [ ] **Civilian opportunistic cargo pickup** - Civilians in smaller/faster ships with free cargo room may attempt to pickup cargo in the system if it's not too far away.
+- [X] **Civilian opportunistic cargo pickup** - Civilians in smaller/faster ships with free cargo room may attempt to pickup cargo in the system if it's not too far away.
 - [X] **Pirate targeting behaviour** - Pirates only attack ships with cargo, they prioritise ships with the most cargo.
 
 ## Interface and Interaction Windows

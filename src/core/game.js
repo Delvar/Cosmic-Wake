@@ -614,6 +614,8 @@ export class GameManager {
             let civilianCount = 0.0;
             let pirateCount = 0.0;
             let officerCount = 0.0;
+            let officerAliveCount = 0.0;
+            let disabledCount = 0.0;
 
             const playerFaction = this.factionManager.getFaction('Player');
             const civilianFaction = this.factionManager.getFaction('Civilian');
@@ -632,6 +634,12 @@ export class GameManager {
                         pirateCount++;
                     } else if (ship.faction === officerFaction) {
                         officerCount++;
+                        if (ship.state != 'Disabled' && ship.state != 'Exploding') {
+                            officerAliveCount++;
+                        }
+                    }
+                    if (ship.state == 'Disabled') {
+                        disabledCount++;
                     }
                 } else if ((ship.pilot instanceof PlayerPilot)) {
                     playerCount++;
@@ -654,6 +662,7 @@ export class GameManager {
                         } else if (ship.faction === officerFaction) {
                             if (officerCount > 1.0) {
                                 officerCount--;
+                                officerAliveCount--;
                                 despawn = true;
                             }
                         }
@@ -668,12 +677,36 @@ export class GameManager {
                 }
             }
 
+            if (officerAliveCount == 0 && (disabledCount > 0 || pirateCount > 0)) {
+                //spawn officer to rescue other ships
+                console.log(`${this.constructor.name}: spawnAiShipsIfNeeded: ${system.name}: No active officers and disabled ships, spawning emergency reserve`);
+                const spawnPlanet = system.getRandomPlanet();
+                let aiShip = new Fighter(spawnPlanet.position.x, spawnPlanet.position.y, system, officerFaction);
+                aiShip.pilot = new OfficerAiPilot(aiShip, new OfficerJob(aiShip, null, false));
+                aiShip.colors.wings = Colour.BlueDark;
+                aiShip.colors.hull = Colour.WhiteLight;
+                aiShip.trail.color = aiShip.colors.wings.toRGBA(0.5);
+                aiShip.setState('Landed');
+                aiShip.shipScale = 0.0;
+                aiShip.velocity.set(0.0, 0.0);
+                aiShip.landedObject = spawnPlanet;
+                aiShip.name = generateShipName(aiShip);
+                spawnPlanet.addLandedShip(aiShip);
+                system.addGameObject(aiShip);
+                officerCount++;
+                officerAliveCount++;
+            }
+
+            // if (system.name == 'Sol System') {
+            //     console.log(`${this.constructor.name}: spawnAiShipsIfNeeded: ${system.name}: systemShipsLength: ${systemShipsLength}, aiCount: ${aiCount}, playerCount: ${playerCount}, civilianCount: ${civilianCount}, pirateCount: ${pirateCount}, officerCount: ${officerCount}, officerAliveCount: ${officerAliveCount}, disabledCount: ${disabledCount}`);
+            // }
+
             do {
                 if (aiCount < system.maxAiShips) {
                     let aiShip = null;
                     const spawnPlanet = system.getRandomPlanet();
                     if (!spawnPlanet) {
-                        console.warn('spawnAiShipsIfNeeded: No spawnPlanet found!');
+                        console.warn(`${this.constructor.name}: spawnAiShipsIfNeeded: ${system.name}: No spawnPlanet found!`);
                         return;
                     }
                     if (officerCount < 2.0) {

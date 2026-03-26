@@ -347,8 +347,7 @@ export function generateShipName(ship) {
 
     // Generate the base name
     let name = selectedPattern(ship);
-
-    console.log(name);
+    //console.log(name);
     return name;
 }
 

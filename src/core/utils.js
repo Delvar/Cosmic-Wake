@@ -223,12 +223,11 @@ export function drawLightGlow(ctx, x, y, radius, innerColour, outerColour, brigh
     ctx.globalCompositeOperation = "lighter";
     const gradient = ctx.createRadialGradient(x, y, 0.0, x, y, radius);
     gradient.addColorStop(0.0, innerColour.toRGBA(brightness));
-    gradient.addColorStop(0.05, innerColour.toRGBA(brightness));
-    gradient.addColorStop(0.1, outerColour.toRGBA(brightness));
-    gradient.addColorStop(1, outerColour.toRGBA(0));
+    gradient.addColorStop(1.0 / radius, outerColour.toRGBA(brightness));
+    gradient.addColorStop(1.0, outerColour.toRGBA(0.0));
     ctx.fillStyle = gradient;
     ctx.beginPath();
-    ctx.arc(x, y, radius, 0.0, 2 * Math.PI);
+    ctx.arc(x, y, radius, 0.0, 2.0 * Math.PI);
     ctx.fill();
     ctx.restore();
 }

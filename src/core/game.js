@@ -513,6 +513,18 @@ export class GameManager {
         // Temporary scratch values to avoid allocations
         /** @type {Vector2D} Scratch vector for calculating spawn positions in spawnAiShips. */
         this._scratchSpawnPos = new Vector2D(0.0, 0.0);
+        /** @type {Vector2D} Scratch vector for overlap push calculations. */
+        this._scratchAB = new Vector2D(0.0, 0.0);
+        /** @type {Vector2D} Scratch vector for perpendicular calculations. */
+        this._scratchPerp1 = new Vector2D(0.0, 0.0);
+        /** @type {Vector2D} Scratch vector for perpendicular calculations. */
+        this._scratchPerp2 = new Vector2D(0.0, 0.0);
+        /** @type {Vector2D} Scratch vector for perpendicular calculations for ship B. */
+        this._scratchPerp1B = new Vector2D(0.0, 0.0);
+        /** @type {Vector2D} Scratch vector for perpendicular calculations for ship B. */
+        this._scratchPerp2B = new Vector2D(0.0, 0.0);
+        /** @type {Vector2D} Scratch vector for away direction for ship B. */
+        this._scratchAwayB = new Vector2D(0.0, 0.0);
 
         // Initialize escort ship with AI pilot and matching colors
         const escort01 = new Interceptor(spawnPlanet.position.x - spawnPlanet.radius * 1.0, spawnPlanet.position.y, this.galaxy[0], this.playerShip.faction);
@@ -565,6 +577,33 @@ export class GameManager {
                     ship.pilot.update(deltaTime, this);
                 }
                 ship.update(deltaTime);
+            }
+            // Prevent ship overlaps by pushing positions apart, cap push to 25.0 units per second, do not push players.
+            for (let i = 0.0; i < starSystem.ships.length - 1; ++i) {
+                const shipA = starSystem.ships[i];
+                if (!shipA || shipA.state !== 'Flying') continue;
+                for (let j = i + 1; j < starSystem.ships.length; ++j) {
+                    const shipB = starSystem.ships[j];
+                    if (!shipB || shipB.state !== 'Flying') continue;
+                    const dist = shipA.position.distanceTo(shipB.position);
+                    const minDist = shipA.radius + shipB.radius;
+                    if (dist < minDist && dist > 0.0) {
+                        const overlap = minDist - dist;
+                        // Vector from A to B
+                        this._scratchAB.set(shipB.position).subtractInPlace(shipA.position);
+                        this._scratchAB.normalizeInPlace();
+                        this._scratchAB.multiplyInPlace(Math.min(overlap, 25.0) * deltaTime);
+                        // Push shipB away from shipA
+                        if (!(shipB.pilot instanceof PlayerPilot)) {
+                            shipB.position.addInPlace(this._scratchAB);
+                        }
+                        if (!(shipA.pilot instanceof PlayerPilot)) {
+                            // Push shipA away from shipB
+                            this._scratchAB.multiplyInPlace(-1.0);
+                            shipA.position.addInPlace(this._scratchAB);
+                        }
+                    }
+                }
             }
             if (starSystem.asteroidBelt) {
                 starSystem.asteroidBelt.update(deltaTime);

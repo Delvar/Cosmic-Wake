@@ -1,5 +1,7 @@
 // /src/core/utils.js
 
+import { Colour } from "/src/core/colour.js";
+
 /**
  * A constant representing 2 * π, used for angle calculations.
  */
@@ -203,4 +205,30 @@ export class SimpleRNG {
  */
 export function lerp(start, end, ratio) {
     return start + (end - start) * ratio;
+}
+
+/**
+ * Draws a radial light glow effect with the standard gradient pattern.
+ * @param {CanvasRenderingContext2D} ctx - rendering context (already in correct transform space)
+ * @param {number} x - light centre X in current ctx coordinate space
+ * @param {number} y - light centre Y
+ * @param {number} radius - final light radius (in ctx space; caller must scale with camera.worldToSize if needed)
+ * @param {Colour} innerColour - inner glow (normally white)
+ * @param {Colour} outerColour - outer glow colour
+ * @param {number} brightness - 0.0-1.0 intensity (affects alpha only)
+ */
+export function drawLightGlow(ctx, x, y, radius, innerColour, outerColour, brightness) {
+    if (brightness <= 0.0 || radius <= 0.0) return;
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    const gradient = ctx.createRadialGradient(x, y, 0.0, x, y, radius);
+    gradient.addColorStop(0.0, innerColour.toRGBA(brightness));
+    gradient.addColorStop(0.05, innerColour.toRGBA(brightness));
+    gradient.addColorStop(0.1, outerColour.toRGBA(brightness));
+    gradient.addColorStop(1, outerColour.toRGBA(0));
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0.0, 2 * Math.PI);
+    ctx.fill();
+    ctx.restore();
 }

@@ -72,7 +72,9 @@ export class FleeAutopilot extends Autopilot {
         }
 
         if ((!this.ship.shield || !this.ship.shield.isActive) && (this.ship.cargoUsed) > 0 && (remapClamp(this.ship.hullIntegrity, 0.0, this.ship.maxHull, 0.0, 1.0) < 0.75)) {
-            this.ship.startJettison();
+            if (!this.ship.isJettisoningCargo) {
+                this.ship.startJettison();
+            }
         } else if (this.ship.isJettisoningCargo) {
             this.ship.stopJettison();
         }

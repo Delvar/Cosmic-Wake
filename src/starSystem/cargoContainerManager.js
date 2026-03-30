@@ -2,7 +2,7 @@
 
 import { Vector2D } from '/src/core/vector2d.js';
 import { CargoContainer } from './cargoContainer.js';
-import { TWO_PI, randomBetween, remapClamp, normalizeAngle, removeObjectFromArrayInPlace } from '/src/core/utils.js';
+import { TWO_PI, randomBetween, remapClamp, normalizeAngle, removeObjectFromArrayInPlace, drawLightGlow } from '/src/core/utils.js';
 import { StarSystem } from './starSystem.js';
 import { Camera } from '/src/camera/camera.js';
 import { Colour } from '/src/core/colour.js';
@@ -24,7 +24,7 @@ export class CargoContainerManager {
         this.currentTime = 0.0;
 
         /** @type {number} World-space radius of cargo beacon light. */
-        this.lightRadius = 20;
+        this.lightRadius = 5;
         /** @type {number} World-space size of cargo container box. */
         this.containerSize = 5;
 
@@ -178,6 +178,7 @@ export class CargoContainerManager {
      */
     draw(ctx, camera) {
         ctx.save();
+        const scale = camera.zoom;
 
         for (const c of this.cargoContainers) {
             if (!camera.isInView(c.position, c.radius)) continue;
@@ -200,26 +201,14 @@ export class CargoContainerManager {
             ctx.save();
             ctx.translate(this._scratchScreenPos.x, this._scratchScreenPos.y);
             ctx.rotate(c.angle);
-            const size = camera.worldToSize(this.containerSize);
+            ctx.scale(scale, scale);
             ctx.fillStyle = this.containerColour.toRGB();
-            ctx.fillRect(-size / 2, -size / 2, size, size);
+            ctx.fillRect(-this.containerSize / 2, -this.containerSize / 2, this.containerSize, this.containerSize);
 
             // Beacon
             if (brightness > 0.0) {
-                const lightRadiusScreen = camera.worldToSize(this.lightRadius);
-                ctx.globalCompositeOperation = 'lighter';
-                const gradient = ctx.createRadialGradient(
-                    0.0, 0.0, 0.0,
-                    0.0, 0.0, lightRadiusScreen
-                );
-                gradient.addColorStop(0.0, this.lightInnerColour.toRGBA(brightness * 0.75));
-                gradient.addColorStop(0.05, this.lightInnerColour.toRGBA(brightness * 0.5));
-                gradient.addColorStop(0.2, this.lightOuterColour.toRGBA(brightness * 0.25));
-                gradient.addColorStop(1.0, this.lightOuterColour.toRGBA(0.0));
-                ctx.fillStyle = gradient;
-                ctx.beginPath();
-                ctx.arc(0.0, 0.0, lightRadiusScreen, 0.0, TWO_PI);
-                ctx.fill();
+                const lightRadiusScreen = this.lightRadius;//camera.worldToSize(this.lightRadius);
+                drawLightGlow(ctx, 0.0, 0.0, lightRadiusScreen, this.lightInnerColour, this.lightOuterColour, brightness);
             }
             ctx.restore();
         }

@@ -5,7 +5,7 @@ import { Trail } from '/src/ship/trail.js';
 import { Colour } from '/src/core/colour.js';
 import { GameObject, isValidTarget } from '/src/core/gameObject.js';
 import { CelestialBody, JumpGate, Planet } from '/src/starSystem/celestialBody.js';
-import { TWO_PI, clamp, remapClamp, normalizeAngle, randomBetween, removeAtIndexInPlace, removeObjectFromArrayInPlace, lerp } from '/src/core/utils.js';
+import { TWO_PI, clamp, remapClamp, normalizeAngle, randomBetween, removeAtIndexInPlace, removeObjectFromArrayInPlace, lerp, drawLightGlow } from '/src/core/utils.js';
 import { Asteroid } from '/src/starSystem/asteroidBelt.js';
 import { Shield } from '/src/ship/shield.js';
 import { Turret } from '/src/weapon/turret.js';
@@ -1693,22 +1693,9 @@ export class Ship extends GameObject {
                 colour = colourWhite;
             }
 
-            const lightRadius = light.radius * (this.lightMode === 'Warden' || this.lightMode === 'Rescue' ? 20 : 5.0) * brightness;
+            const lightRadius = light.radius * (this.lightMode === 'Warden' || this.lightMode === 'Rescue' ? 20 : 5.0);// * brightness;
 
-            ctx.save();
-            ctx.globalCompositeOperation = "lighter";
-            const gradient = ctx.createRadialGradient(light.x, light.y, 0.0, light.x, light.y, lightRadius);
-            gradient.addColorStop(0.0, colourWhite.toRGBA(brightness * 0.75));
-            gradient.addColorStop(0.05, colourWhite.toRGBA(brightness * 0.5));
-            gradient.addColorStop(0.2, colour.toRGBA(brightness * 0.25));
-            gradient.addColorStop(1, colour.toRGBA(0));
-            ctx.fillStyle = gradient;
-            ctx.beginPath();
-            ctx.moveTo(light.x, light.y);
-            ctx.arc(light.x, light.y, lightRadius, 0.0, TWO_PI);
-            ctx.closePath();
-            ctx.fill();
-            ctx.restore();
+            drawLightGlow(ctx, light.x, light.y, lightRadius, colourWhite, colour, brightness);
         }
     }
 

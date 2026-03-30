@@ -44,8 +44,8 @@ export class EscortJob extends Job {
         const handler = this.stateHandlers[this.state];
         if (handler) {
             handler(deltaTime, gameManager);
-        } else if (this.ship.debug) {
-            console.warn(`EscortJob: Invalid state ${this.state}`);
+        } else {
+            this.debugLog(`EscortJob: Invalid state ${this.state}`);
             this.error = `Invalid state: ${this.state}`;
             this.state = 'Failed';
         }
@@ -69,9 +69,7 @@ export class EscortJob extends Job {
      */
     updateStarting(deltaTime, gameManager) {
         if (!this.target || this.target.isDespawned() || !(this.target instanceof Ship)) {
-            if (this.ship.debug) {
-                console.warn('EscortJob: Invalid or despawned escorted ship, failing job');
-            }
+            this.debugLog('EscortJob: Invalid or despawned escorted ship, failing job');
             this.error = 'Invalid or despawned escorted ship';
             this.state = 'Failed';
             return;
@@ -86,9 +84,7 @@ export class EscortJob extends Job {
      */
     updateEscorting(deltaTime, gameManager) {
         if (!this.target || this.target.isDespawned()) {
-            if (this.ship.debug) {
-                console.warn('EscortJob: Escorted ship despawned, failing job');
-            }
+            this.debugLog('EscortJob: Escorted ship despawned, failing job');
             this.error = 'Escorted ship despawned';
             this.state = 'Failed';
             return;
@@ -96,14 +92,10 @@ export class EscortJob extends Job {
 
         if (this.pilot.state !== 'Attack') {
             if (this.target.lastAttacker && isValidTarget(this.ship, this.target.lastAttacker)) {
-                if (this.ship.debug) {
-                    console.log(`EscortJob: Escorted ship attacked by ${this.target.lastAttacker.name}, switching to Attack state`);
-                }
+                this.debugLog(`EscortJob: Escorted ship attacked by ${this.target.lastAttacker.name}, switching to Attack state`);
                 this.pilot.changeState('Attack', new AttackAutopilot(this.ship, this.target.lastAttacker, true));
             } else if (!this.pilot.autopilot || !this.pilot.autopilot.active) {
-                if (this.ship.debug) {
-                    console.log(`EscortJob: Reinstating EscortAutopilot for ${this.target.name}`);
-                }
+                this.debugLog(`EscortJob: Reinstating EscortAutopilot for ${this.target.name}`);
                 this.pilot.setAutopilot(new EscortAutopilot(this.ship, this.target));
                 this.state = 'Escorting';
             }
@@ -116,8 +108,6 @@ export class EscortJob extends Job {
     resume() {
         super.resume();
         this.state = 'Starting';
-        if (this.ship.debug) {
-            console.log(`EscortJob: Resumed, transitioning to Starting`);
-        }
+        this.debugLog(`EscortJob: Resumed, transitioning to Starting`);
     }
 }

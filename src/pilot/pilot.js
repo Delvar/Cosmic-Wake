@@ -38,6 +38,18 @@ export class Pilot {
     }
 
     /**
+     * Logs a message to the console if debug mode is enabled.
+     * @param {...any} messages - Values to log (same as console.log).
+     */
+    debugLog(...messages) {
+        if (!this.ship.debug) return;
+        const err = new Error();
+        // stack[0] = Error constructor, stack[1] = debugLog, stack[2] = original caller
+        const caller = err.stack.split('\n')[2]?.trim() || '(unknown call site)';
+        console.log(`[${caller}]`, ...messages);
+    }
+
+    /**
      * Updates the pilot's behavior based on the current game state.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
      * @param {GameManager} gameManager - The game manager instance providing input and context.
@@ -135,14 +147,10 @@ export class PlayerPilot extends Pilot {
             const nextShip = this.ship.starSystem.cycleClosestShip(this.ship, currentShip, null, PlayerPilot.isValidHostileTarget);
             if (nextShip) {
                 this.ship.setTarget(nextShip);
-                if (this.ship.debug) {
-                    console.log(`PlayerPilot: Cycled to hostile ship ${nextShip.name}`);
-                }
+                this.debugLog(`PlayerPilot: Cycled to hostile ship ${nextShip.name}`);
             } else {
                 this.ship.setTarget(null);
-                if (this.ship.debug) {
-                    console.log(`PlayerPilot: No valid next hostile ship`);
-                }
+                this.debugLog(`PlayerPilot: No valid next hostile ship`);
             }
             return;
         }
@@ -151,12 +159,8 @@ export class PlayerPilot extends Pilot {
         const closestShip = this.ship.starSystem.getClosestShip(this.ship, null, PlayerPilot.isValidHostileTarget);
         if (closestShip) {
             this.ship.setTarget(closestShip);
-            if (this.ship.debug) {
-                console.log(`PlayerPilot: Selected closest hostile ship ${closestShip.name}`);
-            }
-        } else if (this.ship.debug) {
-            console.log(`PlayerPilot: No valid hostile ships in system`);
-        }
+            this.debugLog(`PlayerPilot: Selected closest hostile ship ${closestShip.name}`);
+        } else this.debugLog(`PlayerPilot: No valid hostile ships in system`);
     }
 
     /**
@@ -171,14 +175,10 @@ export class PlayerPilot extends Pilot {
             const nextShip = this.ship.starSystem.cycleClosestShip(this.ship, currentShip, null, PlayerPilot.isValidNeutralTarget);
             if (nextShip) {
                 this.ship.setTarget(nextShip);
-                if (this.ship.debug) {
-                    console.log(`PlayerPilot: Cycled to neutral ship ${nextShip.name}`);
-                }
+                this.debugLog(`PlayerPilot: Cycled to neutral ship ${nextShip.name}`);
             } else {
                 this.ship.setTarget(null);
-                if (this.ship.debug) {
-                    console.log(`PlayerPilot: No valid next neutral ship`);
-                }
+                this.debugLog(`PlayerPilot: No valid next neutral ship`);
             }
             return;
         }
@@ -187,12 +187,8 @@ export class PlayerPilot extends Pilot {
         const closestShip = this.ship.starSystem.getClosestShip(this.ship, null, PlayerPilot.isValidNeutralTarget);
         if (closestShip) {
             this.ship.setTarget(closestShip);
-            if (this.ship.debug) {
-                console.log(`PlayerPilot: Selected closest neutral ship ${closestShip.name}`);
-            }
-        } else if (this.ship.debug) {
-            console.log(`PlayerPilot: No valid neutral ships in system`);
-        }
+            this.debugLog(`PlayerPilot: Selected closest neutral ship ${closestShip.name}`);
+        } else this.debugLog(`PlayerPilot: No valid neutral ships in system`);
     }
 
     /**
@@ -207,14 +203,10 @@ export class PlayerPilot extends Pilot {
             const nextShip = this.ship.starSystem.cycleClosestShip(this.ship, currentShip, null, PlayerPilot.isValidAlliedTarget);
             if (nextShip) {
                 this.ship.setTarget(nextShip);
-                if (this.ship.debug) {
-                    console.log(`PlayerPilot: Cycled to allied ship ${nextShip.name}`);
-                }
+                this.debugLog(`PlayerPilot: Cycled to allied ship ${nextShip.name}`);
             } else {
                 this.ship.setTarget(null);
-                if (this.ship.debug) {
-                    console.log(`PlayerPilot: No valid next allied ship`);
-                }
+                this.debugLog(`PlayerPilot: No valid next allied ship`);
             }
             return;
         }
@@ -223,12 +215,8 @@ export class PlayerPilot extends Pilot {
         const closestShip = this.ship.starSystem.getClosestShip(this.ship, null, PlayerPilot.isValidAlliedTarget);
         if (closestShip) {
             this.ship.setTarget(closestShip);
-            if (this.ship.debug) {
-                console.log(`PlayerPilot: Selected closest allied ship ${closestShip.name}`);
-            }
-        } else if (this.ship.debug) {
-            console.log(`PlayerPilot: No valid allied ships in system`);
-        }
+            this.debugLog(`PlayerPilot: Selected closest allied ship ${closestShip.name}`);
+        } else this.debugLog(`PlayerPilot: No valid allied ships in system`);
     }
 
     /**
@@ -247,9 +235,7 @@ export class PlayerPilot extends Pilot {
         let overPlanet = null;
         for (const planet of planets) {
             const canLand = this.ship.canLand(planet);
-            if (this.ship.debug) {
-                console.log(`Checking planet ${planet.name}: canLand=${canLand}`);
-            }
+            this.debugLog(`Checking planet ${planet.name}: canLand=${canLand}`);
             if (isValidTarget(this.ship, planet) && canLand) {
                 overPlanet = planet;
                 break;
@@ -258,9 +244,7 @@ export class PlayerPilot extends Pilot {
         if (overPlanet) {
             this.ship.setTarget(overPlanet);
             this.ship.initiateLanding(overPlanet);
-            if (this.ship.debug) {
-                console.log(`PlayerPilot: Landing on planet ${overPlanet.name}`);
-            }
+            this.debugLog(`PlayerPilot: Landing on planet ${overPlanet.name}`);
             return;
         }
 
@@ -272,15 +256,11 @@ export class PlayerPilot extends Pilot {
                 this.ship.setTarget(nextPlanet);
                 this.autopilot = new LandOnPlanetAutopilot(this.ship, nextPlanet);
                 this.autopilot.start();
-                if (this.ship.debug) {
-                    console.log(`PlayerPilot: Cycled to planet ${nextPlanet.name}`);
-                }
+                this.debugLog(`PlayerPilot: Cycled to planet ${nextPlanet.name}`);
             } else {
                 this.autopilot.stop();
                 this.autopilot = null;
-                if (this.ship.debug) {
-                    console.log(`PlayerPilot: No valid next planet`);
-                }
+                this.debugLog(`PlayerPilot: No valid next planet`);
             }
             if (this.autopilot && this.ship.state === 'Landed') {
                 this.ship.initiateTakeoff();
@@ -292,9 +272,7 @@ export class PlayerPilot extends Pilot {
         if (this.ship.target instanceof Planet && isValidTarget(this.ship, this.ship.target)) {
             this.autopilot = new LandOnPlanetAutopilot(this.ship, this.ship.target);
             this.autopilot.start();
-            if (this.ship.debug) {
-                console.log(`PlayerPilot: Autopiloting to targeted planet ${this.ship.target.name}`);
-            }
+            this.debugLog(`PlayerPilot: Autopiloting to targeted planet ${this.ship.target.name}`);
             if (this.autopilot && this.ship.state === 'Landed') {
                 this.ship.initiateTakeoff();
             }
@@ -307,15 +285,11 @@ export class PlayerPilot extends Pilot {
             this.ship.setTarget(closestPlanet);
             this.autopilot = new LandOnPlanetAutopilot(this.ship, closestPlanet);
             this.autopilot.start();
-            if (this.ship.debug) {
-                console.log(`PlayerPilot: Autopiloting to closest planet ${closestPlanet.name}`);
-            }
+            this.debugLog(`PlayerPilot: Autopiloting to closest planet ${closestPlanet.name}`);
             if (this.autopilot && this.ship.state === 'Landed') {
                 this.ship.initiateTakeoff();
             }
-        } else if (this.ship.debug) {
-            console.log(`PlayerPilot: No valid planets in system`);
-        }
+        } else this.debugLog(`PlayerPilot: No valid planets in system`);
     }
 
     /**
@@ -347,15 +321,11 @@ export class PlayerPilot extends Pilot {
                 this.ship.setTarget(nextGate);
                 this.autopilot = new TraverseJumpGateAutopilot(this.ship, nextGate);
                 this.autopilot.start();
-                if (this.ship.debug) {
-                    console.log(`PlayerPilot: Cycled to jump gate ${nextGate.name}`);
-                }
+                this.debugLog(`PlayerPilot: Cycled to jump gate ${nextGate.name}`);
             } else {
                 this.autopilot.stop();
                 this.autopilot = null;
-                if (this.ship.debug) {
-                    console.log(`PlayerPilot: No valid next jump gate`);
-                }
+                this.debugLog(`PlayerPilot: No valid next jump gate`);
             }
             if (this.autopilot && this.ship.state === 'Landed') {
                 this.ship.initiateTakeoff();
@@ -367,9 +337,7 @@ export class PlayerPilot extends Pilot {
         if (this.ship.target instanceof JumpGate && isValidTarget(this.ship, this.ship.target)) {
             this.autopilot = new TraverseJumpGateAutopilot(this.ship, this.ship.target);
             this.autopilot.start();
-            if (this.ship.debug) {
-                console.log(`PlayerPilot: Autopiloting to targeted jump gate ${this.ship.target.name}`);
-            }
+            this.debugLog(`PlayerPilot: Autopiloting to targeted jump gate ${this.ship.target.name}`);
             if (this.autopilot && this.ship.state === 'Landed') {
                 this.ship.initiateTakeoff();
             }
@@ -382,15 +350,11 @@ export class PlayerPilot extends Pilot {
             this.ship.setTarget(closestGate);
             this.autopilot = new TraverseJumpGateAutopilot(this.ship, closestGate);
             this.autopilot.start();
-            if (this.ship.debug) {
-                console.log(`PlayerPilot: Autopiloting to closest jump gate ${closestGate.name}`);
-            }
+            this.debugLog(`PlayerPilot: Autopiloting to closest jump gate ${closestGate.name}`);
             if (this.autopilot && this.ship.state === 'Landed') {
                 this.ship.initiateTakeoff();
             }
-        } else if (this.ship.debug) {
-            console.log(`PlayerPilot: No valid jump gates in system`);
-        }
+        } else this.debugLog(`PlayerPilot: No valid jump gates in system`);
     }
 
     /**
@@ -409,9 +373,7 @@ export class PlayerPilot extends Pilot {
         let overAsteroid = null;
         for (const asteroid of asteroids) {
             const canLand = this.ship.canLand(asteroid);
-            if (this.ship.debug) {
-                console.log(`Checking asteroid ${asteroid.name}: canLand=${canLand}`);
-            }
+            this.debugLog(`Checking asteroid ${asteroid.name}: canLand=${canLand}`);
             if (isValidTarget(this.ship, asteroid) && canLand) {
                 overAsteroid = asteroid;
                 break;
@@ -420,9 +382,7 @@ export class PlayerPilot extends Pilot {
         if (overAsteroid) {
             this.ship.setTarget(overAsteroid);
             this.ship.initiateLanding(overAsteroid);
-            if (this.ship.debug) {
-                console.log(`PlayerPilot: Landing on asteroid ${overAsteroid.name}`);
-            }
+            this.debugLog(`PlayerPilot: Landing on asteroid ${overAsteroid.name}`);
             return;
         }
 
@@ -435,15 +395,11 @@ export class PlayerPilot extends Pilot {
                 this.ship.setTarget(nextAsteroid);
                 this.autopilot = new LandOnAsteroidAutopilot(this.ship, nextAsteroid);
                 this.autopilot.start();
-                if (this.ship.debug) {
-                    console.log(`PlayerPilot: Cycled to asteroid ${nextAsteroid.name}`);
-                }
+                this.debugLog(`PlayerPilot: Cycled to asteroid ${nextAsteroid.name}`);
             } else {
                 this.autopilot.stop();
                 this.autopilot = null;
-                if (this.ship.debug) {
-                    console.log(`PlayerPilot: No valid next asteroid`);
-                }
+                this.debugLog(`PlayerPilot: No valid next asteroid`);
             }
             if (this.autopilot && this.ship.state === 'Landed') {
                 this.ship.initiateTakeoff();
@@ -455,9 +411,7 @@ export class PlayerPilot extends Pilot {
         if (this.ship.target instanceof Asteroid && isValidTarget(this.ship, this.ship.target)) {
             this.autopilot = new LandOnAsteroidAutopilot(this.ship, this.ship.target);
             this.autopilot.start();
-            if (this.ship.debug) {
-                console.log(`PlayerPilot: Autopiloting to targeted asteroid ${this.ship.target.name}`);
-            }
+            this.debugLog(`PlayerPilot: Autopiloting to targeted asteroid ${this.ship.target.name}`);
             if (this.autopilot && this.ship.state === 'Landed') {
                 this.ship.initiateTakeoff();
             }
@@ -470,15 +424,11 @@ export class PlayerPilot extends Pilot {
             this.ship.setTarget(closestAsteroid);
             this.autopilot = new LandOnAsteroidAutopilot(this.ship, closestAsteroid);
             this.autopilot.start();
-            if (this.ship.debug) {
-                console.log(`PlayerPilot: Autopiloting to closest asteroid ${closestAsteroid.name}`);
-            }
+            this.debugLog(`PlayerPilot: Autopiloting to closest asteroid ${closestAsteroid.name}`);
             if (this.autopilot && this.ship.state === 'Landed') {
                 this.ship.initiateTakeoff();
             }
-        } else if (this.ship.debug) {
-            console.log(`PlayerPilot: No valid asteroids in system`);
-        }
+        } else this.debugLog(`PlayerPilot: No valid asteroids in system`);
     }
 
     /**
@@ -490,32 +440,24 @@ export class PlayerPilot extends Pilot {
         if (this.autopilot instanceof CargoCollectorAutopilot && this.autopilot.active) {
             this.autopilot.stop();
             this.autopilot = null;
-            if (this.ship.debug) {
-                console.log('PlayerPilot: Stopped cargo collection');
-            }
+            this.debugLog('PlayerPilot: Stopped cargo collection');
             return;
         }
 
         if (this.ship.isCargoFull()) {
-            if (this.ship.debug) {
-                console.log('PlayerPilot: Cannot start cargo collection, cargo full');
-            }
+            this.debugLog('PlayerPilot: Cannot start cargo collection, cargo full');
             return;
         }
 
         const manager = this.ship.starSystem.cargoContainerManager;
         if (!manager.getClosestContainer(this.ship)) {
-            if (this.ship.debug) {
-                console.log('PlayerPilot: No cargo containers in system');
-            }
+            this.debugLog('PlayerPilot: No cargo containers in system');
             return;
         }
 
         this.autopilot = new CargoCollectorAutopilot(this.ship);
         this.autopilot.start();
-        if (this.ship.debug) {
-            console.log('PlayerPilot: Started cargo collection');
-        }
+        this.debugLog('PlayerPilot: Started cargo collection');
     }
 
     /**
@@ -538,15 +480,11 @@ export class PlayerPilot extends Pilot {
                 this.ship.setTarget(nextShip);
                 this.autopilot = new BoardShipAutopilot(this.ship, nextShip);
                 this.autopilot.start();
-                if (this.ship.debug) {
-                    console.log(`PlayerPilot: Cycled to ship ${nextShip.name}`);
-                }
+                this.debugLog(`PlayerPilot: Cycled to ship ${nextShip.name}`);
             } else {
                 this.autopilot.stop();
                 this.autopilot = null;
-                if (this.ship.debug) {
-                    console.log(`PlayerPilot: No valid next ship`);
-                }
+                this.debugLog(`PlayerPilot: No valid next ship`);
             }
             if (this.autopilot && this.ship.state === 'Landed') {
                 this.ship.initiateTakeoff();
@@ -558,9 +496,7 @@ export class PlayerPilot extends Pilot {
         if (this.ship.target instanceof Ship && PlayerPilot.isValidDisabledTarget(this.ship, this.ship.target)) {
             this.autopilot = new BoardShipAutopilot(this.ship, this.ship.target);
             this.autopilot.start();
-            if (this.ship.debug) {
-                console.log(`PlayerPilot: Autopiloting to targeted ship ${this.ship.target.name}`);
-            }
+            this.debugLog(`PlayerPilot: Autopiloting to targeted ship ${this.ship.target.name}`);
             if (this.autopilot && this.ship.state === 'Landed') {
                 this.ship.initiateTakeoff();
             }
@@ -573,15 +509,11 @@ export class PlayerPilot extends Pilot {
             this.ship.setTarget(closestShip);
             this.autopilot = new BoardShipAutopilot(this.ship, closestShip);
             this.autopilot.start();
-            if (this.ship.debug) {
-                console.log(`PlayerPilot: Autopiloting to closest disabled ship ${closestShip.name}`);
-            }
+            this.debugLog(`PlayerPilot: Autopiloting to closest disabled ship ${closestShip.name}`);
             if (this.autopilot && this.ship.state === 'Landed') {
                 this.ship.initiateTakeoff();
             }
-        } else if (this.ship.debug) {
-            console.log(`PlayerPilot: No valid disabled ships in system`);
-        }
+        } else this.debugLog(`PlayerPilot: No valid disabled ships in system`);
     }
 
     /**
@@ -638,7 +570,7 @@ export class PlayerPilot extends Pilot {
         // Check for turret mode switch
         if (pressed('u') || pressed('U')) {
             this.ship.cycleTurretMode();
-            console.log(`Turret mode changed to: ${this.ship.turretMode}`);
+            this.debugLog(`Turret mode changed to: ${this.ship.turretMode}`);
         }
 
         // Cargo collection ('c' or 'C' key)

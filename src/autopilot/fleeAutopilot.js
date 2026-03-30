@@ -80,7 +80,7 @@ export class FleeAutopilot extends Autopilot {
         }
 
         if (!isValidTarget(this.ship, this.target)) {
-            console.log('FleeAutopilot: target not valid!');
+            this.debugLog('FleeAutopilot: target not valid!');
             this.target = this.ship.starSystem.getClosestPlanet(this.ship);
             if (this.subAutopilot) {
                 this.subAutopilot.stop();

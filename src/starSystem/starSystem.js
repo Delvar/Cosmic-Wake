@@ -523,25 +523,19 @@ export class StarSystem {
         const arr1 = this.planets;
         const length1 = arr1 ? arr1.length : 0.0;
         if (length1 === 0.0) {
-            if (ship.debug) {
-                console.log(`StarSystem: No planets in system`);
-            }
+            ship.debugLog(`StarSystem: No planets in system`);
             return null;
         }
 
         let closestItem = null;
         let closestSquaredDistance = Infinity;
 
-        if (ship.debug) {
-            console.log(`StarSystem: Checking ${length1} planets`);
-        }
+        ship.debugLog(`StarSystem: Checking ${length1} planets`);
 
         for (let i = 0.0; i < length1; i++) {
             const item = arr1[i];
             const isValid = isValidTarget(ship, item);
-            if (ship.debug) {
-                console.log(`Planet ${item.name}: isValid=${isValid}, distance=${item.position.distanceSquaredTo(ship.position)}`);
-            }
+            ship.debugLog(`Planet ${item.name}: isValid=${isValid}, distance=${item.position.distanceSquaredTo(ship.position)}`);
             if (item !== exclude && isValid) {
                 const squaredDistance = item.position.distanceSquaredTo(ship.position);
                 if (squaredDistance < closestSquaredDistance) {
@@ -609,25 +603,19 @@ export class StarSystem {
         const arr1 = this.ships;
         const length1 = arr1 ? arr1.length : 0.0;
         if (length1 === 0.0) {
-            if (ship.debug) {
-                console.log(`StarSystem: No ships in system`);
-            }
+            ship.debugLog(`StarSystem: No ships in system`);
             return null;
         }
 
         let closestItem = null;
         let closestSquaredDistance = Infinity;
 
-        if (ship.debug) {
-            console.log(`StarSystem: Checking ${length1} ships`);
-        }
+        ship.debugLog(`StarSystem: Checking ${length1} ships`);
 
         for (let i = 0.0; i < length1; i++) {
             const item = arr1[i];
             const valid = isValid(ship, item);
-            if (ship.debug) {
-                console.log(`Ship ${item.name}: isValid=${valid}, distance=${item.position.distanceSquaredTo(ship.position)}`);
-            }
+            ship.debugLog(`Ship ${item.name}: isValid=${valid}, distance=${item.position.distanceSquaredTo(ship.position)}`);
             if (item !== ship && item !== exclude && valid) {
                 const squaredDistance = item.position.distanceSquaredTo(ship.position);
                 if (squaredDistance < closestSquaredDistance) {

@@ -55,6 +55,18 @@ export class Autopilot {
     }
 
     /**
+     * Logs a message to the console if debug mode is enabled.
+     * @param {...any} messages - Values to log (same as console.log).
+     */
+    debugLog(...messages) {
+        if (!this.ship.debug) return;
+        const err = new Error();
+        // stack[0] = Error constructor, stack[1] = debugLog, stack[2] = original caller
+        const caller = err.stack.split('\n')[2]?.trim() || '(unknown call site)';
+        console.log(`[${caller}]`, ...messages);
+    }
+
+    /**
      * Starts the autopilot, validating preconditions and setting it active.
      */
     start() {
@@ -157,17 +169,13 @@ export class Autopilot {
      */
     validateTarget() {
         if (!isValidTarget(this.ship, this.target)) {
-            if (this.ship.debug) {
-                console.log(`${this.constructor.name}: validateTarget, Invalid or unreachable target`);
-            }
+            this.debugLog(`${this.constructor.name}: validateTarget, Invalid or unreachable target`);
             this.error = "Invalid or unreachable target";
             this.active = false;
             return false;
         }
         if (this.target instanceof Ship && this.target.state !== 'Flying') {
-            if (this.ship.debug) {
-                console.log(`${this.constructor.name}: validateTarget, Target not flying`);
-            }
+            this.debugLog(`${this.constructor.name}: validateTarget, Target not flying`);
             this.error = "Target not flying";
             this.active = false;
             return false;

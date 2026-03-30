@@ -200,7 +200,7 @@ export class Ship extends GameObject {
         /** @type {Object.<string, number>} Cargo storage as a map of commodity types to quantities. */
         this.cargo = {};
         /** @type {UiLog|null} Optional UI log for displaying cargo pickup messages. */
-        this.uiLog = null;
+        this._uiLog = null;
 
         /** @type {boolean} Whether automatic cargo container pickup is enabled. */
         this.isRetrievingCargo = true;
@@ -242,6 +242,32 @@ export class Ship extends GameObject {
          */
         if (new.target === Ship) Object.seal(this);
     }
+
+    /**
+     * Logs a message to the UI log if available.
+     * @param {string} message - The message to log.
+     */
+    uiLog(message) {
+        if (this._uiLog) {
+            this._uiLog.log(message);
+        }
+    }
+
+    /**
+     * Sets the UI log for this ship.
+     * @param {UiLog|null} uiLog - The UI log instance or null.
+     */
+    setUiLog(uiLog) {
+        this._uiLog = uiLog;
+    }
+
+    /**
+     * Removes the UI log for this ship.
+     */
+    removeUiLog() {
+        this._uiLog = null;
+    }
+
     /**
      * Total cargo currently stored (sum of all quantities).
      * Computed on request to avoid separate state tracking.
@@ -284,7 +310,7 @@ export class Ship extends GameObject {
         const stored = Math.min(amount, available);
         if (stored > 0) {
             this.cargo[type] = (this.cargo[type] || 0) + stored;
-            if (this.uiLog) this.uiLog.log(`Picked Up ${Commodities[type].name} x ${stored}`);
+            this.uiLog(`Picked Up ${Commodities[type].name} x ${stored}`);
         }
         return amount - stored;
     }
@@ -329,16 +355,16 @@ export class Ship extends GameObject {
             return false;
         }
         if (this.isRetrievingCargo == true) {
-            if (this.uiLog) this.uiLog.log('Retrieving cargo already started');
+            this.uiLog('Retrieving cargo already started');
             return true;
         }
         if (this.isCargoFull()) {
-            if (this.uiLog) this.uiLog.log('Retrieving cargo aborted, no cargo room');
+            this.uiLog('Retrieving cargo aborted, no cargo room');
             return false;
         }
         this.stopJettison();
         this.isRetrievingCargo = true;
-        if (this.uiLog) this.uiLog.log('Retrieving cargo started');
+        this.uiLog('Retrieving cargo started');
         return true;
     }
 
@@ -351,7 +377,7 @@ export class Ship extends GameObject {
             return false;
         }
         this.isRetrievingCargo = false;
-        if (this.uiLog) this.uiLog.log('Retrieving cargo stopped');
+        this.uiLog('Retrieving cargo stopped');
         return true;
     }
 
@@ -497,14 +523,10 @@ export class Ship extends GameObject {
         }
 
         if (newState === 'Disabled' || newState === 'Exploding') {
-            if (this.debug) {
-                console.log(`new state: ${newState}, light mode: Flicker, original light mode: ${this.lightMode}`);
-            }
+            this.debugLog(`new state: ${newState}, light mode: Flicker, original light mode: ${this.lightMode}`);
             this.lightMode = 'Flicker';
         } else if (this.lightMode === 'Flicker') {
-            if (this.debug) {
-                console.log(`new state: ${newState}, light mode: Normal, original light mode: ${this.lightMode}`);
-            }
+            this.debugLog(`new state: ${newState}, light mode: Normal, original light mode: ${this.lightMode}`);
             this.lightMode = 'Normal';
         }
 
@@ -779,17 +801,17 @@ export class Ship extends GameObject {
             return false;
         }
         if (this.isJettisoningCargo == true) {
-            if (this.uiLog) this.uiLog.log('Jettison already started');
+            this.uiLog('Jettison already started');
             return true;
         }
         if (this.cargoUsed == 0) {
-            if (this.uiLog) this.uiLog.log('Jettison aborted, no cargo');
+            this.uiLog('Jettison aborted, no cargo');
             return false;
         }
         this.stopRetrievingCargo();
         this.isJettisoningCargo = true;
         this.nextJettisonTime = 0.0;
-        if (this.uiLog) this.uiLog.log('Jettison started');
+        this.uiLog('Jettison started');
         return true;
     }
 
@@ -802,7 +824,7 @@ export class Ship extends GameObject {
             return false;
         }
         this.isJettisoningCargo = false;
-        if (this.uiLog) this.uiLog.log('Jettison stopped');
+        this.uiLog('Jettison stopped');
         return true;
     }
 
@@ -859,8 +881,8 @@ export class Ship extends GameObject {
         }
 
         // Log NaN position errors in debug mode
-        if (isNaN(this.position.x) && this.debug) {
-            console.log('Position became NaN');
+        if (isNaN(this.position.x)) {
+            this.debugLog('Position became NaN');
         }
 
         // Remove despawned ships from hostiles without allocations
@@ -1323,9 +1345,7 @@ export class Ship extends GameObject {
             // Despawn the ship
             this.despawn();
 
-            if (this.debug) {
-                console.log(`Ship ${this.name} despawned with final explosion at (${this._scratchExplosionPos.x.toFixed(2.0)}, ${this._scratchExplosionPos.y.toFixed(2.0)})`);
-            }
+            this.debugLog(`Ship ${this.name} despawned with final explosion at (${this._scratchExplosionPos.x.toFixed(2.0)}, ${this._scratchExplosionPos.y.toFixed(2.0)})`);
             return;
         }
 
@@ -1360,9 +1380,7 @@ export class Ship extends GameObject {
             // Update explosion delay
             this.explosionDelay = this.explosionTime + nextExplosionTime;
 
-            if (this.debug) {
-                console.log(`Explosion at (${this._scratchExplosionPos.x.toFixed(2.0)}, ${this._scratchExplosionPos.y.toFixed(2.0)}), hullIntegrity: ${this.hullIntegrity.toFixed(2.0)}, nextExplosionTime: ${nextExplosionTime.toFixed(2.0)}s`);
-            }
+            this.debugLog(`Explosion at (${this._scratchExplosionPos.x.toFixed(2.0)}, ${this._scratchExplosionPos.y.toFixed(2.0)}), hullIntegrity: ${this.hullIntegrity.toFixed(2.0)}, nextExplosionTime: ${nextExplosionTime.toFixed(2.0)}s`);
         }
 
         // Update position based on velocity
@@ -1418,9 +1436,7 @@ export class Ship extends GameObject {
         this.angularVelocity += (torque / (this.radius * this.radius)) * currentTorque;
 
         // Debug log for torque
-        if (this.debug) {
-            console.log(`Explosion at (${explosionPos.x.toFixed(2)}, ${explosionPos.y.toFixed(2)}), torque: ${torque.toFixed(2)}`);
-        }
+        this.debugLog(`Explosion at (${explosionPos.x.toFixed(2)}, ${explosionPos.y.toFixed(2)}), torque: ${torque.toFixed(2)}`);
     }
 
     /**

@@ -486,7 +486,7 @@ export class GameManager {
         this.initializeFactions();
         /** @type {Ship} The player's ship, positioned relative to a planet. */
         this.playerShip = new Interceptor(spawnPlanet.position.x + spawnPlanet.radius * 1.5, spawnPlanet.position.y, this.galaxy[0], this.factionManager.getFaction('Player'));
-        this.playerShip.uiLog = this.uiLog;
+        this.playerShip.setUiLog(this.uiLog);
 
         //FIXME: Hack to test cargo space and jettisoning
         // const commodities = Object.values(CommodityType);
@@ -718,7 +718,6 @@ export class GameManager {
 
             if (officerAliveCount == 0 && (disabledCount > 0 || pirateCount > 0)) {
                 //spawn officer to rescue other ships
-                console.log(`${this.constructor.name}: spawnAiShipsIfNeeded: ${system.name}: No active officers and disabled ships, spawning emergency reserve`);
                 const spawnPlanet = system.getRandomPlanet();
                 let aiShip = new Fighter(spawnPlanet.position.x, spawnPlanet.position.y, system, officerFaction);
                 aiShip.pilot = new OfficerAiPilot(aiShip, new OfficerJob(aiShip, null, false));
@@ -735,10 +734,6 @@ export class GameManager {
                 officerCount++;
                 officerAliveCount++;
             }
-
-            // if (system.name == 'Sol System') {
-            //     console.log(`${this.constructor.name}: spawnAiShipsIfNeeded: ${system.name}: systemShipsLength: ${systemShipsLength}, aiCount: ${aiCount}, playerCount: ${playerCount}, civilianCount: ${civilianCount}, pirateCount: ${pirateCount}, officerCount: ${officerCount}, officerAliveCount: ${officerAliveCount}, disabledCount: ${disabledCount}`);
-            // }
 
             do {
                 if (aiCount < system.maxAiShips) {
@@ -856,7 +851,7 @@ export class GameManager {
     cycleNextAiShip() {
         if (this.cameraTarget) {
             this.cameraTarget.debug = false;
-            this.cameraTarget.uiLog = null;
+            this.cameraTarget.removeUiLog();
         }
         const ships = this.mainCamera.starSystem.ships;
         if (ships.length === 0.0) return;
@@ -864,7 +859,7 @@ export class GameManager {
         const nextIndex = (currentIndex + 1.0) % ships.length;
         this.cameraTarget = ships[nextIndex];
         this.cameraTarget.debug = this.debug;
-        this.cameraTarget.uiLog = this.uiLog;
+        this.cameraTarget.setUiLog(this.uiLog);
     }
 
     /**
@@ -905,10 +900,10 @@ export class GameManager {
             if (e.key === 'q') {
                 if (this.cameraTarget) {
                     this.cameraTarget.debug = false;
-                    this.cameraTarget.uiLog = null;
+                    this.cameraTarget.removeUiLog();
                 }
                 this.cameraTarget = this.playerShip;
-                this.cameraTarget.uiLog = this.uiLog;
+                this.cameraTarget.setUiLog(this.uiLog);
             }
             if (e.key === 'D') {
                 this.debug = !this.debug;

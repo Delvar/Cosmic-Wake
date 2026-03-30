@@ -90,9 +90,7 @@ export class AttackAutopilot extends Autopilot {
             this.ship.maxVelocity,
         );
         this.subAutopilot.start();
-        if (this.ship.debug) {
-            console.log(`AttackAutopilot: Started, pattern=${this.pattern}, state=Approaching`);
-        }
+        this.debugLog(`AttackAutopilot: Started, pattern=${this.pattern}, state=Approaching`);
     }
 
     /**
@@ -153,9 +151,7 @@ export class AttackAutopilot extends Autopilot {
             this.subAutopilot = new FlybyAttackAutopilot(this.ship, this.target, this.stopOnDisabled);
         }
         this.subAutopilot.start();
-        if (this.ship.debug) {
-            console.log(`AttackAutopilot: Transitioned to Attacking, pattern=${this.pattern}`);
-        }
+        this.debugLog(`AttackAutopilot: Transitioned to Attacking, pattern=${this.pattern}`);
     }
 
     /**
@@ -191,9 +187,7 @@ export class AttackAutopilot extends Autopilot {
                     this.ship.maxVelocity,
                 );
                 this.subAutopilot.start();
-                if (this.ship.debug) {
-                    console.log(`AttackAutopilot: Reverted to Approaching, distance=${Math.sqrt(distanceSq)}`);
-                }
+                this.debugLog(`AttackAutopilot: Reverted to Approaching, distance=${Math.sqrt(distanceSq)}`);
             }
         } else {
             this.error = "No sub-autopilot in Attacking state";
@@ -211,8 +205,6 @@ export class AttackAutopilot extends Autopilot {
         }
         this.active = false;
         this.ship.applyThrust(false);
-        if (this.ship.debug) {
-            console.log("AttackAutopilot: Stopped");
-        }
+        this.debugLog("AttackAutopilot: Stopped");
     }
 }

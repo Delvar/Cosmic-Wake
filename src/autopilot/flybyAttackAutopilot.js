@@ -75,9 +75,8 @@ export class FlybyAttackAutopilot extends Autopilot {
         this.error = null;
         this.state = "Approaching";
         this.lastDistance = Infinity;
-        if (this.ship.debug) {
-            console.log(`FlybyAttackAutopilot: Started, passSpeed=${this.passSpeed}, maxRange=${this.maxRange}`);
-        }
+        this.debugLog(`FlybyAttackAutopilot: Started, passSpeed=${this.passSpeed}, maxRange=${this.maxRange}`);
+
     }
 
     /**
@@ -138,9 +137,7 @@ export class FlybyAttackAutopilot extends Autopilot {
         // Transition to Firing
         if (distance <= this.firingRange) {
             this.state = "Firing";
-            if (this.ship.debug) {
-                console.log("FlybyAttackAutopilot: Transitioned to Firing");
-            }
+            this.debugLog("FlybyAttackAutopilot: Transitioned to Firing");
         }
     }
 
@@ -187,9 +184,7 @@ export class FlybyAttackAutopilot extends Autopilot {
         if (Math.abs(angleToLead) > Math.PI / 3.0 && distance < this.minRange) {
             this.state = "Retreating";
             this.lastDistance = distance;
-            if (this.ship.debug) {
-                console.log("FlybyAttackAutopilot: Transitioned to Retreating");
-            }
+            this.debugLog("FlybyAttackAutopilot: Transitioned to Retreating");
         }
     }
 
@@ -219,9 +214,7 @@ export class FlybyAttackAutopilot extends Autopilot {
         if (distance >= this.maxRange * 0.25 && !isChasing) {
             this.turningTime = 0.0;
             this.state = "Turning";
-            if (this.ship.debug) {
-                console.log(`FlybyAttackAutopilot: Transitioned to Turning${isChasing ? ' (chasing detected)' : ''}`);
-            }
+            this.debugLog(`FlybyAttackAutopilot: Transitioned to Turning${isChasing ? ' (chasing detected)' : ''}`);
         }
     }
 
@@ -268,9 +261,8 @@ export class FlybyAttackAutopilot extends Autopilot {
         // Transition to Approaching
         if (this.turningTime > 3.0) {
             this.state = "Approaching";
-            if (this.ship.debug) {
-                console.log("FlybyAttackAutopilot: Transitioned to Approaching");
-            }
+            this.debugLog("FlybyAttackAutopilot: Transitioned to Approaching");
+
         }
     }
 
@@ -280,8 +272,6 @@ export class FlybyAttackAutopilot extends Autopilot {
     stop() {
         this.active = false;
         this.ship.applyThrust(false);
-        if (this.ship.debug) {
-            console.log("FlybyAttackAutopilot: Stopped");
-        }
+        this.debugLog("FlybyAttackAutopilot: Stopped");
     }
 }

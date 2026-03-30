@@ -98,9 +98,7 @@ export class LandOnAsteroidAutopilot extends Autopilot {
                 }
             } else {
                 // Overshot the asteroid; restart sub-pilot to re-approach
-                if (this.ship.debug) {
-                    console.log(`Overshot ${this.target.name || 'asteroid'}; restarting approach phase`);
-                }
+                this.debugLog(`Overshot ${this.target.name || 'asteroid'}; restarting approach phase`);
                 this.subAutopilot = new FlyToTargetAutopilot(
                     this.ship,
                     this.target,

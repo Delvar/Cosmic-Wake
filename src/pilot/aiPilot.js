@@ -55,6 +55,18 @@ export class AiPilot extends Pilot {
     }
 
     /**
+     * Logs a message to the console if debug mode is enabled.
+     * @param {...any} messages - Values to log (same as console.log).
+     */
+    debugLog(...messages) {
+        if (!this.ship.debug) return;
+        const err = new Error();
+        // stack[0] = Error constructor, stack[1] = debugLog, stack[2] = original caller
+        const caller = err.stack.split('\n')[2]?.trim() || '(unknown call site)';
+        console.log(`[${caller}]`, ...messages);
+    }
+
+    /**
      * Updates the AI pilot's behavior based on the current state.
      * @param {number} deltaTime - Time elapsed since last update (seconds).
      * @param {GameManager} gameManager - The game manager instance for context.
@@ -87,9 +99,7 @@ export class AiPilot extends Pilot {
      */
     updateJob(deltaTime, gameManager) {
         if (this.job.state === 'Failed') {
-            if (this.ship.debug) {
-                console.log(`${this.constructor.name}: Job failed, transitioning to Despawning`);
-            }
+            this.debugLog(`${this.constructor.name}: Job failed, transitioning to Despawning`);
             this.changeState('Despawning', new LandOnPlanetDespawnAutopilot(this.ship));
             return;
         }
@@ -106,13 +116,11 @@ export class AiPilot extends Pilot {
 
         // If autopilot is complete null it, this ensures Job gets to see the complete autopilot first
         if (this.autopilot) {
-            if (this.autopilot.error && this.ship.debug) {
-                console.warn(`autopilot ${this.autopilot.constructor.name} has an error: ${this.autopilot.error}`);
+            if (this.autopilot.error) {
+                this.debugLog(`autopilot ${this.autopilot.constructor.name} has an error: ${this.autopilot.error}`);
             }
             if (this.autopilot.isComplete()) {
-                if (this.ship.debug) {
-                    console.log(`${this.autopilot.constructor.name} is complete, setting to null`);
-                }
+                this.debugLog(`${this.autopilot.constructor.name} is complete, setting to null`);
                 this.setAutopilot(null);
             }
         }
@@ -134,9 +142,7 @@ export class AiPilot extends Pilot {
 
         // Ensure correct autopilot
         if (!(this.autopilot instanceof AvoidAutopilot) && this.ship.state === 'Flying') {
-            if (this.ship.debug) {
-                console.log(`${this.constructor.name}: Avoid: Incorrect autopilot, setting AvoidAutopilot`);
-            }
+            this.debugLog(`${this.constructor.name}: Avoid: Incorrect autopilot, setting AvoidAutopilot`);
             this.changeState('Avoid', new AvoidAutopilot(this.ship, target));
         }
 
@@ -166,9 +172,7 @@ export class AiPilot extends Pilot {
 
         // Ensure correct autopilot
         if (!(this.autopilot instanceof FleeAutopilot) && this.ship.state === 'Flying') {
-            if (this.ship.debug) {
-                console.log(`${this.constructor.name}: Flee: Setting FleeAutopilot`);
-            }
+            this.debugLog(`${this.constructor.name}: Flee: Setting FleeAutopilot`);
             this.setAutopilot(new FleeAutopilot(this.ship, target));
         }
 
@@ -189,9 +193,7 @@ export class AiPilot extends Pilot {
      */
     updateAttack(deltaTime, gameManager) {
         if (this.ship.state !== 'Flying') {
-            if (this.ship.debug) {
-                console.log(`${this.constructor.name}: Not Flying (${this.ship.state}), reverting to Job`);
-            }
+            this.debugLog(`${this.constructor.name}: Not Flying (${this.ship.state}), reverting to Job`);
             this.changeState('Job');
             return;
         }
@@ -200,24 +202,20 @@ export class AiPilot extends Pilot {
             this.autopilot.update(deltaTime, gameManager);
         } else {
             // Log error if present
-            if (this.autopilot && this.autopilot.error && this.ship.debug) {
-                console.warn(`${this.constructor.name}: AttackAutopilot error: ${this.autopilot.error}`);
+            if (this.autopilot && this.autopilot.error) {
+                this.debugLog(`${this.constructor.name}: AttackAutopilot error: ${this.autopilot.error}`);
             }
 
             // Select a target from hostiles
             const target = this.ship.hostiles.find(s => this.ship.getRelationship(s) === FactionRelationship.Hostile && isValidAttackTarget(this.ship, s, this.attackDisabledShips));
             if (!target) {
-                if (this.ship.debug) {
-                    console.log(`${this.constructor.name}: No valid hostile target, reverting to Job`);
-                }
+                this.debugLog(`${this.constructor.name}: No valid hostile target, reverting to Job`);
                 this.ship.target = null;
                 this.changeState('Job');
                 return;
             }
 
-            if (this.ship.debug) {
-                console.log(`${this.constructor.name}: Setting AttackAutopilot for target ${target.name}`);
-            }
+            this.debugLog(`${this.constructor.name}: Setting AttackAutopilot for target ${target.name}`);
             this.ship.target = target; // Set for turret firing
             this.setAutopilot(new AttackAutopilot(this.ship, target, true));
         }
@@ -236,18 +234,14 @@ export class AiPilot extends Pilot {
 
         // Did the autopilot complete? Either no cargo room left or no cargo containers available.
         if (this.autopilot.isComplete()) {
-            if (this.ship.debug) {
-                console.log(`${this.constructor.name}: Collecting complete, back to Job`);
-            }
+            this.debugLog(`${this.constructor.name}: Collecting complete, back to Job`);
             this.ship.target = null;
             this.changeState('Job');
             return;
         }
 
         if (this.ship.state !== 'Flying') {
-            if (this.ship.debug) {
-                console.log(`${this.constructor.name}: Not Flying (${this.ship.state}), reverting to Job`);
-            }
+            this.debugLog(`${this.constructor.name}: Not Flying (${this.ship.state}), reverting to Job`);
             this.changeState('Job');
             return;
         }
@@ -273,9 +267,7 @@ export class AiPilot extends Pilot {
             }
         }
         if (this.autopilot?.error) {
-            if (this.ship.debug) {
-                console.warn(`Despawn failed: ${this.autopilot.error}`);
-            }
+            this.debugLog(`Despawn failed: ${this.autopilot.error}`);
             this.ship.despawn();
             this.setAutopilot(null);
         }
@@ -286,9 +278,7 @@ export class AiPilot extends Pilot {
      * @param {Autopilot|null} newAutopilot - The new autopilot to set, or null to clear.
      */
     setAutopilot(newAutopilot) {
-        if (this.ship.debug) {
-            console.log(`${this.constructor.name}: setAutopilot ${this.ship.name}: ${this.autopilot?.constructor?.name} >> ${newAutopilot?.constructor?.name}`);
-        }
+        this.debugLog(`${this.constructor.name}: setAutopilot ${this.ship.name}: ${this.autopilot?.constructor?.name} >> ${newAutopilot?.constructor?.name}`);
         if (this.autopilot) {
             this.autopilot.stop();
             this.autopilot = null;
@@ -348,9 +338,7 @@ export class AiPilot extends Pilot {
         // Set new state and autopilot
         this.state = newState;
         this.setAutopilot(newAutopilot);
-        if (this.ship.debug) {
-            console.log(`${this.constructor.name}: State changed to ${newState}`);
-        }
+        this.debugLog(`${this.constructor.name}: State changed to ${newState}`);
     }
 
     /**

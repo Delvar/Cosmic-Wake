@@ -73,9 +73,7 @@ export class OrbitAttackAutopilot extends Autopilot {
         this.completed = false;
         this.error = null;
         this.state = "Approaching";
-        if (this.ship.debug) {
-            console.log(`OrbitAttackAutopilot: Started, orbitRadius=${this.orbitRadius}`);
-        }
+        this.debugLog(`OrbitAttackAutopilot: Started, orbitRadius=${this.orbitRadius}`);
     }
 
     /**
@@ -207,8 +205,6 @@ export class OrbitAttackAutopilot extends Autopilot {
     stop() {
         this.active = false;
         this.ship.applyThrust(false);
-        if (this.ship.debug) {
-            console.log("OrbitAttackAutopilot: Stopped");
-        }
+        this.debugLog("OrbitAttackAutopilot: Stopped");
     }
 }

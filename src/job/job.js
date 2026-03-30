@@ -29,11 +29,24 @@ export class Job {
     }
 
     /**
+     * Logs a message to the console if debug mode is enabled.
+     * @param {...any} messages - Values to log (same as console.log).
+     */
+    debugLog(...messages) {
+        if (!this.ship.debug) return;
+        const err = new Error();
+        // stack[0] = Error constructor, stack[1] = debugLog, stack[2] = original caller
+        const caller = err.stack.split('\n')[2]?.trim() || '(unknown call site)';
+        console.log(`[${caller}]`, ...messages);
+    }
+
+    /**
      * Updates the job's behavior. Must be overridden by subclasses.
      * @param {number} deltaTime - Time elapsed since last update (seconds).
      * @param {GameManager} gameManager - The game manager instance for context.
      * @throws {Error} If not implemented by subclass.
      */
+
     update(deltaTime, gameManager) {
         throw new Error('update() must be implemented by subclass');
     }

@@ -76,4 +76,16 @@ export class GameObject {
         const dy = this.position.y - point.y;
         return (dx * dx + dy * dy) < (this.radius * this.radius);
     }
+
+    /**
+     * Logs a message to the console if debug mode is enabled.
+     * @param {...any} messages - Values to log (same as console.log).
+     */
+    debugLog(...messages) {
+        if (!this.debug) return;
+        const err = new Error();
+        // stack[0] = Error constructor, stack[1] = debugLog, stack[2] = original caller
+        const caller = err.stack.split('\n')[2]?.trim() || '(unknown call site)';
+        console.log(`[${caller}]`, ...messages);
+    }
 }

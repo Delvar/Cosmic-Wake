@@ -46,8 +46,6 @@ class AsteroidShape {
             }
         }
         this.path.closePath();
-        // Log points for debugging
-        //console.log(`AsteroidShape: numPoints=${numPoints}, points=[${this.points.join(', ')}]`);
 
         if (new.target === AsteroidShape) Object.seal(this);
     }
@@ -240,7 +238,6 @@ export class AsteroidBelt {
                 }
                 this.cellCache.set(cellKey, asteroidData);
                 if (this.cellCache.size > this.maxCacheSize) this.pruneCache(time);
-                //console.log(`Generated asteroid cell for cellKey ${cellKey}`, asteroidData);
             } catch (e) {
                 console.warn(`Failed to generate asteroids for cellKey ${cellKey}:`, e);
                 // Return empty array to prevent crash
@@ -257,13 +254,10 @@ export class AsteroidBelt {
      */
     pruneCache(time) {
         if (time - this._lastCachePrune < 10000.0) return;
-        //const from = this.cellCache.size;
         for (const [key, entry] of this.cellCache) {
             if (time - entry.time > 10000.0) this.cellCache.delete(key);
         }
-        //const to = this.cellCache.size;
         this._lastCachePrune = time;
-        //console.log(`Prune Cells: ${from} > ${to}`);
     }
 
     /**
@@ -351,7 +345,6 @@ export class AsteroidBelt {
         ctx.stroke(globalPath);
 
         if (camera.debug) {
-            //console.log(`renderedCells: ${renderedCells}`);
             // Draw translucent purple cone for camera’s minAngle to maxAngle
             ctx.save();
             ctx.fillStyle = 'rgba(128,  0.0,  128.0, 0.3)';

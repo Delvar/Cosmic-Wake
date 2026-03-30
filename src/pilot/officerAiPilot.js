@@ -41,9 +41,7 @@ export class OfficerAiPilot extends AiPilot {
         if (this.ship.state === 'Flying' && ((this.ship.shield && this.ship.shield.strength <= 0.0) || !this.ship.shield) && remapClamp(this.ship.hullIntegrity, 0.0, this.ship.maxHull, 0.0, 1.0) < 0.5) {
             const target = this.ship.hostiles.find(s => this.ship.getRelationship(s) === FactionRelationship.Hostile && isValidAttackTarget(this.ship, s, false));
             if (target) {
-                if (this.ship.debug) {
-                    console.log('Shields down or low hull, switching to Flee');
-                }
+                this.debugLog('Shields down or low hull, switching to Flee');
                 this.changeState('Flee', new FleeAutopilot(this.ship, target));
                 return;
             }
@@ -90,9 +88,7 @@ export class OfficerAiPilot extends AiPilot {
                     const distanceSq = this._scratchDistance.set(hostile.position)
                         .subtractInPlace(this.ship.position).squareMagnitude();
                     if (distanceSq < 500 * 500.0) {
-                        if (this.ship.debug) {
-                            console.log('Job: Hostile within 500 units, switching to Attack');
-                        }
+                        this.debugLog('Job: Hostile within 500 units, switching to Attack');
                         this.ship.target = hostile;
                         this.changeState('Attack', new AttackAutopilot(this.ship, hostile, true));
                         return;
@@ -114,9 +110,7 @@ export class OfficerAiPilot extends AiPilot {
         if ((!this.autopilot || (this.autopilot instanceof AvoidAutopilot && this.autopilot.timeElapsed >= this.autopilot.timeout)) && !this.isSafe()) {
             const target = this.ship.hostiles.find(s => this.ship.getRelationship(s) === FactionRelationship.Hostile && isValidAttackTarget(this.ship, s, false));
             if (target) {
-                if (this.ship.debug) {
-                    console.log('Avoid: Timeout or complete and not safe, switching to Flee');
-                }
+                this.debugLog('Avoid: Timeout or complete and not safe, switching to Flee');
                 this.changeState('Flee', new FleeAutopilot(this.ship, target));
                 return;
             }
@@ -144,16 +138,12 @@ export class OfficerAiPilot extends AiPilot {
         // Check if shields are down and hull <50%
         if (this.ship.state === 'Flying' && ((this.ship.shield && this.ship.shield.strength <= 0.0) || !this.ship.shield) && remapClamp(this.ship.hullIntegrity, 0.0, this.ship.maxHull, 0.0, 1.0) < 0.5) {
             if (this.ship.hostiles.includes(source) && isValidAttackTarget(this.ship, source, false)) {
-                if (this.ship.debug) {
-                    console.log('onDamage: Shields down and low hull, switching to Flee');
-                }
+                this.debugLog('onDamage: Shields down and low hull, switching to Flee');
                 this.changeState('Flee', new FleeAutopilot(this.ship, source));
             }
         } else if (this.state !== 'Avoid' && this.state !== 'Flee' && this.state !== 'Attack') {
             if (this.ship.hostiles.includes(source) && isValidAttackTarget(this.ship, source, this.attackDisabledShips)) {
-                if (this.ship.debug) {
-                    console.log('onDamage: Hostile detected, switching to Attack');
-                }
+                this.debugLog('onDamage: Hostile detected, switching to Attack');
                 this.changeState('Attack', new AttackAutopilot(this.ship, source, true));
             }
         }

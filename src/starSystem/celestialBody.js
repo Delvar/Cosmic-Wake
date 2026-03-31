@@ -309,7 +309,7 @@ export class JumpGate extends CelestialBody {
         const radius = 50.0;
         const dist = 1000.0;
         const angle = Math.atan2(norm.x, norm.y);
-        super(dist, radius, celestialTypes['jumpgate'].color, null, angle, celestialTypes['jumpgate'], null, `Jump To ${lane.target.name}`, lane.source);
+        super(dist, radius, celestialTypes['jumpgate'].color, null, angle, celestialTypes['jumpgate'], null, lane.target.name, lane.source);
         /** @type {Hyperlane} The hyperlane connection between two star systems. */
         this.lane = lane;
 

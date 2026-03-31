@@ -47,7 +47,7 @@ export function createGalaxy() {
     // Define the Sol System
     const sol = new StarSystem(
         "sol",
-        "Sol System",
+        "Sol",
         new Vector2D(0.0, 0.0),
         stars,
         planets,

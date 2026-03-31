@@ -38,12 +38,17 @@ export class UiLog {
 
     /**
      * Adds a new message to the log, managing line limits and animations.
-     * @param {string} message - The message text to log.
+     * @param {...any} messages - Values to log (same as console.log).
      */
-    log(message) {
+    log(...messages) {
+        // Concatenate all arguments into a single string (same behaviour as console.log)
+        const text = messages.map(arg =>
+            (arg === null || arg === undefined) ? String(arg) : arg.toString()
+        ).join(' ');
+
         const line = document.createElement('div');
         line.className = 'log-line in';
-        line.textContent = message;
+        line.textContent = text;
         line.dataset.timestamp = Date.now().toString();
         this.inner.appendChild(line);
         if (this.inner.children.length >= this.maxLines) {
@@ -56,6 +61,7 @@ export class UiLog {
                 top.classList.add('out');
             }
         }
+        console.log(text);
     }
 
     /**

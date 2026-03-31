@@ -245,11 +245,11 @@ export class Ship extends GameObject {
 
     /**
      * Logs a message to the UI log if available.
-     * @param {string} message - The message to log.
+     * @param {...any} messages - Values to log (same as console.log).
      */
-    uiLog(message) {
+    uiLog(...messages) {
         if (this._uiLog) {
-            this._uiLog.log(message);
+            this._uiLog.log(...messages);
         }
     }
 
@@ -517,6 +517,8 @@ export class Ship extends GameObject {
      * @param {string} newState - The state to transition to (e.g., 'Flying', 'Landing').
      */
     setState(newState) {
+        const previousState = this.state;
+
         if (!this.stateHandlers[newState]) {
             console.warn(`Invalid state transition attempted: ${newState}`);
             return;
@@ -532,6 +534,10 @@ export class Ship extends GameObject {
 
         this.state = newState;
         this.animationTime = 0.0; // Reset animation timer for new state
+
+        // if (previousState !== newState) {
+        //     this.uiLog(`State: ${previousState} -> ${newState}`);
+        // }
 
         // Ensure we stop Jettisoning or Pickup if we stop flying
         if (newState !== 'Flying') {
@@ -595,6 +601,7 @@ export class Ship extends GameObject {
     startMining() {
         if (this.state === 'Landed' && this.landedObject instanceof Asteroid && !this.isCargoFull()) {
             this.miningEnabled = true;
+            this.uiLog('Mining started');
             return true;
         }
         return false;
@@ -604,7 +611,10 @@ export class Ship extends GameObject {
      * Stops mining.
      */
     stopMining() {
-        this.miningEnabled = false;
+        if (this.miningEnabled) {
+            this.miningEnabled = false;
+            this.uiLog('Mining stopped');
+        }
     }
 
     /**
@@ -665,8 +675,10 @@ export class Ship extends GameObject {
             }
             this.isThrusting = false;
             this.isBraking = false;
+            this.uiLog(`Landing initiated on ${this.landedObject.constructor.name} ${this.landedObject.name || ''}`);
             return true;
         }
+        this.uiLog('Landing aborted: cannot land on target');
         return false;
     }
 
@@ -684,8 +696,10 @@ export class Ship extends GameObject {
             this.startAngle = this.angle;
             this.isThrusting = false;
             this.isBraking = false;
+            this.uiLog(`Boarding ${this.landedObject.name || 'disabled ship'}`);
             return true;
         }
+        this.uiLog('Boarding aborted: target not boardable');
         return false;
     }
 
@@ -694,9 +708,15 @@ export class Ship extends GameObject {
      * @returns {boolean} True if takeoff is initiated, false otherwise.
      */
     initiateTakeoff() {
-        if (this.state !== 'Landed' || !this.landedObject) return false;
+        if (this.state !== 'Landed' || !this.landedObject) {
+            this.uiLog('Takeoff aborted: not landed on any object');
+            return false;
+        }
 
         this.setState('TakingOff');
+        if (!(this.landedObject instanceof Ship)) {
+            this.uiLog(`Takeoff initiated from ${this.landedObject.constructor.name} ${this.landedObject.name || ''}`);
+        }
 
         if (this.target && this.target !== this.landedObject) {
             this.startPosition.set(this.position).subtractInPlace(this.landedObject.position);
@@ -740,6 +760,7 @@ export class Ship extends GameObject {
 
         // Check if ship is within gate's overlap area
         if (!gate.overlapsPoint(this.position)) {
+            this.uiLog('Hyperjump aborted: not inside gate');
             return false;
         }
 
@@ -750,6 +771,8 @@ export class Ship extends GameObject {
         this.lastJumpTime = this.age;
         this.isThrusting = false;
         this.isBraking = false;
+
+        this.uiLog(`Hyperjump initiated from ${gate.lane.source.name} to ${gate.lane.target.name}`);
         return true;
     }
 
@@ -972,6 +995,7 @@ export class Ship extends GameObject {
                     const removed = this.removeCargo(type, dumpAmount);
                     if (removed > 0) {
                         this.starSystem.cargoContainerManager.spawn(position, this.velocity, type, removed);
+                        this.uiLog(`Jettisoned ${Commodities[type].name} x ${removed}`);
                         dumped = true;
                     }
                     break;
@@ -979,11 +1003,11 @@ export class Ship extends GameObject {
             }
             // Stop if no cargo left
             if (!dumped || this.cargoUsed === 0) {
-                return false;
+                break;
             }
-
         }
-        return true;
+
+        return dumped;
     }
 
     /**
@@ -1094,6 +1118,7 @@ export class Ship extends GameObject {
         // Complete landing when animation finishes
         if (t >= 1.0) {
             this.setState('Landed');
+            //this.uiLog(`Landing complete on ${this.landedObject.constructor.name} ${this.landedObject.name || ''}`);
             if (this.landedObject instanceof Planet) {
                 this.shipScale = 0.0;
                 this.landedObject.addLandedShip(this);
@@ -1189,6 +1214,7 @@ export class Ship extends GameObject {
         // Complete takeoff when animation finishes
         if (t >= 1.0) {
             this.setState('Flying');
+            //this.uiLog('Takeoff complete');
             this.setTargetAngle(this.angle);
             this.shipScale = 1.0;
             // Calculate takeoff velocity
@@ -1235,6 +1261,7 @@ export class Ship extends GameObject {
         if (t >= 1.0) {
             const oldSystem = this.starSystem;
             this.starSystem = this.jumpGate.lane.target;
+            //this.uiLog(`Hyperjump completed from ${oldSystem.name} to ${this.starSystem.name}`);
             this.setState('JumpingIn');
             this.trail.clear();
             // Update star system ship lists
@@ -1276,6 +1303,7 @@ export class Ship extends GameObject {
         if (t >= 1.0) {
             this.velocity.set(this._scratchRadialOut).multiplyInPlace(this.jumpGate.radius * -1.0);
             this.setState('Flying');
+            //this.uiLog('Jump arrival complete');
             this.shipScale = 1.0;
             this.stretchFactor = 1.0;
             this.jumpGate = null;
@@ -1290,6 +1318,7 @@ export class Ship extends GameObject {
     updateDisabled(deltaTime) {
         // Check for transition to Exploding
         if (this.hullIntegrity <= 0.0) {
+            this.uiLog('Ship disabled and entering explosion sequence');
             this.setState('Exploding');
             this.hullIntegrity = this.disabledThreshold;
             this.isThrusting = false;
@@ -1344,7 +1373,7 @@ export class Ship extends GameObject {
 
             // Despawn the ship
             this.despawn();
-
+            this.uiLog(`Ship ${this.name} exploded and despawned`);
             this.debugLog(`Ship ${this.name} despawned with final explosion at (${this._scratchExplosionPos.x.toFixed(2.0)}, ${this._scratchExplosionPos.y.toFixed(2.0)})`);
             return;
         }

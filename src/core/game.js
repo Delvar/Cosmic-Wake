@@ -40,14 +40,16 @@ export class Game {
     constructor(manager) {
         /** @type {GameManager} The game manager providing access to game state. */
         this.manager = manager;
-        /** @type {TargetCamera} The camera for the target view, managed by the game manager. */
-        this.targetCamera = manager.targetCamera;
         /** @type {Camera} The main camera for the game, managed by the game manager. */
         this.mainCamera = manager.mainCamera;
+        /** @type {HeadsUpDisplay} The HUD for displaying game information, managed by the game manager. */
+        this.mainHud = manager.mainHud;
+        /** @type {TargetCamera} The camera for the target view, managed by the game manager. */
+        this.targetCamera = manager.targetCamera;
+        /** @type {HeadsUpDisplay} The HUD for displaying game information, managed by the game manager. */
+        this.targetHud = manager.targetHud;
         /** @type {StarField} The starfield for rendering background stars, managed by the game manager. */
         this.starField = manager.starField;
-        /** @type {HeadsUpDisplay} The HUD for displaying game information, managed by the game manager. */
-        this.hud = manager.hud;
         /** @type {number} The timestamp of the last frame, used for timing calculations. */
         this.lastTime = performance.now();
         /** @type {number} The number of frames rendered since the last FPS update. */
@@ -77,7 +79,7 @@ export class Game {
      */
     resizeMainCamera() {
         this.mainCamera.resize(window.innerWidth, window.innerHeight);
-        this.hud.resize(window.innerWidth, window.innerHeight);
+        this.mainHud.resize(window.innerWidth, window.innerHeight);
         this.starField.resize('main', window.innerWidth, window.innerHeight);
     }
 
@@ -87,6 +89,7 @@ export class Game {
     resizeTargetCamera() {
         const parent = this.targetCamera.foregroundCanvas.parentElement;
         this.targetCamera.resize(parent.clientWidth, parent.clientHeight);
+        this.targetHud.resize(parent.clientWidth, parent.clientHeight);
         this.starField.resize('target', parent.clientWidth, parent.clientHeight);
     }
 
@@ -189,80 +192,10 @@ export class Game {
             this.targetCamera.updateTarget(this.manager.cameraTarget.target);
         }
     }
-
     /**
-     * Draws the ships Shields and Hull to the screen
-     * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
-     * @param {CanvasRenderingContext2D} outlineCtx - The canvas rendering context for darker outlines.
-     * @param {Camera} camera - The camera object for world-to-screen conversion.
-     * @param {Ship} ship - The ship object to get the stats from.
-     * @param {boolean} useLayeredRendering - Whether to use layered rendering mode.
+     * Renders the main camera view
      */
-    drawShipStats(ctx, outlineCtx, camera, ship, useLayeredRendering = true) {
-        //const white = 'white';
-        const black = 'black';
-
-        const shieldRatio = remapClamp(ship.shield.strength, 0.0, ship.shield.maxStrength, 0.0, 1.0);
-        const hullRatio = remapClamp(ship.hullIntegrity, 0.0, ship.maxHull, 0.0, 1.0);
-        const centerX = camera.screenCenter.x;
-        const barHeight = 8.0;
-        const barGap = 8.0;
-        const barWidth = Math.round(camera.screenSize.width - barGap * 2.0);
-        let top = Math.round(camera.screenSize.height - barGap - barHeight);
-        let width = Math.round(barWidth * shieldRatio * 0.5);
-
-        // Use appropriate context based on rendering mode
-        const drawCtx = useLayeredRendering ? ctx : camera.foregroundCtx;
-        const outlineCtx2 = useLayeredRendering ? outlineCtx : camera.foregroundCtx;
-
-        drawCtx.fillStyle = Colour.BlueDark.toRGB();
-        drawCtx.fillRect(barGap, top, barWidth, barHeight);
-
-        outlineCtx2.strokeStyle = black;
-        outlineCtx2.lineWidth = 1.0;
-        outlineCtx2.strokeRect(barGap - 0.5, top - 0.5, barWidth + 1.0, barHeight + 1.0);
-
-        if (ship.shield.rapidRechargeEffectTime > 0.0) {
-            const now = Date.now();
-            drawCtx.fillStyle = (Math.floor(now / 100) % 2 === 0)
-                ? Colour.BlueLight.toRGB()
-                : Colour.Blue.toRGB();
-        } else {
-            drawCtx.fillStyle = Colour.Blue.toRGB();
-        }
-        drawCtx.fillRect(centerX - width, top, width * 2.0, barHeight);
-
-        top = top - barGap - barHeight;
-        width = Math.round(barWidth * hullRatio * 0.5);
-        drawCtx.fillStyle = Colour.GreenDark.toRGB();
-        drawCtx.fillRect(barGap, top, barWidth, barHeight);
-        outlineCtx2.strokeRect(barGap - 0.5, top - 0.5, barWidth + 1.0, barHeight + 1.0);
-
-        if (ship.protectionTime > 0.0) {
-            const now = Date.now();
-            drawCtx.fillStyle = (Math.floor(now / 100) % 2 === 0)
-                ? Colour.GreenLight.toRGB()
-                : Colour.Green.toRGB();
-        } else {
-            drawCtx.fillStyle = Colour.Green.toRGB();
-        }
-        drawCtx.fillRect(centerX - width, top, width * 2.0, barHeight);
-    }
-
-    /**
-     * Renders the game state to the canvas.
-     * @param {number} deltaTime - Time elapsed since the last render in seconds.
-     */
-    render(deltaTime) {
-
-        const currentTime = performance.now();
-        if (currentTime - this.lastFpsUpdate >= 1000.0) {
-            this.fps = Math.round(this.frameCount * 1000 / (currentTime - this.lastFpsUpdate));
-            this.frameCount = 0.0;
-            this.lastFpsUpdate = currentTime;
-        }
-        this.frameCount++;
-
+    renderMainView() {
         const camera = this.mainCamera;
         const ctx = camera.foregroundCtx;
 
@@ -296,6 +229,38 @@ export class Game {
         starSystem.projectileManager.draw(ctx, camera);
         starSystem.particleManager.draw(ctx, camera);
 
+
+
+        if (this.manager.zoomTextTimer > 0.0) {
+            ctx.save();
+            ctx.fillStyle = Colour.White.toRGB();
+            ctx.textAlign = 'right';
+            const zoomPercent = Math.round(camera.zoom * 100.0);
+            ctx.strokeText(`${zoomPercent}%`, camera.screenSize.width - 20.0, 20.0);
+            ctx.fillText(`${zoomPercent}%`, camera.screenSize.width - 20.0, 20.0);
+            ctx.restore();
+        }
+
+        this.mainHud.draw(cameraTarget);
+    }
+    /**
+     * Renders the game state to the canvas.
+     * @param {number} deltaTime - Time elapsed since the last render in seconds.
+     */
+    render(deltaTime) {
+
+        const currentTime = performance.now();
+        if (currentTime - this.lastFpsUpdate >= 1000.0) {
+            this.fps = Math.round(this.frameCount * 1000 / (currentTime - this.lastFpsUpdate));
+            this.frameCount = 0.0;
+            this.lastFpsUpdate = currentTime;
+        }
+        this.frameCount++;
+
+        this.renderMainView();
+        this.renderTargetView();
+
+        const ctx = this.mainCamera.foregroundCtx;
         ctx.save();
         ctx.fillStyle = Colour.White.toRGB();
         ctx.strokeStyle = Colour.Black.toRGB();
@@ -318,24 +283,6 @@ export class Game {
                             deltaTime > 0.00833 ? Colour.Orange.toRGB() :
                                 Colour.Green.toRGB();
         ctx.fillRect(10, 25.0, barWidth, 10.0);
-        ctx.restore();
-
-        if (this.manager.zoomTextTimer > 0.0) {
-            ctx.save();
-            ctx.fillStyle = Colour.White.toRGB();
-            ctx.textAlign = 'right';
-            const zoomPercent = Math.round(camera.zoom * 100.0);
-            ctx.strokeText(`${zoomPercent}%`, camera.screenSize.width - 20.0, 20.0);
-            ctx.fillText(`${zoomPercent}%`, camera.screenSize.width - 20.0, 20.0);
-            ctx.restore();
-        }
-
-        this.hud.draw(camera.foregroundCtx, camera.hudCtx, camera.hudOutlineCtx, camera, this.manager.useLayeredHudRendering);
-        if (cameraTarget && cameraTarget instanceof Ship) {
-            this.drawShipStats(camera.hudCtx, camera.hudOutlineCtx, camera, cameraTarget, this.manager.useLayeredHudRendering);
-        }
-        this.renderTargetView();
-
         ctx.restore();
     }
 
@@ -367,19 +314,6 @@ export class Game {
                 parent.style.visibility = 'visible';
                 parent.style.opacity = '1.0';
             }
-        }
-
-        if (target instanceof Ship) {
-            camera.hudCanvas.style.visibility = 'visible';
-            camera.hudCanvas.style.opacity = '1.0';
-            camera.hudOutlineCanvas.style.visibility = 'visible';
-            camera.hudOutlineCanvas.style.opacity = '1.0';
-            this.drawShipStats(camera.hudCtx, camera.hudOutlineCtx, camera, target, this.manager.useLayeredHudRendering);
-        } else {
-            camera.hudCanvas.style.visibility = 'hidden';
-            camera.hudCanvas.style.opacity = '0.0';
-            camera.hudOutlineCanvas.style.visibility = 'hidden';
-            camera.hudOutlineCanvas.style.opacity = '0.0';
         }
 
         if (this.manager.cameraTarget.target instanceof Ship) {
@@ -417,19 +351,8 @@ export class Game {
         }
         starSystem.projectileManager.draw(ctx, camera);
         starSystem.particleManager.draw(ctx, camera);
-        let targetName;
-        if (target instanceof CargoContainer) {
-            targetName = `Container of ${Commodities[target.commodityType].name}`;
-        } else if (target instanceof Ship || target instanceof CelestialBody || target instanceof Asteroid) {
-            targetName = target.name;
-        } else {
-            targetName = "Unnamed Object";
-        }
-        ctx.fillStyle = Colour.White.toRGB();
-        ctx.strokeStyle = Colour.Black.toRGB();
-        ctx.textAlign = "center";
-        ctx.strokeText(targetName, camera.screenCenter.width, 20.0);
-        ctx.fillText(targetName, camera.screenCenter.width, 20.0);
+
+        this.targetHud.draw(this.manager.cameraTarget.target);
     }
 }
 
@@ -443,8 +366,6 @@ export class GameManager {
     constructor() {
         /** @type {boolean} Enables or disables debug mode for the game. */
         this.debug = false;
-        /** @type {boolean} When true, uses layered canvases with blend modes. When false, draws directly to foreground. */
-        this.useLayeredHudRendering = true;
 
         const mainCameraForegroundCanvas = /** @type {HTMLCanvasElement} */ (document.getElementById('mainCameraForeground'));
         const mainCameraBackgroundCanvas = /** @type {HTMLCanvasElement} */ (document.getElementById('mainCameraBackground'));
@@ -458,8 +379,15 @@ export class GameManager {
 
         /** @type {Camera} The main camera tracking the player's ship. */
         this.mainCamera = new Camera(mainCameraForegroundCanvas, mainCameraBackgroundCanvas, mainCameraHudCanvas, mainCameraHudOutlineCanvas, 1.0);
+        /** @type {HeadsUpDisplay} The HUD for displaying game information. */
+        this.mainHud = new HeadsUpDisplay(this, this.mainCamera, true);
         /** @type {TargetCamera} The camera for the target view, rendering a secondary perspective. */
         this.targetCamera = new TargetCamera(targetCameraForegroundCanvas, targetCameraBackgroundCanvas, targetCameraHudCanvas, targetCameraHudOutlineCanvas, 1.0);
+        /** @type {HeadsUpDisplay} The HUD for displaying game information. */
+        this.targetHud = new HeadsUpDisplay(this, this.targetCamera, true);
+        this.targetHud.showNavigationRings = false;
+        this.targetHud.showAutopilotStatus = false;
+        this.targetHud.showCameraTargetName = true;
         /** @type {Ship} The current target for the camera, typically the player's ship. */
         this.cameraTarget = null;
 
@@ -499,8 +427,6 @@ export class GameManager {
         /** @type {PlayerPilot} The pilot controlling the player's ship. */
         this.playerPilot = new PlayerPilot(this.playerShip);
         this.cameraTarget = this.playerShip;
-        /** @type {HeadsUpDisplay} The HUD for displaying game information. */
-        this.hud = new HeadsUpDisplay(this, window.innerWidth, window.innerHeight);
         /** @type {number} Timer for controlling zoom text display duration. */
         this.zoomTextTimer = 0.0;
         /** @type {number} Timestamp of the last AI ship spawn. */
@@ -927,13 +853,13 @@ export class GameManager {
             }
 
             if (e.key === 'h' || e.key === 'H') {
-                this.useLayeredHudRendering = !this.useLayeredHudRendering;
-                if (this.useLayeredHudRendering) {
+                this.mainHud.useLayeredRendering = this.targetHud.useLayeredRendering = !this.mainHud.useLayeredRendering;
+                if (this.mainHud.useLayeredRendering) {
                     document.body.classList.add('layered-hud-mode');
                 } else {
                     document.body.classList.remove('layered-hud-mode');
                 }
-                console.log("Layered HUD Rendering: ", this.useLayeredHudRendering);
+                console.log("Layered HUD Rendering: ", this.mainHud.useLayeredRendering);
             }
 
         });

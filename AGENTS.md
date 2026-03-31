@@ -1,7 +1,45 @@
 # Cosmic Wake - Project Documentation
 
 Cosmic Wake is a space simulation game built with vanilla JavaScript and Canvas. It features a procedurally-generated galaxy with multiple star systems, ships with AI pilots, faction relationships, and dynamic combat and trading mechanics.
-- The code uses UK English spellings (e.g., "autopilot", and "colour").
+- The code uses UK English spellings (e.g., "optimise", "behaviour", "colour", "manoeuvre").
+
+## Specialization
+
+- Understand the project’s core architecture: game loop, star systems, ships, AI pilots, jobs, autopilots, weapons, effects, UI.
+- Prefer working within the existing file structure (e.g., `game.js`, `ship.js`, `pilot.js`, `galaxy.js`, etc.).
+- Recommend and implement changes that follow project patterns (e.g., in-place vector math, object pooling, state machines, scratch vectors as instance properties).
+- Prioritise performance by minimising allocations (scratch variables, object pools, in-place vector edits) to avoid garbage collection stalls.
+
+## Performance Guidelines
+
+- Avoid heap allocations in hot paths: reuse objects, arrays, and vectors.
+- Use **instance scratch vectors** (prefixed `_scratch*`, created in constructor) for all temporary math. Use clear purpose names (e.g. `_scratchThrustVector`).
+- Favour **in-place vector operations** (`addInPlace`, `subtractInPlace`, `multiplyInPlace`, etc.) over new `Vector2D` instances.
+- Pre-allocate all scratch vectors in constructor.
+- Use object pools for frequently spawned entities (particles, projectiles, asteroids).
+- Keep update/render loops lean and allocation-free per frame.
+- Use float literals consistently (e.g. `0.0`, `1.0`).
+- In loops prefer `for (let i = 0.0; i < length; i++)`.
+
+## Coding Conventions
+
+- Every file must begin with a file path comment from the project root:
+  ```js
+  // /src/ship/ship.js
+  ```
+- Imports must use root-based paths:
+  ```js
+  import { Camera } from '/src/camera/camera.js';
+  ```
+- Every class and public method must have a clear JSDoc comment explaining intent, parameters, and return values.
+- Boolean properties and methods must use `is*`/`has*`/`can*` prefix (e.g. `isThrusting`, `hasCargo`, `canLand`).
+- Private methods and scratch properties prefixed with `_`.
+- Use state machine pattern with `this.stateHandlers` object mapping states to bound handler methods.
+- Use `Object.seal(this)` in base class constructors only when `new.target === Class` (allowing inheritance):
+  ```js
+  if (new.target === Shield) Object.seal(this);
+  ```
+- Follow exact patterns from `ship.js`: scratch vectors, in-place ops, `Colour` class, `remapClamp`/`lerp`/`normalizeAngle` from utils, `ctx.save/restore` in draw methods.
 
 ## Core Architecture
 
@@ -17,7 +55,7 @@ Cosmic Wake is a space simulation game built with vanilla JavaScript and Canvas.
 - **File:** `galaxy.js`
 - **Function:** `createGalaxy()`
 - Creates three star systems: Sol, Alpha Centauri, Proxima Centauri
-- Initializes planets, jump gates, asteroid belts, and hyperlanes
+- Initialises planets, jump gates, asteroid belts, and hyperlanes
 - Sets up faction relationships between systems
 
 ### 3. Star System Management
@@ -64,7 +102,7 @@ Cosmic Wake is a space simulation game built with vanilla JavaScript and Canvas.
 
 ### Jobs
 - **File:** `job.js`
-- **Base Class:** `Job` - defines interface for ship behaviors
+- **Base Class:** `Job` - defines interface for ship behaviours
 - **Implementations:**
   - `WandererJob` - civilian ships travel between planets and systems
   - `OfficerJob` - patrol and attack hostile ships
@@ -175,7 +213,7 @@ Cosmic Wake is a space simulation game built with vanilla JavaScript and Canvas.
 ### Colour
 - **File:** `colour.js`
 - **Class:** `Colour`
-- RGBA color representation with static color constants
+- RGBA colour representation with static colour constants
 - **Methods:** toRGB(), toRGBA(), interpolation
 
 ### Game Object
@@ -232,7 +270,7 @@ Cosmic Wake is a space simulation game built with vanilla JavaScript and Canvas.
 - **Ring Buffers:** Trails use efficient circular buffers
 - **Spatial Culling:** Star field uses grid cells for visibility
 - **Web Workers:** Star field generation off-thread
-- **In-Place Math:** Vector operations minimize allocations
+- **In-Place Math:** Vector operations minimise allocations
 - **Scratch Vectors:** Temporary vectors reused across frames
 
 ---
@@ -254,3 +292,27 @@ Cosmic Wake is a space simulation game built with vanilla JavaScript and Canvas.
 - Tracks planned gameplay systems, UI work, and other roadmap items that have not been implemented yet
 - Use it to record feature ideas as actionable tasks with enough detail to guide future implementation
 - Prefer adding entries that describe both the player-facing feature and any supporting system work needed behind it
+
+---
+
+## Tools & Behaviour (for Cosmic Wake Dev Agent)
+
+### Tools
+Prefer using these tools (in order):
+1. **File Editor** (open/modify files)
+2. **Search**
+Avoid using unnecessary / unrelated tools; do not perform a post-edit lint or formatting step unless explicitly asked.
+
+### Behaviour
+- Keep responses short, focused, and actionable.
+- When reviewing or editing existing code: if it does not fully match these standards, notify the user and ask if they want it updated. If already editing the file for other reasons, silently bring it up to standard and mention the changes made at the end.
+- When the user raises an idea, feature, or change: acknowledge it, discuss trade-offs/clarifications, and only implement once we agree on the approach.
+- When proposing code changes: show exact diffs or file edits using the required 4-backtick format.
+- If something is unclear, ask a clarifying question before implementing.
+- If asked for “what just happened” or “how to run”, be explicit about commands for Windows/VS Code.
+- Example prompts:
+  - “Fix the AI pilot never leaving orbit after combat in `pilot.js`.”
+  - “Add a new ship type with two turrets and a custom name pattern.”
+  - “Explain how `ProjectileManager` detects collisions.”
+
+Ready for you to copy-paste over your current `agents.md`. Let me know if you want any tweaks or further adjustments.

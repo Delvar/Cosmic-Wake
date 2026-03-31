@@ -62,7 +62,7 @@ export class InRangeAttackAutopilot extends Autopilot {
         this.active = true;
         this.completed = false;
         this.error = null;
-        this.debugLog("InRangeAttackAutopilot: Started");
+        this.debugLog(() => console.log(`${this.constructor.name}: Started`));
     }
 
     /**
@@ -128,7 +128,7 @@ export class InRangeAttackAutopilot extends Autopilot {
             if (Math.abs(angleToLead) < Math.PI / 25.0) {
                 this.ship.fireFixedWeapons();
             }
-            this.debugLog("InRangeAttackAutopilot: Firing at target");
+            this.debugLog(() => console.log(`${this.constructor.name}: Firing at target`));
         }
     }
 
@@ -138,6 +138,6 @@ export class InRangeAttackAutopilot extends Autopilot {
     stop() {
         this.active = false;
         this.ship.applyThrust(false);
-        this.debugLog("InRangeAttackAutopilot: Stopped");
+        this.debugLog(() => console.log(`${this.constructor.name}: Stopped`));
     }
 }

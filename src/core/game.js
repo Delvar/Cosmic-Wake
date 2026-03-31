@@ -862,6 +862,12 @@ export class GameManager {
                 console.log("Layered HUD Rendering: ", this.mainHud.useLayeredRendering);
             }
 
+            if (e.key === 'k') {
+                this.cameraTarget.takeDamage(
+                    this.cameraTarget.shield.strength > 0.0 ? this.cameraTarget.shield.strength : this.cameraTarget.hullIntegrity,
+                    this.cameraTarget.position, this.cameraTarget);
+            }
+
         });
 
         window.addEventListener('keyup', (e) => { this.keys[e.key] = false; });

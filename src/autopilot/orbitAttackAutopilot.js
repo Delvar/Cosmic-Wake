@@ -4,6 +4,7 @@ import { Vector2D } from '/src/core/vector2d.js';
 import { Autopilot } from '/src/autopilot/autopilot.js';
 import { remapClamp, randomBetween, clamp } from '/src/core/utils.js';
 import { Ship, isValidAttackTarget } from '/src/ship/ship.js';
+import { GameManager } from '/src/core/game.js';
 
 /**
  * Manages orbiting attack behavior, maintaining a distance from the target while firing.
@@ -73,7 +74,7 @@ export class OrbitAttackAutopilot extends Autopilot {
         this.completed = false;
         this.error = null;
         this.state = "Approaching";
-        this.debugLog(`OrbitAttackAutopilot: Started, orbitRadius=${this.orbitRadius}`);
+        this.debugLog(() => console.log(`${this.constructor.name}: Started, orbitRadius=${this.orbitRadius}`));
     }
 
     /**
@@ -205,6 +206,6 @@ export class OrbitAttackAutopilot extends Autopilot {
     stop() {
         this.active = false;
         this.ship.applyThrust(false);
-        this.debugLog("OrbitAttackAutopilot: Stopped");
+        this.debugLog(() => console.log(`${this.constructor.name}: Stopped`));
     }
 }

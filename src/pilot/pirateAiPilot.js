@@ -42,7 +42,7 @@ export class PirateAiPilot extends AiPilot {
             //FIXME: array.find
             const target = this.ship.hostiles.find(s => this.ship.getRelationship(s) === FactionRelationship.Hostile && isValidAttackTarget(this.ship, s, false));
             if (target) {
-                this.debugLog(`${this.constructor.name}: Shields down or low hull, switching to Flee`);
+                this.debugLog(() => console.log(`${this.constructor.name}: Shields down or low hull, switching to Flee`));
                 this.changeState('Flee', new FleeAutopilot(this.ship, target));
                 return;
             }
@@ -50,7 +50,7 @@ export class PirateAiPilot extends AiPilot {
         // If we spot cargo, break off to collect it
         if (this.ship.state === 'Flying' && this.state != 'Collecting' && !this.ship.isCargoFull()) {
             if (this.ship.starSystem.cargoContainerManager.hasCargoContainer()) {
-                this.debugLog(`${this.constructor.name}: Spotted cargo, switching to Collecting`);
+                this.debugLog(() => console.log(`${this.constructor.name}: Spotted cargo, switching to Collecting`));
                 this.changeState('Collecting', new CargoCollectorAutopilot(this.ship));
                 return;
             }
@@ -74,7 +74,7 @@ export class PirateAiPilot extends AiPilot {
                     const distanceSq = this._scratchDistance.set(hostile.position)
                         .subtractInPlace(this.ship.position).squareMagnitude();
                     if (distanceSq < 500 * 500.0) {
-                        this.debugLog(`${this.constructor.name}: Job: Hostile within 500 units, switching to Attack`);
+                        this.debugLog(() => console.log(`${this.constructor.name}: Job: Hostile within 500 units, switching to Attack`));
                         this.changeState('Attack', new AttackAutopilot(this.ship, hostile, true));
                         return;
                     }
@@ -96,7 +96,7 @@ export class PirateAiPilot extends AiPilot {
         if ((!this.autopilot || (this.autopilot instanceof AvoidAutopilot && this.autopilot.timeElapsed >= this.autopilot.timeout)) && !this.isSafe()) {
             const target = this.ship.hostiles.find(s => this.ship.getRelationship(s) === FactionRelationship.Hostile && isValidAttackTarget(this.ship, s, false));
             if (target) {
-                this.debugLog(`${this.constructor.name}: Avoid: Timeout or complete and not safe, switching to Flee`);
+                this.debugLog(() => console.log(`${this.constructor.name}: Avoid: Timeout or complete and not safe, switching to Flee`));
                 this.changeState('Flee', new FleeAutopilot(this.ship, target));
                 return;
             }
@@ -124,13 +124,13 @@ export class PirateAiPilot extends AiPilot {
         // Check if shields are down and hull <50%
         if (this.ship.state === 'Flying' && ((this.ship.shield && this.ship.shield.strength <= 0.0) || !this.ship.shield) && remapClamp(this.ship.hullIntegrity, 0.0, this.ship.maxHull, 0.0, 1.0) < 0.5) {
             if (this.ship.hostiles.includes(source) && isValidAttackTarget(this.ship, source, false)) {
-                this.debugLog(`${this.constructor.name}: onDamage: Shields down and low hull, switching to Flee`);
+                this.debugLog(() => console.log(`${this.constructor.name}: onDamage: Shields down and low hull, switching to Flee`));
                 this.changeState('Flee', new FleeAutopilot(this.ship, source));
             }
         } else if (this.state !== 'Avoid' && this.state !== 'Flee' && this.state !== 'Attack' && this.state != 'Collecting' && this.state != 'Despawning') {
             if (this.ship.hostiles.includes(source) && isValidAttackTarget(this.ship, source, this.attackDisabledShips)) {
                 //FIXME: we want to ignore the odd attack but need a way to detect a constant attacker, so if say we are collecting, we can abandon that and attack the main attacker.
-                this.debugLog(`${this.constructor.name}: onDamage: Hostile detected, switching to Attack`);
+                this.debugLog(() => console.log(`${this.constructor.name}: onDamage: Hostile detected, switching to Attack`));
                 this.changeState('Attack', new AttackAutopilot(this.ship, source, true));
             }
         }

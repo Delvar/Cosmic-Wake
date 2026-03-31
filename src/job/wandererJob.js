@@ -57,7 +57,7 @@ export class WandererJob extends Job {
         if (handler) {
             handler(deltaTime, gameManager);
         } else {
-            this.debugLog(`WandererJob: Invalid state ${this.state}`);
+            this.debugLog(() => console.log(`${this.constructor.name}: Invalid state ${this.state}`));
             this.error = `Invalid state: ${this.state}`;
             this.state = 'Starting';
         }
@@ -69,19 +69,19 @@ export class WandererJob extends Job {
      * @param {GameManager} gameManager - The game manager instance for context.
      */
     updateStarting(deltaTime, gameManager) {
-        this.debugLog(`WandererJob: Planning route, ship state: ${this.ship.state}`);
+        this.debugLog(() => console.log(`${this.constructor.name}: Planning route, ship state: ${this.ship.state}`));
 
         this.target = null;
         this.finalTarget = null;
         this.route = [];
 
         if (!this.planRoute()) {
-            this.debugLog('WandererJob: Failed to plan route, retrying next frame');
+            this.debugLog(() => console.log(`${this.constructor.name}: Failed to plan route, retrying next frame`));
             this.error = 'No valid destination found';
             return;
         }
 
-        this.debugLog(`WandererJob: Planned target ${this.target?.name}, transitioning to Travelling`);
+        this.debugLog(() => console.log(`${this.constructor.name}: Planned target ${this.target?.name}, transitioning to Travelling`));
 
         this.state = 'Travelling';
     }
@@ -93,7 +93,7 @@ export class WandererJob extends Job {
      */
     updateTravelling(deltaTime, gameManager) {
         if (this.ship.state === 'Landed' && this.target === this.finalTarget && this.route.length === 0.0) {
-            this.debugLog(`WandererJob: Landed at final target ${this.target?.name}, transitioning to Waiting`);
+            this.debugLog(() => console.log(`${this.constructor.name}: Landed at final target ${this.target?.name}, transitioning to Waiting`));
             this.waitTime = 10 + Math.random() * 20.0;
             this.state = 'Waiting';
             return;
@@ -101,14 +101,14 @@ export class WandererJob extends Job {
 
         if (this.ship.state === 'Landed') {
             if (!this.target || !isValidTarget(this.ship, this.target)) {
-                this.debugLog('WandererJob: Invalid target while landed, transitioning to Starting');
+                this.debugLog(() => console.log(`${this.constructor.name}: Invalid target while landed, transitioning to Starting`));
                 this.error = 'Invalid target';
                 this.state = 'Starting';
                 return;
             }
             this.waitTime -= deltaTime;
             if (this.waitTime <= 0.0) {
-                this.debugLog(`WandererJob: Initiating takeoff toward ${this.target.name}`);
+                this.debugLog(() => console.log(`${this.constructor.name}: Initiating takeoff toward ${this.target.name}`));
                 this.ship.setTarget(this.target);
                 this.ship.initiateTakeoff();
                 this.waitTime = 0.0;
@@ -117,7 +117,7 @@ export class WandererJob extends Job {
         }
 
         if (this.ship.state !== 'Flying') {
-            this.debugLog(`WandererJob: Not flying (state: ${this.ship.state}), transitioning to Starting`);
+            this.debugLog(() => console.log(`${this.constructor.name}: Not flying (state: ${this.ship.state}), transitioning to Starting`));
             this.state = 'Starting';
             return;
         }
@@ -125,31 +125,31 @@ export class WandererJob extends Job {
         if (!this.target || !isValidTarget(this.ship, this.target)) {
             this.target = this.selectNextValidTarget();
             if (!this.target) {
-                this.debugLog('WandererJob: No valid target or route, transitioning to Starting');
+                this.debugLog(() => console.log(`${this.constructor.name}: No valid target or route, transitioning to Starting`));
                 this.error = 'No valid target';
                 this.state = 'Starting';
                 return;
             }
-            this.debugLog(`WandererJob: Selected new target ${this.target.name}`);
+            this.debugLog(() => console.log(`${this.constructor.name}: Selected new target ${this.target.name}`));
         }
 
         if (!this.pilot.autopilot) {
             if (this.target instanceof JumpGate) {
-                this.debugLog(`WandererJob: Setting TraverseJumpGateAutopilot for ${this.target.name}`);
+                this.debugLog(() => console.log(`${this.constructor.name}: Setting TraverseJumpGateAutopilot for ${this.target.name}`));
                 this.pilot.setAutopilot(new TraverseJumpGateAutopilot(this.ship, this.target));
             } else if (this.target instanceof JumpGate) {
-                this.debugLog(`WandererJob: Setting LandOnPlanetAutopilot for ${this.target.name}`);
+                this.debugLog(() => console.log(`${this.constructor.name}: Setting LandOnPlanetAutopilot for ${this.target.name}`));
                 this.pilot.setAutopilot(new LandOnPlanetAutopilot(this.ship, this.target));
             } else {
                 //FIXME: need a better recovery method than this.
                 this.resume();
-                console.warn('WandererJob: Autopilot missing, no valid target, restarting!');
+                console.warn('${this.constructor.name}: Autopilot missing, no valid target, restarting!');
                 return;
             }
         }
 
         if (this.pilot.autopilot?.isComplete()) {
-            this.debugLog('WandererJob: Autopilot complete, clearing');
+            this.debugLog(() => console.log(`${this.constructor.name}: Autopilot complete, clearing`));
             this.pilot.setAutopilot(null);
             this.target = null;
         }
@@ -162,7 +162,7 @@ export class WandererJob extends Job {
      */
     updateWaiting(deltaTime, gameManager) {
         if (this.ship.state !== 'Landed') {
-            this.debugLog(`WandererJob: Waiting but not landed (state: ${this.ship.state}), transitioning to Starting`);
+            this.debugLog(() => console.log(`${this.constructor.name}: Waiting but not landed (state: ${this.ship.state}), transitioning to Starting`));
             this.state = 'Starting';
             this.waitTime = 0.0;
             return;
@@ -170,7 +170,7 @@ export class WandererJob extends Job {
 
         this.waitTime -= deltaTime;
         if (this.waitTime <= 0.0) {
-            this.debugLog(`WandererJob: Finished Waiting, transitioning to Starting`);
+            this.debugLog(() => console.log(`${this.constructor.name}: Finished Waiting, transitioning to Starting`));
             this.state = 'Starting';
             this.waitTime = 0.0;
         }
@@ -184,14 +184,14 @@ export class WandererJob extends Job {
         const currentSystem = this.ship.starSystem;
         const excludePlanet = (this.ship.state === 'Landed' && this.ship.landedObject instanceof Planet) ? this.ship.landedObject : null;
 
-        this.debugLog(`WandererJob: Planning route, system: ${currentSystem.name}, exclude: ${excludePlanet?.name || 'none'}`);
+        this.debugLog(() => console.log(`${this.constructor.name}: Planning route, system: ${currentSystem.name}, exclude: ${excludePlanet?.name || 'none'}`));
 
         if (Math.random() < 0.2) {
             this.finalTarget = currentSystem.getRandomPlanet(this.ship, excludePlanet);
             if (this.finalTarget) {
                 this.target = this.finalTarget;
                 this.route = [];
-                this.debugLog(`WandererJob: Selected same-system target: ${this.finalTarget.name}`);
+                this.debugLog(() => console.log(`${this.constructor.name}: Selected same-system target: ${this.finalTarget.name}`));
                 return true;
             }
         }
@@ -212,7 +212,7 @@ export class WandererJob extends Job {
             if (this.finalTarget) {
                 this.target = this.finalTarget;
                 this.route = [];
-                this.debugLog(`WandererJob: No jump gate, selected fallback: ${this.finalTarget.name}`);
+                this.debugLog(() => console.log(`${this.constructor.name}: No jump gate, selected fallback: ${this.finalTarget.name}`));
                 return true;
             }
             return false;
@@ -225,7 +225,7 @@ export class WandererJob extends Job {
             if (this.finalTarget) {
                 this.target = this.finalTarget;
                 this.route = [];
-                this.debugLog(`WandererJob: No planet in destination, selected fallback: ${this.finalTarget.name}`);
+                this.debugLog(() => console.log(`${this.constructor.name}: No planet in destination, selected fallback: ${this.finalTarget.name}`));
                 return true;
             }
             return false;
@@ -233,7 +233,7 @@ export class WandererJob extends Job {
 
         this.target = jumpGate;
         this.route = [jumpGate, this.finalTarget];
-        this.debugLog(`WandererJob: Selected cross-system target: ${this.finalTarget.name} via ${jumpGate.name}`);
+        this.debugLog(() => console.log(`${this.constructor.name}: Selected cross-system target: ${this.finalTarget.name} via ${jumpGate.name}`));
         return true;
     }
 
@@ -247,7 +247,7 @@ export class WandererJob extends Job {
             if (isValidTarget(this.ship, nextTarget)) {
                 return nextTarget;
             }
-            this.debugLog(`WandererJob: Skipped invalid route target ${nextTarget.name}`);
+            this.debugLog(() => console.log(`${this.constructor.name}: Skipped invalid route target ${nextTarget.name}`));
         }
 
         if (this.finalTarget && isValidTarget(this.ship, this.finalTarget)) {
@@ -265,7 +265,7 @@ export class WandererJob extends Job {
         if (this.pilot.autopilot) {
             this.pilot.setAutopilot(null);
         }
-        this.debugLog(`WandererJob: Paused in state ${this.state}`);
+        this.debugLog(() => console.log(`${this.constructor.name}: Paused in state ${this.state}`));
     }
 
     /**
@@ -278,6 +278,6 @@ export class WandererJob extends Job {
         this.finalTarget = null;
         this.route = [];
         this.waitTime = 0.0;
-        this.debugLog(`WandererJob: Resumed, transitioning to Starting`);
+        this.debugLog(() => console.log(`${this.constructor.name}: Resumed, transitioning to Starting`));
     }
 }

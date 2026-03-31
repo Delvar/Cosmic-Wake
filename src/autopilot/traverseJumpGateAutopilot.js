@@ -99,7 +99,7 @@ export class TraverseJumpGateAutopilot extends Autopilot {
                 }
             } else {
                 // Not aligned with gate; restart sub-pilot
-                this.debugLog(`Not aligned with ${this.target.name || 'jump gate'}; restarting fly-to phase`);
+                this.debugLog(() => console.log(`${this.constructor.name}: Not aligned with ${this.target.name || 'jump gate'}; restarting fly-to phase`));
                 this.subAutopilot = new FlyToTargetAutopilot(this.ship, this.target, this.target.radius, Ship.LANDING_SPEED);
                 this.subAutopilot.start();
             }

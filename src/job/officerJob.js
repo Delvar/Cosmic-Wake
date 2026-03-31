@@ -58,7 +58,7 @@ export class OfficerJob extends Job {
         if (handler) {
             handler(deltaTime, gameManager);
         } else {
-            this.debugLog(`${this.constructor.name}: Invalid state ${this.state}`);
+            this.debugLog(() => console.log(`${this.constructor.name}: Invalid state ${this.state}`));
         }
     }
 
@@ -69,12 +69,12 @@ export class OfficerJob extends Job {
      */
     updateStarting(deltaTime, gameManager) {
         if (this.ship.state === 'Landed') {
-            this.debugLog(`${this.constructor.name}: Landed, transitioning to Waiting`);
+            this.debugLog(() => console.log(`${this.constructor.name}: Landed, transitioning to Waiting`));
             this.state = 'Waiting';
             return;
         }
         if (this.ship.state === 'Flying') {
-            this.debugLog(`${this.constructor.name}: Flying, transitioning to Hunting`);
+            this.debugLog(() => console.log(`${this.constructor.name}: Flying, transitioning to Hunting`));
             this.state = 'Hunting';
             this.nextTargetScan = this.ship.age;
         }
@@ -95,7 +95,7 @@ export class OfficerJob extends Job {
         if (this.pilot.autopilot instanceof BoardShipAutopilot) {
             // Boarding autopilot active, transition to Boarding state
             this.state = 'Boarding';
-            this.debugLog(`${this.constructor.name}: BoardShipAutopilot active, transitioning to Boarding`);
+            this.debugLog(() => console.log(`${this.constructor.name}: BoardShipAutopilot active, transitioning to Boarding`));
             return;
         }
 
@@ -113,7 +113,7 @@ export class OfficerJob extends Job {
             if (target) {
                 this.ship.target = target;
                 this.pilot.changeState('Attack', new AttackAutopilot(this.ship, target, true));
-                this.debugLog(`${this.constructor.name}: Found hostile target ${target.name}, initiating Attack`);
+                this.debugLog(() => console.log(`${this.constructor.name}: Found hostile target ${target.name}, initiating Attack`));
                 return;
             }
 
@@ -123,7 +123,7 @@ export class OfficerJob extends Job {
                 this.ship.target = target;
                 this.pilot.setAutopilot(new BoardShipAutopilot(this.ship, target));
                 this.state = 'Boarding';
-                this.debugLog(`${this.constructor.name}: Found disabled target ${target.name}, initiating Boarding`);
+                this.debugLog(() => console.log(`${this.constructor.name}: Found disabled target ${target.name}, initiating Boarding`));
                 return;
             }
 
@@ -133,9 +133,9 @@ export class OfficerJob extends Job {
                 this.ship.target = targetPlanet;
                 this.pilot.setAutopilot(new LandOnPlanetAutopilot(this.ship, targetPlanet));
                 this.state = 'Landing';
-                this.debugLog(`${this.constructor.name}: No targets, transitioning to Landing`);
+                this.debugLog(() => console.log(`${this.constructor.name}: No targets, transitioning to Landing`));
             } else {
-                this.debugLog(`${this.constructor.name}: No hostile, disabled, or planet targets found`);
+                this.debugLog(() => console.log(`${this.constructor.name}: No hostile, disabled, or planet targets found`));
             }
         }
     }
@@ -149,14 +149,14 @@ export class OfficerJob extends Job {
         if (this.ship.state === 'Landed' && this.ship.landedObject instanceof Ship) {
             // Boarding complete, transition to Boarded
             this.state = 'Boarded';
-            this.debugLog(`${this.constructor.name}: Boarding complete, transitioning to Boarded`);
+            this.debugLog(() => console.log(`${this.constructor.name}: Boarding complete, transitioning to Boarded`));
             return;
         }
         if (!this.pilot.autopilot || !(this.pilot.autopilot instanceof BoardShipAutopilot)) {
             // Autopilot stopped or failed, try hunting again
             this.state = 'Hunting';
             this.nextTargetScan = this.ship.age;
-            this.debugLog(`${this.constructor.name}: Boarding autopilot stopped, transitioning to Hunting`);
+            this.debugLog(() => console.log(`${this.constructor.name}: Boarding autopilot stopped, transitioning to Hunting`));
         }
     }
 
@@ -178,14 +178,14 @@ export class OfficerJob extends Job {
         if (this.ship.state === 'Landed' && this.ship.landedObject instanceof Planet) {
             // Landed on planet, transition to Landed
             this.state = 'Landed';
-            this.debugLog(`${this.constructor.name}: Landed on planet, transitioning to Landed`);
+            this.debugLog(() => console.log(`${this.constructor.name}: Landed on planet, transitioning to Landed`));
             return;
         }
         if (!this.pilot.autopilot || !(this.pilot.autopilot instanceof LandOnPlanetAutopilot)) {
             // Autopilot stopped or failed, try hunting again
             this.state = 'Hunting';
             this.nextTargetScan = this.ship.age;
-            this.debugLog(`${this.constructor.name}: Landing autopilot stopped, transitioning to Hunting`);
+            this.debugLog(() => console.log(`${this.constructor.name}: Landing autopilot stopped, transitioning to Hunting`));
         }
     }
 
@@ -197,10 +197,10 @@ export class OfficerJob extends Job {
     updateLanded(deltaTime, gameManager) {
         if (this.ship.state === 'Landed') {
             this.state = 'Waiting';
-            this.debugLog(`${this.constructor.name}: Landed, transitioning to Waiting`);
+            this.debugLog(() => console.log(`${this.constructor.name}: Landed, transitioning to Waiting`));
         } else {
             this.state = 'Starting';
-            this.debugLog(`${this.constructor.name}: Not landed, transitioning to Starting`);
+            this.debugLog(() => console.log(`${this.constructor.name}: Not landed, transitioning to Starting`));
         }
     }
 
@@ -211,7 +211,7 @@ export class OfficerJob extends Job {
      */
     updateWaiting(deltaTime, gameManager) {
         if (this.ship.state !== 'Landed') {
-            this.debugLog(`${this.constructor.name}: Not landed, transitioning to Starting`);
+            this.debugLog(() => console.log(`${this.constructor.name}: Not landed, transitioning to Starting`));
             this.state = 'Starting';
             return;
         }
@@ -222,7 +222,7 @@ export class OfficerJob extends Job {
             this.ship.target = target;
             this.pilot.changeState('Attack', new AttackAutopilot(this.ship, target, true));
             this.ship.initiateTakeoff();
-            this.debugLog(`${this.constructor.name}: Found hostile target ${target.name}, initiating takeoff and Attack`);
+            this.debugLog(() => console.log(`${this.constructor.name}: Found hostile target ${target.name}, initiating takeoff and Attack`));
             return;
         }
 
@@ -233,7 +233,7 @@ export class OfficerJob extends Job {
             this.pilot.setAutopilot(new BoardShipAutopilot(this.ship, target));
             this.ship.initiateTakeoff();
             this.state = 'Boarding';
-            this.debugLog(`${this.constructor.name}: Found disabled target ${target.name}, initiating takeoff and Boarding`);
+            this.debugLog(() => console.log(`${this.constructor.name}: Found disabled target ${target.name}, initiating takeoff and Boarding`));
         }
     }
 

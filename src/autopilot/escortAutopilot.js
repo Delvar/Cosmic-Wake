@@ -110,12 +110,12 @@ export class EscortAutopilot extends Autopilot {
                 this.subAutopilot = new TraverseJumpGateAutopilot(this.ship, jumpGate);
                 this.subAutopilot.start();
                 this.state = "TraversingJumpGate";
-                this.debugLog(`EscortAutopilot: Transitioned to TraversingJumpGate for system ${this.target.starSystem.name}`);
+                this.debugLog(() => console.log(`${this.constructor.name}: Transitioned to TraversingJumpGate for system ${this.target.starSystem.name}`));
             } else {
                 if (this.ship.state === "Landed") {
                     this.waitTime = randomBetween(this.waitTimeMin, this.waitTimeMax);
                     this.state = "Waiting";
-                    this.debugLog("EscortAutopilot: No jump gate found, transitioned to Waiting");
+                    this.debugLog(() => console.log(`${this.constructor.name}: No jump gate found, transitioned to Waiting`));
                 } else {
                     // Find the closest planet in the current system to land on
                     const closestPlanet = this.ship.starSystem.getClosestPlanet(this.ship);
@@ -123,11 +123,11 @@ export class EscortAutopilot extends Autopilot {
                         this.subAutopilot = new LandOnPlanetAutopilot(this.ship, closestPlanet);
                         this.subAutopilot.start();
                         this.state = "Landing";
-                        this.debugLog(`EscortAutopilot: No jump gate found, transitioned to Landing on ${closestPlanet.name}`);
+                        this.debugLog(() => console.log(`${this.constructor.name}: No jump gate found, transitioned to Landing on ${closestPlanet.name}`));
                     } else {
                         this.error = "No landable planets found in current system";
                         this.stop();
-                        this.debugLog("EscortAutopilot: Stopped due to no landable planets");
+                        this.debugLog(() => console.log(`${this.constructor.name}: Stopped due to no landable planets`));
                     }
                 }
             }
@@ -146,41 +146,41 @@ export class EscortAutopilot extends Autopilot {
                 if (this.ship.landedObject === landedObject) {
                     this.waitTime = randomBetween(this.waitTimeMin, this.waitTimeMax);
                     this.state = "Waiting";
-                    this.debugLog(`EscortAutopilot: Transitioned to Waiting on ${landedObject.name}`);
+                    this.debugLog(() => console.log(`${this.constructor.name}: Transitioned to Waiting on ${landedObject.name}`));
                 } else {
                     this.ship.initiateTakeoff();
-                    this.debugLog(`EscortAutopilot: Taking Off to land on ${landedObject.name}`);
+                    this.debugLog(() => console.log(`${this.constructor.name}: Taking Off to land on ${landedObject.name}`));
                 }
             } else if (this.ship.state === "Flying") {
                 if (landedObject instanceof Planet) {
                     this.subAutopilot = new LandOnPlanetAutopilot(this.ship, landedObject);
                     this.subAutopilot.start();
                     this.state = "Landing";
-                    this.debugLog(`EscortAutopilot: Transitioned to Landing on ${landedObject.name}`);
+                    this.debugLog(() => console.log(`${this.constructor.name}: Transitioned to Landing on ${landedObject.name}`));
                 } else {
                     //we don't know what it landed on so just follow the landed object
                     this.subAutopilot = new FollowAutopilot(this.ship, landedObject, this.minFollowDistance, this.maxFollowDistance);
                     this.subAutopilot.start()
                     this.state = "Following";
-                    this.debugLog(`EscortAutopilot: Transitioned to Following ${landedObject.name}`);
+                    this.debugLog(() => console.log(`${this.constructor.name}: Transitioned to Following ${landedObject.name}`));
                 }
             }
             // If ship is in TakingOff or Landing, let those states complete naturally
         } else if (this.target.state === "Flying" || this.target.state === "TakingOff") {
             if (this.ship.state === "Landed") {
                 this.ship.initiateTakeoff();
-                this.debugLog("EscortAutopilot: Taking Off to follow target");
+                this.debugLog(() => console.log(`${this.constructor.name}: Taking Off to follow target`));
             } else if (this.ship.state === "Flying") {
                 this.subAutopilot = new FollowAutopilot(this.ship, this.target, this.minFollowDistance, this.maxFollowDistance);
                 this.subAutopilot.start();
                 this.state = "Following";
-                this.debugLog(`EscortAutopilot: Transitioned to Following target ${this.target.name}`);
+                this.debugLog(() => console.log(`${this.constructor.name}: Transitioned to Following target ${this.target.name}`));
             }
             // If ship is in TakingOff or Landing, let those states complete naturally
         } else {
             this.error = `Invalid target state '${this.target.state}' in updateStarting`;
             this.stop();
-            this.debugLog(`EscortAutopilot: Stopped due to invalid target state '${this.target.state}'`);
+            this.debugLog(() => console.log(`${this.constructor.name}: Stopped due to invalid target state '${this.target.state}'`));
         }
     }
 
@@ -194,7 +194,7 @@ export class EscortAutopilot extends Autopilot {
         if (!this.target || this.target.isDespawned() || !(this.target instanceof Ship)) {
             this.error = "Target is invalid or despawned";
             this.stop();
-            this.debugLog('EscortAutopilot: Stopped due to invalid or despawned target');
+            this.debugLog(() => console.log(`${this.constructor.name}: Stopped due to invalid or despawned target`));
             return;
         }
 
@@ -202,7 +202,7 @@ export class EscortAutopilot extends Autopilot {
         if (this.ship.state !== 'Landed') {
             console.warn(`Unexpected ship state '${this.ship.state}' in Waiting state; resetting`);
             this.state = 'Starting';
-            this.debugLog(`EscortAutopilot: Reset to Starting due to unexpected ship state '${this.ship.state}'`);
+            this.debugLog(() => console.log(`${this.constructor.name}: Reset to Starting due to unexpected ship state '${this.ship.state}'`));
             return;
         }
 
@@ -212,7 +212,7 @@ export class EscortAutopilot extends Autopilot {
             if (this.target.state === 'Flying' || this.target.state === 'TakingOff') {
                 this.ship.initiateTakeoff();
                 this.state = 'Starting';
-                this.debugLog(`EscortAutopilot: Early takeoff triggered, transitioned to Starting due to target ${this.target.state}`);
+                this.debugLog(() => console.log(`${this.constructor.name}: Early takeoff triggered, transitioned to Starting due to target ${this.target.state}`));
                 return;
             }
 
@@ -222,7 +222,7 @@ export class EscortAutopilot extends Autopilot {
                 if (landedObject && this.ship.landedObject !== landedObject) {
                     this.ship.initiateTakeoff();
                     this.state = 'Starting';
-                    this.debugLog(`EscortAutopilot: Transitioned to Starting to land on target's planet ${landedObject.name}`);
+                    this.debugLog(() => console.log(`${this.constructor.name}: Transitioned to Starting to land on target's planet ${landedObject.name}`));
                     return;
                 }
             }
@@ -232,7 +232,7 @@ export class EscortAutopilot extends Autopilot {
         this.waitTime -= deltaTime;
         if (this.waitTime <= 0.0) {
             this.state = 'Starting';
-            this.debugLog('EscortAutopilot: Wait time expired, transitioned to Starting');
+            this.debugLog(() => console.log(`${this.constructor.name}: Wait time expired, transitioned to Starting`));
         }
     }
 
@@ -246,7 +246,7 @@ export class EscortAutopilot extends Autopilot {
             console.warn('Sub-autopilot not set or inactive during Following state');
             this.subAutopilot = null;
             this.state = 'Starting';
-            this.debugLog('EscortAutopilot: Reset to Starting due to missing or inactive sub-autopilot');
+            this.debugLog(() => console.log(`${this.constructor.name}: Reset to Starting due to missing or inactive sub-autopilot`));
             return;
         }
 
@@ -259,11 +259,11 @@ export class EscortAutopilot extends Autopilot {
                 this.subAutopilot = new TraverseJumpGateAutopilot(this.ship, jumpGate);
                 this.subAutopilot.start();
                 this.state = 'TraversingJumpGate';
-                this.debugLog(`EscortAutopilot: Transitioned to TraversingJumpGate for jump gate ${jumpGate.name}`);
+                this.debugLog(() => console.log(`${this.constructor.name}: Transitioned to TraversingJumpGate for jump gate ${jumpGate.name}`));
             } else {
                 this.waitTime = randomBetween(this.waitTimeMin, this.waitTimeMax);
                 this.state = 'Waiting';
-                this.debugLog('EscortAutopilot: No jump gate found, transitioned to Waiting');
+                this.debugLog(() => console.log(`${this.constructor.name}: No jump gate found, transitioned to Waiting`));
             }
             return;
         }
@@ -276,7 +276,7 @@ export class EscortAutopilot extends Autopilot {
                 this.subAutopilot.stop();
                 this.subAutopilot = null;
                 this.state = 'Starting';
-                this.debugLog('EscortAutopilot: Reset to Starting due to missing target planet');
+                this.debugLog(() => console.log(`${this.constructor.name}: Reset to Starting due to missing target planet`));
                 return;
             }
             if (landedObject instanceof Planet) {
@@ -284,7 +284,7 @@ export class EscortAutopilot extends Autopilot {
                 this.subAutopilot = new LandOnPlanetAutopilot(this.ship, landedObject);
                 this.subAutopilot.start();
                 this.state = "Landing";
-                this.debugLog(`EscortAutopilot: Transitioned to Landing on ${landedObject.name}`);
+                this.debugLog(() => console.log(`${this.constructor.name}: Transitioned to Landing on ${landedObject.name}`));
                 return;
             } else {
                 //we don't know what it landed on so just follow the landed object
@@ -292,7 +292,7 @@ export class EscortAutopilot extends Autopilot {
                 this.subAutopilot = new FollowAutopilot(this.ship, landedObject, this.minFollowDistance, this.maxFollowDistance);
                 this.subAutopilot.start()
                 this.state = "FollowLanding";
-                this.debugLog(`EscortAutopilot: Transitioned to FollowLanding ${landedObject.name}`);
+                this.debugLog(() => console.log(`${this.constructor.name}: Transitioned to FollowLanding ${landedObject.name}`));
                 return;
             }
         }
@@ -306,7 +306,7 @@ export class EscortAutopilot extends Autopilot {
                 this.subAutopilot = new TraverseJumpGateAutopilot(this.ship, jumpGate);
                 this.subAutopilot.start();
                 this.state = 'TraversingJumpGate';
-                this.debugLog(`EscortAutopilot: Transitioned to TraversingJumpGate for system ${this.target.starSystem.name}`);
+                this.debugLog(() => console.log(`${this.constructor.name}: Transitioned to TraversingJumpGate for system ${this.target.starSystem.name}`));
             } else {
                 // Land on the closest planet if no jump gate is found
                 const closestPlanet = this.ship.starSystem.getClosestPlanet(this.ship);
@@ -314,11 +314,11 @@ export class EscortAutopilot extends Autopilot {
                     this.subAutopilot = new LandOnPlanetAutopilot(this.ship, closestPlanet);
                     this.subAutopilot.start();
                     this.state = 'Landing';
-                    this.debugLog(`EscortAutopilot: No jump gate found, transitioned to Landing on ${closestPlanet.name}`);
+                    this.debugLog(() => console.log(`${this.constructor.name}: No jump gate found, transitioned to Landing on ${closestPlanet.name}`));
                 } else {
                     this.waitTime = randomBetween(this.waitTimeMin, this.waitTimeMax);
                     this.state = 'Waiting';
-                    this.debugLog('EscortAutopilot: No jump gate or planets found, transitioned to Waiting');
+                    this.debugLog(() => console.log(`${this.constructor.name}: No jump gate or planets found, transitioned to Waiting`));
                 }
             }
             return;
@@ -331,7 +331,7 @@ export class EscortAutopilot extends Autopilot {
             this.subAutopilot.stop();
             this.subAutopilot = null;
             this.state = 'Starting';
-            this.debugLog('EscortAutopilot: Reset to Starting due to sub-autopilot failure');
+            this.debugLog(() => console.log(`${this.constructor.name}: Reset to Starting due to sub-autopilot failure`));
         }
     }
 
@@ -345,7 +345,7 @@ export class EscortAutopilot extends Autopilot {
             console.warn('Sub-autopilot not set or inactive during FollowLanding state');
             this.subAutopilot = null;
             this.state = 'Starting';
-            this.debugLog('EscortAutopilot: Reset to Starting due to missing or inactive sub-autopilot');
+            this.debugLog(() => console.log(`${this.constructor.name}: Reset to Starting due to missing or inactive sub-autopilot`));
             return;
         }
 
@@ -355,7 +355,7 @@ export class EscortAutopilot extends Autopilot {
             this.subAutopilot = new FollowAutopilot(this.ship, this.target, this.minFollowDistance, this.maxFollowDistance);
             this.subAutopilot.start();
             this.state = 'Following';
-            this.debugLog(`EscortAutopilot: Aborted landing, transitioned to Following target ${this.target.name}`);
+            this.debugLog(() => console.log(`${this.constructor.name}: Aborted landing, transitioned to Following target ${this.target.name}`));
             return;
         }
 
@@ -366,7 +366,7 @@ export class EscortAutopilot extends Autopilot {
             this.subAutopilot.stop();
             this.subAutopilot = null;
             this.state = 'Starting';
-            this.debugLog('EscortAutopilot: Reset to Starting due to sub-autopilot failure');
+            this.debugLog(() => console.log(`${this.constructor.name}: Reset to Starting due to sub-autopilot failure`));
         }
     }
 
@@ -381,7 +381,7 @@ export class EscortAutopilot extends Autopilot {
             console.warn('Sub-autopilot not set or inactive during Landing state');
             this.subAutopilot = null;
             this.state = 'Starting';
-            this.debugLog('EscortAutopilot: Reset to Starting due to missing or inactive sub-autopilot');
+            this.debugLog(() => console.log(`${this.constructor.name}: Reset to Starting due to missing or inactive sub-autopilot`));
             return;
         }
 
@@ -391,7 +391,7 @@ export class EscortAutopilot extends Autopilot {
             this.subAutopilot = new FollowAutopilot(this.ship, this.target, this.minFollowDistance, this.maxFollowDistance);
             this.subAutopilot.start();
             this.state = 'Following';
-            this.debugLog(`EscortAutopilot: Aborted landing, transitioned to Following target ${this.target.name}`);
+            this.debugLog(() => console.log(`${this.constructor.name}: Aborted landing, transitioned to Following target ${this.target.name}`));
             return;
         }
 
@@ -404,7 +404,7 @@ export class EscortAutopilot extends Autopilot {
                 this.subAutopilot = new TraverseJumpGateAutopilot(this.ship, jumpGate);
                 this.subAutopilot.start();
                 this.state = 'TraversingJumpGate';
-                this.debugLog(`EscortAutopilot: Target moved to another system, transitioned to TraversingJumpGate for system ${this.target.starSystem.name}`);
+                this.debugLog(() => console.log(`${this.constructor.name}: Target moved to another system, transitioned to TraversingJumpGate for system ${this.target.starSystem.name}`));
             } else {
                 // Land on the closest planet if no jump gate is found
                 const closestPlanet = this.ship.starSystem.getClosestPlanet(this.ship);
@@ -412,11 +412,11 @@ export class EscortAutopilot extends Autopilot {
                     this.subAutopilot = new LandOnPlanetAutopilot(this.ship, closestPlanet);
                     this.subAutopilot.start();
                     this.state = 'Landing';
-                    this.debugLog(`EscortAutopilot: No jump gate found, continuing Landing on ${closestPlanet.name}`);
+                    this.debugLog(() => console.log(`${this.constructor.name}: No jump gate found, continuing Landing on ${closestPlanet.name}`));
                 } else {
                     this.waitTime = randomBetween(this.waitTimeMin, this.waitTimeMax);
                     this.state = 'Waiting';
-                    this.debugLog('EscortAutopilot: No jump gate or planets found, transitioned to Waiting');
+                    this.debugLog(() => console.log(`${this.constructor.name}: No jump gate or planets found, transitioned to Waiting`));
                 }
             }
             return;
@@ -429,23 +429,23 @@ export class EscortAutopilot extends Autopilot {
                 console.warn(`Landing failed: ${this.subAutopilot.error}`);
                 this.subAutopilot = null;
                 this.state = 'Starting';
-                this.debugLog(`EscortAutopilot: Reset to Starting due to landing failure: ${this.subAutopilot.error}`);
+                this.debugLog(() => console.log(`${this.constructor.name}: Reset to Starting due to landing failure: ${this.subAutopilot.error}`));
             } else if (this.ship.state === 'Landed') {
                 this.subAutopilot = null;
                 this.waitTime = randomBetween(this.waitTimeMin, this.waitTimeMax);
                 this.state = 'Waiting';
-                this.debugLog(`EscortAutopilot: Landing complete, transitioned to Waiting on ${this.ship.landedObject.name}`);
+                this.debugLog(() => console.log(`${this.constructor.name}: Landing complete, transitioned to Waiting on ${this.ship.landedObject.name}`));
             } else {
                 console.warn('Landing completed but ship not landed; resetting');
                 this.subAutopilot = null;
                 this.state = 'Starting';
-                this.debugLog('EscortAutopilot: Reset to Starting due to unexpected ship state after landing');
+                this.debugLog(() => console.log(`${this.constructor.name}: Reset to Starting due to unexpected ship state after landing`));
             }
         } else if (!this.subAutopilot.active) {
             console.warn('Sub-autopilot inactive but not complete during Landing state');
             this.subAutopilot = null;
             this.state = 'Starting';
-            this.debugLog('EscortAutopilot: Reset to Starting due to inactive sub-autopilot');
+            this.debugLog(() => console.log(`${this.constructor.name}: Reset to Starting due to inactive sub-autopilot`));
         }
     }
 
@@ -459,7 +459,7 @@ export class EscortAutopilot extends Autopilot {
             console.warn('Sub-autopilot not set or inactive during TraversingJumpGate state');
             this.subAutopilot = null;
             this.state = 'Starting';
-            this.debugLog('EscortAutopilot: Reset to Starting due to missing or inactive sub-autopilot');
+            this.debugLog(() => console.log(`${this.constructor.name}: Reset to Starting due to missing or inactive sub-autopilot`));
             return;
         }
 
@@ -470,23 +470,23 @@ export class EscortAutopilot extends Autopilot {
                 console.warn(`Jump failed: ${this.subAutopilot.error}`);
                 this.subAutopilot = null;
                 this.state = 'Starting';
-                this.debugLog(`EscortAutopilot: Reset to Starting due to jump failure: ${this.subAutopilot.error}`);
+                this.debugLog(() => console.log(`${this.constructor.name}: Reset to Starting due to jump failure: ${this.subAutopilot.error}`));
             } else if (this.ship.state === 'Flying' && this.ship.starSystem === this.target.starSystem) {
                 this.subAutopilot = new FollowAutopilot(this.ship, this.target, this.minFollowDistance, this.maxFollowDistance);
                 this.subAutopilot.start();
                 this.state = 'Following';
-                this.debugLog(`EscortAutopilot: Jump complete, transitioned to Following target ${this.target.name} in system ${this.ship.starSystem.name}`);
+                this.debugLog(() => console.log(`${this.constructor.name}: Jump complete, transitioned to Following target ${this.target.name} in system ${this.ship.starSystem.name}`));
             } else {
                 console.warn('Jump completed but not in target system or not flying; resetting');
                 this.subAutopilot = null;
                 this.state = 'Starting';
-                this.debugLog('EscortAutopilot: Reset to Starting due to unexpected state or system mismatch after jump');
+                this.debugLog(() => console.log(`${this.constructor.name}: Reset to Starting due to unexpected state or system mismatch after jump`));
             }
         } else if (!this.subAutopilot.active) {
             console.warn('Sub-autopilot inactive but not complete during TraversingJumpGate state');
             this.subAutopilot = null;
             this.state = 'Starting';
-            this.debugLog('EscortAutopilot: Reset to Starting due to inactive sub-autopilot');
+            this.debugLog(() => console.log(`${this.constructor.name}: Reset to Starting due to inactive sub-autopilot`));
         }
     }
 }

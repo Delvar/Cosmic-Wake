@@ -525,19 +525,20 @@ export class Ship extends GameObject {
         }
 
         if (newState === 'Disabled' || newState === 'Exploding') {
-            this.debugLog(`new state: ${newState}, light mode: Flicker, original light mode: ${this.lightMode}`);
+            this.debugLog(() => console.log(`${this.constructor.name}: new state: ${newState}, light mode: Flicker, original light mode: ${this.lightMode}`));
             this.lightMode = 'Flicker';
-        } else if (this.lightMode === 'Flicker') {
-            this.debugLog(`new state: ${newState}, light mode: Normal, original light mode: ${this.lightMode}`);
+        } else if ((previousState === 'Disabled' || previousState === 'Exploding') && this.lightMode === 'Flicker') {
+            this.debugLog(() => console.log(`${this.constructor.name}: new state: ${newState}, light mode: Normal, original light mode: ${this.lightMode}`));
             this.lightMode = 'Normal';
         }
 
         this.state = newState;
         this.animationTime = 0.0; // Reset animation timer for new state
 
-        // if (previousState !== newState) {
-        //     this.uiLog(`State: ${previousState} -> ${newState}`);
-        // }
+        if (previousState !== newState) {
+            //     this.uiLog(`State: ${previousState} -> ${newState}`);
+            this.debugLog(() => console.log(`${this.constructor.name}: State: ${previousState} -> ${newState}`));
+        }
 
         // Ensure we stop Jettisoning or Pickup if we stop flying
         if (newState !== 'Flying') {
@@ -905,7 +906,7 @@ export class Ship extends GameObject {
 
         // Log NaN position errors in debug mode
         if (isNaN(this.position.x)) {
-            this.debugLog('Position became NaN');
+            this.debugLog(() => console.log(`${this.constructor.name}: Position became NaN`));
         }
 
         // Remove despawned ships from hostiles without allocations
@@ -1030,7 +1031,7 @@ export class Ship extends GameObject {
             this._getRandomPointInBoundingBox(this._scratchExplosionPos);
             this._applyExplosionImpulse(this._scratchExplosionPos, this.explosionForce, this.explosionTorque);
             this.starSystem.particleManager.spawnExplosion(this._scratchExplosionPos, this.radius * 0.5, this.velocity);
-
+            this.uiLog('Ship disabled!');
             return;
         }
 
@@ -1318,7 +1319,7 @@ export class Ship extends GameObject {
     updateDisabled(deltaTime) {
         // Check for transition to Exploding
         if (this.hullIntegrity <= 0.0) {
-            this.uiLog('Ship disabled and entering explosion sequence');
+            //this.uiLog('Ship disabled and entering explosion sequence');
             this.setState('Exploding');
             this.hullIntegrity = this.disabledThreshold;
             this.isThrusting = false;
@@ -1373,8 +1374,8 @@ export class Ship extends GameObject {
 
             // Despawn the ship
             this.despawn();
-            this.uiLog(`Ship ${this.name} exploded and despawned`);
-            this.debugLog(`Ship ${this.name} despawned with final explosion at (${this._scratchExplosionPos.x.toFixed(2.0)}, ${this._scratchExplosionPos.y.toFixed(2.0)})`);
+            this.uiLog(`Ship ${this.name} exploded!`);
+            this.debugLog(() => console.log(`${this.constructor.name}: Ship ${this.name} despawned with final explosion at (${this._scratchExplosionPos.x.toFixed(2.0)}, ${this._scratchExplosionPos.y.toFixed(2.0)})`));
             return;
         }
 
@@ -1409,7 +1410,7 @@ export class Ship extends GameObject {
             // Update explosion delay
             this.explosionDelay = this.explosionTime + nextExplosionTime;
 
-            this.debugLog(`Explosion at (${this._scratchExplosionPos.x.toFixed(2.0)}, ${this._scratchExplosionPos.y.toFixed(2.0)}), hullIntegrity: ${this.hullIntegrity.toFixed(2.0)}, nextExplosionTime: ${nextExplosionTime.toFixed(2.0)}s`);
+            this.debugLog(() => console.log(`${this.constructor.name}: Explosion at (${this._scratchExplosionPos.x.toFixed(2.0)}, ${this._scratchExplosionPos.y.toFixed(2.0)}), hullIntegrity: ${this.hullIntegrity.toFixed(2.0)}, nextExplosionTime: ${nextExplosionTime.toFixed(2.0)}s`));
         }
 
         // Update position based on velocity
@@ -1465,7 +1466,7 @@ export class Ship extends GameObject {
         this.angularVelocity += (torque / (this.radius * this.radius)) * currentTorque;
 
         // Debug log for torque
-        this.debugLog(`Explosion at (${explosionPos.x.toFixed(2)}, ${explosionPos.y.toFixed(2)}), torque: ${torque.toFixed(2)}`);
+        this.debugLog(() => console.log(`${this.constructor.name}: Explosion at (${explosionPos.x.toFixed(2)}, ${explosionPos.y.toFixed(2)}), torque: ${torque.toFixed(2)}`));
     }
 
     /**

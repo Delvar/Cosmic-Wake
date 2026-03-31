@@ -79,13 +79,15 @@ export class GameObject {
 
     /**
      * Logs a message to the console if debug mode is enabled.
-     * @param {...any} messages - Values to log (same as console.log).
+     * If a callback is passed, it is executed only when debug is true, so the console frame
+     * is attributed to the caller location.
+     * @param {Function} callback - Callback function
      */
-    debugLog(...messages) {
+    debugLog(callback) {
         if (!this.debug) return;
-        const err = new Error();
-        // stack[0] = Error constructor, stack[1] = debugLog, stack[2] = original caller
-        const caller = err.stack.split('\n')[2]?.trim() || '(unknown call site)';
-        console.log(`[${caller}]`, ...messages);
+
+        if (typeof callback === 'function') {
+            callback();
+        }
     }
 }

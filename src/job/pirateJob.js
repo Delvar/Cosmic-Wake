@@ -52,7 +52,7 @@ export class PirateJob extends Job {
         if (handler) {
             handler(deltaTime, gameManager);
         } else {
-            this.debugLog(`${this.constructor.name}: Invalid state ${this.state}`);
+            this.debugLog(() => console.log(`${this.constructor.name}: Invalid state ${this.state}`));
         }
     }
 
@@ -63,10 +63,10 @@ export class PirateJob extends Job {
      */
     updateStarting(deltaTime, gameManager) {
         if (this.ship.state === 'Landed') {
-            this.debugLog(`${this.constructor.name}: Initial start, initiating takeoff`);
+            this.debugLog(() => console.log(`${this.constructor.name}: Initial start, initiating takeoff`));
             this.ship.initiateTakeoff();
         } else if (this.ship.state === 'Flying') {
-            this.debugLog(`${this.constructor.name}: Ship flying, transitioning to Hunting`);
+            this.debugLog(() => console.log(`${this.constructor.name}: Ship flying, transitioning to Hunting`));
             this.state = 'Hunting';
         }
     }
@@ -107,9 +107,9 @@ export class PirateJob extends Job {
             if (target) {
                 this.ship.target = target;
                 this.pilot.changeState('Attack', new AttackAutopilot(this.ship, target, !this.attackDisabledShips));
-                this.debugLog(`${this.constructor.name}: Found target ${target.name}, initiating Attack`);
+                this.debugLog(() => console.log(`${this.constructor.name}: Found target ${target.name}, initiating Attack`));
             } else {
-                this.debugLog(`${this.constructor.name}: No valid target found`);
+                this.debugLog(() => console.log(`${this.constructor.name}: No valid target found`));
             }
         }
     }

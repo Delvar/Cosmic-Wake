@@ -45,7 +45,7 @@ export class EscortJob extends Job {
         if (handler) {
             handler(deltaTime, gameManager);
         } else {
-            this.debugLog(`EscortJob: Invalid state ${this.state}`);
+            this.debugLog(() => console.log(`${this.constructor.name}: Invalid state ${this.state}`));
             this.error = `Invalid state: ${this.state}`;
             this.state = 'Failed';
         }
@@ -69,7 +69,7 @@ export class EscortJob extends Job {
      */
     updateStarting(deltaTime, gameManager) {
         if (!this.target || this.target.isDespawned() || !(this.target instanceof Ship)) {
-            this.debugLog('EscortJob: Invalid or despawned escorted ship, failing job');
+            this.debugLog(() => console.log(`${this.constructor.name}: Invalid or despawned escorted ship, failing job`));
             this.error = 'Invalid or despawned escorted ship';
             this.state = 'Failed';
             return;
@@ -84,7 +84,7 @@ export class EscortJob extends Job {
      */
     updateEscorting(deltaTime, gameManager) {
         if (!this.target || this.target.isDespawned()) {
-            this.debugLog('EscortJob: Escorted ship despawned, failing job');
+            this.debugLog(() => console.log(`${this.constructor.name}: Escorted ship despawned, failing job`));
             this.error = 'Escorted ship despawned';
             this.state = 'Failed';
             return;
@@ -92,10 +92,10 @@ export class EscortJob extends Job {
 
         if (this.pilot.state !== 'Attack') {
             if (this.target.lastAttacker && isValidTarget(this.ship, this.target.lastAttacker)) {
-                this.debugLog(`EscortJob: Escorted ship attacked by ${this.target.lastAttacker.name}, switching to Attack state`);
+                this.debugLog(() => console.log(`${this.constructor.name}: Escorted ship attacked by ${this.target.lastAttacker.name}, switching to Attack state`));
                 this.pilot.changeState('Attack', new AttackAutopilot(this.ship, this.target.lastAttacker, true));
             } else if (!this.pilot.autopilot || !this.pilot.autopilot.active) {
-                this.debugLog(`EscortJob: Reinstating EscortAutopilot for ${this.target.name}`);
+                this.debugLog(() => console.log(`${this.constructor.name}: Reinstating EscortAutopilot for ${this.target.name}`));
                 this.pilot.setAutopilot(new EscortAutopilot(this.ship, this.target));
                 this.state = 'Escorting';
             }
@@ -108,6 +108,6 @@ export class EscortJob extends Job {
     resume() {
         super.resume();
         this.state = 'Starting';
-        this.debugLog(`EscortJob: Resumed, transitioning to Starting`);
+        this.debugLog(() => console.log(`${this.constructor.name}: Resumed, transitioning to Starting`));
     }
 }

@@ -93,7 +93,7 @@ export class MinerJob extends Job {
             this.targetAsteroid = this.ship.starSystem.getRandomAsteroid(this.ship);
             if (!this.targetAsteroid || !isValidTarget(this.ship, this.targetAsteroid)) {
                 this.state = 'Failed';
-                this.debugLog('MinerJob: No asteroids available, transitioning to Failed');
+                this.debugLog(() => console.log(`${this.constructor.name}: No asteroids available, transitioning to Failed`));
                 return;
             }
         }
@@ -101,20 +101,20 @@ export class MinerJob extends Job {
             if (this.ship.landedObject === this.homePlanet) {
                 this.waitTime = randomBetween(this.waitTimeMin, this.waitTimeMax);
                 this.state = 'WaitingOnHomePlanet';
-                this.debugLog('MinerJob: Landed on home planet, transitioning to WaitingOnHomePlanet');
+                this.debugLog(() => console.log(`${this.constructor.name}: Landed on home planet, transitioning to WaitingOnHomePlanet`));
             } else if (this.ship.landedObject === this.targetAsteroid) {
                 this.waitTime = randomBetween(this.waitTimeMin, this.waitTimeMax);
                 this.state = 'Mining';
-                this.debugLog('MinerJob: Landed on asteroid, transitioning to Mining');
+                this.debugLog(() => console.log(`${this.constructor.name}: Landed on asteroid, transitioning to Mining`));
             } else {
                 this.ship.initiateTakeoff();
-                this.debugLog('MinerJob: Found asteroid, initiating takeoff');
+                this.debugLog(() => console.log(`${this.constructor.name}: Found asteroid, initiating takeoff`));
                 // Stay in Starting; next update handles Flying
             }
         } else if (this.ship.state === 'Flying') {
             this.pilot.setAutopilot(new LandOnAsteroidAutopilot(this.ship, this.targetAsteroid));
             this.state = 'FlyingToAsteroid';
-            this.debugLog('MinerJob: Flying to asteroid');
+            this.debugLog(() => console.log(`${this.constructor.name}: Flying to asteroid`));
         }
         // Wait if TakingOff
     }
@@ -197,7 +197,7 @@ export class MinerJob extends Job {
      */
     pause() {
         super.pause();
-        this.debugLog(`MinerJob: Paused in state ${this.state}`);
+        this.debugLog(() => console.log(`${this.constructor.name}: Paused in state ${this.state}`));
     }
 
     /**
@@ -208,10 +208,10 @@ export class MinerJob extends Job {
         if (this.ship.state === 'Landed') {
             this.state = 'WaitingOnHomePlanet';
             this.waitTime = randomBetween(this.waitTimeMin, this.waitTimeMax);
-            this.debugLog('MinerJob: Resuming, ship landed, setting WaitingOnHomePlanet');
+            this.debugLog(() => console.log(`${this.constructor.name}: Resuming, ship landed, setting WaitingOnHomePlanet`));
         } else {
             this.state = 'Starting';
-            this.debugLog(`MinerJob: Resuming, ship ${this.ship.state}, setting Starting`);
+            this.debugLog(() => console.log(`${this.constructor.name}: Resuming, ship ${this.ship.state}, setting Starting`));
         }
     }
 }

@@ -39,7 +39,7 @@ export class CargoCollectorAutopilot extends Autopilot {
     start() {
         super.start();
         this.state = 'Searching';
-        this.debugLog(`${this.constructor.name}: Starting`);
+        this.debugLog(() => console.log(`${this.constructor.name}: Starting`));
     }
 
     /**

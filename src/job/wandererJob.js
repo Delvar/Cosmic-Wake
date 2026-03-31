@@ -143,7 +143,8 @@ export class WandererJob extends Job {
             } else {
                 //FIXME: need a better recovery method than this.
                 this.resume();
-                console.warn('${this.constructor.name}: Autopilot missing, no valid target, restarting!');
+                //this.debugLog(() => console.warn(`${this.constructor.name}: Autopilot missing, no valid target, restarting!`));
+                console.warn(`${this.constructor.name}: Autopilot missing, no valid target, restarting!`)
                 return;
             }
         }

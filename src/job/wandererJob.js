@@ -140,6 +140,11 @@ export class WandererJob extends Job {
             } else if (this.target instanceof JumpGate) {
                 this.debugLog(`WandererJob: Setting LandOnPlanetAutopilot for ${this.target.name}`);
                 this.pilot.setAutopilot(new LandOnPlanetAutopilot(this.ship, this.target));
+            } else {
+                //FIXME: need a better recovery method than this.
+                this.resume();
+                console.warn('WandererJob: Autopilot missing, no valid target, restarting!');
+                return;
             }
         }
 

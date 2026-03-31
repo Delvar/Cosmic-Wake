@@ -31,6 +31,7 @@
 - [ ] **Pirate cargo selling behaviour** - If pirates are full of cargo, they will jump out of system and land on a planet to sell their stolen commodities.
 - [X] **Civilian opportunistic cargo pickup** - Civilians in smaller/faster ships with free cargo room may attempt to pickup cargo in the system if it's not too far away.
 - [X] **Pirate targeting behaviour** - Pirates only attack ships with cargo, they prioritise ships with the most cargo.
+- [ ] **Fix WandererJob route/landing bug** - WandererJob currently shuttles between systems without landing on planets; rewrite route selection and state transitions to ensure planet landing behaviors.
 
 ## Interface and Interaction Windows
 

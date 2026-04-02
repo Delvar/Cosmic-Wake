@@ -85,11 +85,11 @@ export class FlyToTargetAutopilot extends Autopilot {
      */
     update(deltaTime, gameManager) {
         if (this.ship.state === 'Landed') {
-            if (this.ship.landedObject === this.target) {
+            if (this.ship.dockingContext?.landedObject === this.target) {
                 this.completed = true;
                 this.stop();
             } else {
-                this.ship.initiateTakeoff();
+                this.ship.dockingContext.takeOff();
             }
             return;
         }

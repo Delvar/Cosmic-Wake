@@ -98,16 +98,16 @@ export class MinerJob extends Job {
             }
         }
         if (this.ship.state === 'Landed') {
-            if (this.ship.landedObject === this.homePlanet) {
+            if (this.ship.dockingContext?.landedObject === this.homePlanet) {
                 this.waitTime = randomBetween(this.waitTimeMin, this.waitTimeMax);
                 this.state = 'WaitingOnHomePlanet';
                 this.debugLog(() => console.log(`${this.constructor.name}: Landed on home planet, transitioning to WaitingOnHomePlanet`));
-            } else if (this.ship.landedObject === this.targetAsteroid) {
+            } else if (this.ship.dockingContext?.landedObject === this.targetAsteroid) {
                 this.waitTime = randomBetween(this.waitTimeMin, this.waitTimeMax);
                 this.state = 'Mining';
                 this.debugLog(() => console.log(`${this.constructor.name}: Landed on asteroid, transitioning to Mining`));
             } else {
-                this.ship.initiateTakeoff();
+                this.ship.dockingContext.takeOff();
                 this.debugLog(() => console.log(`${this.constructor.name}: Found asteroid, initiating takeoff`));
                 // Stay in Starting; next update handles Flying
             }
@@ -134,7 +134,7 @@ export class MinerJob extends Job {
             this.pilot.setAutopilot(new LandOnAsteroidAutopilot(this.ship, this.targetAsteroid));
         }
         if (this.pilot.autopilot == null || this.pilot.autopilot.isComplete()) {
-            if (this.ship.state === 'Landed' && this.ship.landedObject === this.targetAsteroid) {
+            if (this.ship.state === 'Landed' && this.ship.dockingContext?.landedObject === this.targetAsteroid) {
                 this.waitTime = this.miningTime;
                 this.state = 'Mining';
             } else {
@@ -154,7 +154,7 @@ export class MinerJob extends Job {
     updateMining(deltaTime, gameManager) {
         this.waitTime -= deltaTime;
         if (this.waitTime <= 0.0) {
-            this.ship.initiateTakeoff();
+            this.ship.dockingContext.takeOff();
             this.pilot.setAutopilot(new LandOnPlanetAutopilot(this.ship, this.homePlanet));
             this.state = 'FlyingToHomePlanet';
             this.targetAsteroid = null;
@@ -168,7 +168,7 @@ export class MinerJob extends Job {
      */
     updateFlyingToHomePlanet(deltaTime, gameManager) {
         if (this.pilot.autopilot == null || this.pilot.autopilot.isComplete()) {
-            if (this.ship.state === 'Landed' && this.ship.landedObject === this.homePlanet) {
+            if (this.ship.state === 'Landed' && this.ship.dockingContext?.landedObject === this.homePlanet) {
                 this.waitTime = randomBetween(this.waitTimeMin, this.waitTimeMax);
                 this.state = 'WaitingOnHomePlanet';
             } else {
@@ -187,7 +187,7 @@ export class MinerJob extends Job {
     updateWaitingOnHomePlanet(deltaTime, gameManager) {
         this.waitTime -= deltaTime;
         if (this.waitTime <= 0.0) {
-            this.ship.initiateTakeoff();
+            this.ship.dockingContext.takeOff();
             this.state = 'Starting';
         }
     }

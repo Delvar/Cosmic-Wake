@@ -146,7 +146,7 @@ export class OfficerJob extends Job {
      * @param {GameManager} gameManager - The game manager instance for context.
      */
     updateBoarding(deltaTime, gameManager) {
-        if (this.ship.state === 'Landed' && this.ship.landedObject instanceof Ship) {
+        if (this.ship.state === 'Landed' && this.ship.dockingContext?.landedObject instanceof Ship) {
             // Boarding complete, transition to Boarded
             this.state = 'Boarded';
             this.debugLog(() => console.log(`${this.constructor.name}: Boarding complete, transitioning to Boarded`));
@@ -175,7 +175,7 @@ export class OfficerJob extends Job {
      * @param {GameManager} gameManager - The game manager instance for context.
      */
     updateLanding(deltaTime, gameManager) {
-        if (this.ship.state === 'Landed' && this.ship.landedObject instanceof Planet) {
+        if (this.ship.state === 'Landed' && this.ship.dockingContext?.landedObject instanceof Planet) {
             // Landed on planet, transition to Landed
             this.state = 'Landed';
             this.debugLog(() => console.log(`${this.constructor.name}: Landed on planet, transitioning to Landed`));
@@ -221,7 +221,7 @@ export class OfficerJob extends Job {
         if (target) {
             this.ship.target = target;
             this.pilot.changeState('Attack', new AttackAutopilot(this.ship, target, true));
-            this.ship.initiateTakeoff();
+            this.ship.dockingContext.takeOff();
             this.debugLog(() => console.log(`${this.constructor.name}: Found hostile target ${target.name}, initiating takeoff and Attack`));
             return;
         }
@@ -231,7 +231,7 @@ export class OfficerJob extends Job {
         if (target) {
             this.ship.target = target;
             this.pilot.setAutopilot(new BoardShipAutopilot(this.ship, target));
-            this.ship.initiateTakeoff();
+            this.ship.dockingContext.takeOff();
             this.state = 'Boarding';
             this.debugLog(() => console.log(`${this.constructor.name}: Found disabled target ${target.name}, initiating takeoff and Boarding`));
         }

@@ -64,7 +64,7 @@ export class PirateJob extends Job {
     updateStarting(deltaTime, gameManager) {
         if (this.ship.state === 'Landed') {
             this.debugLog(() => console.log(`${this.constructor.name}: Initial start, initiating takeoff`));
-            this.ship.initiateTakeoff();
+            this.ship.dockingContext.takeOff();
         } else if (this.ship.state === 'Flying') {
             this.debugLog(() => console.log(`${this.constructor.name}: Ship flying, transitioning to Hunting`));
             this.state = 'Hunting';

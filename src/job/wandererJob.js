@@ -110,7 +110,7 @@ export class WandererJob extends Job {
             if (this.waitTime <= 0.0) {
                 this.debugLog(() => console.log(`${this.constructor.name}: Initiating takeoff toward ${this.target.name}`));
                 this.ship.setTarget(this.target);
-                this.ship.initiateTakeoff();
+                this.ship.dockingContext.takeOff();
                 this.waitTime = 0.0;
             }
             return;
@@ -183,7 +183,7 @@ export class WandererJob extends Job {
      */
     planRoute() {
         const currentSystem = this.ship.starSystem;
-        const excludePlanet = (this.ship.state === 'Landed' && this.ship.landedObject instanceof Planet) ? this.ship.landedObject : null;
+        const excludePlanet = (this.ship.state === 'Landed' && this.ship.dockingContext?.landedObject instanceof Planet) ? this.ship.dockingContext.landedObject : null;
 
         this.debugLog(() => console.log(`${this.constructor.name}: Planning route, system: ${currentSystem.name}, exclude: ${excludePlanet?.name || 'none'}`));
 

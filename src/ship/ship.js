@@ -21,6 +21,7 @@ import { EscortJob } from '/src/job/escortJob.js';
 import { CommodityType, Commodities } from '/src/core/commodity.js';
 import { UiLog } from '/src/ui/uiLog.js'
 import { CivilianAiPilot } from '/src/pilot/civilianAiPilot.js';
+import { DockingContext } from '/src/ship/dockingContext.js';
 
 //Colours used for the lights
 const colourRed = new Colour(1.0, 0.0, 0.0);
@@ -110,8 +111,8 @@ export class Ship extends GameObject {
         this.target = null;
         /** @type {Ship|null} the last Ship to cause damage. */
         this.lastAttacker = null;
-        /** @type {CelestialBody|Asteroid|Ship|null} Object the ship is landed on. */
-        this.landedObject = null;
+        /** @type {DockingContext|null} The DockingContext for the thing the ship is landed on/docked with. */
+        this.dockingContext = null;
         /** @type {JumpGate|null} Jump gate used for hyperjumping. */
         this.jumpGate = null;
         /** @type {string} Current state (e.g., 'Flying', 'Landing', 'Landed'). */
@@ -241,6 +242,27 @@ export class Ship extends GameObject {
          * but skips for subclasses. Prevents adding/deleting properties.
          */
         if (new.target === Ship) Object.seal(this);
+    }
+
+    /**
+     * Creates a new DockingContext for the given landed object, disposing any existing one.
+     * @param {CelestialBody|Asteroid|Ship|null} landedObject - The object the ship is landing on or boarding.
+     */
+    createDockingContext(landedObject) {
+        if (this.dockingContext) {
+            this.dockingContext.dispose();
+        }
+        this.dockingContext = new DockingContext(landedObject, this);
+    }
+
+    /**
+     * Destroys the current DockingContext, disposing it and clearing the reference.
+     */
+    destroyDockingContext() {
+        if (this.dockingContext) {
+            this.dockingContext.dispose();
+            this.dockingContext = null;
+        }
     }
 
     /**
@@ -462,12 +484,11 @@ export class Ship extends GameObject {
      */
     despawn() {
         super.despawn();
-        if (this.landedObject) {
+        if (this.dockingContext?.landedObject) {
             // Remove the ship from the landed object (e.g., planet) if applicable
-            if (this.landedObject instanceof CelestialBody) {
-                this.landedObject.removeLandedShip(this);
+            if (this.dockingContext.landedObject instanceof CelestialBody) {
+                this.dockingContext.landedObject.removeLandedShip(this);
             }
-            this.landedObject = null;
         }
     }
 
@@ -600,7 +621,7 @@ export class Ship extends GameObject {
      * @returns {boolean} True if started successfully.
      */
     startMining() {
-        if (this.state === 'Landed' && this.landedObject instanceof Asteroid && !this.isCargoFull()) {
+        if (this.state === 'Landed' && this.dockingContext?.landedObject instanceof Asteroid && !this.isCargoFull()) {
             this.miningEnabled = true;
             this.uiLog('Mining started');
             return true;
@@ -660,23 +681,25 @@ export class Ship extends GameObject {
      */
     initiateLanding(target) {
         if (this.canLand(target)) {
+            // Create a docking context for this landed ship, for player and AI access.
+            this.createDockingContext(target);
+
             this.setState('Landing');
-            this.landedObject = target;
-            this.startPosition.set(this.velocity).multiplyInPlace(1.0 / 60.0).addInPlace(this.position).subtractInPlace(this.landedObject.position);
-            if (this.landedObject instanceof Planet) {
+            this.startPosition.set(this.velocity).multiplyInPlace(1.0 / 60.0).addInPlace(this.position).subtractInPlace(this.dockingContext.landedObject.position);
+            if (this.dockingContext.landedObject instanceof Planet) {
                 this.endPosition.set(this.position)
-                    .subtractInPlace(this.landedObject.position)
+                    .subtractInPlace(this.dockingContext.landedObject.position)
                     .normalizeInPlace()
-                    .multiplyInPlace(this.landedObject.radius * randomBetween(-0.75, 0.75));
+                    .multiplyInPlace(this.dockingContext.landedObject.radius * randomBetween(-0.75, 0.75));
                 // Increase trail decay during landing
                 this.trail.decayMultiplier = 2.0;
-            } else if (this.landedObject instanceof Asteroid) {
+            } else if (this.dockingContext.landedObject instanceof Asteroid) {
                 this.endPosition.set(0.0, 0.0);
                 this.startAngle = this.angle;
             }
             this.isThrusting = false;
             this.isBraking = false;
-            this.uiLog(`Landing initiated on ${this.landedObject.constructor.name} ${this.landedObject.name || ''}`);
+            this.uiLog(`Landing initiated on ${this.dockingContext.landedObject.constructor.name} ${this.dockingContext.landedObject.name || ''}`);
             return true;
         }
         this.uiLog('Landing aborted: cannot land on target');
@@ -690,14 +713,16 @@ export class Ship extends GameObject {
      */
     initiateBoarding(target) {
         if (this.canBoard(target)) {
+            // Create a docking context for this boarded ship
+            this.createDockingContext(target);
+
             this.setState('Landing');
-            this.landedObject = target;
-            this.startPosition.set(this.velocity).multiplyInPlace(1.0 / 60.0).addInPlace(this.position).subtractInPlace(this.landedObject.position);
+            this.startPosition.set(this.velocity).multiplyInPlace(1.0 / 60.0).addInPlace(this.position).subtractInPlace(this.dockingContext.landedObject.position);
             this.endPosition.set(0.0, 0.0);
             this.startAngle = this.angle;
             this.isThrusting = false;
             this.isBraking = false;
-            this.uiLog(`Boarding ${this.landedObject.name || 'disabled ship'}`);
+            this.uiLog(`Boarding ${this.dockingContext.landedObject.name || 'disabled ship'}`);
             return true;
         }
         this.uiLog('Boarding aborted: target not boardable');
@@ -709,34 +734,36 @@ export class Ship extends GameObject {
      * @returns {boolean} True if takeoff is initiated, false otherwise.
      */
     initiateTakeoff() {
-        if (this.state !== 'Landed' || !this.landedObject) {
+        const landedObject = this.dockingContext?.landedObject;
+
+        if (this.state !== 'Landed' || !landedObject) {
             this.uiLog('Takeoff aborted: not landed on any object');
             return false;
         }
 
         this.setState('TakingOff');
-        if (!(this.landedObject instanceof Ship)) {
-            this.uiLog(`Takeoff initiated from ${this.landedObject.constructor.name} ${this.landedObject.name || ''}`);
+        if (!(landedObject instanceof Ship)) {
+            this.uiLog(`Takeoff initiated from ${landedObject.constructor.name} ${landedObject.name || ''}`);
         }
 
-        if (this.target && this.target !== this.landedObject) {
-            this.startPosition.set(this.position).subtractInPlace(this.landedObject.position);
-            this.endPosition.set(this.target.position).subtractInPlace(this.landedObject.position).normalizeInPlace().multiplyInPlace(this.landedObject.radius * 1.5);
+        if (this.target && this.target !== landedObject) {
+            this.startPosition.set(this.position).subtractInPlace(landedObject.position);
+            this.endPosition.set(this.target.position).subtractInPlace(landedObject.position).normalizeInPlace().multiplyInPlace(landedObject.radius * 1.5);
         } else {
-            if (this.landedObject instanceof Asteroid || this.landedObject instanceof Ship) {
-                this.endPosition.setFromPolar(1.0, this.angle).multiplyInPlace(this.landedObject.radius * 1.5);
+            if (landedObject instanceof Asteroid || landedObject instanceof Ship) {
+                this.endPosition.setFromPolar(1.0, this.angle).multiplyInPlace(landedObject.radius * 1.5);
             } else {
-                this.endPosition.setFromPolar(1.0, randomBetween(-Math.PI, Math.PI)).multiplyInPlace(this.landedObject.radius * 1.5);
+                this.endPosition.setFromPolar(1.0, randomBetween(-Math.PI, Math.PI)).multiplyInPlace(landedObject.radius * 1.5);
             }
-            this.startPosition.set(this.position).subtractInPlace(this.landedObject.position);
+            this.startPosition.set(this.position).subtractInPlace(landedObject.position);
         }
 
         this.targetAngle = this._scratchRadialOut.set(this.endPosition).subtractInPlace(this.startPosition).getAngle();
-        if (this.landedObject instanceof Planet) {
+        if (landedObject instanceof Planet) {
             // Start in the right direction
             this.startAngle = this.angle = this.targetAngle;
             // Remove ship from planet's landed list if applicable
-            this.landedObject.removeLandedShip(this);
+            landedObject.removeLandedShip(this);
             // Reset trail decay
             this.trail.decayMultiplier = 1.0;
             //Clear the trail so we do not get artifacts
@@ -1102,37 +1129,37 @@ export class Ship extends GameObject {
         const t = Math.min(this.animationTime / this.animationLandingDuration, 1.0);
 
         // Adjust scale based on target type
-        if (this.landedObject instanceof Planet) {
+        if (this.dockingContext.landedObject instanceof Planet) {
             this.shipScale = 1.0 - t; // Shrink from 1.0 to 0.0 for planets
-        } else if (this.landedObject instanceof Asteroid) {
+        } else if (this.dockingContext.landedObject instanceof Asteroid) {
             this.shipScale = lerp(1.0, 0.8, t); // Shrink from 1.0 to 0.8 for asteroids
             // Rotate with asteroid's spin
-            const currentAngularVelocity = t * this.landedObject.spinSpeed;
+            const currentAngularVelocity = t * this.dockingContext.landedObject.spinSpeed;
             this.angle = normalizeAngle(this.angle + currentAngularVelocity * deltaTime);
-        } else if (this.landedObject instanceof Ship) {
-            this.angle = normalizeAngle(lerp(this.startAngle, this.landedObject.angle, t));
+        } else if (this.dockingContext.landedObject instanceof Ship) {
+            this.angle = normalizeAngle(lerp(this.startAngle, this.dockingContext.landedObject.angle, t));
         }
 
         // Interpolate position
-        this.position.lerpInPlace(this.startPosition, this.endPosition, t).addInPlace(this.landedObject.position);
+        this.position.lerpInPlace(this.startPosition, this.endPosition, t).addInPlace(this.dockingContext.landedObject.position);
 
         // Complete landing when animation finishes
         if (t >= 1.0) {
             this.setState('Landed');
-            //this.uiLog(`Landing complete on ${this.landedObject.constructor.name} ${this.landedObject.name || ''}`);
-            if (this.landedObject instanceof Planet) {
+            //this.uiLog(`Landing complete on ${this.dockingContext.landedObject.constructor.name} ${this.dockingContext.landedObject.name || ''}`);
+            if (this.dockingContext.landedObject instanceof Planet) {
                 this.shipScale = 0.0;
-                this.landedObject.addLandedShip(this);
+                this.dockingContext.landedObject.addLandedShip(this);
                 this.hullIntegrity = this.maxHull;
                 this.shield.isActive = true;
                 this.shield.strength = this.shield.maxStrength;
                 this.trail.clear();
-            } else if (this.landedObject instanceof Asteroid) {
+            } else if (this.dockingContext.landedObject instanceof Asteroid) {
                 this.shipScale = 0.8;
-                this.startAngle = normalizeAngle(this.angle - this.landedObject.spin);
-            } else if (this.landedObject instanceof Ship) {
-                this.position.set(this.endPosition).addInPlace(this.landedObject.position);
-                this.angle = this.landedObject.angle;
+                this.startAngle = normalizeAngle(this.angle - this.dockingContext.landedObject.spin);
+            } else if (this.dockingContext.landedObject instanceof Ship) {
+                this.position.set(this.endPosition).addInPlace(this.dockingContext.landedObject.position);
+                this.angle = this.dockingContext.landedObject.angle;
             }
         }
     }
@@ -1142,22 +1169,22 @@ export class Ship extends GameObject {
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
      */
     updateLanded(deltaTime) {
-        if (this.landedObject instanceof Asteroid) {
+        if (this.dockingContext?.landedObject instanceof Asteroid) {
             // Stay attached to asteroid, matching position, velocity, and rotation
-            this.position.set(this.landedObject.position);
-            this.velocity.set(this.landedObject.velocity);
-            this.angle = this.landedObject.spin + this.startAngle;
+            this.position.set(this.dockingContext.landedObject.position);
+            this.velocity.set(this.dockingContext.landedObject.velocity);
+            this.angle = this.dockingContext.landedObject.spin + this.startAngle;
 
             // Auto-start mining if not already mining
             if (!this.miningEnabled) {
                 this.startMining();
             }
-        } else if (this.landedObject instanceof Ship) {
-            const ship = this.landedObject;
+        } else if (this.dockingContext?.landedObject instanceof Ship) {
+            const ship = this.dockingContext.landedObject;
             this.velocity.set(ship.velocity);
             this.position.set(ship.position);
             this.angle = ship.angle;
-            this.initiateTakeoff();
+            this.dockingContext.takeOff();
             ship.faction = this.faction;
             ship.hullIntegrity = ship.disabledThreshold + 1.0;
             ship.shield.isActive = true;
@@ -1173,7 +1200,7 @@ export class Ship extends GameObject {
         }
 
         // Mining logic
-        if (this.landedObject instanceof Asteroid && this.miningEnabled && !this.isCargoFull()) {
+        if (this.dockingContext?.landedObject instanceof Asteroid && this.miningEnabled && !this.isCargoFull()) {
             this.miningTimer += deltaTime;
             if (this.miningTimer >= 1.0) {
                 this.miningTimer = 0.0;
@@ -1195,21 +1222,22 @@ export class Ship extends GameObject {
      */
     updateTakingOff(deltaTime) {
         this.animationTime += deltaTime;
+        const landedObject = this.dockingContext?.landedObject;
         const t = Math.min(this.animationTime / this.animationLandingDuration, 1.0);
 
         // Adjust scale based on target type
-        if (this.landedObject instanceof Planet) {
+        if (landedObject instanceof Planet) {
             this.shipScale = t; // Grow from 0.0 to 1 for planets
-        } else if (this.landedObject instanceof Asteroid) {
+        } else if (landedObject instanceof Asteroid) {
             this.shipScale = lerp(0.8, 1.0, t); // Grow from 0.8 to 1 for asteroids
-        } else if (this.landedObject instanceof Ship) {
+        } else if (landedObject instanceof Ship) {
             //No animation for ships
             this.setState('Flying');
             this.shipScale = 1.0;
         }
 
         // Interpolate position and angle
-        this.position.lerpInPlace(this.startPosition, this.endPosition, t).addInPlace(this.landedObject.position);
+        this.position.lerpInPlace(this.startPosition, this.endPosition, t).addInPlace(landedObject.position);
         this.angle = normalizeAngle(lerp(this.startAngle, this.targetAngle, t));
 
         // Complete takeoff when animation finishes
@@ -1222,9 +1250,9 @@ export class Ship extends GameObject {
             this._scratchVelocityDelta.set(this.endPosition)
                 .subtractInPlace(this.startPosition)
                 .divideInPlace(this.animationLandingDuration);
-            this.velocity.set(this.landedObject.velocity)
+            this.velocity.set(landedObject.velocity)
                 .addInPlace(this._scratchVelocityDelta);
-            this.landedObject = null;
+            this.destroyDockingContext();
         }
     }
 

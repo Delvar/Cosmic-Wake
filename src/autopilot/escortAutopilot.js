@@ -136,19 +136,19 @@ export class EscortAutopilot extends Autopilot {
 
         // Target is in the same system
         if (this.target.state === "Landed" || this.target.state === "Landing") {
-            const landedObject = this.target.landedObject;
+            const landedObject = this.target.dockingContext?.landedObject;
             if (!landedObject) {
                 this.error = "Target planet not found";
                 this.stop();
                 return;
             }
             if (this.ship.state === "Landed") {
-                if (this.ship.landedObject === landedObject) {
+                if (this.ship.dockingContext?.landedObject === landedObject) {
                     this.waitTime = randomBetween(this.waitTimeMin, this.waitTimeMax);
                     this.state = "Waiting";
                     this.debugLog(() => console.log(`${this.constructor.name}: Transitioned to Waiting on ${landedObject.name}`));
                 } else {
-                    this.ship.initiateTakeoff();
+                    this.ship.dockingContext.takeOff();
                     this.debugLog(() => console.log(`${this.constructor.name}: Taking Off to land on ${landedObject.name}`));
                 }
             } else if (this.ship.state === "Flying") {
@@ -168,7 +168,7 @@ export class EscortAutopilot extends Autopilot {
             // If ship is in TakingOff or Landing, let those states complete naturally
         } else if (this.target.state === "Flying" || this.target.state === "TakingOff") {
             if (this.ship.state === "Landed") {
-                this.ship.initiateTakeoff();
+                this.ship.dockingContext.takeOff();
                 this.debugLog(() => console.log(`${this.constructor.name}: Taking Off to follow target`));
             } else if (this.ship.state === "Flying") {
                 this.subAutopilot = new FollowAutopilot(this.ship, this.target, this.minFollowDistance, this.maxFollowDistance);
@@ -210,7 +210,7 @@ export class EscortAutopilot extends Autopilot {
         if (this.target.starSystem === this.ship.starSystem) {
             // Early takeoff if target is flying or taking off
             if (this.target.state === 'Flying' || this.target.state === 'TakingOff') {
-                this.ship.initiateTakeoff();
+                this.ship.dockingContext.takeOff();
                 this.state = 'Starting';
                 this.debugLog(() => console.log(`${this.constructor.name}: Early takeoff triggered, transitioned to Starting due to target ${this.target.state}`));
                 return;
@@ -218,9 +218,9 @@ export class EscortAutopilot extends Autopilot {
 
             // Handle target landed on a different planet
             if (this.target.state === 'Landed' || this.target.state === 'Landing') {
-                const landedObject = this.target.landedObject;
-                if (landedObject && this.ship.landedObject !== landedObject) {
-                    this.ship.initiateTakeoff();
+                const landedObject = this.target.dockingContext?.landedObject;
+                if (landedObject && this.ship.dockingContext?.landedObject !== landedObject) {
+                    this.ship.dockingContext.takeOff();
                     this.state = 'Starting';
                     this.debugLog(() => console.log(`${this.constructor.name}: Transitioned to Starting to land on target's planet ${landedObject.name}`));
                     return;
@@ -270,7 +270,7 @@ export class EscortAutopilot extends Autopilot {
 
         // Handle the escorted ship landing or landed
         if (this.target.state === 'Landing' || this.target.state === 'Landed') {
-            const landedObject = this.target.landedObject;
+            const landedObject = this.target.dockingContext?.landedObject;
             if (!landedObject) {
                 this.error = 'Target landed but no landed object set!';
                 this.subAutopilot.stop();
@@ -434,7 +434,7 @@ export class EscortAutopilot extends Autopilot {
                 this.subAutopilot = null;
                 this.waitTime = randomBetween(this.waitTimeMin, this.waitTimeMax);
                 this.state = 'Waiting';
-                this.debugLog(() => console.log(`${this.constructor.name}: Landing complete, transitioned to Waiting on ${this.ship.landedObject.name}`));
+                this.debugLog(() => console.log(`${this.constructor.name}: Landing complete, transitioned to Waiting on ${this.ship.dockingContext?.landedObject?.name || 'unknown'}`));
             } else {
                 console.warn('Landing completed but ship not landed; resetting');
                 this.subAutopilot = null;

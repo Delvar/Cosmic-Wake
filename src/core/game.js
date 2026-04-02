@@ -28,6 +28,7 @@ import { Commodities, CommodityType } from '/src/core/commodity.js';
 import { UiLog } from '/src/ui/uiLog.js'
 import { Asteroid } from '/src/starSystem/asteroidBelt.js';
 import { CivilianAiPilot } from '/src/pilot/civilianAiPilot.js';
+import { DockingContext } from '/src/ship/dockingContext.js';
 
 /**
  * Handles the game loop, rendering, and updates for the game.
@@ -616,7 +617,7 @@ export class GameManager {
                 let excessCount = aiCount - system.maxAiShips;
                 for (let i = 0.0; i < systemShipsLength && excessCount > 0.0; i++) {
                     const ship = system.ships[i];
-                    if (ship.pilot instanceof AiPilot && ship.state === 'Landed' && ship.landedObject instanceof Planet) {
+                    if (ship.pilot instanceof AiPilot && ship.state === 'Landed' && ship.dockingContext?.landedObject instanceof Planet) {
                         let despawn = false;
                         if (ship.faction === civilianFaction) {
                             civilianCount--;
@@ -653,7 +654,7 @@ export class GameManager {
                 aiShip.setState('Landed');
                 aiShip.shipScale = 0.0;
                 aiShip.velocity.set(0.0, 0.0);
-                aiShip.landedObject = spawnPlanet;
+                aiShip.createDockingContext(spawnPlanet);
                 aiShip.name = generateShipName(aiShip);
                 spawnPlanet.addLandedShip(aiShip);
                 system.addGameObject(aiShip);
@@ -707,7 +708,7 @@ export class GameManager {
                     aiShip.setState('Landed');
                     aiShip.shipScale = 0.0;
                     aiShip.velocity.set(0.0, 0.0);
-                    aiShip.landedObject = spawnPlanet;
+                    aiShip.createDockingContext(spawnPlanet);
                     aiShip.name = generateShipName(aiShip);
                     spawnPlanet.addLandedShip(aiShip);
                     system.addGameObject(aiShip);
@@ -734,7 +735,7 @@ export class GameManager {
                             escort.setState('Landed');
                             escort.shipScale = 0.0;
                             escort.velocity.set(0.0, 0.0);
-                            escort.landedObject = spawnPlanet;
+                            escort.createDockingContext(spawnPlanet);
                             escort.name = generateShipName(escort);
                             spawnPlanet.addLandedShip(escort);
                             system.addGameObject(escort);

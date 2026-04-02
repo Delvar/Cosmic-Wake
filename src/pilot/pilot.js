@@ -231,8 +231,8 @@ export class PlayerPilot extends Pilot {
      * @param {GameManager} gameManager - The game manager with keys and lastKeys properties.
      */
     handlePlanetLanding(deltaTime, gameManager) {
-        if (this.ship.state === 'Landed' && this.ship.landedObject instanceof Planet) {
-            this.ship.initiateTakeoff();
+        if (this.ship.state === 'Landed' && this.ship.dockingContext?.landedObject instanceof Planet) {
+            this.ship.dockingContext.takeOff();
             return;
         }
 
@@ -269,7 +269,7 @@ export class PlayerPilot extends Pilot {
                 this.debugLog(() => console.log(`${this.constructor.name}: No valid next planet`));
             }
             if (this.autopilot && this.ship.state === 'Landed') {
-                this.ship.initiateTakeoff();
+                this.ship.dockingContext.takeOff();
             }
             return;
         }
@@ -280,7 +280,7 @@ export class PlayerPilot extends Pilot {
             this.autopilot.start();
             this.debugLog(() => console.log(`${this.constructor.name}: Autopiloting to targeted planet ${this.ship.target.name}`));
             if (this.autopilot && this.ship.state === 'Landed') {
-                this.ship.initiateTakeoff();
+                this.ship.dockingContext.takeOff();
             }
             return;
         }
@@ -293,7 +293,7 @@ export class PlayerPilot extends Pilot {
             this.autopilot.start();
             this.debugLog(() => console.log(`${this.constructor.name}: Autopiloting to closest planet ${closestPlanet.name}`));
             if (this.autopilot && this.ship.state === 'Landed') {
-                this.ship.initiateTakeoff();
+                this.ship.dockingContext.takeOff();
             }
         } else {
             this.debugLog(() => console.log(`${this.constructor.name}: No valid planets in system`));
@@ -336,7 +336,7 @@ export class PlayerPilot extends Pilot {
                 this.debugLog(() => console.log(`${this.constructor.name}: No valid next jump gate`));
             }
             if (this.autopilot && this.ship.state === 'Landed') {
-                this.ship.initiateTakeoff();
+                this.ship.dockingContext.takeOff();
             }
             return;
         }
@@ -347,7 +347,7 @@ export class PlayerPilot extends Pilot {
             this.autopilot.start();
             this.debugLog(() => console.log(`${this.constructor.name}: Autopiloting to targeted jump gate ${this.ship.target.name}`));
             if (this.autopilot && this.ship.state === 'Landed') {
-                this.ship.initiateTakeoff();
+                this.ship.dockingContext.takeOff();
             }
             return;
         }
@@ -360,7 +360,7 @@ export class PlayerPilot extends Pilot {
             this.autopilot.start();
             this.debugLog(() => console.log(`${this.constructor.name}: Autopiloting to closest jump gate ${closestGate.name}`));
             if (this.autopilot && this.ship.state === 'Landed') {
-                this.ship.initiateTakeoff();
+                this.ship.dockingContext.takeOff();
             }
         } else {
             this.debugLog(() => console.log(`${this.constructor.name}: No valid jump gates in system`));
@@ -373,8 +373,8 @@ export class PlayerPilot extends Pilot {
      * @param {GameManager} gameManager - The game manager with keys and lastKeys properties.
      */
     handleAsteroidLanding(deltaTime, gameManager) {
-        if (this.ship.state === 'Landed' && this.ship.landedObject instanceof Asteroid) {
-            this.ship.initiateTakeoff();
+        if (this.ship.state === 'Landed' && this.ship.dockingContext?.landedObject instanceof Asteroid) {
+            this.ship.dockingContext.takeOff();
             return;
         }
 
@@ -412,7 +412,7 @@ export class PlayerPilot extends Pilot {
                 this.debugLog(() => console.log(`${this.constructor.name}: No valid next asteroid`));
             }
             if (this.autopilot && this.ship.state === 'Landed') {
-                this.ship.initiateTakeoff();
+                this.ship.dockingContext.takeOff();
             }
             return;
         }
@@ -423,7 +423,7 @@ export class PlayerPilot extends Pilot {
             this.autopilot.start();
             this.debugLog(() => console.log(`${this.constructor.name}: Autopiloting to targeted asteroid ${this.ship.target.name}`));
             if (this.autopilot && this.ship.state === 'Landed') {
-                this.ship.initiateTakeoff();
+                this.ship.dockingContext.takeOff();
             }
             return;
         }
@@ -436,7 +436,7 @@ export class PlayerPilot extends Pilot {
             this.autopilot.start();
             this.debugLog(() => console.log(`${this.constructor.name}: Autopiloting to closest asteroid ${closestAsteroid.name}`));
             if (this.autopilot && this.ship.state === 'Landed') {
-                this.ship.initiateTakeoff();
+                this.ship.dockingContext.takeOff();
             }
         } else {
             this.debugLog(() => console.log(`${this.constructor.name}: No valid asteroids in system`));
@@ -478,8 +478,8 @@ export class PlayerPilot extends Pilot {
      * @param {GameManager} gameManager - The game manager with keys and lastKeys properties.
      */
     handleBoardingShipSelection(deltaTime, gameManager) {
-        if (this.ship.state === 'Landed' && this.ship.landedObject instanceof Ship) {
-            this.ship.initiateTakeoff();
+        if (this.ship.state === 'Landed' && this.ship.dockingContext?.landedObject instanceof Ship) {
+            this.ship.dockingContext.takeOff();
             return;
         }
 
@@ -499,7 +499,7 @@ export class PlayerPilot extends Pilot {
                 this.debugLog(() => console.log(`${this.constructor.name}: No valid next ship`));
             }
             if (this.autopilot && this.ship.state === 'Landed') {
-                this.ship.initiateTakeoff();
+                this.ship.dockingContext.takeOff();
             }
             return;
         }
@@ -510,7 +510,7 @@ export class PlayerPilot extends Pilot {
             this.autopilot.start();
             this.debugLog(() => console.log(`${this.constructor.name}: Autopiloting to targeted ship ${this.ship.target.name}`));
             if (this.autopilot && this.ship.state === 'Landed') {
-                this.ship.initiateTakeoff();
+                this.ship.dockingContext.takeOff();
             }
             return;
         }
@@ -523,7 +523,7 @@ export class PlayerPilot extends Pilot {
             this.autopilot.start();
             this.debugLog(() => console.log(`${this.constructor.name}: Autopiloting to closest disabled ship ${closestShip.name}`));
             if (this.autopilot && this.ship.state === 'Landed') {
-                this.ship.initiateTakeoff();
+                this.ship.dockingContext.takeOff();
             }
         } else {
             this.debugLog(() => console.log(`${this.constructor.name}: No valid disabled ships in system`));
@@ -547,7 +547,7 @@ export class PlayerPilot extends Pilot {
                 this.autopilot = null;
             }
             if (this.ship.state === 'Landed') {
-                this.ship.initiateTakeoff();
+                this.ship.dockingContext.takeOff();
             }
         }
 
@@ -735,7 +735,7 @@ export class PlayerPilot extends Pilot {
 //             this.autopilot = new TraverseJumpGateAutopilot(this.ship, this.target);
 //             this.autopilot.start();
 //             if (this.ship.state === 'Landed') {
-//                 this.ship.initiateTakeoff();
+//                 this.ship.dockingContext.takeOff();
 //                 this.state = 'TakingOff';
 //             } else if (this.ship.state === 'Flying') {
 //                 this.state = 'TraversingJumpGate';
@@ -746,7 +746,7 @@ export class PlayerPilot extends Pilot {
 //             this.autopilot = new LandOnPlanetAutopilot(this.ship, this.target);
 //             this.autopilot.start();
 //             if (this.ship.state === 'Landed') {
-//                 this.ship.initiateTakeoff();
+//                 this.ship.dockingContext.takeOff();
 //                 this.state = 'TakingOff';
 //             } else if (this.ship.state === 'Flying') {
 //                 this.state = 'FlyingToPlanet';
@@ -805,7 +805,7 @@ export class PlayerPilot extends Pilot {
 //                 console.warn('No target found!');
 //                 return;
 //             }
-//             this.ship.initiateTakeoff();
+//             this.ship.dockingContext.takeOff();
 //             this.state = 'TakingOff';
 //         }
 //     }
@@ -1018,7 +1018,7 @@ export class PlayerPilot extends Pilot {
 //      */
 //     transitionFromIdle(nextState) {
 //         if (this.ship.state === 'Landed') {
-//             this.ship.initiateTakeoff();
+//             this.ship.dockingContext.takeOff();
 //             this.state = 'TakingOff';
 //         } else if (this.ship.state === 'Flying') {
 //             this.state = nextState;
@@ -1439,7 +1439,7 @@ export class PlayerPilot extends Pilot {
 //                 this.waitTime = randomBetween(this.waitTimeMin, this.waitTimeMax);
 //                 this.state = 'WaitingOnHomePlanet';
 //             } else {
-//                 this.ship.initiateTakeoff();
+//                 this.ship.dockingContext.takeOff();
 //                 this.state = 'TakingOffFromHomePlanet';
 //             }
 //         } else if (this.ship.state === 'Flying') {
@@ -1513,7 +1513,7 @@ export class PlayerPilot extends Pilot {
 //     updateMining(deltaTime, gameManager) {
 //         this.waitTime -= deltaTime;
 //         if (this.waitTime <=  0.0) {
-//             this.ship.initiateTakeoff();
+//             this.ship.dockingContext.takeOff();
 //             this.state = 'TakingOffFromAsteroid';
 //         }
 //     }
@@ -1612,7 +1612,7 @@ export class PlayerPilot extends Pilot {
 //         if (this.waitTime <=  0.0) {
 //             this.targetAsteroid = this.findRandomAsteroid();
 //             this.ship.target = this.targetAsteroid;
-//             this.ship.initiateTakeoff();
+//             this.ship.dockingContext.takeOff();
 //             this.state = 'TakingOffFromHomePlanet';
 //         }
 //     }

@@ -37,7 +37,7 @@
             overflow: hidden;
             min-width: 100px;
             min-height: 100px;
-            z-index: 4;
+            /* z-index: 4; */
             background-color: black;
             border: 1px black solid;
             transition: visibility 0.5s linear, opacity 0.5s ease-in-out;
@@ -58,18 +58,18 @@
         /* Background canvases */
         #mainCameraBackground,
         #targetCameraBackground {
-            z-index: 1;
+            /* z-index: 1; */
         }
 
         /* Foreground canvases */
         #mainCameraForeground,
         #targetCameraForeground {
-            z-index: 2;
+            /* z-index: 2; */
         }
 
         #mainCameraHudOutline,
         #targetCameraHudOutline {
-            z-index: 4;
+            /* z-index: 4; */
             mix-blend-mode: multiply;
             transition: visibility 0.5s linear, opacity 0.5s ease-in-out;
             /* Hide these when not using layered rendering */
@@ -78,7 +78,7 @@
 
         #mainCameraHud,
         #targetCameraHud {
-            z-index: 3;
+            /* z-index: 3; */
             mix-blend-mode: plus-lighter;
             transition: visibility 0.5s linear, opacity 0.5s ease-in-out;
             /* Hide these when not using layered rendering */
@@ -103,7 +103,7 @@
             position: absolute;
             width: 20px;
             height: 20px;
-            z-index: 5;
+            /* z-index: 5; */
         }
 
         .resize-handle.top-left {
@@ -138,7 +138,7 @@
             min-width: 390px;
             /* border: 2px solid #ff0000; */
             box-sizing: border-box;
-            z-index: 5;
+            /* z-index: 5; */
         }
 
         .log-inner {
@@ -190,19 +190,47 @@
             transition: all 380ms ease-out;
         }
 
-        button {
+        /* Docking UI */
+        #docking-ui {
             position: absolute;
-            top: 35px;
-            right: 35px;
-            padding: 14px 28px;
-            font-size: 17px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            outline: 2px solid white;
+            border-radius: 20px;
+            background-color: black;
+            border: 1px black solid;
+            transition: visibility 0.5s linear, opacity 0.5s ease-in-out;
+            visibility: visible;
+            opacity: 1;
+            padding: 20px;
+            text-align: center;
+            /* z-index: 5; */
+            color: #eee;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
+        }
+
+        #docking-ui.hidden {
+            visibility: hidden;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #docking-ui button {
+            margin-top: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
             background: #e94560;
             color: white;
             border: none;
             border-radius: 8px;
             cursor: pointer;
             box-shadow: 0 4px 15px rgba(233, 69, 96, 0.4);
-            z-index: 5;
+            width: 100%;
+        }
+
+        #docking-ui button.hidden {
+            display: none !important;
         }
     </style>
 </head>
@@ -231,6 +259,13 @@
     </div>
     <div class="ui-log">
         <div class="log-inner" id="log-inner"></div>
+    </div>
+    <div id="docking-ui" class="hidden">
+        <span id="docking-ui-name"></span><br>
+        <button id="docking-ui-takeoff">🚀︎ Take Off</button>
+        <button id="docking-ui-repair">🛠︎ Repair Hull</button>
+        <button id="docking-ui-start-mining">⛏︎ Start Mining</button>
+        <button id="docking-ui-stop-mining">⛏︎ Stop Mining</button>
     </div>
     <!-- <button id="add-btn">＋ Add Log Entry</button> -->
     <script type="module" src="src/core/game.js"></script>

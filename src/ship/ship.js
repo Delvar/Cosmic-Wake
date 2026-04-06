@@ -1150,7 +1150,6 @@ export class Ship extends GameObject {
             if (this.dockingContext.landedObject instanceof Planet) {
                 this.shipScale = 0.0;
                 this.dockingContext.landedObject.addLandedShip(this);
-                this.hullIntegrity = this.maxHull;
                 this.shield.isActive = true;
                 this.shield.strength = this.shield.maxStrength;
                 this.trail.clear();
@@ -1174,11 +1173,6 @@ export class Ship extends GameObject {
             this.position.set(this.dockingContext.landedObject.position);
             this.velocity.set(this.dockingContext.landedObject.velocity);
             this.angle = this.dockingContext.landedObject.spin + this.startAngle;
-
-            // Auto-start mining if not already mining
-            if (!this.miningEnabled) {
-                this.startMining();
-            }
         } else if (this.dockingContext?.landedObject instanceof Ship) {
             const ship = this.dockingContext.landedObject;
             this.velocity.set(ship.velocity);

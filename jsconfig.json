@@ -2,16 +2,14 @@
     "compilerOptions": {
         "module": "ES2020",
         "target": "ES2020",
-        "baseUrl": "src",
-        "paths": {
-            "/src/*": [
-                "*"
-            ]
-        },
-        "moduleResolution": "node",
+        "moduleResolution": "bundler",
         "allowJs": true,
         "checkJs": true,
-        "noEmit": true
+        "noEmit": true,
+
+        "paths": {
+            "/src/*": ["./src/*"]
+        }
     },
     "include": [
         "src/**/*"

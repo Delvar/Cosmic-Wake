@@ -29,6 +29,7 @@ import { UiLog } from '/src/ui/uiLog.js'
 import { Asteroid } from '/src/starSystem/asteroidBelt.js';
 import { CivilianAiPilot } from '/src/pilot/civilianAiPilot.js';
 import { DockingContext } from '/src/ship/dockingContext.js';
+import { DockingUiController } from '/src/ui/dockingUiController.js';
 
 /**
  * Handles the game loop, rendering, and updates for the game.
@@ -395,6 +396,31 @@ export class GameManager {
         /** @type {UiLog} The logging class that displayed on screen */
         this.uiLog = new UiLog(logArea);
 
+        /** @type {HTMLElement} The docking UI div. */
+        this.dockingUI = /** @type {HTMLElement} */ (document.getElementById('docking-ui'));
+        /** @type {HTMLElement} The span for docking name. */
+        this.dockingName = /** @type {HTMLElement} */ (document.getElementById('docking-ui-name'));
+        /** @type {HTMLButtonElement} The take off button. */
+        this.dockingButton = /** @type {HTMLButtonElement} */ (document.getElementById('docking-ui-takeoff'));
+        /** @type {HTMLButtonElement} The repair hull button. */
+        this.dockingRepairButton = /** @type {HTMLButtonElement} */ (document.getElementById('docking-ui-repair'));
+        /** @type {HTMLButtonElement} The mining button. */
+        this.dockingStartMiningButton = /** @type {HTMLButtonElement} */ (document.getElementById('docking-ui-start-mining'));
+        /** @type {HTMLButtonElement} The mining button. */
+        this.dockingStopMiningButton = /** @type {HTMLButtonElement} */ (document.getElementById('docking-ui-stop-mining'));
+        /** @type {boolean} Whether the docking UI is currently shown. */
+        this.dockingUIShown = false;
+
+        /** @type {DockingUiController} The controller for docking UI interactions. */
+        this.dockingUiController = new DockingUiController(this, {
+            dockingUI: this.dockingUI,
+            dockingName: this.dockingName,
+            dockingButton: this.dockingButton,
+            dockingRepairButton: this.dockingRepairButton,
+            dockingStartMiningButton: this.dockingStartMiningButton,
+            dockingStopMiningButton: this.dockingStopMiningButton
+        });
+
         /** @type {StarField} The starfield for rendering background stars. */
         this.starField = new StarField(10, 1000.0, 10.0, true, 10.0);
         this.starField.addCanvas('main', mainCameraBackgroundCanvas);
@@ -486,6 +512,7 @@ export class GameManager {
         const currentTime = performance.now();
         this.updateGalaxy(deltaTime);
         this.spawnAiShipsIfNeeded(currentTime);
+        this.updateDockingUI();
     }
 
     /**
@@ -540,6 +567,26 @@ export class GameManager {
             starSystem.cargoContainerManager.update(deltaTime);
         }
         Object.assign(this.lastKeys, this.keys);
+    }
+
+    /**
+     * Updates the docking UI based on the current camera target.
+     */
+    updateDockingUI() {
+        const shouldShow = this.cameraTarget instanceof Ship && this.cameraTarget.pilot instanceof PlayerPilot && this.cameraTarget.dockingContext && this.cameraTarget.state == 'Landed';
+        if (shouldShow) {
+            if (!this.dockingUIShown) {
+                this.dockingUiController.setDockingContext(this.cameraTarget.dockingContext);
+                this.dockingUiController.show();
+                this.dockingUIShown = true;
+            }
+            this.dockingUiController.update();
+        } else {
+            if (this.dockingUIShown) {
+                this.dockingUiController.hide();
+                this.dockingUIShown = false;
+            }
+        }
     }
 
     /**

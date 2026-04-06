@@ -136,10 +136,10 @@ export class PlayerPilot extends Pilot {
     }
 
     /**
-        * Handles hostile ship selection for 'r'/'R' key press.
-        * @param {number} deltaTime - Time elapsed since the last update in seconds.
-        * @param {GameManager} gameManager - The game manager with keys and lastKeys properties.
-        */
+    * Handles hostile ship selection for 'r'/'R' key press.
+    * @param {number} deltaTime - Time elapsed since the last update in seconds.
+    * @param {GameManager} gameManager - The game manager with keys and lastKeys properties.
+    */
     handleHostileShipSelection(deltaTime, gameManager) {
         // Check if current target is hostile
         if (this.ship.target instanceof Ship && PlayerPilot.isValidHostileTarget(this.ship, this.ship.target)) {

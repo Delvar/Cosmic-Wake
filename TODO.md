@@ -42,7 +42,7 @@
 - [ ] **Debug window UI** - Add a debug panel with tick boxes for each debug option, allowing the player to toggle individual debug visuals and diagnostics on and off.
 - [ ] **Granular debug checks in code** - Update existing debug rendering and logic paths so they check for specific debug options rather than only checking whether debug mode is globally enabled.
 - [ ] **Expanded debug display design** - Define a more comprehensive debug display layout so current and future debug information can be shown in a readable way instead of all appearing in one place.
-- [ ] **Planet landing services window** - When the player lands on a planet, open a services window with options for at least the cargo market and ship market.
+- [X] **Planet landing services window** - When the player lands on a planet, open a services window with options for at least the cargo market and ship market.
 - [ ] **Planet cargo market UI** - Build the landed cargo trading interface so the player can inspect local prices, buy cargo, and sell cargo from the ship hold.
 - [ ] **Planet ship market UI** - Build a ship market interface for viewing available ships, comparing stats, and purchasing or swapping ships while landed.
 - [ ] **Boarding action window** - When boarding another ship, present a dedicated window with actions to capture the ship, take cargo, repair it, or destroy it.

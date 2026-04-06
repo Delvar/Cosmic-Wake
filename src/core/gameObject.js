@@ -4,8 +4,8 @@ import { StarSystem } from '/src/starSystem/starSystem.js';
 
 /**
  * Checks if a target is still valid (not despawned and exists in the galaxy).
- * @param {GameObject} source - The source game object to validate.
- * @param {GameObject} target - The target game object to validate.
+ * @param {GameObject|null} source - The source game object to validate.
+ * @param {GameObject|null} target - The target game object to validate.
  * @returns {boolean} True if the target is valid, false otherwise.
  */
 export function isValidTarget(source, target) {
@@ -33,7 +33,7 @@ export class GameObject {
         this.radius = 0.0;
         /** @type {Vector2D} The velocity of the object in world coordinates. */
         this.velocity = new Vector2D(0.0, 0.0);
-        /** @type {StarSystem} The star system the object belongs to. */
+        /** @type {StarSystem|null} The star system the object belongs to. */
         this.starSystem = starSystem;
         /** @type {boolean} Indicates whether the object is marked for despawning. */
         this.despawned = false;

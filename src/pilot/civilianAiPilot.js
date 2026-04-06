@@ -17,7 +17,7 @@ export class CivilianAiPilot extends AiPilot {
     /**
      * Creates a new CivilianAiPilot instance.
      * @param {Ship} ship - The ship to control.
-     * @param {Job} job - The job instance (e.g., WandererJob).
+     * @param {Job|null} job - The job instance (e.g., WandererJob).
      */
     constructor(ship, job) {
         super(ship, job);
@@ -36,7 +36,7 @@ export class CivilianAiPilot extends AiPilot {
      */
     update(deltaTime, gameManager) {
         // Opportunistic cargo collection if safe and cargo nearby
-        if (this.ship.state === 'Flying' && this.state != 'Collecting' && this.state != 'Despawning' && !this.ship.isCargoFull() && this.isSafe() && this.ship.starSystem.cargoContainerManager.hasCargoContainer() && !this.ship.isCargoFull()) {
+        if (this.ship.state === 'Flying' && this.state != 'Collecting' && this.state != 'Despawning' && !this.ship.isCargoFull() && this.isSafe() && this.ship.starSystem?.cargoContainerManager.hasCargoContainer() && !this.ship.isCargoFull()) {
             const manager = this.ship.starSystem.cargoContainerManager;
             const closest = manager.getClosestContainer(this.ship);
             if (closest) {

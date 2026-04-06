@@ -12,6 +12,7 @@
 - [ ] **Trading system design** - Decide what the economy is based on. A standard credit system may not fit the setting, so explore alternatives such as barter, water-based trade, or fuel as a primary unit of value.
 - [ ] **Cargo planet pricing** - Make cargo prices vary by planet and change over time.
 - [ ] **Cargo market on planet** - While landed, allow the player and AI to buy and sell cargo through a planetary market.
+- [ ] **Cargo Quick Sell** - Add a simple 'sell all cargo' option for AI and players which simply empties cargo.
 
 ## Cargo Interactions
 
@@ -32,6 +33,8 @@
 - [X] **Civilian opportunistic cargo pickup** - Civilians in smaller/faster ships with free cargo room may attempt to pickup cargo in the system if it's not too far away.
 - [X] **Pirate targeting behaviour** - Pirates only attack ships with cargo, they prioritise ships with the most cargo.
 - [ ] **Fix WandererJob route/landing bug** - WandererJob currently shuttles between systems without landing on planets; rewrite route selection and state transitions to ensure planet landing behaviors.
+- [ ] **Enable AI Mining Control** Update Mining AI to start/stop mining, mine until cargo is full then head to planet to sell.
+- [ ] **Enable AI Repair Control** Add to basic AI Pilots the ability to repair hull via docking when landed.
 
 ## Interface and Interaction Windows
 
@@ -54,3 +57,9 @@
 - [ ] **Self-destruct countdown flow** - Implement the armed self-destruct timer, audiovisual warning state, and final ship explosion sequence after activation.
 - [X] **Cargo pickup HUD notifications** - Add fading, scrolling notification list to HUD (right/left side) for cargo pickups: show cargo type + quantity per entry; flash on pickup, fade alpha over time; new entries push older up; max lines/height drops oldest. Player-facing: Clear feedback on collections. Supporting: Event from cargo system to HeadsUpDisplay, render queue with timers/positions.
 - [X] **Extended ship UI logging** - Expand the ship UI log to include notifications for other events like landing on planets/asteroids, taking off, entering autopilot modes, combat engagements, and system jumps.
+
+## Animation
+- [ ] **Fix takeoff animation jerking** if during takeoff animation the target changes the ship jerks immediately to point at the target, should not change direction until animation is finished.
+
+## Misc
+- [ ] **Fix Docking with disabled ship** when boarding a ship, another ship can also board the same ship and captures it and it starts moving off, first limit the number of ships that can dock to 1, also check if the docked ship is now not disabled, is moving etc so undock automatically.

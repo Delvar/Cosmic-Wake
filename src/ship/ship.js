@@ -1178,19 +1178,6 @@ export class Ship extends GameObject {
             this.velocity.set(ship.velocity);
             this.position.set(ship.position);
             this.angle = ship.angle;
-            this.dockingContext.takeOff();
-            ship.faction = this.faction;
-            ship.hullIntegrity = ship.disabledThreshold + 1.0;
-            ship.shield.isActive = true;
-            ship.state = 'Flying';
-            ship.hostiles.length = 0;
-            ship.lastAttacker = null;
-
-            if (this.pilot instanceof PlayerPilot) {
-                ship.pilot = new OfficerAiPilot(ship, new EscortJob(ship, this));
-            } else if (this.pilot instanceof AiPilot) {
-                ship.pilot = new CivilianAiPilot(ship, null); // No Job so will land and despawn
-            }
         }
 
         // Mining logic

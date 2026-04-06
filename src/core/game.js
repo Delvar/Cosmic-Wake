@@ -396,29 +396,19 @@ export class GameManager {
         /** @type {UiLog} The logging class that displayed on screen */
         this.uiLog = new UiLog(logArea);
 
-        /** @type {HTMLElement} The docking UI div. */
-        this.dockingUI = /** @type {HTMLElement} */ (document.getElementById('docking-ui'));
-        /** @type {HTMLElement} The span for docking name. */
-        this.dockingName = /** @type {HTMLElement} */ (document.getElementById('docking-ui-name'));
-        /** @type {HTMLButtonElement} The take off button. */
-        this.dockingButton = /** @type {HTMLButtonElement} */ (document.getElementById('docking-ui-takeoff'));
-        /** @type {HTMLButtonElement} The repair hull button. */
-        this.dockingRepairButton = /** @type {HTMLButtonElement} */ (document.getElementById('docking-ui-repair'));
-        /** @type {HTMLButtonElement} The mining button. */
-        this.dockingStartMiningButton = /** @type {HTMLButtonElement} */ (document.getElementById('docking-ui-start-mining'));
-        /** @type {HTMLButtonElement} The mining button. */
-        this.dockingStopMiningButton = /** @type {HTMLButtonElement} */ (document.getElementById('docking-ui-stop-mining'));
         /** @type {boolean} Whether the docking UI is currently shown. */
         this.dockingUIShown = false;
 
         /** @type {DockingUiController} The controller for docking UI interactions. */
         this.dockingUiController = new DockingUiController(this, {
-            dockingUI: this.dockingUI,
-            dockingName: this.dockingName,
-            dockingButton: this.dockingButton,
-            dockingRepairButton: this.dockingRepairButton,
-            dockingStartMiningButton: this.dockingStartMiningButton,
-            dockingStopMiningButton: this.dockingStopMiningButton
+            dockingUI: /** @type {HTMLElement} */ (document.getElementById('docking-ui')),
+            dockingName: /** @type {HTMLElement} */ (document.getElementById('docking-ui-name')),
+            takeoffButton: /** @type {HTMLButtonElement} */ (document.getElementById('docking-ui-takeoff')),
+            undockButton: /** @type {HTMLButtonElement} */ (document.getElementById('docking-ui-undock')),
+            repairButton: /** @type {HTMLButtonElement} */ (document.getElementById('docking-ui-repair')),
+            startMiningButton: /** @type {HTMLButtonElement} */ (document.getElementById('docking-ui-start-mining')),
+            stopMiningButton: /** @type {HTMLButtonElement} */ (document.getElementById('docking-ui-stop-mining')),
+            captureButton: /** @type {HTMLButtonElement} */ (document.getElementById('docking-ui-capture')),
         });
 
         /** @type {StarField} The starfield for rendering background stars. */

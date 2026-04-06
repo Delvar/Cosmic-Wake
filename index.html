@@ -208,6 +208,7 @@
             /* z-index: 5; */
             color: #eee;
             text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
+            min-width: 150px;
         }
 
         #docking-ui.hidden {
@@ -225,8 +226,9 @@
             border: none;
             border-radius: 8px;
             cursor: pointer;
-            box-shadow: 0 4px 15px rgba(233, 69, 96, 0.4);
+            /* box-shadow: 0 4px 15px rgba(233, 69, 96, 0.4); */
             width: 100%;
+            display: flow;
         }
 
         #docking-ui button.hidden {
@@ -263,9 +265,11 @@
     <div id="docking-ui" class="hidden">
         <span id="docking-ui-name"></span><br>
         <button id="docking-ui-takeoff">🚀︎ Take Off</button>
+        <button id="docking-ui-undock">🚀︎ Undock</button>
         <button id="docking-ui-repair">🛠︎ Repair Hull</button>
         <button id="docking-ui-start-mining">⛏︎ Start Mining</button>
         <button id="docking-ui-stop-mining">⛏︎ Stop Mining</button>
+        <button id="docking-ui-capture">⚔︎ Capture Ship</button>
     </div>
     <!-- <button id="add-btn">＋ Add Log Entry</button> -->
     <script type="module" src="src/core/game.js"></script>

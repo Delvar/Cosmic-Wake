@@ -28,7 +28,7 @@ export class Autopilot {
         this.completed = false;
         /** @type {string|null} Error message if the autopilot fails, null if no error. */
         this.error = null;
-        /** @type {Autopilot|null} Optional sub-autopilot for delegated tasks. */
+        /** @type {Autopilot<TargetType>|null} Optional sub-autopilot for delegated tasks. */
         this.subAutopilot = null;
         /** @type {number} Maximum angle deviation to apply thrust. */
         this.thrustAngleLimit = Math.PI / 16.0;
@@ -231,10 +231,13 @@ export class Autopilot {
     * @param {Vector2D} desiredVelocity - Desired velocity vector.
     * @param {number|Vector2D|null} [failoverAngle=null] - Angle to face when not thrusting, or null.
     * @param {number} [errorThresholdRatio=1.0] The ratio for the error threshold, lower is more accurate but can cause twitching.
-    * @param {Vector2D} [outVelocityError=null] - Output vector for velocity error.
+    * @param {Vector2D} [outVelocityError] - Output vector for velocity error.
     * @returns {boolean} True if thrusting, false otherwise.
     */
-    applyThrustLogic(ship, desiredVelocity, failoverAngle = null, errorThresholdRatio = 1.0, outVelocityError = null) {
+    applyThrustLogic(ship, desiredVelocity, failoverAngle = null, errorThresholdRatio = 1.0, outVelocityError) {
+        if (!outVelocityError) {
+            return false;
+        }
         outVelocityError.set(desiredVelocity).subtractInPlace(ship.velocity);
         const velocityErrorMagnitude = outVelocityError.magnitude();
 
@@ -275,6 +278,9 @@ export class Autopilot {
      * @param {number} angleToLead - Angle to the lead position (radians).
      */
     handleFiring(distance, angleToLead) {
+        if (!this.target) {
+            return;
+        }
         if (distance <= this.firingRange) {
             this.ship.fireTurrets();
             if (Math.abs(angleToLead) < this.target.radius / distance) {

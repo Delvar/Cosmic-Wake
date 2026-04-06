@@ -6,19 +6,20 @@ import { Vector2D } from '/src/core/vector2d.js';
 import { isValidTarget } from '/src/core/gameObject.js';
 import { normalizeAngle } from '/src/core/utils.js';
 import { GameManager } from '/src/core/game.js';
+import { PlayerPilot } from '/src/pilot/pilot.js';
 
 /**
  * Autopilot that uses FlyToTargetAutopilot to approach a disabled ship, then initiate boarding to capture it.
- * @extends Autopilot
+ * @extends Autopilot<Ship>
  */
 export class BoardShipAutopilot extends Autopilot {
     /**
      * Creates a new BoardShipAutopilot instance.
      * @param {Ship} ship - The ship to control.
-     * @param {Ship} targetShip - The target ship to board and capture.
+     * @param {Ship} target - The target ship to board and capture.
      */
-    constructor(ship, targetShip) {
-        super(ship, targetShip);
+    constructor(ship, target) {
+        super(ship, target);
         /** @type {FlyToTargetAutopilot|null} Sub-autopilot for approaching the target ship. */
         this.subAutopilot = null;
         /** @type {Vector2D} Distance vector from ship to target ship. */
@@ -116,7 +117,11 @@ export class BoardShipAutopilot extends Autopilot {
         } else if (this.ship.state === 'Landing') {
             // Wait for boarding action to complete (e.g., animation or timer)
         } else if (this.ship.state === 'Landed') {
-            // Boarding completed successfully, ship captured
+            //TODO: FIXME: let AI decide what to do here.
+            // Boarding completed successfully, capture the ship
+            if (this.ship.dockingContext && this.ship.dockingContext.landedObject instanceof Ship && (!(this.ship.pilot instanceof PlayerPilot))) {
+                this.ship.dockingContext.capture();
+            }
             this.completed = true;
             this.stop();
         } else {

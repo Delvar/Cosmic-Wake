@@ -16,10 +16,12 @@ export class DockingUiController {
      * @param {Object} elements - DOM elements for the docking UI.
      * @param {HTMLElement} elements.dockingUI - The main docking UI div.
      * @param {HTMLElement} elements.dockingName - The span for the docked object's name.
-     * @param {HTMLButtonElement} elements.dockingButton - The take off button.
-     * @param {HTMLButtonElement} elements.dockingRepairButton - The repair hull button.
-     * @param {HTMLButtonElement} elements.dockingStartMiningButton - The start mining button.
-     * @param {HTMLButtonElement} elements.dockingStopMiningButton - The stop mining button.
+     * @param {HTMLButtonElement} elements.takeoffButton - The takeoff button.
+     * @param {HTMLButtonElement} elements.undockButton - The undock button.
+     * @param {HTMLButtonElement} elements.repairButton - The repair hull button.
+     * @param {HTMLButtonElement} elements.startMiningButton - The start mining button.
+     * @param {HTMLButtonElement} elements.stopMiningButton - The stop mining button.
+     * @param {HTMLButtonElement} elements.captureButton - The capture button.
      */
     constructor(manager, elements) {
         /** @type {GameManager} The game manager instance. */
@@ -29,32 +31,40 @@ export class DockingUiController {
         this.dockingUI = elements.dockingUI;
         /** @type {HTMLElement} The span for the docked object's name. */
         this.dockingName = elements.dockingName;
-        /** @type {HTMLButtonElement} The take off button. */
-        this.dockingButton = elements.dockingButton;
+        /** @type {HTMLButtonElement} The takeoff button. */
+        this.takeoffButton = elements.takeoffButton;
+        /** @type {HTMLButtonElement} The undock button. */
+        this.undockButton = elements.undockButton;
         /** @type {HTMLButtonElement} The repair hull button. */
-        this.dockingRepairButton = elements.dockingRepairButton;
+        this.repairButton = elements.repairButton;
         /** @type {HTMLButtonElement} The start mining button. */
-        this.dockingStartMiningButton = elements.dockingStartMiningButton;
+        this.startMiningButton = elements.startMiningButton;
         /** @type {HTMLButtonElement} The stop mining button. */
-        this.dockingStopMiningButton = elements.dockingStopMiningButton;
+        this.stopMiningButton = elements.stopMiningButton;
+        /** @type {HTMLButtonElement} The capture button. */
+        this.captureButton = elements.captureButton;
 
         /** @type {DockingContext|null} The current docking context. */
         this.dockingContext = null;
 
-        /** @type {{landedObjectName: string|null, takeOffVisible: boolean|null, repairVisible: boolean|null, miningStartVisible: boolean|null, miningStopVisible: boolean|null}} The last displayed values to avoid unnecessary DOM updates. */
+        /** @type {{landedObjectName: string|null, takeOffVisible: boolean|null, repairVisible: boolean|null, miningStartVisible: boolean|null, miningStopVisible: boolean|null, captureVisible: boolean|null, undockVisible: boolean|null}} The last displayed values to avoid unnecessary DOM updates. */
         this._lastDisplayed = {
             landedObjectName: null,
             takeOffVisible: null,
+            undockVisible: null,
             repairVisible: null,
             miningStartVisible: null,
-            miningStopVisible: null
+            miningStopVisible: null,
+            captureVisible: null
         };
 
         // Bind event handlers
-        this.dockingButton.onclick = this.onTakeOff.bind(this);
-        this.dockingRepairButton.onclick = this.onRepair.bind(this);
-        this.dockingStartMiningButton.onclick = this.onStartMining.bind(this);
-        this.dockingStopMiningButton.onclick = this.onStopMining.bind(this);
+        this.takeoffButton.onclick = this.onTakeOff.bind(this);
+        this.undockButton.onclick = this.onTakeOff.bind(this);
+        this.repairButton.onclick = this.onRepair.bind(this);
+        this.startMiningButton.onclick = this.onStartMining.bind(this);
+        this.stopMiningButton.onclick = this.onStopMining.bind(this);
+        this.captureButton.onclick = this.onCapture.bind(this);
 
         if (new.target === DockingUiController) Object.seal(this);
     }
@@ -70,6 +80,8 @@ export class DockingUiController {
         this._lastDisplayed.repairVisible = null;
         this._lastDisplayed.miningStartVisible = null;
         this._lastDisplayed.miningStopVisible = null;
+        this._lastDisplayed.captureVisible = null;
+        this._lastDisplayed.undockVisible = null;
         this.update();
     }
 
@@ -98,37 +110,58 @@ export class DockingUiController {
         }
 
         // Diff against last displayed values to avoid unnecessary DOM updates
-        const landedObjectName = this.dockingContext.landedObject.name;
+        let landedObjectName = this.dockingContext.landedObject.name;
+
         if (landedObjectName !== this._lastDisplayed.landedObjectName) {
             this.dockingName.textContent = landedObjectName;
             this._lastDisplayed.landedObjectName = landedObjectName;
         }
 
-        const takeOffVisible = this.dockingContext.hasTakeOffCapability;
+        // Boarding disabled ship - show capture and undock buttons
+        const captureVisible = this.dockingContext.hasCaptureAction;
+        if (captureVisible !== this._lastDisplayed.captureVisible) {
+            this._setHidden(this.captureButton, !captureVisible);
+            this._lastDisplayed.captureVisible = captureVisible;
+        }
+
+        const undockVisible = this.dockingContext.hasUndockAction;
+        if (undockVisible !== this._lastDisplayed.undockVisible) {
+            this._setHidden(this.undockButton, !undockVisible);
+            this._lastDisplayed.undockVisible = undockVisible;
+        }
+
+        // Normal planet/asteroid docking - show normal buttons
+        const takeOffVisible = this.dockingContext.hasTakeOffAction;
         if (takeOffVisible !== this._lastDisplayed.takeOffVisible) {
-            this._setHidden(this.dockingButton, !takeOffVisible);
+            this._setHidden(this.takeoffButton, !takeOffVisible);
             this._lastDisplayed.takeOffVisible = takeOffVisible;
         }
 
-        const repairVisible = this.dockingContext.hasRepairCapability;
+        const repairVisible = this.dockingContext.hasRepairAction;
         if (repairVisible !== this._lastDisplayed.repairVisible) {
-            this._setHidden(this.dockingRepairButton, !repairVisible);
+            this._setHidden(this.repairButton, !repairVisible);
             this._lastDisplayed.repairVisible = repairVisible;
         }
 
-        const hasMining = this.dockingContext.hasMiningCapability;
-        const miningEnabled = this.dockingContext.ship.miningEnabled;
-        const miningStartVisible = hasMining && !miningEnabled;
-        const miningStopVisible = hasMining && miningEnabled;
-
-        if (miningStartVisible !== this._lastDisplayed.miningStartVisible) {
-            this._setHidden(this.dockingStartMiningButton, !miningStartVisible);
-            this._lastDisplayed.miningStartVisible = miningStartVisible;
-        }
-
-        if (miningStopVisible !== this._lastDisplayed.miningStopVisible) {
-            this._setHidden(this.dockingStopMiningButton, !miningStopVisible);
-            this._lastDisplayed.miningStopVisible = miningStopVisible;
+        if (!this.dockingContext.hasMiningAction) {
+            if (this._lastDisplayed.miningStartVisible !== false) {
+                this._setHidden(this.startMiningButton, true);
+                this._lastDisplayed.miningStartVisible = false;
+            }
+            if (this._lastDisplayed.miningStopVisible !== false) {
+                this._setHidden(this.stopMiningButton, true);
+                this._lastDisplayed.miningStopVisible = false;
+            }
+        } else {
+            const miningEnabled = this.dockingContext.ship.miningEnabled;
+            if (this._lastDisplayed.miningStartVisible !== !miningEnabled) {
+                this._setHidden(this.startMiningButton, miningEnabled);
+                this._lastDisplayed.miningStartVisible = !miningEnabled;
+            }
+            if (this._lastDisplayed.miningStopVisible !== miningEnabled) {
+                this._setHidden(this.stopMiningButton, !miningEnabled);
+                this._lastDisplayed.miningStopVisible = miningEnabled;
+            }
         }
     }
 
@@ -191,15 +224,29 @@ export class DockingUiController {
             this.update();
         }
     }
+
+    /**
+     * Handles the capture button click.
+     */
+    onCapture() {
+        if (this.dockingContext) {
+            this.dockingContext.capture();
+            // Update UI to toggle buttons
+            this.update();
+        }
+    }
+
     /**
      * Disposes of this controller, clearing references.
      */
     dispose() {
         this.dockingContext = null;
         // Clear event handlers
-        this.dockingButton.onclick = null;
-        this.dockingRepairButton.onclick = null;
-        this.dockingStartMiningButton.onclick = null;
-        this.dockingStopMiningButton.onclick = null;
+        this.takeoffButton.onclick = null;
+        this.undockButton.onclick = null;
+        this.repairButton.onclick = null;
+        this.startMiningButton.onclick = null;
+        this.stopMiningButton.onclick = null;
+        this.captureButton.onclick = null;
     }
 }

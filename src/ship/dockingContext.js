@@ -3,13 +3,19 @@
 import { Ship } from "/src/ship/ship.js";
 import { Asteroid } from "/src/starSystem/asteroidBelt.js";
 import { CelestialBody } from "/src/starSystem/celestialBody.js";
+import { PlayerPilot } from "/src/pilot/pilot.js";
+import { AiPilot } from "/src/pilot/aiPilot.js";
+import { OfficerAiPilot } from "/src/pilot/officerAiPilot.js";
+import { CivilianAiPilot } from "/src/pilot/civilianAiPilot.js";
+import { EscortJob } from "/src/job/escortJob.js";
 
 /**
  * DockingContext represents the in-game context for a landed or docked ship.
  * It is created when a ship touches down on a celestial body, asteroid, or docks with another ship.
  * This class centralises the available actions and permission checks for the docking UI and AI.
  *
- * Available actions: take off, repair hull (on planet), start mining/stop mining (on asteroids).
+ * Available actions: take off, repair hull (on planet), start mining/stop mining (on asteroids),
+ * capture (on disabled ships), undock (on disabled ships).
  */
 export class DockingContext {
     /**
@@ -26,13 +32,20 @@ export class DockingContext {
         this.ship = ship;
 
         /** @type {boolean} Whether the ship is allowed to take off. */
-        this.hasTakeOffCapability = true;
+        this.hasTakeOffAction = !(this.landedObject instanceof Ship);
+
+        /** @type {boolean} Whether undock action is available (only when boarding disabled ships). */
+        this.hasUndockAction = this.landedObject instanceof Ship;
 
         /** @type {boolean} Whether hull repair is available, only on celestial bodies. */
-        this.hasRepairCapability = this.landedObject instanceof CelestialBody;
+        this.hasRepairAction = this.landedObject instanceof CelestialBody;
 
         /** @type {boolean} Whether the ship can start mining (only on asteroids). */
-        this.hasMiningCapability = this.landedObject instanceof Asteroid;
+        this.hasMiningAction = this.landedObject instanceof Asteroid;
+
+        /** @type {boolean} Whether capture action is available (only when boarding disabled ships). */
+        this.hasCaptureAction = this.landedObject instanceof Ship;
+
     }
 
     /**
@@ -58,12 +71,12 @@ export class DockingContext {
         if (!this.ship || !this.landedObject) {
             return false;
         }
-        if (!this.hasTakeOffCapability) {
+        if (!this.hasTakeOffAction && !this.hasUndockAction) {
             console.error(`${this.constructor.name}: takeOff Not Valid`);
             return false;
         }
         this.debugLog(() => console.log(`${this.constructor.name}: takeOff`));
-        // TODO: Hide UI docking window
+
         this.ship.initiateTakeoff();
         return true;
     }
@@ -78,7 +91,7 @@ export class DockingContext {
         if (!this.ship || !this.landedObject) {
             return false;
         }
-        if (!this.hasRepairCapability) {
+        if (!this.hasRepairAction) {
             console.error(`${this.constructor.name}: repairHull Not Valid`);
             return false;
         }
@@ -98,7 +111,7 @@ export class DockingContext {
         if (!this.ship || !this.landedObject) {
             return false;
         }
-        if (!this.hasMiningCapability) {
+        if (!this.hasMiningAction) {
             console.error(`${this.constructor.name}: startMining Not Valid`);
             return false;
         }
@@ -119,7 +132,7 @@ export class DockingContext {
         if (!this.ship || !this.landedObject) {
             return false;
         }
-        if (!this.hasMiningCapability) {
+        if (!this.hasMiningAction) {
             console.error(`${this.constructor.name}: stopMining Not Valid`);
             return false;
         }
@@ -131,14 +144,74 @@ export class DockingContext {
     }
 
     /**
+     * Captures a disabled ship when boarding, transferring ownership and repairing it.
+     * Only available when boarding disabled ships.
+     *
+     * @return {boolean} True if capture was performed, false if invalid.
+     */
+    capture() {
+        if (!this.ship || !this.landedObject) {
+            return false;
+        }
+        if (!this.hasCaptureAction) {
+            console.error(`${this.constructor.name}: capture Not Valid`);
+            return false;
+        }
+        if (!(this.landedObject instanceof Ship)) {
+            console.error(`${this.constructor.name}: not a Ship`);
+            return false;
+        }
+
+        this.debugLog(() => console.log(`${this.constructor.name}: capture`));
+
+        /** @type {Ship} */
+        const boardedShip = this.landedObject;
+        // Transfer ownership
+        boardedShip.faction = this.ship.faction;
+        // Repair the ship
+        boardedShip.hullIntegrity = boardedShip.disabledThreshold + 1.0;
+        // Activate shield
+        boardedShip.shield.isActive = true;
+        // Set to flying state
+        boardedShip.state = 'Flying';
+        // Clear hostiles
+        boardedShip.hostiles.length = 0;
+        boardedShip.lastAttacker = null;
+
+        // Assign new pilot based on captor's pilot type
+        if (this.ship.pilot instanceof PlayerPilot) {
+            boardedShip.pilot = new OfficerAiPilot(boardedShip, new EscortJob(boardedShip, this.ship));
+        } else if (this.ship.pilot instanceof AiPilot) {
+            boardedShip.pilot = new CivilianAiPilot(boardedShip, null); // No Job so will land and despawn
+        }
+
+        // Take off from the captured ship
+        this.takeOff();
+        return true;
+    }
+
+    /**
+     * Undocks from a boarded disabled ship without capturing it.
+     * Only available when boarding disabled ships.
+     *
+     * @return {boolean} True if undock was performed, false if invalid.
+     */
+    undock() {
+        // Undock is just take off with different naming
+        return this.takeOff();
+    }
+
+    /**
      * Dispose of this context when docking interactions are complete.
      * Clears references to help garbage collection and avoid accidental reuse.
      *
      * @return {void}
      */
     dispose() {
-        this.hasTakeOffCapability = false;
-        this.hasRepairCapability = false;
-        this.hasMiningCapability = false;
+        this.hasTakeOffAction = false;
+        this.hasUndockAction = false;
+        this.hasRepairAction = false;
+        this.hasMiningAction = false;
+        this.hasCaptureAction = false;
     }
 }

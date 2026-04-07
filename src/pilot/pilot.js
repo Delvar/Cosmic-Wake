@@ -30,6 +30,7 @@ export class Pilot {
         this.ship = ship;
         /** @type {Autopilot|null} The active autopilot controlling ship navigation (e.g., FlyToTargetAutopilot). */
         this.autopilot = null;
+
         /**
          * Seals this instance if directly instantiated (`new Shield()`),
          * but skips for subclasses. Prevents adding/deleting properties.

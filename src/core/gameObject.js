@@ -1,4 +1,5 @@
 // /src/core/gameObject.js
+
 import { Vector2D } from '/src/core/vector2d.js';
 import { StarSystem } from '/src/starSystem/starSystem.js';
 

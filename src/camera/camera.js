@@ -20,8 +20,8 @@ export class Camera {
     constructor(foregroundCanvas, backgroundCanvas, hudCanvas, hudOutlineCanvas, zoom = 1.0) {
         /** @type {boolean} Enables or disables debug mode for the camera. */
         this.debug = false;
-        /** @type {StarSystem|null} The star system the camera is currently viewing. */
-        this.starSystem = null;
+        /** @type {StarSystem} The star system the camera is currently viewing. */
+        this.starSystem = /** @type {any} */ (null);
         /** @type {Vector2D} The position of the camera in world coordinates. */
         this.position = new Vector2D(0.0, 0.0);
 

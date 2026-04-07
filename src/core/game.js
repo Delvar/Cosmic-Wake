@@ -90,6 +90,9 @@ export class Game {
      */
     resizeTargetCamera() {
         const parent = this.targetCamera.foregroundCanvas.parentElement;
+        if (!parent) {
+            throw new TypeError('No parent element on this.targetCamera.foregroundCanvas');
+        }
         this.targetCamera.resize(parent.clientWidth, parent.clientHeight);
         this.targetHud.resize(parent.clientWidth, parent.clientHeight);
         this.starField.resize('target', parent.clientWidth, parent.clientHeight);
@@ -140,7 +143,7 @@ export class Game {
             // Draw starfield for main camera
             this.starField.draw('main', this.mainCamera, fadeout, white);
         }
-        if (renderStarfield && this.starField && this.targetCamera && this.targetCamera.foregroundCanvas.parentElement.style.visibility === 'visible') {
+        if (renderStarfield && this.starField && this.targetCamera && this.targetCamera.foregroundCanvas.parentElement?.style.visibility === 'visible') {
             let fadeout = 1.0;
             let white = 0.0;
             const target = this.manager.cameraTarget.target;
@@ -205,9 +208,10 @@ export class Game {
         ctx.clearRect(0.0, 0.0, camera.screenSize.width, camera.screenSize.height);
 
         const cameraTarget = this.manager.cameraTarget;
-        if (!cameraTarget || cameraTarget.despawned) {
-            this.manager.cameraTarget = null;
-        }
+        //TODO: FIXME: what to do when the cameraTarget goes away
+        // if (!cameraTarget || cameraTarget.despawned) {
+        //     this.manager.cameraTarget = null;
+        // }
 
         const starSystem = camera.starSystem;
         if (!starSystem) {
@@ -304,7 +308,9 @@ export class Game {
         const camera = this.targetCamera;
         const ctx = camera.foregroundCtx;
         const parent = camera.foregroundCanvas.parentElement;
-
+        if (!parent) {
+            throw new TypeError('No parent element on camera.foregroundCanvas');
+        }
         if (!target) {
             if (parent.style.visibility !== 'hidden') {
                 parent.style.visibility = 'hidden';
@@ -354,7 +360,9 @@ export class Game {
         starSystem.projectileManager.draw(ctx, camera);
         starSystem.particleManager.draw(ctx, camera);
 
-        this.targetHud.draw(this.manager.cameraTarget.target);
+        if (this.manager.cameraTarget.target) {
+            this.targetHud.draw(this.manager.cameraTarget.target);
+        }
     }
 }
 
@@ -370,14 +378,41 @@ export class GameManager {
         this.debug = false;
 
         const mainCameraForegroundCanvas = /** @type {HTMLCanvasElement} */ (document.getElementById('mainCameraForeground'));
+        if (!mainCameraForegroundCanvas) {
+            throw new TypeError('Unable to find element mainCameraForeground');
+        }
         const mainCameraBackgroundCanvas = /** @type {HTMLCanvasElement} */ (document.getElementById('mainCameraBackground'));
+        if (!mainCameraBackgroundCanvas) {
+            throw new TypeError('Unable to find element mainCameraBackground');
+        }
         const mainCameraHudCanvas = /** @type {HTMLCanvasElement} */ (document.getElementById('mainCameraHud'));
+        if (!mainCameraHudCanvas) {
+            throw new TypeError('Unable to find element mainCameraHud');
+        }
         const mainCameraHudOutlineCanvas = /** @type {HTMLCanvasElement} */ (document.getElementById('mainCameraHudOutline'));
+        if (!mainCameraHudOutlineCanvas) {
+            throw new TypeError('Unable to find element mainCameraHudOutline');
+        }
         const targetCameraForegroundCanvas = /** @type {HTMLCanvasElement} */ (document.getElementById('targetCameraForeground'));
+        if (!targetCameraForegroundCanvas) {
+            throw new TypeError('Unable to find element targetCameraForeground');
+        }
         const targetCameraBackgroundCanvas = /** @type {HTMLCanvasElement} */ (document.getElementById('targetCameraBackground'));
+        if (!targetCameraBackgroundCanvas) {
+            throw new TypeError('Unable to find element targetCameraBackground');
+        }
         const targetCameraHudCanvas = /** @type {HTMLCanvasElement} */ (document.getElementById('targetCameraHud'));
+        if (!targetCameraHudCanvas) {
+            throw new TypeError('Unable to find element targetCameraHud');
+        }
         const targetCameraHudOutlineCanvas = /** @type {HTMLCanvasElement} */ (document.getElementById('targetCameraHudOutline'));
-        const logArea = document.getElementById('log-inner');
+        if (!targetCameraHudOutlineCanvas) {
+            throw new TypeError('Unable to find element targetCameraHudOutline');
+        }
+        const logArea = /** @type {HTMLElement} */ document.getElementById('log-inner');
+        if (!logArea) {
+            throw new TypeError('Unable to find element log-inner');
+        }
 
         /** @type {Camera} The main camera tracking the player's ship. */
         this.mainCamera = new Camera(mainCameraForegroundCanvas, mainCameraBackgroundCanvas, mainCameraHudCanvas, mainCameraHudOutlineCanvas, 1.0);
@@ -391,7 +426,7 @@ export class GameManager {
         this.targetHud.showAutopilotStatus = false;
         this.targetHud.showCameraTargetName = true;
         /** @type {Ship} The current target for the camera, typically the player's ship. */
-        this.cameraTarget = null;
+        this.cameraTarget = /** @type {any} */ (null);
 
         /** @type {UiLog} The logging class that displayed on screen */
         this.uiLog = new UiLog(logArea);
@@ -429,8 +464,12 @@ export class GameManager {
         /** @type {FactionManager} The faction manager instance. */
         this.factionManager = new FactionManager();
         this.initializeFactions();
+        const playerFaction = this.factionManager.getFaction('Player');
+        if (!playerFaction) {
+            throw new TypeError('Unable to find playerFaction');
+        }
         /** @type {Ship} The player's ship, positioned relative to a planet. */
-        this.playerShip = new Interceptor(spawnPlanet.position.x + spawnPlanet.radius * 1.5, spawnPlanet.position.y, this.galaxy[0], this.factionManager.getFaction('Player'));
+        this.playerShip = new Interceptor(spawnPlanet.position.x + spawnPlanet.radius * 1.5, spawnPlanet.position.y, this.galaxy[0], playerFaction);
         this.playerShip.setUiLog(this.uiLog);
 
         //FIXME: Hack to test cargo space and jettisoning
@@ -471,7 +510,8 @@ export class GameManager {
 
         // Initialize escort ship with AI pilot and matching colors
         const escort01 = new Interceptor(spawnPlanet.position.x - spawnPlanet.radius * 1.0, spawnPlanet.position.y, this.galaxy[0], this.playerShip.faction);
-        const pilot01 = new OfficerAiPilot(escort01, new EscortJob(escort01, this.playerShip));
+        const pilot01 = new OfficerAiPilot(escort01)
+        pilot01.setJob(new EscortJob(escort01, pilot01, this.playerShip));
         escort01.setPilot(pilot01);
         escort01.colors.cockpit = this.playerShip.colors.cockpit;
         escort01.colors.wings = this.playerShip.colors.wings;
@@ -621,9 +661,21 @@ export class GameManager {
             let disabledCount = 0.0;
 
             const playerFaction = this.factionManager.getFaction('Player');
+            if (!playerFaction) {
+                throw new TypeError('Unable to find playerFaction');
+            }
             const civilianFaction = this.factionManager.getFaction('Civilian');
+            if (!civilianFaction) {
+                throw new TypeError('Unable to find civilianFaction');
+            }
             const pirateFaction = this.factionManager.getFaction('Pirate');
+            if (!pirateFaction) {
+                throw new TypeError('Unable to find pirateFaction');
+            }
             const officerFaction = this.factionManager.getFaction('Officer');
+            if (!officerFaction) {
+                throw new TypeError('Unable to find officerFaction');
+            }
 
             for (let i = 0.0; i < systemShipsLength; i++) {
                 const ship = system.ships[i];
@@ -683,20 +735,25 @@ export class GameManager {
             if (officerAliveCount == 0 && (disabledCount > 0 || pirateCount > 0)) {
                 //spawn officer to rescue other ships
                 const spawnPlanet = system.getRandomPlanet();
-                let aiShip = new Fighter(spawnPlanet.position.x, spawnPlanet.position.y, system, officerFaction);
-                aiShip.pilot = new OfficerAiPilot(aiShip, new OfficerJob(aiShip, null, false));
-                aiShip.colors.wings = Colour.BlueDark;
-                aiShip.colors.hull = Colour.WhiteLight;
-                aiShip.trail.color = aiShip.colors.wings.toRGBA(0.5);
-                aiShip.setState('Landed');
-                aiShip.shipScale = 0.0;
-                aiShip.velocity.set(0.0, 0.0);
-                aiShip.createDockingContext(spawnPlanet);
-                aiShip.name = generateShipName(aiShip);
-                spawnPlanet.addLandedShip(aiShip);
-                system.addGameObject(aiShip);
-                officerCount++;
-                officerAliveCount++;
+                if (spawnPlanet) {
+                    //spawn officer
+                    const aiShip = new Fighter(spawnPlanet.position.x, spawnPlanet.position.y, system, officerFaction);
+                    const pilot = new OfficerAiPilot(aiShip);
+                    pilot.setJob(new OfficerJob(aiShip, pilot, false));
+                    aiShip.setPilot(pilot);
+                    aiShip.colors.wings = Colour.BlueDark;
+                    aiShip.colors.hull = Colour.WhiteLight;
+                    aiShip.trail.color = aiShip.colors.wings.toRGBA(0.5);
+                    aiShip.setState('Landed');
+                    aiShip.shipScale = 0.0;
+                    aiShip.velocity.set(0.0, 0.0);
+                    aiShip.createDockingContext(spawnPlanet);
+                    aiShip.name = generateShipName(aiShip);
+                    spawnPlanet.addLandedShip(aiShip);
+                    system.addGameObject(aiShip);
+                    officerCount++;
+                    officerAliveCount++;
+                }
             }
 
             do {
@@ -709,16 +766,19 @@ export class GameManager {
                     }
                     if (officerCount < 2.0) {
                         //spawn officer
-                        //aiShip = createRandomFastShip(spawnPlanet.position.x, spawnPlanet.position.y, system, officerFaction);
                         aiShip = new Fighter(spawnPlanet.position.x, spawnPlanet.position.y, system, officerFaction);
-                        aiShip.pilot = new OfficerAiPilot(aiShip, new OfficerJob(aiShip, null, false));
+                        const pilot = new OfficerAiPilot(aiShip);
+                        pilot.setJob(new OfficerJob(aiShip, pilot, false));
+                        aiShip.setPilot(pilot);
                         aiShip.colors.wings = Colour.BlueDark;
                         aiShip.colors.hull = Colour.WhiteLight;
                         officerCount++;
                     } else if (pirateCount < 4.0 && Math.random() < 0.25) {
                         //spawn pirate
                         aiShip = createRandomFastShip(spawnPlanet.position.x, spawnPlanet.position.y, system, pirateFaction);
-                        aiShip.pilot = new PirateAiPilot(aiShip, new PirateJob(aiShip, null, true));
+                        const pilot = new PirateAiPilot(aiShip);
+                        pilot.setJob(new PirateJob(aiShip, pilot, true));
+                        aiShip.setPilot(pilot);
                         aiShip.colors.wings = Colour.RedDark;
                         aiShip.colors.hull = Colour.GreyDark;
                         pirateCount++;
@@ -726,11 +786,14 @@ export class GameManager {
                         //spawn civilian
                         aiShip = createRandomShip(spawnPlanet.position.x, spawnPlanet.position.y, system, civilianFaction);
                         if (aiShip instanceof Boxwing) {
-                            aiShip.pilot = new CivilianAiPilot(aiShip, new MinerJob(aiShip));
+                            const pilot = new CivilianAiPilot(aiShip);
+                            pilot.setJob(new MinerJob(aiShip, pilot, spawnPlanet));
+                            aiShip.setPilot(pilot);
                         } else {
-                            aiShip.pilot = new CivilianAiPilot(aiShip, new WandererJob(aiShip));
+                            const pilot = new CivilianAiPilot(aiShip);
+                            pilot.setJob(new WandererJob(aiShip, pilot));
+                            aiShip.setPilot(pilot);
                         }
-                        //aiShip.colors.wings.set(0.0,  1.0,  0.0,  1.0);
                         civilianCount++;
                         if (!(aiShip instanceof Freighter || aiShip instanceof StarBarge)) {
                             const commodities = Object.values(CommodityType);
@@ -762,25 +825,27 @@ export class GameManager {
                         }
                         const escortCount = Math.round(Math.random() * (aiShip instanceof Freighter ? 4 : 2.0));
                         for (let i = 0.0; i < escortCount; i++) {
-                            const escort = new Fighter(spawnPlanet.position.x, spawnPlanet.position.y, system, aiShip.faction);
-                            const pilot = new OfficerAiPilot(escort, new EscortJob(escort, aiShip));
-                            escort.setPilot(pilot);
-                            escort.colors.cockpit = aiShip.colors.cockpit;
-                            escort.colors.wings = aiShip.colors.wings;
-                            escort.colors.hull = aiShip.colors.hull;
-                            escort.trail.color = aiShip.trail.color;
-                            escort.setState('Landed');
-                            escort.shipScale = 0.0;
-                            escort.velocity.set(0.0, 0.0);
-                            escort.createDockingContext(spawnPlanet);
-                            escort.name = generateShipName(escort);
-                            spawnPlanet.addLandedShip(escort);
-                            system.addGameObject(escort);
-                            if (escort.faction === civilianFaction) {
+                            /** @type {Ship} */
+                            const escortShip = new Fighter(spawnPlanet.position.x, spawnPlanet.position.y, system, aiShip.faction);
+                            const pilot = new OfficerAiPilot(escortShip);
+                            pilot.setJob(new EscortJob(escortShip, pilot, aiShip));
+                            escortShip.setPilot(pilot);
+                            escortShip.colors.cockpit = aiShip.colors.cockpit;
+                            escortShip.colors.wings = aiShip.colors.wings;
+                            escortShip.colors.hull = aiShip.colors.hull;
+                            escortShip.trail.color = aiShip.trail.color;
+                            escortShip.setState('Landed');
+                            escortShip.shipScale = 0.0;
+                            escortShip.velocity.set(0.0, 0.0);
+                            escortShip.createDockingContext(spawnPlanet);
+                            escortShip.name = generateShipName(escortShip);
+                            spawnPlanet.addLandedShip(escortShip);
+                            system.addGameObject(escortShip);
+                            if (escortShip.faction === civilianFaction) {
                                 civilianCount++;
-                            } else if (escort.faction === pirateFaction) {
+                            } else if (escortShip.faction === pirateFaction) {
                                 pirateCount++;
-                            } else if (escort.faction === officerFaction) {
+                            } else if (escortShip.faction === officerFaction) {
                                 officerCount++;
                             }
                             aiCount++;
@@ -830,9 +895,12 @@ export class GameManager {
      * Sets up event listeners for user input and window events.
      */
     setupEventListeners() {
-        let offsetX, offsetY;
+        let offsetX = 0.0, offsetY = 0.0;
 
         const parent = this.targetCamera.foregroundCanvas.parentElement;
+        if (!parent) {
+            throw new TypeError('No parent element on camera.foregroundCanvas');
+        }
         parent.addEventListener('dragstart', (e) => {
             offsetX = e.offsetX;
             offsetY = e.offsetY;
@@ -919,15 +987,17 @@ export class GameManager {
         // Handle resizing via corner handles
         const handles = parent.querySelectorAll('.resize-handle');
         let isResizing = false;
-        let startX, startY, startWidth, startHeight, startRight, startTop, corner;
+        let startX = 0.0, startY = 0.0, startWidth = 0.0, startHeight = 0.0, startRight = 0.0, startTop = 0.0, corner = '';
 
         handles.forEach((handle) => {
-            handle.addEventListener('mousedown', /** @param {MouseEvent} e */(e) => {
+            handle.addEventListener('mousedown', (e) => {
                 e.preventDefault(); // Prevent drag interference
                 isResizing = true;
                 corner = handle.classList[1]; // e.g., 'top-left'
-                startX = e.clientX;
-                startY = e.clientY;
+                if (e instanceof MouseEvent) {
+                    startX = e.clientX;
+                    startY = e.clientY;
+                }
                 const rect = parent.getBoundingClientRect();
                 startWidth = rect.width;
                 startHeight = rect.height;

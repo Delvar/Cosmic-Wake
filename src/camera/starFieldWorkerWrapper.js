@@ -3,7 +3,7 @@
 import { StarFieldWorker } from '/src/camera/starFieldWorker.js';
 
 /**
- * Internal data structure used by StarFieldWorkerWrapper to cache per-canvas render parameters
+ * Internal data structure used by StarField to cache per-canvas render parameters
  * and avoid redundant work (dirty-flag optimisation).
  * @typedef {Object} StarFieldData
  * @property {boolean} dirty

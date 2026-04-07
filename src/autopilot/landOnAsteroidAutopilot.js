@@ -1,4 +1,5 @@
 // /src/autopilot/landOnAsteroidAutopilot.js
+
 import { Autopilot } from '/src/autopilot/autopilot.js';
 import { Vector2D } from '/src/core/vector2d.js';
 import { Ship } from '/src/ship/ship.js';

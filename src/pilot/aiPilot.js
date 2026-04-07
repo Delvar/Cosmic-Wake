@@ -21,24 +21,20 @@ export class AiPilot extends Pilot {
     /**
      * Creates a new AiPilot instance.
      * @param {Ship} ship - The ship to control.
-     * @param {Job|null} job - The job instance (e.g., WandererJob).
      * @param {boolean} [attackDisabledShips=false] - Whether to attack ships that are disabled.
      * @throws {Error} If called directly instead of sub classing.
      */
-    constructor(ship, job = null, attackDisabledShips = false) {
+    constructor(ship, attackDisabledShips = false) {
         super(ship);
-        if (job) {
-            // Set the job pilot so it can update back to us
-            job.pilot = this;
-        }
-        /** @type {Job} The job instance controlling high-level behavior (e.g., WandererJob). */
-        this.job = job;
+        /** @type {Job|null} The job instance controlling high-level behavior (e.g., WandererJob). */
+        this.job = null;
         /** @type {boolean} Whether to attack ships that are disabled. */
         this.attackDisabledShips = attackDisabledShips;
         /** @type {string} The current state ('Job', 'Flee', 'Avoid', 'Attack'). */
-        this.state = job ? 'Job' : 'Despawning';
+        this.state = 'Disabled';
         /** @type {Object.<string, Function>} Map of state names to handler methods. */
         this.stateHandlers = {
+            'Disabled': this.updateDisabled.bind(this),
             'Job': this.updateJob.bind(this),
             'Flee': this.updateFlee.bind(this),
             'Avoid': this.updateAvoid.bind(this),
@@ -51,19 +47,47 @@ export class AiPilot extends Pilot {
         /** @type {Vector2D} Temporary vector for distance calculations. */
         this._scratchDistance = new Vector2D();
 
+        //this._creationStack = new Error().stack || 'Stack capture failed';
         if (new.target === AiPilot) Object.seal(this);
+    }
+
+
+    /**
+     * Called when we detect a pilot without a job.
+     * Throws a descriptive error including the original creation stack.
+     */
+    // _throwNoJobError() {
+    //     let msg = `Pilot on ship "${this.ship?.name || 'unnamed'}" has no job.`;
+
+    //     if (this._creationStack) {
+    //         msg += `\n\nPilot was created here:\n${this._creationStack}`;
+    //     } else {
+    //         msg += `\n\nCreation stack not captured (production build).`;
+    //     }
+
+    //     throw new Error(msg);
+    // }
+
+    /**
+     * Sets the job for this pilot.
+     * @param {Job} job - The new job to set.
+     */
+    setJob(job) {
+        job.pilot = this;
+        this.job = job;
+        if (this.state == 'Disabled') {
+            this.state = 'Job';
+        }
     }
 
     /**
      * Logs a message to the console if debug mode is enabled.
-     * @param {...any} messages - Values to log (same as console.log).
+     * If a callback is passed, it is executed only when debug is true, so the console frame
+     * is attributed to the caller location.
+     * @param {Function} callback - Callback function
      */
-    debugLog(...messages) {
-        if (!this.ship.debug) return;
-        const err = new Error();
-        // stack[0] = Error constructor, stack[1] = debugLog, stack[2] = original caller
-        const caller = err.stack.split('\n')[2]?.trim() || '(unknown call site)';
-        console.log(`[${caller}]`, ...messages);
+    debugLog(callback) {
+        this.ship.debugLog(callback);
     }
 
     /**
@@ -93,11 +117,29 @@ export class AiPilot extends Pilot {
     }
 
     /**
+     * Handles the 'Disabled' state, we do nothing!
+     * @param {number} deltaTime - Time elapsed since last update (seconds).
+     * @param {GameManager} gameManager - The game manager instance for context.
+     */
+    updateDisabled(deltaTime, gameManager) {
+        //this._throwNoJobError();
+        console.warn(`${this.constructor.name}: Update while Disabled!`);
+        return;
+    }
+
+    /**
      * Handles the 'Job' state, running the job and checking reactions.
      * @param {number} deltaTime - Time elapsed since last update (seconds).
      * @param {GameManager} gameManager - The game manager instance for context.
      */
     updateJob(deltaTime, gameManager) {
+        // TODO: FIXME: bug found where job becomes null.
+        if (!this.job) {
+            //console.warn('No job in updateJob', this);
+            //return;
+            throw new TypeError(`${this.constructor.name}: In job state but no job set`);
+        }
+
         if (this.job.state === 'Failed') {
             this.debugLog(() => console.log(`${this.constructor.name}: Job failed, transitioning to Despawning`));
             this.changeState('Despawning', new LandOnPlanetDespawnAutopilot(this.ship));

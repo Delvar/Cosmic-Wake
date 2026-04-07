@@ -1,4 +1,5 @@
 // /src/autopilot/boardShipAutopilot.js
+
 import { Autopilot } from '/src/autopilot/autopilot.js';
 import { FlyToTargetAutopilot } from '/src/autopilot/flyToTargetAutopilot.js';
 import { Ship } from '/src/ship/ship.js';

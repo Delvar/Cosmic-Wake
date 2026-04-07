@@ -11,7 +11,7 @@ export class Job {
     /**
      * Creates a new Job instance.
      * @param {Ship} ship - The ship to control.
-     * @param {AiPilot} [pilot=null] - The pilot controlling the ship (optional).
+     * @param {AiPilot|null} [pilot=null] - The pilot controlling the ship (optional).
      */
     constructor(ship, pilot = null) {
         /** @type {Ship} The ship controlled by this job. */

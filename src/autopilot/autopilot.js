@@ -1,4 +1,5 @@
 // /src/autopilot/autopilot.js
+
 import { GameObject, isValidTarget } from '/src/core/gameObject.js';
 import { Vector2D } from '/src/core/vector2d.js';
 import { Ship } from '/src/ship/ship.js';

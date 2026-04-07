@@ -495,7 +495,7 @@ export class HeadsUpDisplay {
 
     /**
      * Draws HUD elements like rings, arrows, and labels on the canvas.
-     * @param {Ship} cameraTarget - The camera target object.
+     * @param {GameObject} cameraTarget - The camera target object.
      * @returns {void}
      */
     draw(cameraTarget) {
@@ -581,7 +581,7 @@ export class HeadsUpDisplay {
                 this.drawTargetCircle(target);
             }
         }
-        if (this.showAutopilotStatus) {
+        if (this.showAutopilotStatus && cameraTarget instanceof Ship) {
             this.drawAutopilotStatus(cameraTarget);
         }
 

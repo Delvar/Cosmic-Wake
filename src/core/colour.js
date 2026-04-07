@@ -12,7 +12,7 @@ export class Colour {
      * @param {number} r - The red component (0.0 to  1.0).
      * @param {number} g - The green component (0.0 to  1.0).
      * @param {number} b - The blue component (0.0 to  1.0).
-     * @param {number} [a=1] - The alpha component (0 to  1.0, default is 1.0 for fully opaque).
+     * @param {number} [a=1.0] - The alpha component (0.0 to  1.0, default is 1.0 for fully opaque).
      */
     constructor(r, g, b, a = 1.0) {
         /** @type {number} The red component of the color (0.0 to  1.0). */
@@ -39,6 +39,7 @@ export class Colour {
      * @param {number} g - The green component (0.0 to  1.0).
      * @param {number} b - The blue component (0.0 to  1.0).
      * @param {number} [a=1] - The alpha component (0.0 to  1.0, default is 1.0 for fully opaque).
+     * @returns {void}
      */
     set(r, g, b, a = 1.0) {
         this.r = r;
@@ -72,11 +73,11 @@ export class Colour {
     }
 
     /**
-     * Converts the color to an RGBA string format, with an optional alpha override.
-     * @param {number} [overrideAlpha=null] - An optional alpha value to override the instance’s alpha (clamped between 0.0 and  1.0).
+     * Converts the color to an RGBA string format, with an alpha override.
+     * @param {number} overrideAlpha - An alpha value to override the instance’s alpha (clamped between 0.0 and  1.0).
      * @returns {string} The RGBA string in the format 'rgba(r, g, b, a)', where r, g, b are integers from 0.0 to  255.0, and a is from 0.0 to 1.0.
      */
-    toRGBA(overrideAlpha = null) {
+    toRGBA(overrideAlpha) {
         const alpha = overrideAlpha !== null ? Math.min(Math.max(overrideAlpha, 0.0), 1.0) : this.a;
         const r = Math.round(clamp(this.r, 0.0, 1.0) * 255.0);
         const g = Math.round(clamp(this.g, 0.0, 1.0) * 255.0);
@@ -103,7 +104,7 @@ export class Colour {
      * @returns {string} The hex string in the format '#rrggbbaa', where each component is a two-digit hexadecimal value.
      */
     toHexAlpha() {
-        const toHex = (value) => {
+        const toHex = (/** @type {number} */ value) => {
             const hex = Math.round(value * 255.0).toString(16.0).padStart(2.0, '0');
             return hex.length === 2 ? hex : '00';
         };

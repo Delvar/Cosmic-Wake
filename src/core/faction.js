@@ -72,7 +72,11 @@ export class FactionManager {
      */
     addFaction(name) {
         if (this.factions.has(name)) {
-            return this.factions.get(name);
+            const faction = this.factions.get(name);
+            if (!faction) {
+                throw TypeError('faction not found!');
+            }
+            return faction
         }
 
         const id = this.factions.size;
@@ -96,8 +100,18 @@ export class FactionManager {
      * @param {number} relationship - FactionRelationship value.
      */
     setRelationship(factionA, factionB, relationship) {
-        const idA = typeof factionA === 'string' ? this.getFaction(factionA).id : factionA.id;
-        const idB = typeof factionB === 'string' ? this.getFaction(factionB).id : factionB.id;
+        const fA = typeof factionA === 'string' ? this.getFaction(factionA) : factionA;
+        if (!(fA instanceof Faction)) {
+            throw new TypeError(`Faction A ${factionA} not found!`);
+        }
+        const idA = fA.id;
+
+        const fB = typeof factionB === 'string' ? this.getFaction(factionB) : factionB;
+        if (!(fB instanceof Faction)) {
+            throw new TypeError(`Faction B ${factionB} not found!`);
+        }
+        const idB = fB.id;
+
         this.relationships[idA][idB] = relationship;
         this.relationships[idB][idA] = relationship; // Symmetric
     }

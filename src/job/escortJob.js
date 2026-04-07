@@ -16,10 +16,10 @@ export class EscortJob extends Job {
     /**
      * Creates a new EscortJob instance.
      * @param {Ship} ship - The ship to control.
+     * @param {AiPilot} pilot - The pilot controlling the ship (optional).
      * @param {Ship} escortedShip - The ship to escort.
-     * @param {AiPilot} [pilot=null] - The pilot controlling the ship (optional).
      */
-    constructor(ship, escortedShip, pilot) {
+    constructor(ship, pilot, escortedShip) {
         super(ship, pilot);
         /** @type {string} The current job state ('Starting', 'Escorting', 'Failed'). */
         this.state = 'Starting';

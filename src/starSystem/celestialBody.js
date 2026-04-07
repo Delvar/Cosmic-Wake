@@ -51,15 +51,15 @@ export class CelestialBody extends GameObject {
      * @param {number} distance - The distance from the parent body or origin in world units.
      * @param {number} radius - The radius of the celestial body in world units.
      * @param {Colour} color - The color of the celestial body.
-     * @param {CelestialBody} [parent=null] - The parent celestial body (e.g., a planet for a moon).
+     * @param {CelestialBody|null} [parent=null] - The parent celestial body (e.g., a planet for a moon).
      * @param {number} [angle=0] - The initial angle relative to the parent in radians.
      * @param {Object} [type=celestialTypes['planet']] - The type of celestial body from celestialTypes.
-     * @param {Object} [subtype=null] - The subtype of the celestial body (e.g., for planets).
+     * @param {Object|null} [subtype=null] - The subtype of the celestial body (e.g., for planets).
      * @param {string|null} [name=null] - The name of the celestial body.
-     * @param {StarSystem} [starSystem=null] - The star system the body belongs to.
-     * @param {PlanetaryRing} [ring=null] - An optional ring around the body.
+     * @param {StarSystem} starSystem - The star system the body belongs to.
+     * @param {PlanetaryRing|null} [ring=null] - An optional ring around the body.
      */
-    constructor(distance, radius, color, parent = null, angle = 0.0, type = celestialTypes['planet'], subtype = null, name = null, starSystem = null, ring = null) {
+    constructor(distance, radius, color, parent = null, angle = 0.0, type = celestialTypes['planet'], subtype = null, name = null, starSystem, ring = null) {
         super(new Vector2D(0.0, 0.0), starSystem);
         /** @type {Vector2D} The position of the celestial body in world coordinates, calculated from parent and angle. */
         this.position = new Vector2D(
@@ -251,15 +251,15 @@ export class Planet extends CelestialBody {
      * @param {number} distance - The distance from the parent body or origin in world units.
      * @param {number} radius - The radius of the celestial body in world units.
      * @param {Colour} color - The color of the celestial body.
-     * @param {CelestialBody} [parent=null] - The parent celestial body (e.g., a planet for a moon).
+     * @param {CelestialBody|null} [parent=null] - The parent celestial body (e.g., a planet for a moon).
      * @param {number} [angle=0] - The initial angle relative to the parent in radians.
      * @param {Object} [type=celestialTypes['planet']] - The type of celestial body from celestialTypes.
-     * @param {Object} [subtype=null] - The subtype of the celestial body (e.g., for planets).
+     * @param {Object|null} [subtype=null] - The subtype of the celestial body (e.g., for planets).
      * @param {string} [name=''] - The name of the celestial body.
-     * @param {StarSystem} [starSystem=null] - The star system the body belongs to.
-     * @param {PlanetaryRing} [ring=null] - An optional ring around the body.
+     * @param {StarSystem} starSystem - The star system the body belongs to.
+     * @param {PlanetaryRing|null} [ring=null] - An optional ring around the body.
      */
-    constructor(distance, radius, color, parent = null, angle = 0.0, type = celestialTypes['planet'], subtype = null, name = '', starSystem = null, ring = null) {
+    constructor(distance, radius, color, parent = null, angle = 0.0, type = celestialTypes['planet'], subtype = null, name = '', starSystem, ring = null) {
         super(distance, radius, color, parent, angle, type, subtype, name, starSystem, ring);
         if (new.target === Planet) Object.seal(this);
     }
@@ -275,15 +275,15 @@ export class Star extends CelestialBody {
      * @param {number} distance - The distance from the parent body or origin in world units.
      * @param {number} radius - The radius of the celestial body in world units.
      * @param {Colour} color - The color of the celestial body.
-     * @param {CelestialBody} [parent=null] - The parent celestial body (e.g., a planet for a moon).
+     * @param {CelestialBody|null} [parent=null] - The parent celestial body (e.g., a planet for a moon).
      * @param {number} [angle=0] - The initial angle relative to the parent in radians.
      * @param {Object} [type=celestialTypes['star']] - The type of celestial body from celestialTypes.
-     * @param {Object} [subtype=null] - The subtype of the celestial body (e.g., for planets).
+     * @param {Object|null} [subtype=null] - The subtype of the celestial body (e.g., for planets).
      * @param {string} [name=''] - The name of the celestial body.
-     * @param {StarSystem} [starSystem=null] - The star system the body belongs to.
-     * @param {PlanetaryRing} [ring=null] - An optional ring around the body.
+     * @param {StarSystem} starSystem - The star system the body belongs to.
+     * @param {PlanetaryRing|null} [ring=null] - An optional ring around the body.
      */
-    constructor(distance, radius, color, parent = null, angle = 0.0, type = celestialTypes['star'], subtype = null, name = 'Unknown Star', starSystem = null, ring = null) {
+    constructor(distance, radius, color, parent = null, angle = 0.0, type = celestialTypes['star'], subtype = null, name = 'Unknown Star', starSystem, ring = null) {
         super(distance, radius, color, parent, angle, type, subtype, name, starSystem, ring);
         if (new.target === Star) Object.seal(this);
     }

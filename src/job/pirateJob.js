@@ -16,10 +16,10 @@ export class PirateJob extends Job {
     /**
      * Creates a new PirateJob instance.
      * @param {Ship} ship - The ship to control.
-     * @param {AiPilot} [pilot=null] - The pilot controlling the ship (optional).
+     * @param {AiPilot} pilot - The pilot controlling the ship (optional).
      * @param {boolean} [attackDisabledShips=false] - Whether to attack ships that are disabled.
      */
-    constructor(ship, pilot = null, attackDisabledShips = false) {
+    constructor(ship, pilot, attackDisabledShips = false) {
         super(ship, pilot);
         /** @type {boolean} Whether to attack a ship that is disabled. */
         this.attackDisabledShips = attackDisabledShips;

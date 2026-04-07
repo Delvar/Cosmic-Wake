@@ -19,10 +19,9 @@ export class PirateAiPilot extends AiPilot {
     /**
      * Creates a new PirateAiPilot instance.
      * @param {Ship} ship - The ship to control.
-     * @param {Job} job - The job instance (e.g., WandererJob).
      */
-    constructor(ship, job) {
-        super(ship, job);
+    constructor(ship) {
+        super(ship);
         /** @type {number} Interval (seconds) between threat scans in Job state. */
         this.threatScanInterval = 0.5;
         /** @type {number} Ship age (seconds) when the next threat scan is due. */

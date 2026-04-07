@@ -67,8 +67,8 @@ export function normalizeAngle(angle) {
 /**
  * Removes an item from an array in place without allocating new arrays.
  * @param {Object} object - The object to find and remove.
- * @param {Array} array - The array to remove the object from.
- * @returns {Array} The modified array.
+ * @param {Array<Object>} array - The array to remove the object from.
+ * @returns {Array<Object>} The modified array.
  */
 export function removeObjectFromArrayInPlace(object, array) {
     const index = array.indexOf(object);
@@ -90,8 +90,8 @@ export function removeObjectFromArrayInPlace(object, array) {
 /**
  * Removes an item from an array in place at the specified index without allocating new arrays.
  * @param {number} index - The index of the item to remove.
- * @param {Array} array - The array to remove the item from.
- * @returns {Array} The modified array.
+ * @param {Array<Object>} array - The array to remove the item from.
+ * @returns {Array<Object>} The modified array.
  */
 export function removeAtIndexInPlace(index, array) {
     if (index < 0.0 || index >= array.length) {

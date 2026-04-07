@@ -20,10 +20,10 @@ export class OfficerJob extends Job {
     /**
      * Creates a new OfficerJob instance.
      * @param {Ship} ship - The ship to control.
-     * @param {AiPilot} [pilot=null] - The pilot controlling the ship (optional).
+     * @param {AiPilot} pilot - The pilot controlling the ship (optional).
      * @param {boolean} [attackDisabledShips=true] - Whether to attack disabled ships.
      */
-    constructor(ship, pilot = null, attackDisabledShips = true) {
+    constructor(ship, pilot, attackDisabledShips = true) {
         super(ship, pilot);
         /** @type {boolean} Whether to attack a ship that is disabled. */
         this.attackDisabledShips = attackDisabledShips;

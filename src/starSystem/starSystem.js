@@ -7,7 +7,7 @@
  */
 import { Vector2D } from '/src/core/vector2d.js';
 import { GameObject, isValidTarget } from '/src/core/gameObject.js';
-import { Planet, Star, JumpGate, CelestialBody } from '/src/starSystem/celestialBody.js';
+import { Planet, Star, JumpGate } from '/src/starSystem/celestialBody.js';
 import { Ship } from '/src/ship/ship.js';
 import { Asteroid, AsteroidBelt } from '/src/starSystem/asteroidBelt.js';
 import { removeObjectFromArrayInPlace } from '/src/core/utils.js';
@@ -25,11 +25,8 @@ export class StarSystem {
      * @param {string} id - Unique identifier for the star system.
      * @param {string} name - Name of the star system.
      * @param {Vector2D} position - Position of the star system in space.
-     * @param {Array} stars - Array of stars in the system.
-     * @param {Array} planets - Array of planets in the system.
-     * @param {AsteroidBelt} [asteroidBelt=null] - An optional asteroid belt.
      */
-    constructor(id, name, position, stars, planets, asteroidBelt = null) {
+    constructor(id, name, position) {
         /** @type {string} Unique identifier for the star system. */
         this.id = id;
         /** @type {string} Name of the star system. */
@@ -42,39 +39,23 @@ export class StarSystem {
         this.particleManager = new ParticleManager(this);
         /** @type {CargoContainerManager} Manager for handling cargo containers in the star system. */
         this.cargoContainerManager = new CargoContainerManager(this);
-        /** @type {Array<CelestialBody>} Array of stars in the star system. */
-        this.stars = stars;
+        /** @type {Array<Star>} Array of stars in the star system. */
+        this.stars = [];
         /** @type {Array<Planet>} Array of planets in the star system. */
-        this.planets = planets;
+        this.planets = [];
+        /** @type {AsteroidBelt|null} Optional AsteroidBelt for this system*/
+        this.asteroidBelt = null;
+        /** @type {Array<Asteroid>} Array of interactive asteroids from the asteroid belt, or empty if no belt exists. */
+        this.asteroids = [];
         /** @type {Array<JumpGate>} Array of jump gates in the star system. */
         this.jumpGates = [];
         /** @type {Array<Ship>} Array of ships in the star system. */
         this.ships = [];
-        /** @type {number} Maximum number of AI-controlled ships allowed in the star system. */
-        this.maxAiShips = planets.length * 2.0;
         /** @type {Array<Hyperlane>} Array of hyperlane connections to other star systems. */
         this.hyperlanes = [];
         /** @type {AsteroidBelt|null} Optional asteroid belt in the star system. */
-        this.asteroidBelt = asteroidBelt;
-        /** @type {Array} Array of interactive asteroids from the asteroid belt, or empty if no belt exists. */
-        this.asteroids = asteroidBelt ? asteroidBelt.interactiveAsteroids : [];
-
-        // Link each celestial body to this star system
-        const starsLength = stars.length;
-        for (let i = 0.0; i < starsLength; i++) {
-            stars[i].starSystem = this;
-        }
-
-        const planetsLength = planets.length;
-        for (let i = 0.0; i < planetsLength; i++) {
-            planets[i].starSystem = this;
-        }
-
-        // Initialize asteroid belt if present
-        if (asteroidBelt) {
-            asteroidBelt.starSystem = this;
-            asteroidBelt.init();
-        }
+        /** @type {number} Maximum number of AI-controlled ships allowed in the star system. */
+        this.maxAiShips = 5.0;
 
         /**
          * Seals this instance if directly instantiated (`new Shield()`),
@@ -92,6 +73,9 @@ export class StarSystem {
         if (!(gameObject instanceof GameObject)) {
             return false;
         }
+        if (gameObject.starSystem !== this) {
+            return false;
+        }
         if (gameObject instanceof Ship) {
             removeObjectFromArrayInPlace(gameObject, this.ships);
         } else if (gameObject instanceof Planet) {
@@ -101,14 +85,18 @@ export class StarSystem {
         } else if (gameObject instanceof JumpGate) {
             removeObjectFromArrayInPlace(gameObject, this.jumpGates);
         } else if (gameObject instanceof Asteroid) {
-            this.asteroidBelt.removeAsteroid(gameObject);
+            if (this.asteroidBelt) {
+                this.asteroidBelt.removeAsteroid(gameObject);
+            } else {
+                return false;
+            }
         } else if (gameObject instanceof CargoContainer) {
             this.cargoContainerManager.removeCargoContainer(gameObject);
         } else {
             console.warn(`removeGameObject of none supported GameObject`, gameObject);
             return false;
         }
-        gameObject.starSystem = null;
+        //gameObject.starSystem = null;
         return true;
     }
 
@@ -134,8 +122,12 @@ export class StarSystem {
             removeObjectFromArrayInPlace(gameObject, this.jumpGates);
             this.jumpGates.push(gameObject);
         } else if (gameObject instanceof Asteroid) {
-            this.asteroidBelt.removeAsteroid(gameObject);
-            this.asteroidBelt.addAsteroid(gameObject);
+            if (this.asteroidBelt) {
+                this.asteroidBelt.removeAsteroid(gameObject);
+                this.asteroidBelt.addAsteroid(gameObject);
+            } else {
+                return false;
+            }
         } else {
             console.warn(`addGameObject of none supported GameObject`, gameObject);
             return false;
@@ -145,15 +137,33 @@ export class StarSystem {
     }
 
     /**
+     * Given a game object it adds it to the relevant arrays
+     * @param {AsteroidBelt} asteroidBelt - The AsteroidBelt to set
+     * @returns {boolean} true if the GameObject added
+     */
+    setAsteroidBelt(asteroidBelt) {
+        this.asteroidBelt = asteroidBelt;
+        this.asteroids = asteroidBelt.interactiveAsteroids;
+        this.asteroidBelt.starSystem = this;
+        return true;
+    }
+
+    /**
      * Initializes the star system by setting up asteroid belts and jump gates.
+     * @returns {void}
      */
     initialize() {
+        if (this.asteroidBelt) {
+            this.asteroidBelt.init();
+        }
         this.initializeJumpGates();
+        this.maxAiShips = this.planets.length * 5.0;
     }
 
     /**
      * Adds a bidirectional hyperlane connection to another star system.
      * @param {StarSystem} targetSystem - The target star system to connect to.
+     * @returns {void}
      */
     addHyperlane(targetSystem) {
         const lane = new Hyperlane(this, targetSystem);
@@ -163,6 +173,7 @@ export class StarSystem {
 
     /**
      * Initializes jump gates for outgoing hyperlanes.
+     * @returns {void}
      */
     initializeJumpGates() {
         this.hyperlanes.forEach(lane => {
@@ -174,20 +185,28 @@ export class StarSystem {
         });
     }
 
+    /**
+     * Links target gates for hyperlanes.
+     * @returns {void}
+     */
     linkTargetGates() {
         this.hyperlanes.forEach(lane => {
             if (lane.source === this && !lane.targetGate) {
-                lane.targetGate = lane.target.jumpGates.find(jumpGate =>
+                const targetGate = lane.target.jumpGates.find(jumpGate =>
                     jumpGate.lane.target === this
                 );
+                if (!targetGate) {
+                    throw new TypeError('Unable to find Jump Gate Lane');
+                }
+                lane.targetGate = targetGate;
             }
         });
     }
 
     /**
      * Selects a random ship from the available ships, using a provided validation function.
-     * @param {Ship} [ship=null] the ship looking for a target
-     * @param {GameObject} [exclude=null] exclude this other GameObject
+     * @param {Ship|null} [ship=null] the ship looking for a target
+     * @param {GameObject|null} [exclude=null] exclude this other GameObject
      * @param {function(GameObject, GameObject): boolean} [isValid=isValidTarget] - Validation function to check if a target is valid.
      * @return {Ship|null} The selected ship, or null if none available.
      */
@@ -216,9 +235,10 @@ export class StarSystem {
     }
 
     /**
-     * @param {Ship} [ship=null] the ship looking for a target
-     * @param {Planet} [exclude=null] exclude this other GameObject
-     * @return {Planet|null} The selected body, or null if none available.
+     * Selects a random valid planet from the available planets in the star system.
+     * @param {Ship|null} [ship=null] The ship looking for a target (used for validation if provided).
+     * @param {Planet|null} [exclude=null] Exclude this planet from selection.
+     * @return {Planet|null} The selected planet, or null if none available.
      */
     getRandomPlanet(ship = null, exclude = null) {
         const arr1 = this.planets;
@@ -245,9 +265,10 @@ export class StarSystem {
     }
 
     /**
-     * @param {Ship} [ship=null] the ship looking for a target
-     * @param {GameObject} [exclude=null] exclude this other GameObject
-     * @return {Star|null} The selected body, or null if none available.
+     * Selects a random valid star from the available stars in the star system.
+     * @param {Ship|null} [ship=null] The ship looking for a target (used for validation if provided).
+     * @param {Star|null} [exclude=null] Exclude this star from selection.
+     * @return {Star|null} The selected star, or null if none available.
      */
     getRandomStar(ship = null, exclude = null) {
         const arr1 = this.stars;
@@ -274,9 +295,10 @@ export class StarSystem {
     }
 
     /**
-     * @param {Ship} [ship=null] the ship looking for a target
-     * @param {GameObject} [exclude=null] exclude this other GameObject
-     * @return {JumpGate|null} The selected body, or null if none available.
+     * Selects a random valid jump gate from the available jump gates in the star system.
+     * @param {Ship|null} [ship=null] The ship looking for a target (used for validation if provided).
+     * @param {JumpGate|null} [exclude=null] Exclude this jump gate from selection.
+     * @return {JumpGate|null} The selected jump gate, or null if none available.
      */
     getRandomJumpGate(ship = null, exclude = null) {
         const arr1 = this.jumpGates;
@@ -303,9 +325,10 @@ export class StarSystem {
     }
 
     /**
-     * @param {Ship} [ship=null] the ship looking for a target
-     * @param {GameObject} [exclude=null] exclude this other GameObject
-     * @return {Asteroid|null} The selected body, or null if none available.
+     * Selects a random valid asteroid from the available asteroids in the star system.
+     * @param {Ship|null} [ship=null] The ship looking for a target (used for validation if provided).
+     * @param {Asteroid|null} [exclude=null] Exclude this asteroid from selection.
+     * @return {Asteroid|null} The selected asteroid, or null if none available.
      */
     getRandomAsteroid(ship = null, exclude = null) {
         const arr1 = this.asteroids;
@@ -332,9 +355,10 @@ export class StarSystem {
     }
 
     /**
-     * @param {Ship} [ship=null] the ship looking for a target
-     * @param {GameObject} [exclude=null] exclude this other GameObject
-     * @return {JumpGate|Planet|null} The selected body, or null if none available.
+     * Selects a random valid jump gate or planet from the available ones in the star system.
+     * @param {Ship|null} [ship=null] The ship looking for a target (used for validation if provided).
+     * @param {GameObject|null} [exclude=null] Exclude this game object from selection.
+     * @return {JumpGate|Planet|null} The selected jump gate or planet, or null if none available.
      */
     getRandomJumpGatePlanet(ship = null, exclude = null) {
         const arr1 = this.planets;
@@ -367,9 +391,10 @@ export class StarSystem {
     }
 
     /**
-     * @param {Ship} [ship=null] the ship looking for a target
-     * @param {GameObject} [exclude=null] exclude this other GameObject
-     * @return {Planet|Asteroid|null} The selected body, or null if none available.
+     * Selects a random valid planet or asteroid from the available ones in the star system.
+     * @param {Ship|null} [ship=null] The ship looking for a target (used for validation if provided).
+     * @param {GameObject|null} [exclude=null] Exclude this game object from selection.
+     * @return {Planet|Asteroid|null} The selected planet or asteroid, or null if none available.
      */
     getRandomPlanetAsteroid(ship = null, exclude = null) {
         const arr1 = this.planets;
@@ -402,9 +427,10 @@ export class StarSystem {
     }
 
     /**
-     * @param {Ship} [ship=null] the ship looking for a target
-     * @param {GameObject} [exclude=null] exclude this other GameObject
-     * @return {JumpGate|Planet|Asteroid|null} The selected body, or null if none available.
+     * Selects a random valid jump gate, planet, or asteroid from the available ones in the star system.
+     * @param {Ship|null} [ship=null] The ship looking for a target (used for validation if provided).
+     * @param {GameObject|null} [exclude=null] Exclude this game object from selection.
+     * @return {JumpGate|Planet|Asteroid|null} The selected jump gate, planet, or asteroid, or null if none available.
      */
     getRandomJumpGatePlanetAsteroid(ship = null, exclude = null) {
         const arr1 = this.planets;
@@ -471,8 +497,8 @@ export class StarSystem {
     /**
      * Finds the next closest valid jump gate after the current gate, wrapping to the closest if none further.
      * @param {Ship} ship - The ship looking for a target.
-     * @param {JumpGate} [currentGate=null] - The currently selected jump gate.
-     * @param {GameObject} [exclude=null] - Exclude this GameObject.
+     * @param {JumpGate|null} [currentGate=null] - The currently selected jump gate.
+     * @param {GameObject|null} [exclude=null] - Exclude this GameObject.
      * @returns {JumpGate|null} The next closest jump gate, or null if none available.
      */
     cycleClosestJumpGate(ship, currentGate = null, exclude = null) {
@@ -516,26 +542,26 @@ export class StarSystem {
     /**
      * Finds the closest valid planet to the ship.
      * @param {Ship} ship - The ship looking for a target.
-     * @param {Planet} [exclude=null] - Exclude this Planet.
+     * @param {Planet|null} [exclude=null] - Exclude this Planet.
      * @returns {Planet|null} The closest planet, or null if none available.
      */
     getClosestPlanet(ship, exclude = null) {
         const arr1 = this.planets;
         const length1 = arr1 ? arr1.length : 0.0;
         if (length1 === 0.0) {
-            ship.debugLog(`StarSystem: No planets in system`);
+            ship.debugLog(() => console.log(`${this.constructor.name}: No planets in system`));
             return null;
         }
 
         let closestItem = null;
         let closestSquaredDistance = Infinity;
 
-        ship.debugLog(`StarSystem: Checking ${length1} planets`);
+        ship.debugLog(() => console.log(`${this.constructor.name}: Checking ${length1} planets`));
 
         for (let i = 0.0; i < length1; i++) {
             const item = arr1[i];
             const isValid = isValidTarget(ship, item);
-            ship.debugLog(`Planet ${item.name}: isValid=${isValid}, distance=${item.position.distanceSquaredTo(ship.position)}`);
+            ship.debugLog(() => console.log(`${this.constructor.name}: Planet ${item.name}: isValid=${isValid}, distance=${item.position.distanceSquaredTo(ship.position)}`));
             if (item !== exclude && isValid) {
                 const squaredDistance = item.position.distanceSquaredTo(ship.position);
                 if (squaredDistance < closestSquaredDistance) {
@@ -545,8 +571,8 @@ export class StarSystem {
             }
         }
 
-        if (ship.debug && !closestItem) {
-            console.log(`StarSystem: No valid planets found`);
+        if (!closestItem) {
+            ship.debugLog(() => console.log(`${this.constructor.name}: No valid planets found`));
         }
 
         return closestItem;
@@ -555,8 +581,8 @@ export class StarSystem {
     /**
      * Finds the next closest valid planet after the current planet, wrapping to the closest if none further.
      * @param {Ship} ship - The ship looking for a target.
-     * @param {Planet} [currentPlanet=null] - The currently selected planet.
-     * @param {Planet} [exclude=null] - Exclude this Planet.
+     * @param {Planet|null} [currentPlanet=null] - The currently selected planet.
+     * @param {Planet|null} [exclude=null] - Exclude this Planet.
      * @returns {Planet|null} The next closest planet, or null if none available.
      */
     cycleClosestPlanet(ship, currentPlanet = null, exclude = null) {
@@ -595,7 +621,7 @@ export class StarSystem {
     /**
      * Finds the closest valid ship to the source ship.
      * @param {Ship} ship - The ship looking for a target.
-     * @param {Ship} [exclude=null] - Exclude this ship.
+     * @param {Ship|null} [exclude=null] - Exclude this ship.
      * @param {function(Ship, Ship): boolean} [isValid=isValidTarget] - Validation function to check if a target is valid.
      * @returns {Ship|null} The closest ship, or null if none available.
      */
@@ -603,19 +629,19 @@ export class StarSystem {
         const arr1 = this.ships;
         const length1 = arr1 ? arr1.length : 0.0;
         if (length1 === 0.0) {
-            ship.debugLog(`StarSystem: No ships in system`);
+            ship.debugLog(() => console.log(`${this.constructor.name}: No ships in system`));
             return null;
         }
 
         let closestItem = null;
         let closestSquaredDistance = Infinity;
 
-        ship.debugLog(`StarSystem: Checking ${length1} ships`);
+        ship.debugLog(() => console.log(`${this.constructor.name}: Checking ${length1} ships`));
 
         for (let i = 0.0; i < length1; i++) {
             const item = arr1[i];
             const valid = isValid(ship, item);
-            ship.debugLog(`Ship ${item.name}: isValid=${valid}, distance=${item.position.distanceSquaredTo(ship.position)}`);
+            ship.debugLog(() => console.log(`${this.constructor.name}: Ship ${item.name}: isValid=${valid}, distance=${item.position.distanceSquaredTo(ship.position)}`));
             if (item !== ship && item !== exclude && valid) {
                 const squaredDistance = item.position.distanceSquaredTo(ship.position);
                 if (squaredDistance < closestSquaredDistance) {
@@ -625,8 +651,8 @@ export class StarSystem {
             }
         }
 
-        if (ship.debug && !closestItem) {
-            console.log(`StarSystem: No valid ships found`);
+        if (!closestItem) {
+            ship.debugLog(() => console.log(`${this.constructor.name}: No valid ships found`));
         }
 
         return closestItem;
@@ -635,8 +661,8 @@ export class StarSystem {
     /**
      * Finds the next closest valid ship after the current ship, wrapping to the closest if none further.
      * @param {Ship} ship - The ship looking for a target.
-     * @param {Ship} [currentShip=null] - The currently selected ship.
-     * @param {Ship} [exclude=null] - Exclude this ship.
+     * @param {Ship|null} [currentShip=null] - The currently selected ship.
+     * @param {Ship|null} [exclude=null] - Exclude this ship.
      * @param {function(Ship, Ship): boolean} [isValid=isValidTarget] - Validation function to check if a target is valid.
      * @returns {Ship|null} The next closest ship, or null if none available.
      */
@@ -677,7 +703,7 @@ export class StarSystem {
     /**
      * Finds the closest valid asteroid to the ship.
      * @param {Ship} ship - The ship looking for a target.
-     * @param {Asteroid} [exclude=null] - Exclude this Asteroid.
+     * @param {Asteroid|null} [exclude=null] - Exclude this Asteroid.
      * @returns {Asteroid|null} The closest asteroid, or null if none available.
      */
     getClosestAsteroid(ship, exclude = null) {
@@ -706,8 +732,8 @@ export class StarSystem {
     /**
      * Finds the next closest valid asteroid after the current asteroid, wrapping to the closest if none further.
      * @param {Ship} ship - The ship looking for a target.
-     * @param {Asteroid} [currentAsteroid=null] - The currently selected asteroid.
-     * @param {Asteroid} [exclude=null] - Exclude this Asteroid.
+     * @param {Asteroid|null} [currentAsteroid=null] - The currently selected asteroid.
+     * @param {Asteroid|null} [exclude=null] - Exclude this Asteroid.
      * @returns {Asteroid|null} The next closest asteroid, or null if none available.
      */
     cycleClosestAsteroid(ship, currentAsteroid = null, exclude = null) {
@@ -744,9 +770,10 @@ export class StarSystem {
     }
 
     /**
-     * @param {Ship} ship the ship looking for a target
-     * @param {GameObject} [exclude=null] exclude this other GameObject
-     * @return {JumpGate|Planet|null} The selected body, or null if none available.
+     * Finds the closest valid jump gate or planet to the ship.
+     * @param {Ship} ship The ship looking for a target.
+     * @param {GameObject|null} [exclude=null] Exclude this game object from selection.
+     * @return {JumpGate|Planet|null} The closest jump gate or planet, or null if none available.
      */
     getClosestJumpGatePlanet(ship, exclude = null) {
         const arr1 = this.planets;

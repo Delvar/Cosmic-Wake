@@ -20,9 +20,9 @@ export class WandererJob extends Job {
     /**
      * Creates a new WandererJob instance.
      * @param {Ship} ship - The ship to control.
-     * @param {AiPilot} [pilot=null] - The pilot controlling the ship (optional).
+     * @param {AiPilot} pilot - The pilot controlling the ship (optional).
      */
-    constructor(ship, pilot = null) {
+    constructor(ship, pilot) {
         super(ship, pilot);
         /** @type {string} The current job state ('Starting', 'Travelling', 'Waiting'). */
         this.state = 'Starting';

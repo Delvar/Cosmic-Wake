@@ -180,9 +180,14 @@ export class DockingContext {
 
         // Assign new pilot based on captor's pilot type
         if (this.ship.pilot instanceof PlayerPilot) {
-            boardedShip.pilot = new OfficerAiPilot(boardedShip, new EscortJob(boardedShip, this.ship));
+            const pilot = new OfficerAiPilot(boardedShip);
+            pilot.setJob(new EscortJob(boardedShip, pilot, this.ship));
+            boardedShip.setPilot(pilot);
         } else if (this.ship.pilot instanceof AiPilot) {
-            boardedShip.pilot = new CivilianAiPilot(boardedShip, null); // No Job so will land and despawn
+            boardedShip.pilot = new CivilianAiPilot(boardedShip);
+            const pilot = new CivilianAiPilot(boardedShip);
+            boardedShip.setPilot(pilot);
+            boardedShip.setState('Despawning');
         }
 
         // Take off from the captured ship

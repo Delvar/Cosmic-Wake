@@ -123,6 +123,8 @@ class StarFieldWorkerWrapper {
         const name = data.name;
         const canvas = data.canvas;
         this.canvasMap[name] = canvas;
+        //this.ctxMap[name] = (canvas.getContext('2d', { alpha: false }));
+
         /** @type {OffscreenCanvasRenderingContext2D|null} */
         const context = /** @type {OffscreenCanvasRenderingContext2D|null} */ canvas.getContext('2d', { alpha: false });
         if (context === null) throw new Error('Failed to acquire OffscreenCanvasRenderingContext2D from canvas');
@@ -137,9 +139,6 @@ class StarFieldWorkerWrapper {
      * @returns {void}
      */
     render() {
-        if (!this.starField) {
-            throw new TypeError('starField is missing');
-        }
         for (const name in this.canvasMap) {
             if (!name) continue;
             const data = this.dataMap[name];
@@ -147,7 +146,9 @@ class StarFieldWorkerWrapper {
             if (!data.dirty) continue;
             const ctx = this.ctxMap[name];
             if (!ctx) continue;
-            this.starField.draw(ctx, data.cameraPositionX, data.cameraPositionY, data.cameraZoom, data.fadeout, data.white);
+            if (this.starField) {
+                this.starField.draw(ctx, data.cameraPositionX, data.cameraPositionY, data.cameraZoom, data.fadeout, data.white);
+            }
             data.dirty = false;
         }
         requestAnimationFrame(this.render);

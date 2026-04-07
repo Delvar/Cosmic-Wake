@@ -13,6 +13,7 @@ import { Camera } from '/src/camera/camera.js';
  * @property {number} cameraZoom
  * @property {number} fadeout
  * @property {number} white
+ * @property {string} name
  */
 
 /**
@@ -130,13 +131,13 @@ export class StarField {
         if (this.useWorker && this.worker) {
             this.worker.postMessage({
                 type: 'render',
-                name: name,
+                dirty: true,
                 cameraPositionX: data.cameraPositionX,
                 cameraPositionY: data.cameraPositionY,
                 cameraZoom: data.cameraZoom,
                 fadeout: data.fadeout,
                 white: data.white,
-                dirty: true
+                name: name
             });
         } else {
             const ctx = this.ctxMap[name];

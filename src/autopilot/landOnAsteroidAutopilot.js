@@ -9,7 +9,9 @@ import { normalizeAngle } from '/src/core/utils.js';
 import { GameManager } from '/src/core/game.js';
 
 /**
- * @extends Autopilot
+ * Autopilot that approaches an asteroid and transitions the ship into a landing/mining action.
+ * It uses a FlyToTargetAutopilot for the approach phase and initiates landing when the ship is ready.
+ * @extends {Autopilot<Asteroid>}
  */
 export class LandOnAsteroidAutopilot extends Autopilot {
     /**
@@ -26,8 +28,9 @@ export class LandOnAsteroidAutopilot extends Autopilot {
     }
 
     /**
-     * Starts the autopilot, ensuring the target is an asteroid in the same system.
+     * Starts the asteroid landing behaviour, validating that the assigned target is a valid asteroid in the same system.
      * @override
+     * @returns {void}
      */
     start() {
         super.start();
@@ -55,15 +58,18 @@ export class LandOnAsteroidAutopilot extends Autopilot {
     }
 
     /**
-     * Updates the autopilot, managing the approach phase, mining initiation, and completion.
-     * Restarts the sub-pilot if the ship overshoots and can't mine yet.
-     * @param {number} deltaTime - Time elapsed since the last update in seconds.
-     * @param {GameManager} gameManager - The game manager instance for context.
+     * Updates the landing/mining sequence each frame, delegating to the approach sub-autopilot,
+     * initiating landing when in range, and recovering if the ship overshoots the asteroid.
+     * @param {number} deltaTime - Time elapsed since the last update, in seconds.
+     * @param {GameManager} gameManager - The game manager instance for coordinate and entity context.
      * @override
+     * @returns {void}
      */
     update(deltaTime, gameManager) {
         if (!this.active) return;
-
+        if (!this.target) {
+            throw new TypeError('target is missing');
+        }
         if (this.subAutopilot && this.subAutopilot.active) {
             // Delegate to sub-pilot for approaching the asteroid
             this.subAutopilot.update(deltaTime, gameManager);
@@ -98,7 +104,7 @@ export class LandOnAsteroidAutopilot extends Autopilot {
                 }
             } else {
                 // Overshot the asteroid; restart sub-pilot to re-approach
-                this.debugLog(() => console.log(`${this.constructor.name}: Overshot ${this.target.name || 'asteroid'}; restarting approach phase`));
+                this.debugLog(() => console.log(`${this.constructor.name}: Overshot ${this.target?.name || 'asteroid'}; restarting approach phase`));
                 this.subAutopilot = new FlyToTargetAutopilot(
                     this.ship,
                     this.target,
@@ -121,8 +127,9 @@ export class LandOnAsteroidAutopilot extends Autopilot {
     }
 
     /**
-     * Stops the autopilot and any active sub-autopilot.
+     * Stops the asteroid landing autopilot and any active approach sub-autopilot.
      * @override
+     * @returns {void}
      */
     stop() {
         if (this.subAutopilot) this.subAutopilot.stop();

@@ -7,21 +7,19 @@ import { Ship, isValidAttackTarget } from '/src/ship/ship.js';
 import { GameManager } from '/src/core/game.js';
 
 /**
- * Moves within 100–450 units, matches target velocity, and fires continuously.
- * @extends Autopilot
+ * Autopilot that holds a ship inside a defined firing envelope around a hostile target,
+ * matching velocity and applying lead aiming while maintaining safe distance.
+ * @extends {Autopilot<Ship>}
  */
 export class InRangeAttackAutopilot extends Autopilot {
     /**
      * Creates a new InRangeAttackAutopilot instance.
      * @param {Ship} ship - The ship to control.
-     * @param {Ship} target - The target to attack.
+     * @param {Ship} target - The ship to attack.
      * @param {boolean} [stopOnDisabled=true] - Whether to stop if the ship is disabled.
-     * @throws {Error} If ship or target is not a valid Ship instance.
      */
     constructor(ship, target, stopOnDisabled = true) {
         super(ship, target);
-        /** @type {Ship} The Ship to target. */
-        this.target = target;
         /** @type {boolean} Whether to stop autopilot if the ship is disabled. */
         this.stopOnDisabled = stopOnDisabled;
         /** @type {number} Minimum distance to avoid collision. */
@@ -51,7 +49,8 @@ export class InRangeAttackAutopilot extends Autopilot {
     }
 
     /**
-     * Starts the autopilot, validating the target.
+     * Starts the in-range attack behaviour after validating the target and active system.
+     * @returns {void}
      */
     start() {
         if (!this.target || !isValidAttackTarget(this.ship, this.target, !this.stopOnDisabled) || this.target.starSystem !== this.ship.starSystem) {
@@ -66,9 +65,11 @@ export class InRangeAttackAutopilot extends Autopilot {
     }
 
     /**
-     * Updates the autopilot, maintaining 100–450 unit range and firing with lead-aiming.
-     * @param {number} deltaTime - Time elapsed in seconds.
-     * @param {GameManager} gameManager - The game manager instance for context.
+     * Updates the attack behaviour each frame, adjusting speed to stay inside the firing envelope,
+     * matching target motion, and firing fixed weapons when the lead angle is favourable.
+     * @param {number} deltaTime - Time elapsed since the last update, in seconds.
+     * @param {GameManager} gameManager - The game manager instance for coordinate and entity context.
+     * @returns {void}
      */
     update(deltaTime, gameManager) {
         if (!this.active) return;
@@ -133,7 +134,8 @@ export class InRangeAttackAutopilot extends Autopilot {
     }
 
     /**
-     * Stops the autopilot, disabling thrust.
+     * Stops the in-range attack behaviour and disables thrust input from this autopilot.
+     * @returns {void}
      */
     stop() {
         this.active = false;

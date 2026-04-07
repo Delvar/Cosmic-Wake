@@ -8,7 +8,8 @@ import { GameManager } from '/src/core/game.js';
 import { LandOnPlanetAutopilot } from '/src/autopilot/landOnPlanetAutopilot.js';
 
 /**
- * @extends Autopilot
+ * Autopilot that lands a ship on the nearest planet and despawns it once the landing is complete.
+ * @extends {Autopilot<Planet>}
  */
 export class LandOnPlanetDespawnAutopilot extends Autopilot {
     /**
@@ -18,7 +19,7 @@ export class LandOnPlanetDespawnAutopilot extends Autopilot {
     constructor(ship) {
         super(ship);
         /** @type {Planet|null} The closest planet to land on. */
-        this.target = ship.starSystem?.getClosestPlanet(ship);
+        this.target = ship.starSystem.getClosestPlanet(ship);
         /** @type {Vector2D} Scratch vector for distance calculations. */
         this._scratchDistanceToTarget = new Vector2D();
 
@@ -26,7 +27,8 @@ export class LandOnPlanetDespawnAutopilot extends Autopilot {
     }
 
     /**
-     * Starts the autopilot, validating the target planet.
+     * Starts the landing sequence by validating the nearest planet target and kicking off a LandOnPlanetAutopilot.
+     * @returns {void}
      */
     start() {
         super.start();
@@ -55,9 +57,12 @@ export class LandOnPlanetDespawnAutopilot extends Autopilot {
     }
 
     /**
-     * Updates the autopilot, managing landing and despawning.
-     * @param {number} deltaTime - Time elapsed in seconds.
-     * @param {GameManager} gameManager - The game manager instance for context.
+     * Updates the landing and despawn behaviour each frame.
+     * It refreshes the target planet if needed, delegates landing to a sub-autopilot,
+     * and despawns the ship once it has landed.
+     * @param {number} deltaTime - Time elapsed since the last update, in seconds.
+     * @param {GameManager} gameManager - The game manager instance for coordinate and entity context.
+     * @returns {void}
      */
     update(deltaTime, gameManager) {
         if (!this.active) return;

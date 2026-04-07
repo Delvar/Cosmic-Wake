@@ -19,7 +19,6 @@ export class AttackAutopilot extends Autopilot {
      * @param {Ship} ship - The ship to control.
      * @param {Ship} target - The target to attack.
      * @param {boolean} [stopOnDisabled=true] - Whether to stop if the ship is disabled.
-     * @throws {Error} If ship or target is not a valid Ship instance.
      */
     constructor(ship, target, stopOnDisabled = true) {
         super(ship, target);
@@ -28,11 +27,9 @@ export class AttackAutopilot extends Autopilot {
         /** @type {boolean} Whether to stop autopilot if the ship is disabled. */
         this.stopOnDisabled = stopOnDisabled;
         /** @type {string} Attack pattern: "orbit", "flyby", or "in_range". */
-        this.pattern = null;
+        this.pattern = 'orbit';
         /** @type {string} Current state: "Approaching" or "Attacking". */
         this.state = "Approaching";
-        /** @type {Autopilot|null} Sub-autopilot for specific attack behavior. */
-        this.subAutopilot = null;
         /** @type {number} Radius to transition from Approaching to Attacking. */
         this.approachRadius = 1.75 * this.ship.maxVelocity;
         /** @type {number} Radius to revert from Attacking to Approaching. */
@@ -68,9 +65,13 @@ export class AttackAutopilot extends Autopilot {
     }
 
     /**
-     * Starts the autopilot, initializing the approach sub-autopilot.
+     * Starts the attack sequence, validating the target and beginning approach.
+     * @returns {void}
      */
     start() {
+        if (!(this.target instanceof Ship)) {
+            throw new TypeError('target must be an instance of Ship');
+        }
         if (!isValidAttackTarget(this.ship, this.target, !this.stopOnDisabled)) {
             this.error = "Invalid or unreachable target";
             this.stop();
@@ -94,9 +95,10 @@ export class AttackAutopilot extends Autopilot {
     }
 
     /**
-     * Updates the autopilot, delegating to the base class.
-     * @param {number} deltaTime - Time elapsed in seconds.
-     * @param {GameManager} gameManager - The game manager instance for context.
+     * Updates the attack sequence each frame, validating the target and delegating to state handlers.
+     * @param {number} deltaTime - Time elapsed since the last update, in seconds.
+     * @param {GameManager} gameManager - The game manager instance for coordinate and entity context.
+     * @returns {void}
      */
     update(deltaTime, gameManager) {
         if (!this.active) return;
@@ -110,11 +112,15 @@ export class AttackAutopilot extends Autopilot {
     }
 
     /**
-     * Handles the Approaching state, running FlyToTargetAutopilot until within approach radius.
-     * @param {number} deltaTime - Time elapsed in seconds.
-     * @param {GameManager} gameManager - The game manager instance for context.
+     * Handles the Approaching state by using FlyToTargetAutopilot to close the distance to the target.
+     * @param {number} deltaTime - Time elapsed since the last update, in seconds.
+     * @param {GameManager} gameManager - The game manager instance for coordinate and entity context.
+     * @returns {void}
      */
     updateApproaching(deltaTime, gameManager) {
+        if (!(this.target instanceof Ship)) {
+            throw new TypeError('target must be an instance of Ship');
+        }
         if (this.subAutopilot && this.subAutopilot.active) {
             this.subAutopilot.update(deltaTime, gameManager);
             // Check distance to target
@@ -136,9 +142,13 @@ export class AttackAutopilot extends Autopilot {
     }
 
     /**
-     * Initiates the attack auto pilot
+     * Initiates the selected attack pattern and starts its sub-autopilot.
+     * @returns {void}
      */
     startAttack() {
+        if (!(this.target instanceof Ship)) {
+            throw new TypeError('target must be an instance of Ship');
+        }
         this.state = "Attacking";
         this.attackTime = Math.random() * 5.0 + 5.0;
         this.pattern = this.determinePattern(this.ship.maxVelocity);
@@ -155,12 +165,15 @@ export class AttackAutopilot extends Autopilot {
     }
 
     /**
-     * Handles the Attacking state, running the pattern-specific sub-autopilot.
-     * Reverts to Approaching if distance > revertRadius.
-     * @param {number} deltaTime - Time elapsed in seconds.
-     * @param {GameManager} gameManager - The game manager instance for context.
+     * Handles the Attacking state by updating the active attack pattern and reverting to approach if the target moves away.
+     * @param {number} deltaTime - Time elapsed since the last update, in seconds.
+     * @param {GameManager} gameManager - The game manager instance for coordinate and entity context.
+     * @returns {void}
      */
     updateAttacking(deltaTime, gameManager) {
+        if (!(this.target instanceof Ship)) {
+            throw new TypeError('target must be an instance of Ship');
+        }
         this.attackTime -= deltaTime;
 
         if (this.attackTime <= 0.0) {
@@ -196,7 +209,8 @@ export class AttackAutopilot extends Autopilot {
     }
 
     /**
-     * Stops the autopilot and sub-autopilot.
+     * Stops the attack autopilot and any active pattern sub-autopilot.
+     * @returns {void}
      */
     stop() {
         if (this.subAutopilot) {

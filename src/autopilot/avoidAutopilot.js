@@ -6,8 +6,9 @@ import { isValidTarget } from '/src/core/gameObject.js';
 import { GameManager } from '/src/core/game.js';
 
 /**
- * Autopilot for avoiding a threat by moving away and toward the sector center.
- * @extends Autopilot
+ * Autopilot that moves a ship away from a threat while biasing motion toward sector center.
+ * It maintains avoidance for a limited timeout and then completes.
+ * @extends {Autopilot<Ship>}
  */
 export class AvoidAutopilot extends Autopilot {
     /**
@@ -32,7 +33,8 @@ export class AvoidAutopilot extends Autopilot {
     }
 
     /**
-     * Starts the autopilot, initializing avoidance behavior.
+     * Starts avoidance behavior, validating the threat and resetting the timeout.
+     * @returns {void}
      */
     start() {
         super.start();
@@ -60,9 +62,10 @@ export class AvoidAutopilot extends Autopilot {
     }
 
     /**
-     * Updates the autopilot, moving the ship away from the threat and toward the sector center.
-     * @param {number} deltaTime - Time elapsed since last update (seconds).
-     * @param {GameManager} gameManager - The game manager instance for context.
+     * Updates avoidance behaviour each frame, steering the ship away from the threat while still maintaining control.
+     * @param {number} deltaTime - Time elapsed since the last update, in seconds.
+     * @param {GameManager} gameManager - The game manager instance for coordinate and entity context.
+     * @returns {void}
      */
     update(deltaTime, gameManager) {
         if (!this.threat || this.ship.state !== 'Flying') {
@@ -99,7 +102,7 @@ export class AvoidAutopilot extends Autopilot {
     }
 
     /**
-     * Returns the current status for HUD display.
+     * Returns a status string for HUD display describing the current avoidance action or error.
      * @returns {string} The status string.
      */
     getStatus() {

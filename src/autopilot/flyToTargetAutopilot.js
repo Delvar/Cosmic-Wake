@@ -7,8 +7,8 @@ import { GameObject, isValidTarget } from '/src/core/gameObject.js';
 import { GameManager } from '/src/core/game.js';
 
 /**
- * Autopilot that flies a ship to a target, slowing to a specified speed within a given distance.
- * @extends Autopilot
+ * Autopilot that flies a ship to a target and slows it to a specified arrival speed as it nears the target.
+ * @extends {Autopilot<GameObject>}
  */
 export class FlyToTargetAutopilot extends Autopilot {
     /**
@@ -58,7 +58,8 @@ export class FlyToTargetAutopilot extends Autopilot {
     }
 
     /**
-     * Starts the autopilot, ensuring the target is in the same star system.
+     * Starts the approach behaviour, validating target presence and system membership.
+     * @returns {void}
      */
     start() {
         super.start();
@@ -79,13 +80,18 @@ export class FlyToTargetAutopilot extends Autopilot {
     }
 
     /**
-     * Updates the autopilot, adjusting velocity to reach the target at the desired speed.
-     * @param {number} deltaTime - Time elapsed since last update (seconds).
-     * @param {GameManager} gameManager - The game manager instance for context.
+     * Updates the approach behaviour each frame.
+     * Computes the desired velocity, manages arrival detection, and stops when the ship reaches the target.
+     * @param {number} deltaTime - Time elapsed since the last update, in seconds.
+     * @param {GameManager} gameManager - The game manager instance for coordinate and entity context.
+     * @returns {void}
      */
     update(deltaTime, gameManager) {
         if (this.ship.state === 'Landed') {
-            if (this.ship.dockingContext?.landedObject === this.target) {
+            if (!this.ship.dockingContext) {
+                throw new TypeError('dockingContext is missing on Landed ship');
+            }
+            if (this.ship.dockingContext.landedObject === this.target) {
                 this.completed = true;
                 this.stop();
             } else {
@@ -93,7 +99,9 @@ export class FlyToTargetAutopilot extends Autopilot {
             }
             return;
         }
-
+        if (!this.target) {
+            throw new TypeError('target is missing');
+        }
         // Compute distance and normalized direction to target
         const distance = this.ship.position.getDirectionAndDistanceTo(
             this.target.position,

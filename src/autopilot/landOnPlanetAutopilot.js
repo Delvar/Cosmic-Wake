@@ -1,4 +1,5 @@
 // /src/autopilot/landOnPlanetAutopilot.js
+
 import { Autopilot } from './autopilot.js';
 import { Vector2D } from '/src/core/vector2d.js';
 import { Ship } from '/src/ship/ship.js';
@@ -9,8 +10,8 @@ import { GameManager } from '/src/core/game.js';
 import { FlyToTargetAutopilot } from '/src/autopilot/flyToTargetAutopilot.js';
 
 /**
- * Autopilot that uses FlyToTargetAutopilot to a target, then initiate landing.
- * @extends Autopilot
+ * Autopilot that approaches a planet and transitions into the ship's landing sequence.
+ * @extends {Autopilot<Planet>}
  */
 export class LandOnPlanetAutopilot extends Autopilot {
     /**
@@ -20,8 +21,6 @@ export class LandOnPlanetAutopilot extends Autopilot {
      */
     constructor(ship, planet) {
         super(ship, planet);
-        /** @type {FlyToTargetAutopilot|null} Sub-autopilot for approaching the planet. */
-        this.subAutopilot = null;
         /** @type {Vector2D} Distance vector from ship to target planet. */
         this._scratchDistanceToTarget = new Vector2D(0.0, 0.0);
 
@@ -29,7 +28,9 @@ export class LandOnPlanetAutopilot extends Autopilot {
     }
 
     /**
-     * Starts the autopilot, ensuring the target is a planet in the same system.
+     * Starts the landing behaviour after validating the planet target and system membership.
+     * It creates a FlyToTargetAutopilot for the approach phase.
+     * @returns {void}
      */
     start() {
         super.start();
@@ -57,14 +58,18 @@ export class LandOnPlanetAutopilot extends Autopilot {
     }
 
     /**
-     * Updates the autopilot, managing the fly-to phase, landing initiation, and completion.
-     * Restarts the sub-autopilot if the ship overshoots and cannot land yet.
-     * @param {number} deltaTime - Time elapsed since last update (seconds).
-     * @param {GameManager} gameManager - The game manager instance for context.
+     * Updates the approach and landing sequence.
+     * Delegates to the approach sub-autopilot, initiates landing when in range,
+     * and handles landing completion or unexpected ship states.
+     * @param {number} deltaTime - Time elapsed since the last update, in seconds.
+     * @param {GameManager} gameManager - The game manager instance for coordinate and entity context.
+     * @returns {void}
      */
     update(deltaTime, gameManager) {
         if (!this.active) return;
-
+        if (!this.target) {
+            throw new TypeError('target is missing');
+        }
         if (this.subAutopilot && this.subAutopilot.active) {
             // Delegate to sub-pilot for approaching the planet
             this.subAutopilot.update(deltaTime, gameManager);
@@ -115,7 +120,8 @@ export class LandOnPlanetAutopilot extends Autopilot {
     }
 
     /**
-     * Stops the autopilot and any active sub-autopilot.
+     * Stops this landing autopilot and any active approach sub-autopilot.
+     * @returns {void}
      */
     stop() {
         if (this.subAutopilot) this.subAutopilot.stop();

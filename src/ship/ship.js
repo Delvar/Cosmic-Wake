@@ -11,16 +11,13 @@ import { Shield } from '/src/ship/shield.js';
 import { Turret } from '/src/weapon/turret.js';
 import { FixedWeapon } from '/src/weapon/fixedWeapon.js';
 import { AiPilot } from '/src/pilot/aiPilot.js';
-import { OfficerAiPilot } from '/src/pilot/officerAiPilot.js';
 import { Pilot, PlayerPilot } from '/src/pilot/pilot.js';
 import { StarSystem } from '/src/starSystem/starSystem.js';
 import { Camera } from '/src/camera/camera.js';
 import { FlyToTargetAutopilot } from '/src/autopilot/flyToTargetAutopilot.js';
 import { Faction, FactionRelationship } from '/src/core/faction.js';
-import { EscortJob } from '/src/job/escortJob.js';
 import { CommodityType, Commodities } from '/src/core/commodity.js';
 import { UiLog } from '/src/ui/uiLog.js'
-import { CivilianAiPilot } from '/src/pilot/civilianAiPilot.js';
 import { DockingContext } from '/src/ship/dockingContext.js';
 
 //Colours used for the lights
@@ -31,8 +28,8 @@ const colourWhite = new Colour(1.0, 1.0, 1.0);
 
 /**
  * Checks if a target is still valid (not despawned and exists in the galaxy).
- * @param {Ship} source - The source game object to validate.
- * @param {Ship} target - The target game object to validate.
+ * @param {Ship|null} source - The source game object to validate.
+ * @param {Ship|null} target - The target game object to validate.
  * @param {boolean} [includeDisabled=false] - Whether to include disabled ships as valid targets.
  * @returns {boolean} True if the target is valid, false otherwise.
  */
@@ -91,10 +88,13 @@ export class Ship extends GameObject {
         /** @type {Pilot|null} The pilot controlling the ship, if any. */
         this.pilot = null;
         /**
-         * @type {Object} Colors for cockpit, wings, and hull.
-         * @property {Colour} cockpit - The color of the ship's cockpit, generated randomly.
-         * @property {Colour} wings - The color of the ship's wings, generated randomly.
-         * @property {Colour} hull - The grayscale color of the ship's hull, generated randomly.
+         * Colours used for the different parts of the ship.
+         * Populated in the constructor using random colour generation methods.
+         * @type {{
+         *   cockpit: Colour,
+         *   wings: Colour,
+         *   hull: Colour
+         * }}
          */
         this.colors = {
             cockpit: this.generateRandomWindowColour(),
@@ -117,7 +117,11 @@ export class Ship extends GameObject {
         this.jumpGate = null;
         /** @type {string} Current state (e.g., 'Flying', 'Landing', 'Landed'). */
         this.state = 'Flying';
-        /** @type {Object} Map of state names to update handler functions. */
+        /**
+         * Map of ship state names to their bound update handler functions.
+         * Used by the state machine in the main `update(deltaTime)` method.
+         * @type {Record<string, (deltaTime: number) => void>}
+         */
         this.stateHandlers = {
             'Flying': this.updateFlying.bind(this),
             'Landing': this.updateLanding.bind(this),
@@ -138,8 +142,8 @@ export class Ship extends GameObject {
         this.animationLandingDuration = 2.0;
         /** @type {number} Duration of animations (jump in, jump out) in seconds. */
         this.animationJumpingDuration = 4.0;
-        /** @type {number|null} Starting angle animations. */
-        this.startAngle = null;
+        /** @type {number} Starting angle animations. */
+        this.startAngle = 0.0;
         /** @type {Vector2D} Starting position animations. */
         this.startPosition = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Ending position animations. */
@@ -150,12 +154,23 @@ export class Ship extends GameObject {
         this.thrustTime = 0.0;
         /** @type {number} Y-position for trail rendering relative to ship. */
         this.trailPosition = 0.0;
-        /** @type {Trail|null} Particle trail for visual effects. */
-        this.trail = null;
         /** @type {Vector2D} Dimensions of the ship's bounding box. */
         this.boundingBox = new Vector2D(0.0, 0.0);
-        /** @type {Object|null} Positions of engines, turrets, and lights. */
-        this.featurePoints = null;
+        /**
+         * Feature points for visual and gameplay elements.
+         * @type {{
+         *   engines: Array<{x: number, y: number, radius: number}>,
+         *   turrets: Array<{x: number, y: number, radius: number}>,
+         *   fixedWeapons: Array<{x: number, y: number, radius: number}>,
+         *   lights: Array<{x: number, y: number, radius: number}>
+         * }}
+         */
+        this.featurePoints = {
+            engines: [], // Engine positions for thrust effects
+            turrets: [], // Turret positions
+            fixedWeapons: [], // Fixed gun positions
+            lights: []   // Light positions for visual indicators
+        };
         /** @type {number} Angular velocity in radians per second for rotation. */
         this.angularVelocity = 0.0;
         /** @type {number} Maximum angular velocity in radians per second. */
@@ -176,12 +191,19 @@ export class Ship extends GameObject {
         this.fixedWeapons = [];
         /** @type {string} Current mode for the lights (e.g., 'Normal', 'Flicker', 'Disabled', 'Warden', 'Rescue'). */
         this.lightMode = 'Normal';
+        /**
+         * Particle trail for visual effects.
+         * Guaranteed to be present on every ship after the constructor completes.
+         * @type {Trail}
+         */
+        this.trail = /** @type {any} */ (null);   // placeholder – overwritten in setupTrail()
 
         // Initialize feature points and bounding box
         this.setupFeaturePoints();
         this.setupBoundingBox();
         this.setupTurrets();
         this.setupFixedWeapons();
+        this.setupTrail();
 
         //Calculate hull and shields, bigger ships have higher hull and shields
         const area = (this.radius ** 2.0) * Math.PI * 0.1;
@@ -246,7 +268,7 @@ export class Ship extends GameObject {
 
     /**
      * Creates a new DockingContext for the given landed object, disposing any existing one.
-     * @param {CelestialBody|Asteroid|Ship|null} landedObject - The object the ship is landing on or boarding.
+     * @param {CelestialBody|Asteroid|Ship} landedObject - The object the ship is landing on or boarding.
      */
     createDockingContext(landedObject) {
         if (this.dockingContext) {
@@ -441,12 +463,19 @@ export class Ship extends GameObject {
     }
 
     /**
-     * Configures the particle trail for visual effects, based on engine positions.
+     * Configures the ship's particle trail based on the rearmost engine position.
+     * Must be called after `setupFeaturePoints()`.
      */
     setupTrail() {
-        if (!this.featurePoints || !this.featurePoints.engines) return;
+        if (!this.featurePoints?.engines || this.featurePoints.engines.length === 0) {
+            // Fallback for ships with no engines (should never happen)
+            this.trail = new Trail(2, 1.0, 3.0);
+            this.trailPosition = 0.0;
+            return;
+        }
 
-        // Find the furthest engine y-position for trail placement
+        // Find the rearmost engine (most negative y)
+        this.trailPosition = 0.0;
         for (let i = 0.0; i < this.featurePoints.engines.length; i++) {
             const engine = this.featurePoints.engines[i];
             if (engine.y > this.trailPosition || this.trailPosition === 0.0) {
@@ -454,7 +483,7 @@ export class Ship extends GameObject {
             }
         }
 
-        // Create a trail with specified parameters and wing color
+        // Create the trail using wing colour
         this.trail = new Trail(2, 1.0, 3.0, this.colors.wings.toRGBA(0.5));
     }
 
@@ -683,7 +712,9 @@ export class Ship extends GameObject {
         if (this.canLand(target)) {
             // Create a docking context for this landed ship, for player and AI access.
             this.createDockingContext(target);
-
+            if (!this.dockingContext) {
+                return false;
+            }
             this.setState('Landing');
             this.startPosition.set(this.velocity).multiplyInPlace(1.0 / 60.0).addInPlace(this.position).subtractInPlace(this.dockingContext.landedObject.position);
             if (this.dockingContext.landedObject instanceof Planet) {
@@ -691,8 +722,10 @@ export class Ship extends GameObject {
                     .subtractInPlace(this.dockingContext.landedObject.position)
                     .normalizeInPlace()
                     .multiplyInPlace(this.dockingContext.landedObject.radius * randomBetween(-0.75, 0.75));
-                // Increase trail decay during landing
-                this.trail.decayMultiplier = 2.0;
+                if (this.trail) {
+                    // Increase trail decay during landing
+                    this.trail.decayMultiplier = 2.0;
+                }
             } else if (this.dockingContext.landedObject instanceof Asteroid) {
                 this.endPosition.set(0.0, 0.0);
                 this.startAngle = this.angle;
@@ -715,7 +748,9 @@ export class Ship extends GameObject {
         if (this.canBoard(target)) {
             // Create a docking context for this boarded ship
             this.createDockingContext(target);
-
+            if (!this.dockingContext) {
+                return false;
+            }
             this.setState('Landing');
             this.startPosition.set(this.velocity).multiplyInPlace(1.0 / 60.0).addInPlace(this.position).subtractInPlace(this.dockingContext.landedObject.position);
             this.endPosition.set(0.0, 0.0);
@@ -764,10 +799,12 @@ export class Ship extends GameObject {
             this.startAngle = this.angle = this.targetAngle;
             // Remove ship from planet's landed list if applicable
             landedObject.removeLandedShip(this);
-            // Reset trail decay
-            this.trail.decayMultiplier = 1.0;
-            //Clear the trail so we do not get artifacts
-            this.trail.clear();
+            if (this.trail) {
+                // Reset trail decay
+                this.trail.decayMultiplier = 1.0;
+                //Clear the trail so we do not get artifacts
+                this.trail.clear();
+            }
         } else {
             this.startAngle = this.targetAngle = this.angle;
         }
@@ -784,6 +821,9 @@ export class Ship extends GameObject {
         // Find closest jump gate if none provided
         if (!gate) {
             gate = this.starSystem.getClosestJumpGate(this, null);
+            if (!gate) {
+                return false;
+            }
         }
 
         // Check if ship is within gate's overlap area
@@ -943,7 +983,7 @@ export class Ship extends GameObject {
             }
         }
 
-        if (!isValidAttackTarget(this, this.lastAttacker, false)) {
+        if (this.lastAttacker && !isValidAttackTarget(this, this.lastAttacker, false)) {
             if (this.hostiles.length > 0.0) {
                 this.lastAttacker = this.hostiles[0];
             } else {
@@ -990,7 +1030,9 @@ export class Ship extends GameObject {
         this._scratchThrustVector.set(-Math.sin(this.angle), Math.cos(this.angle))
             .multiplyInPlace(this.trailPosition * this.shipScale)
             .addInPlace(this.position);
-        this.trail.update(deltaTime, this._scratchThrustVector, this.angle, this.debug);
+        if (this.trail) {
+            this.trail.update(deltaTime, this._scratchThrustVector, this.angle, this.debug);
+        }
 
         // Update thrust animation timer
         if (this.isThrusting) {
@@ -1006,7 +1048,7 @@ export class Ship extends GameObject {
      * Jettisons up to `count` cargo containers from the ship's hold, starting from first available commodity type.
      * Each container holds 1-25 units (random). Stops early if no cargo remains.
      * @param {number} [count=1] - Maximum number of containers to dump.
-     * @param {Vector2D} [position=null] - World position to spawn containers (defaults to `this.position`).
+     * @param {Vector2D|null} [position=null] - World position to spawn containers (defaults to `this.position`).
      * @returns {boolean} True if all `count` containers were successfully dumped, false if stopped early due to no cargo.
      */
     jettisonRandomCargoContainers(count = 1, position = null) {
@@ -1051,7 +1093,7 @@ export class Ship extends GameObject {
             this.isBraking = false;
             this.shield.isActive = false;
             this.shield.strength = 0.0;
-            this.shield.restartTime = null;
+            this.shield.restartTime = 0.0;
             this.target = null;
             this.protectionTime = 5.0;
 
@@ -1128,6 +1170,10 @@ export class Ship extends GameObject {
         this.animationTime += deltaTime;
         const t = Math.min(this.animationTime / this.animationLandingDuration, 1.0);
 
+        if (!this.dockingContext) {
+            return false;
+        }
+
         // Adjust scale based on target type
         if (this.dockingContext.landedObject instanceof Planet) {
             this.shipScale = 1.0 - t; // Shrink from 1.0 to 0.0 for planets
@@ -1203,7 +1249,10 @@ export class Ship extends GameObject {
      */
     updateTakingOff(deltaTime) {
         this.animationTime += deltaTime;
-        const landedObject = this.dockingContext?.landedObject;
+        if (!this.dockingContext) {
+            return false;
+        }
+        const landedObject = this.dockingContext.landedObject;
         const t = Math.min(this.animationTime / this.animationLandingDuration, 1.0);
 
         // Adjust scale based on target type
@@ -1243,6 +1292,9 @@ export class Ship extends GameObject {
      */
     updateJumpingOut(deltaTime) {
         this.animationTime += deltaTime;
+        if (!this.jumpGate) {
+            return;
+        }
         const t = remapClamp(this.animationTime, 0.0, this.animationJumpingDuration, 0.0, 1.0);
 
         const landRatio = 0.25;
@@ -1287,6 +1339,9 @@ export class Ship extends GameObject {
      */
     updateJumpingIn(deltaTime) {
         this.animationTime += deltaTime;
+        if (!this.jumpGate) {
+            return;
+        }
         const t = remapClamp(this.animationTime, 0.0, this.animationJumpingDuration, 0.0, 1.0);
 
         const jumpInRatio = 0.75;
@@ -1317,7 +1372,7 @@ export class Ship extends GameObject {
             this.shipScale = 1.0;
             this.stretchFactor = 1.0;
             this.jumpGate = null;
-            this.startAngle = null;
+            this.startAngle = 0.0;
         }
     }
 
@@ -1335,7 +1390,7 @@ export class Ship extends GameObject {
             this.isBraking = false;
             this.shield.isActive = false;
             this.shield.strength = 0.0;
-            this.shield.restartTime = null;
+            this.shield.restartTime = 0.0;
             this.target = null;
             // Initialize explosion timer
             this.explosionTime = 0.0;
@@ -1458,18 +1513,22 @@ export class Ship extends GameObject {
     }
 
     /**
-     * Applies a physics impulse for an explosion at the given position.
+     * Applies a physics impulse from an explosion at the given world position.
+     * Calculates randomised directional force and torque, then applies both to the ship.
+     * Used by the explosion system during ship destruction / damage.
      * @param {Vector2D} explosionPos - World-space position of the explosion.
+     * @param {number} currentForce - Magnitude of the linear force to apply.
+     * @param {number} currentTorque - Magnitude of the angular impulse to apply.
      */
     _applyExplosionImpulse(explosionPos, currentForce, currentTorque) {
         // Calculate force direction (randomized)
         const forceAngle = randomBetween(0.0, TWO_PI);
         this._scratchForce.setFromPolar(currentForce, forceAngle);
 
-        // Apply linear force to velocity
-        this.velocity.addInPlace(this._scratchForce.multiplyInPlace(1 / 60.0)); // Scale for 60 FPS
+        // Apply linear force to velocity (scaled for 60 FPS)
+        this.velocity.addInPlace(this._scratchForce.multiplyInPlace(1 / 60.0));
 
-        // Calculate torque: cross product of (explosionPos - shipPos) and force
+        // Calculate torque using 2D cross product: (explosionPos - shipPos) × force
         this._scratchTemp.set(explosionPos).subtractInPlace(this.position);
         const torque = this._scratchTemp.x * this._scratchForce.y - this._scratchTemp.y * this._scratchForce.x;
         this.angularVelocity += (torque / (this.radius * this.radius)) * currentTorque;
@@ -1879,9 +1938,9 @@ export class Ship extends GameObject {
 
         if (this.target && this.target.position) {
             // Draw velocity error if available
-            let closeApproachDistance = null;
-            let farApproachDistance = null;
-            let arrivalDistance = null;
+            let closeApproachDistance = 0.0;
+            let farApproachDistance = 0.0;
+            let arrivalDistance = 0.0;
             let leadDirection = null;
             let leadPosition = null;
 

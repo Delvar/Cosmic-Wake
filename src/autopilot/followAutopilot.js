@@ -7,21 +7,20 @@ import { remapClamp } from '/src/core/utils.js';
 import { GameManager } from '/src/core/game.js';
 
 /**
- * Autopilot that follows a target GameObject with a distance band.
- * @extends Autopilot
+ * Autopilot that follows a target GameObject while maintaining a configurable distance band,
+ * adjusting velocity based on proximity and relative motion.
+ * @extends {Autopilot<GameObject>}
  */
 export class FollowAutopilot extends Autopilot {
     /**
      * Creates a new FollowAutopilot instance.
      * @param {Ship} ship - The ship to control.
      * @param {GameObject} target - The target GameObject to follow.
-     * @param {number} [minFollowDistance=100.0] - Minimum distance from target center.
-     * @param {number} [maxFollowDistance=500.0] - Maximum distance from target center.
+     * @param {number} [minFollowDistance=100.0] - Minimum distance from the target center.
+     * @param {number} [maxFollowDistance=500.0] - Maximum distance from the target center.
      */
     constructor(ship, target, minFollowDistance = 100.0, maxFollowDistance = 500.0) {
         super(ship, target);
-        /** @type {GameObject} The target to follow. */
-        this.target = target;
         /** @type {number} Minimum distance from target center. */
         this.minFollowDistance = minFollowDistance;
         /** @type {number} Maximum distance from target center. */
@@ -53,7 +52,8 @@ export class FollowAutopilot extends Autopilot {
     }
 
     /**
-     * Starts the autopilot, ensuring the target is in the same star system.
+     * Starts the follow behaviour after validating that the target is present and in the same star system.
+     * @returns {void}
      */
     start() {
         super.start();
@@ -80,11 +80,16 @@ export class FollowAutopilot extends Autopilot {
     }
 
     /**
-     * Updates the autopilot, adjusting velocity to reach the target at the desired speed.
-     * @param {number} deltaTime - Time elapsed since last update (seconds).
-     * @param {GameManager} gameManager - The game manager instance for context.
+     * Updates the follow behaviour each frame, computing the desired velocity to stay within the follow band.
+     * Adjusts thrust and heading based on target motion and distance.
+     * @param {number} deltaTime - Time elapsed since the last update, in seconds.
+     * @param {GameManager} gameManager - The game manager instance for coordinate and entity context.
+     * @returns {void}
      */
     update(deltaTime, gameManager) {
+        if (!this.target) {
+            throw new TypeError('target is missing');
+        }
         // Compute distance and normalized direction to target
         const distance = this.ship.position.getDirectionAndDistanceTo(
             this.target.position,
@@ -108,7 +113,8 @@ export class FollowAutopilot extends Autopilot {
         );
 
         let errorThresholdRatio = 1.0; // Default thrust error threshold multiplier
-        let failoverAngle = null; // Angle to face when not thrusting
+        /** @type {number|Vector2D} */
+        let failoverAngle = 0.0; // Angle to face when not thrusting
         if (distance < this.minFollowDistance) {
             this._scratchDesiredVelocity.set(this._scratchDirectionToTarget).multiplyInPlace(
                 remapClamp(Math.max(1.0, distance), 0.0, this.minFollowDistance, -this.ship.maxVelocity, -1.0)
@@ -119,7 +125,12 @@ export class FollowAutopilot extends Autopilot {
             //FIXME: implement manoeuvre speed here, -20.0, 20.0
             const speed = remapClamp(distance, this.minFollowDistance, this.maxFollowDistance, -Ship.LANDING_SPEED, Ship.LANDING_SPEED);
             this._scratchDesiredVelocity.set(this._scratchLeadDirection).multiplyInPlace(speed).addInPlace(this.target.velocity);
-            failoverAngle = (this.target.velocity.x === 0.0 && this.target.velocity.y === 0.0) ? this.target.angle : this.target.velocity;
+            failoverAngle = this.target.velocity;
+            if (this.target.velocity.x === 0.0 && this.target.velocity.y === 0.0) {
+                if (this.target instanceof Ship) {
+                    failoverAngle = this.target.angle;
+                }
+            }
             errorThresholdRatio = remapClamp(distance, this.minFollowDistance, this.maxFollowDistance, 0.1, 0.5); // Tighten thrust threshold
         } else if (distance >= this.maxFollowDistance && distance < this.farApproachDistance) {
             const speed = remapClamp(distance, this.maxFollowDistance, this.farApproachDistance, 0.0, this.ship.maxVelocity);

@@ -33,7 +33,7 @@ export class GameObject {
         this.radius = 0.0;
         /** @type {Vector2D} The velocity of the object in world coordinates. */
         this.velocity = new Vector2D(0.0, 0.0);
-        /** @type {StarSystem|null} The star system the object belongs to. */
+        /** @type {StarSystem} The star system the object belongs to. */
         this.starSystem = starSystem;
         /** @type {boolean} Indicates whether the object is marked for despawning. */
         this.despawned = false;
@@ -55,7 +55,6 @@ export class GameObject {
         if (this.starSystem) {
             this.starSystem.removeGameObject(this);
         }
-        this.starSystem = null;
     }
 
     /**

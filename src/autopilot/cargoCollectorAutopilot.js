@@ -7,9 +7,9 @@ import { CargoContainer } from '/src/starSystem/cargoContainer.js';
 import { isValidTarget } from '/src/core/gameObject.js';
 
 /**
- * Autopilot that collects cargo containers by flying to the closest one.
- * Uses FlyToTargetAutopilot as sub-autopilot for navigation.
- * @extends Autopilot
+ * Autopilot that collects cargo containers by flying to the closest available container.
+ * Uses FlyToTargetAutopilot as a sub-autopilot for approach and pickup.
+ * @extends {Autopilot<CargoContainer>}
  */
 export class CargoCollectorAutopilot extends Autopilot {
     /**
@@ -18,12 +18,6 @@ export class CargoCollectorAutopilot extends Autopilot {
      */
     constructor(ship) {
         super(ship, null);
-        /** @type {FlyToTargetAutopilot|null} Sub-autopilot for flying to target container. */
-        this.subAutopilot = null;
-
-        /** @type {CargoContainer|null} target container. */
-        this.target = null;
-
         /** @type {Object.<string, Function>} State handlers for update logic. */
         this.stateHandlers = {
             Searching: this.updateSearching.bind(this),
@@ -34,7 +28,8 @@ export class CargoCollectorAutopilot extends Autopilot {
     }
 
     /**
-     * Starts the autopilot, enabling cargo retrieval.
+     * Starts the cargo collection behaviour and enters the searching state.
+     * @returns {void}
      */
     start() {
         super.start();
@@ -43,9 +38,10 @@ export class CargoCollectorAutopilot extends Autopilot {
     }
 
     /**
-     * Updates the autopilot in the 'Searching' state.
-     * @param {number} deltaTime - Time elapsed since last update (seconds).
-     * @param {GameManager} gameManager - The game manager instance for context.
+     * Handles the Searching state: finds the nearest cargo container and starts the pickup approach.
+     * @param {number} deltaTime - Time elapsed since the last update, in seconds.
+     * @param {GameManager} gameManager - The game manager instance for coordinate and entity context.
+     * @returns {void}
      */
     updateSearching(deltaTime, gameManager) {
         if (this.ship.isCargoFull()) {
@@ -70,9 +66,10 @@ export class CargoCollectorAutopilot extends Autopilot {
     }
 
     /**
-     * Updates the autopilot in the 'Collecting' state.
-     * @param {number} deltaTime - Time elapsed since last update (seconds).
-     * @param {GameManager} gameManager - The game manager instance for context.
+     * Handles the Collecting state: follows the current pickup target, or returns to searching if the target becomes invalid.
+     * @param {number} deltaTime - Time elapsed since the last update, in seconds.
+     * @param {GameManager} gameManager - The game manager instance for coordinate and entity context.
+     * @returns {void}
      */
     updateCollecting(deltaTime, gameManager) {
         if (this.ship.isCargoFull()) {
@@ -83,7 +80,7 @@ export class CargoCollectorAutopilot extends Autopilot {
         // If no sub-autopilot or target invalid/despawned
         if (!this.subAutopilot || this.subAutopilot.completed || !isValidTarget(this.ship, this.target)) {
             this.state = 'Searching';
-            if (!this.subAutopilot) {
+            if (this.subAutopilot) {
                 this.subAutopilot.stop();
             }
         } else {
@@ -93,7 +90,8 @@ export class CargoCollectorAutopilot extends Autopilot {
     }
 
     /**
-     * Stops the autopilot, disabling cargo retrieval and stopping sub-autopilot.
+     * Stops the cargo collection behaviour, clears the target, and disables cargo retrieval.
+     * @returns {void}
      */
     stop() {
         if (this.subAutopilot) {

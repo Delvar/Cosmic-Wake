@@ -4,7 +4,6 @@ import { Autopilot } from '/src/autopilot/autopilot.js';
 import { Ship } from '/src/ship/ship.js';
 import { JumpGate, Planet } from '/src/starSystem/celestialBody.js';
 import { Asteroid } from '/src/starSystem/asteroidBelt.js';
-import { Vector2D } from '/src/core/vector2d.js';
 import { isValidTarget } from '/src/core/gameObject.js';
 import { GameManager } from '/src/core/game.js';
 import { LandOnPlanetAutopilot } from '/src/autopilot/landOnPlanetAutopilot.js';
@@ -12,28 +11,30 @@ import { TraverseJumpGateAutopilot } from '/src/autopilot/traverseJumpGateAutopi
 import { remapClamp } from '/src/core/utils.js';
 
 /**
- * @extends Autopilot
+ * Autopilot that executes a flee behaviour, navigating toward a safe harbour (landing pad or jump gate)
+ * while actively jettisoning cargo if shields are down and hull integrity is critical.
+ * @extends {Autopilot<JumpGate|Planet>}
  */
 export class FleeAutopilot extends Autopilot {
     /**
      * Creates a new FleeAutopilot instance.
-     * @param {Ship} ship - The ship to control.
-     * @param {Ship} threat - The threat to flee from.
+     * @param {Ship} ship - The ship to control and manoeuvre.
+     * @param {Ship} threat - The hostile ship posing the threat to flee from.
      */
     constructor(ship, threat) {
         super(ship);
-        /** @type {Ship} The ship posing a threat to flee from. */
+        /** @type {Ship} The hostile ship posing a threat to flee from. */
         this.threat = threat;
-        /** @type {JumpGate|Planet|null} The target to flee to (jump gate or planet). */
+        /** @type {JumpGate|Planet|null} The target landing site or jump gate to flee towards (selected for proximity). */
         this.target = ship.starSystem.getClosestJumpGatePlanet(ship);
-        /** @type {Vector2D} Temporary vector for calculations. */
-        this._scratchVector = new Vector2D();
 
         if (new.target === FleeAutopilot) Object.seal(this);
     }
 
     /**
-     * Starts the autopilot, validating the target.
+     * Starts the autopilot, validating that the threat is a valid ship in the same system.
+     * Sets the threat as the ship's target for tracking purposes.
+     * @returns {void}
      */
     start() {
         super.start();
@@ -60,9 +61,12 @@ export class FleeAutopilot extends Autopilot {
     }
 
     /**
-     * Updates the autopilot, fleeing to the target and managing sub-autopilots.
-     * @param {number} deltaTime - Time elapsed since last update (seconds).
-     * @param {GameManager} gameManager - The game manager instance for context.
+     * Updates the autopilot state each frame, managing cargo jettison logic and delegating navigation to sub-autopilots.
+     * Discards cargo if shields are down and hull integrity is below 75% to reduce drag and improve escape chances.
+     * Delegates actual navigation to TraverseJumpGateAutopilot or LandOnPlanetAutopilot based on target type.
+     * @param {number} deltaTime - Time elapsed since last update in seconds.
+     * @param {GameManager} gameManager - The game manager instance for coordinate and active entity context.
+     * @returns {void}
      */
     update(deltaTime, gameManager) {
         if (!this.target || this.ship.state !== 'Flying') {
@@ -92,8 +96,10 @@ export class FleeAutopilot extends Autopilot {
             // Navigate to target
             if (this.target instanceof JumpGate) {
                 this.subAutopilot = new TraverseJumpGateAutopilot(this.ship, this.target);
-            } else {
+            } else if (this.target instanceof Planet) {
                 this.subAutopilot = new LandOnPlanetAutopilot(this.ship, this.target);
+            } else {
+                throw new TypeError('target must be an instance of JumpGate | Planet');
             }
             this.subAutopilot.start();
         } else {
@@ -103,8 +109,9 @@ export class FleeAutopilot extends Autopilot {
     }
 
     /**
-     * Returns the current status for HUD display.
-     * @returns {string} The status string.
+     * Returns a human-readable status string describing the current fleeing state for HUD display.
+     * Includes the threat name, target name, sub-autopilot status if active, and any error conditions.
+     * @returns {string} Status description (e.g. "Fleeing from pirate to gate (Approaching)").
      */
     getStatus() {
         if (this.subAutopilot?.active) {

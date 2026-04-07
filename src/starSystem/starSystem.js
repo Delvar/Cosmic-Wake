@@ -443,7 +443,7 @@ export class StarSystem {
     /**
      * Finds the closest valid jump gate to the ship.
      * @param {Ship} ship - The ship looking for a target.
-     * @param {GameObject} [exclude=null] - Exclude this GameObject.
+     * @param {GameObject|null} [exclude=null] - Exclude this GameObject.
      * @returns {JumpGate|null} The closest jump gate, or null if none available.
      */
     getClosestJumpGate(ship, exclude = null) {

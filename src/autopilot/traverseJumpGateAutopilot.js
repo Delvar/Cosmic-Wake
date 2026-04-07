@@ -10,18 +10,18 @@ import { GameManager } from '/src/core/game.js';
 import { FlyToTargetAutopilot } from '/src/autopilot/flyToTargetAutopilot.js';
 
 /**
- * @extends Autopilot
+ * Autopilot responsible for steering a ship into a jump gate,
+ * handling approach, alignment, hyperjump initiation, and completion.
+ * @extends {Autopilot<JumpGate>}
  */
 export class TraverseJumpGateAutopilot extends Autopilot {
     /**
      * Creates a new TraverseJumpGateAutopilot instance.
-     * @param {Ship} ship - The ship to control.
-     * @param {JumpGate} gate - The jump gate to traverse.
+     * @param {Ship} ship - The ship to control during gate traversal.
+     * @param {JumpGate} gate - The jump gate target for traversal.
      */
     constructor(ship, gate) {
         super(ship, gate);
-        /** @type {FlyToTargetAutopilot|null} Sub-autopilot for approaching the jump gate. */
-        this.subAutopilot = null;
         /** @type {Vector2D} Distance vector from ship to target jump gate. */
         this._scratchDistanceToTarget = new Vector2D(0.0, 0.0);
 
@@ -29,7 +29,9 @@ export class TraverseJumpGateAutopilot extends Autopilot {
     }
 
     /**
-     * Starts the autopilot, ensuring the target is a jump gate in the same system.
+     * Starts the traverse sequence, validating that the assigned target is a valid jump gate in the current system.
+     * If successful, creates a FlyToTargetAutopilot for the approach phase.
+     * @returns {void}
      */
     start() {
         super.start();
@@ -57,14 +59,19 @@ export class TraverseJumpGateAutopilot extends Autopilot {
     }
 
     /**
-     * Updates the autopilot, managing the fly-to phase, hyperjump initiation, and jump completion.
-     * Restarts the sub-autopilot if the ship is not aligned with the gate.
-     * @param {number} deltaTime - Time elapsed since last update (seconds).
-     * @param {GameManager} gameManager - The game manager instance for context.
+     * Updates the gate traversal behaviour each frame.
+     * Delegates to the approach sub-autopilot until the gate is reached,
+     * then attempts hyperjump initiation when aligned and inside the gate radius.
+     * Handles jump completion and reports unexpected ship states as errors.
+     * @param {number} deltaTime - Time elapsed since last update in seconds.
+     * @param {GameManager} gameManager - The game manager instance for coordinate and entity context.
+     * @returns {void}
      */
     update(deltaTime, gameManager) {
         if (!this.active) return;
-
+        if (!this.target) {
+            throw new TypeError('target is missing');
+        }
         if (this.subAutopilot && this.subAutopilot.active) {
             // Delegate to sub-pilot to approach the jump gate
             this.subAutopilot.update(deltaTime, gameManager);
@@ -99,7 +106,7 @@ export class TraverseJumpGateAutopilot extends Autopilot {
                 }
             } else {
                 // Not aligned with gate; restart sub-pilot
-                this.debugLog(() => console.log(`${this.constructor.name}: Not aligned with ${this.target.name || 'jump gate'}; restarting fly-to phase`));
+                this.debugLog(() => console.log(`${this.constructor.name}: Not aligned with ${this.target?.name || 'jump gate'}; restarting fly-to phase`));
                 this.subAutopilot = new FlyToTargetAutopilot(this.ship, this.target, this.target.radius, Ship.LANDING_SPEED);
                 this.subAutopilot.start();
             }

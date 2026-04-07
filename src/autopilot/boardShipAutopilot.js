@@ -10,7 +10,7 @@ import { PlayerPilot } from '/src/pilot/pilot.js';
 
 /**
  * Autopilot that uses FlyToTargetAutopilot to approach a disabled ship, then initiate boarding to capture it.
- * @extends Autopilot<Ship>
+ * @extends {Autopilot<Ship>}
  */
 export class BoardShipAutopilot extends Autopilot {
     /**
@@ -20,8 +20,6 @@ export class BoardShipAutopilot extends Autopilot {
      */
     constructor(ship, target) {
         super(ship, target);
-        /** @type {FlyToTargetAutopilot|null} Sub-autopilot for approaching the target ship. */
-        this.subAutopilot = null;
         /** @type {Vector2D} Distance vector from ship to target ship. */
         this._scratchDistanceToTarget = new Vector2D(0.0, 0.0);
 
@@ -29,7 +27,8 @@ export class BoardShipAutopilot extends Autopilot {
     }
 
     /**
-     * Starts the autopilot, ensuring the target is a disabled ship in the same system.
+     * Starts the boarding behaviour, validating the target ship and beginning the approach phase.
+     * @returns {void}
      */
     start() {
         super.start();
@@ -64,10 +63,10 @@ export class BoardShipAutopilot extends Autopilot {
     }
 
     /**
-     * Updates the autopilot, managing the fly-to phase, boarding initiation, and completion.
-     * Restarts the sub-autopilot if the ship overshoots and cannot board yet.
-     * @param {number} deltaTime - Time elapsed since last update (seconds).
-     * @param {GameManager} gameManager - The game manager instance for context.
+     * Updates the boarding sequence each frame, delegating approach and initiating boarding when conditions are met.
+     * @param {number} deltaTime - Time elapsed since the last update, in seconds.
+     * @param {GameManager} gameManager - The game manager instance for coordinate and entity context.
+     * @returns {void}
      */
     update(deltaTime, gameManager) {
         if (!this.active) return;
@@ -132,7 +131,8 @@ export class BoardShipAutopilot extends Autopilot {
     }
 
     /**
-     * Stops the autopilot and any active sub-autopilot.
+     * Stops the boarding autopilot and any active approach sub-autopilot.
+     * @returns {void}
      */
     stop() {
         if (this.subAutopilot) this.subAutopilot.stop();

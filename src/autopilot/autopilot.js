@@ -3,13 +3,14 @@ import { GameObject, isValidTarget } from '/src/core/gameObject.js';
 import { Vector2D } from '/src/core/vector2d.js';
 import { Ship } from '/src/ship/ship.js';
 import { Planet } from '/src/starSystem/celestialBody.js';
-import { remapClamp, normalizeAngle, randomBetween } from '/src/core/utils.js';
+import { normalizeAngle, randomBetween } from '/src/core/utils.js';
 import { Asteroid } from '/src/starSystem/asteroidBelt.js';
 import { GameManager } from '/src/core/game.js';
 
 /**
  * Base class for autopilot behaviors controlling ship navigation.
  * @template {GameObject} TargetType - The type of the target object, extending GameObject.
+ * Subclasses must declare `@extends {Autopilot<SpecificTarget>}` (one line per subclass).
  */
 export class Autopilot {
     /**
@@ -28,7 +29,7 @@ export class Autopilot {
         this.completed = false;
         /** @type {string|null} Error message if the autopilot fails, null if no error. */
         this.error = null;
-        /** @type {Autopilot<TargetType>|null} Optional sub-autopilot for delegated tasks. */
+        /** @type {Autopilot<any>|null} Optional sub-autopilot for delegated tasks. Sub-autopilots may use a *different* TargetType (explicitly allowed for modular chaining). */
         this.subAutopilot = null;
         /** @type {number} Maximum angle deviation to apply thrust. */
         this.thrustAngleLimit = Math.PI / 16.0;

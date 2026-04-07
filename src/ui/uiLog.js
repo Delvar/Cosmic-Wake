@@ -75,7 +75,7 @@ export class UiLog {
             /** @type {HTMLDivElement} */
             const child = /** @type {HTMLDivElement} */ (this.inner.children[i]);
 
-            const timestamp = parseInt(child.dataset.timestamp, 10);
+            const timestamp = parseInt(child.dataset.timestamp ?? '0', 10);
             const age = now - timestamp;
 
             if (age > 1000 && child.classList.contains('in')) {
@@ -84,7 +84,7 @@ export class UiLog {
             if (age > this.maxAge && !child.classList.contains('out')) {
                 child.classList.add('out');
             }
-            if (age > (this.maxAge + 1000) && child.classList.contains('out')) {
+            if (age > (this.maxAge + 1000) && child.classList.contains('out') && child.parentElement) {
                 child.parentElement.removeChild(child);
             }
         }

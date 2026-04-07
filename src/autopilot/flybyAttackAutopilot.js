@@ -7,8 +7,9 @@ import { Ship, isValidAttackTarget } from '/src/ship/ship.js';
 import { GameManager } from '/src/core/game.js';
 
 /**
- * Performs high-speed attack runs, firing when close, retreating, and turning for the next run.
- * @extends Autopilot
+ * Autopilot that performs repeated high-speed attack passes against a target,
+ * firing close in, retreating, and turning back for another run.
+ * @extends {Autopilot<Ship>}
  */
 export class FlybyAttackAutopilot extends Autopilot {
     /**
@@ -16,12 +17,9 @@ export class FlybyAttackAutopilot extends Autopilot {
      * @param {Ship} ship - The ship to control.
      * @param {Ship} target - The target to attack.
      * @param {boolean} [stopOnDisabled=true] - Whether to stop if the ship is disabled.
-     * @throws {Error} If ship or target is not a valid Ship instance.
      */
     constructor(ship, target, stopOnDisabled = true) {
         super(ship, target);
-        /** @type {Ship} The Ship to target. */
-        this.target = target;
         /** @type {boolean} Whether to stop autopilot if the ship is disabled. */
         this.stopOnDisabled = stopOnDisabled;
         /** @type {number} Speed for flyby passes. */
@@ -66,7 +64,8 @@ export class FlybyAttackAutopilot extends Autopilot {
     }
 
     /**
-     * Starts the autopilot, initializing the Approaching state.
+     * Starts the flyby attack behaviour by validating the target and setting the initial state.
+     * @returns {void}
      */
     start() {
         if (!isValidAttackTarget(this.ship, this.target, !this.stopOnDisabled)) return;
@@ -80,9 +79,11 @@ export class FlybyAttackAutopilot extends Autopilot {
     }
 
     /**
-     * Updates the autopilot, delegating to the base class.
-     * @param {number} deltaTime - Time elapsed in seconds.
-     * @param {GameManager} gameManager - The game manager instance for context.
+     * Updates the flyby attack sequence each frame, validating the target and then delegating
+     * to the current state handler for approach, firing, retreat, or turning.
+     * @param {number} deltaTime - Time elapsed since the last update, in seconds.
+     * @param {GameManager} gameManager - The game manager instance for coordinate and entity context.
+     * @returns {void}
      */
     update(deltaTime, gameManager) {
         if (!this.active) return;
@@ -95,11 +96,15 @@ export class FlybyAttackAutopilot extends Autopilot {
     }
 
     /**
-     * Handles the Approaching state, moving the ship toward the target.
-     * @param {number} deltaTime - Time elapsed in seconds.
-     * @param {GameManager} gameManager - The game manager instance for context.
+     * Handles the Approaching state by driving the ship toward a firing pass position.
+     * @param {number} deltaTime - Time elapsed since the last update, in seconds.
+     * @param {GameManager} gameManager - The game manager instance for coordinate and entity context.
+     * @returns {void}
      */
     updateApproaching(deltaTime, gameManager) {
+        if (!this.target) {
+            throw new TypeError('target is missing');
+        }
         // Calculate distance and direction
         const distance = this.ship.position.getDirectionAndDistanceTo(
             this.target.position,
@@ -142,11 +147,15 @@ export class FlybyAttackAutopilot extends Autopilot {
     }
 
     /**
-     * Handles the Firing state, firing at the target during a close pass.
-     * @param {number} deltaTime - Time elapsed in seconds.
-     * @param {GameManager} gameManager - The game manager instance for context.
+     * Handles the Firing state by keeping thrust engaged, aiming, and firing weapons during a close pass.
+     * @param {number} deltaTime - Time elapsed since the last update, in seconds.
+     * @param {GameManager} gameManager - The game manager instance for coordinate and entity context.
+     * @returns {void}
      */
     updateFiring(deltaTime, gameManager) {
+        if (!this.target) {
+            throw new TypeError('target is missing');
+        }
         // Calculate distance and direction
         const distance = this.ship.position.getDirectionAndDistanceTo(
             this.target.position,
@@ -189,11 +198,15 @@ export class FlybyAttackAutopilot extends Autopilot {
     }
 
     /**
-     * Handles the Retreating state, moving away from the target.
-     * @param {number} deltaTime - Time elapsed in seconds.
-     * @param {GameManager} gameManager - The game manager instance for context.
+     * Handles the Retreating state by moving the ship away from the target and detecting when it is safe to turn.
+     * @param {number} deltaTime - Time elapsed since the last update, in seconds.
+     * @param {GameManager} gameManager - The game manager instance for coordinate and entity context.
+     * @returns {void}
      */
     updateRetreating(deltaTime, gameManager) {
+        if (!this.target) {
+            throw new TypeError('target is missing');
+        }
         // Calculate distance and direction
         const distance = this.ship.position.getDirectionAndDistanceTo(
             this.target.position,
@@ -219,11 +232,15 @@ export class FlybyAttackAutopilot extends Autopilot {
     }
 
     /**
-     * Handles the Turning state, turning toward the target for another pass.
-     * @param {number} deltaTime - Time elapsed in seconds.
-     * @param {GameManager} gameManager - The game manager instance for context.
+     * Handles the Turning state by steering the ship back toward the target and preparing for another attack run.
+     * @param {number} deltaTime - Time elapsed since the last update, in seconds.
+     * @param {GameManager} gameManager - The game manager instance for coordinate and entity context.
+     * @returns {void}
      */
     updateTurning(deltaTime, gameManager) {
+        if (!this.target) {
+            throw new TypeError('target is missing');
+        }
         this.turningTime += deltaTime;
         // Calculate distance and direction
         const distance = this.ship.position.getDirectionAndDistanceTo(
@@ -267,7 +284,8 @@ export class FlybyAttackAutopilot extends Autopilot {
     }
 
     /**
-     * Stops the autopilot, disabling ship thrust.
+     * Stops the flyby attack behaviour and disables thrust input from this autopilot.
+     * @returns {void}
      */
     stop() {
         this.active = false;

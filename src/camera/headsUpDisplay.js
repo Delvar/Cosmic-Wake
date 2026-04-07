@@ -5,7 +5,6 @@ import { Ship } from '/src/ship/ship.js';
 import { TWO_PI, remapClamp } from '/src/core/utils.js';
 import { GameObject, isValidTarget } from '/src/core/gameObject.js';
 import { Colour } from '/src/core/colour.js';
-import { AiPilot } from '/src/pilot/aiPilot.js';
 import { GameManager } from '/src/core/game.js';
 import { Camera } from '/src/camera/camera.js';
 import { CelestialBody } from '/src/starSystem/celestialBody.js';
@@ -106,6 +105,7 @@ export class HeadsUpDisplay {
      * Resizes the HUD rings based on new screen dimensions.
      * @param {number} width - New screen width in pixels.
      * @param {number} height - New screen height in pixels.
+     * @returns {void}
      */
     resize(width, height) {
         this.size.set(width, height);
@@ -128,6 +128,7 @@ export class HeadsUpDisplay {
      * @param {number} y - Y coordinate.
      * @param {string} fillColour - Fill color (RGB string).
      * @param {string} textAlign - Text alignment ('left', 'center', 'right').
+     * @returns {void}
      */
     drawHudText(text, x, y, fillColour = white, textAlign = 'center') {
         if (this.useLayeredRendering) {
@@ -163,9 +164,10 @@ export class HeadsUpDisplay {
 
     /**
      * Draws a circle around the targeted ship.
-     * @param {GameObject} [target=null] - The target object.
+     * @param {GameObject} [target] - The target object.
+     * @returns {void}
      */
-    drawTargetCircle(target = null) {
+    drawTargetCircle(target) {
         if (!target) {
             return;
         }
@@ -251,6 +253,7 @@ export class HeadsUpDisplay {
      * @param {number} ringRadius - The radius of the ring in screen space.
      * @param {GameObject[]} [objects=[]] - Array of game objects to draw arrows or names for.
      * @param {GameObject|null} [target=null] - The target object, which gets a larger arrow if outside the ring.
+     * @returns {void}
      */
     drawRing(ringColour, ringRadius, objects = [], target = null) {
         const colour = ringColour.toRGB();
@@ -364,6 +367,7 @@ export class HeadsUpDisplay {
      * Draws name tags for objects inside the given ring.
      * @param {number} ringRadius - The radius of the ring in screen space.
      * @param {GameObject[]} [objects=[]] - Array of game objects to draw names for.
+     * @returns {void}
      */
     drawNames(ringRadius, objects = []) {
         for (let i = 0.0; i < objects.length; i++) {
@@ -374,16 +378,18 @@ export class HeadsUpDisplay {
                 this.camera.worldToScreen(body.position, this._scratchScreenPos);
                 const scaledRadius = this.camera.worldToSize(body.radius);
                 this._scratchScreenPos.y += scaledRadius + this.camera.worldToSize(20.0);
-                this.drawHudText(body.name, this._scratchScreenPos.x, this._scratchScreenPos.y, Colour.White.toRGB(), 'center');
+                this.drawHudText(body.name ?? 'Unknown', this._scratchScreenPos.x, this._scratchScreenPos.y, Colour.White.toRGB(), 'center');
             }
         }
     }
 
     /**
      * Draws the autopilot status text at the top center of the screen.
+     * @param {Ship} cameraTarget - The camera target object.
+     * @returns {void}
      */
     drawAutopilotStatus(cameraTarget) {
-        const autopilotStatus = cameraTarget?.pilot?.getStatus();
+        const autopilotStatus = cameraTarget.pilot?.getStatus();
         if (!autopilotStatus) return;
 
         this.drawHudText(autopilotStatus, this.size.width / 2.0, 20.0, Colour.White.toRGB(), 'center');
@@ -391,13 +397,15 @@ export class HeadsUpDisplay {
 
     /**
      * Draws the name of the targeted GameObject at the top center of the screen.
+     * @param {GameObject} cameraTarget - The camera target object.
+     * @returns {void}
      */
     drawCameraTargetName(cameraTarget) {
         let targetName;
 
         if (cameraTarget instanceof CargoContainer) {
             targetName = `Container of ${Commodities[cameraTarget.commodityType].name}`;
-        } else if (cameraTarget instanceof Ship || cameraTarget instanceof CelestialBody || cameraTarget instanceof Asteroid) {
+        } else if ((cameraTarget instanceof Ship || cameraTarget instanceof CelestialBody || cameraTarget instanceof Asteroid) && cameraTarget.name) {
             targetName = cameraTarget.name;
         } else {
             targetName = "Unnamed Object";
@@ -408,6 +416,7 @@ export class HeadsUpDisplay {
     /**
      * Draws the ship's shield and hull stats as bars at the bottom of the screen.
      * @param {Ship} ship - The ship object to get the stats from.
+     * @returns {void}
      */
     drawShipStats(ship) {
         const shieldRatio = remapClamp(ship.shield.strength, 0.0, ship.shield.maxStrength, 0.0, 1.0);
@@ -446,6 +455,7 @@ export class HeadsUpDisplay {
      * @param {Colour} backgroundColor - Background color of the bar.
      * @param {Colour} fillColor - Fill color of the bar.
      * @param {number} fillWidth - Width of the fill area (centred).
+     * @returns {void}
      */
     drawBar(x, y, width, height, backgroundColor, fillColor, fillWidth) {
         const centerX = x + width / 2.0;
@@ -485,9 +495,10 @@ export class HeadsUpDisplay {
 
     /**
      * Draws HUD elements like rings, arrows, and labels on the canvas.
-     * @param {GameObject|null} cameraTarget - The camera target object.
+     * @param {Ship} cameraTarget - The camera target object.
+     * @returns {void}
      */
-    draw(cameraTarget = null) {
+    draw(cameraTarget) {
         if (this.useLayeredRendering) {
             this.hudCtx.clearRect(0, 0, this.size.width, this.size.height);
             this.hudOutlineCtx.clearRect(0, 0, this.size.width, this.size.height);

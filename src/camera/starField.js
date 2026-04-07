@@ -4,6 +4,18 @@ import { StarFieldWorker } from '/src/camera/starFieldWorker.js';
 import { Camera } from '/src/camera/camera.js';
 
 /**
+ * Internal data structure used by StarField to cache per-canvas render parameters
+ * and avoid redundant work (dirty-flag optimisation).
+ * @typedef {Object} StarFieldData
+ * @property {boolean} dirty
+ * @property {number} cameraPositionX
+ * @property {number} cameraPositionY
+ * @property {number} cameraZoom
+ * @property {number} fadeout
+ * @property {number} white
+ */
+
+/**
  * A lightweight proxy for rendering a starfield, delegating to either main-thread or worker-based rendering.
  * Manages canvas contexts and communicates with a Web Worker or a local StarFieldWorker instance to render the starfield.
  * Supports multiple canvases identified by name and handles initialization, rendering, resizing, and cleanup.
@@ -24,7 +36,7 @@ export class StarField {
         /** @type {Object.<string, HTMLCanvasElement>} Map of canvas names to HTML canvas elements (main thread only). */
         this.canvasMap = {};
 
-        /** @type {Object.<string, Object>} Map of canvas names to rendering data (e.g., camera parameters). */
+        /** @type {Object.<string, StarFieldData>} Map of canvas names to rendering data (e.g., camera parameters). */
         this.dataMap = {};
 
         /** @type {Object.<string, OffscreenCanvas>} Map of canvas names to OffscreenCanvas instances (worker mode only). */
@@ -35,9 +47,6 @@ export class StarField {
 
         /** @type {Worker|null} The Web Worker instance for rendering, or null if not using a worker. */
         this.worker = null;
-
-        /** @type {StarFieldWorker|null} The StarFieldWorker instance for main-thread rendering, or null if using a worker. */
-        this.renderer = null;
 
         //Start the web worker
         if (this.useWorker) {
@@ -54,10 +63,12 @@ export class StarField {
             } catch (e) {
                 console.warn('Module-based worker not supported, falling back to main thread:', e);
                 this.useWorker = false;
+                /** @type {StarFieldWorker} The StarFieldWorker instance for main-thread rendering, or null if using a worker. */
                 this.renderer = new StarFieldWorker(starsPerCell, gridSize, coloursPerLayer, layers);
             }
         } else {
             // Main-thread mode
+            /** @type {StarFieldWorker} The StarFieldWorker instance for main-thread rendering, or null if using a worker. */
             this.renderer = new StarFieldWorker(starsPerCell, gridSize, coloursPerLayer, layers);
         }
         if (new.target === StarField) Object.seal(this);
@@ -70,7 +81,7 @@ export class StarField {
      * @param {HTMLCanvasElement} canvas - The HTML canvas element to render the starfield to.
      */
     addCanvas(name, canvas) {
-        if (this.useWorker) {
+        if (this.useWorker && this.worker) {
             const offscreen = canvas.transferControlToOffscreen()
             this.offScreenCanvasMap[name] = offscreen;
             this.worker.postMessage({
@@ -80,7 +91,9 @@ export class StarField {
             }, [offscreen]);
         } else {
             this.canvasMap[name] = canvas;
-            this.ctxMap[name] = (canvas.getContext('2d', { alpha: false }));
+            const context = canvas.getContext('2d', { alpha: false });
+            if (context === null) throw new Error('Failed to acquire CanvasRenderingContext2D from context');
+            this.ctxMap[name] = context;
         }
     }
 
@@ -114,7 +127,7 @@ export class StarField {
         data.dirty = false;
         this.dataMap[name] = data;
 
-        if (this.useWorker) {
+        if (this.useWorker && this.worker) {
             this.worker.postMessage({
                 type: 'render',
                 name: name,
@@ -142,7 +155,7 @@ export class StarField {
         const data = this.dataMap[name] || {};
         data.dirty = true;
 
-        if (this.useWorker) {
+        if (this.useWorker && this.worker) {
             this.worker.postMessage({
                 type: 'resize',
                 name: name,

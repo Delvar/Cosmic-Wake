@@ -28,12 +28,12 @@ export class StarFieldWorker {
         /** @type {boolean} Whether to round star positions to whole numbers, to speed up rendering. */
         this.rounding = false;
 
-        /** @type {Map} Cache storing star data for grid cells to improve performance. */
+        /** @type {Map<number,Uint8Array>} Cache storing star data for grid cells to improve performance. */
         this.starCache = new Map();
         /** @type {number} Maximum number of cells to cache (~30 KB with 20 stars/cell). */
         this.maxCacheSize = 500.0;
 
-        /** @type {Array<Array>} Scratch array for grouping stars by color during rendering. */
+        /** @type {Array<Array<number>>} Scratch array for grouping stars by color during rendering. */
         this.starsByColourScratch = new Array(coloursPerLayer);
         for (let i = 0.0; i < coloursPerLayer; i++) {
             this.starsByColourScratch[i] = []; // Pre-allocate inner arrays
@@ -133,6 +133,7 @@ export class StarFieldWorker {
     /**
      * Expands the positionPool if it’s too small to hold all visible stars.
      * @param {number} requiredStars - Number of stars needed.
+     * @returns {void}
      */
     expandPositionPool(requiredStars) {
         const currentCapacity = this.positionPool.length / 2.0; // Current max stars
@@ -146,12 +147,15 @@ export class StarFieldWorker {
 
     /**
      * Prunes the starCache to keep it under maxCacheSize by removing the oldest entries.
+     * @returns {void}
      */
     pruneCache() {
         const keys = this.starCache.keys();
         while (this.starCache.size > this.maxCacheSize) {
             const oldestKey = keys.next().value;
-            this.starCache.delete(oldestKey);
+            if (oldestKey !== undefined) {
+                this.starCache.delete(oldestKey);
+            }
         }
     }
 
@@ -163,6 +167,7 @@ export class StarFieldWorker {
      * @param {number} cameraZoom - The zoom of the camera.
      * @param {number} fadeout - the alpha level of the blank out, 1.0 clear to black, < 1.0 leaves trails
      * @param {number} white - the white-out amount, 0.0 = black, 1.0 = full white
+     * @returns {void}
      */
     draw(ctx, cameraPositionX, cameraPositionY, cameraZoom, fadeout, white) {
         const screenWidth = ctx.canvas.width;
@@ -276,6 +281,10 @@ export class StarFieldWorker {
         ctx.restore();
     }
 
+    /**
+     * Destroys the starfield worker, cleaning up resources.
+     * @returns {void}
+     */
     destroy() {
         // No-op for main thread
     }

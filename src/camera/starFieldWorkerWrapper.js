@@ -3,6 +3,19 @@
 import { StarFieldWorker } from '/src/camera/starFieldWorker.js';
 
 /**
+ * Internal data structure used by StarFieldWorkerWrapper to cache per-canvas render parameters
+ * and avoid redundant work (dirty-flag optimisation).
+ * @typedef {Object} StarFieldData
+ * @property {boolean} dirty
+ * @property {number} cameraPositionX
+ * @property {number} cameraPositionY
+ * @property {number} cameraZoom
+ * @property {number} fadeout
+ * @property {number} white
+ * @property {string} name
+ */
+
+/**
  * A lightweight proxy for rendering a starfield within a Web Worker.
  * Manages canvas contexts and delegates rendering tasks to a StarFieldWorker instance.
  * Handles initialization, canvas management, resizing, and rendering via message events.
@@ -22,7 +35,7 @@ class StarFieldWorkerWrapper {
         /** @type {Object.<string, OffscreenCanvasRenderingContext2D>} Map of canvas names to 2D rendering contexts. */
         this.ctxMap = {};
 
-        /** @type {Object.<string, Object>} Map of canvas names to rendering data (e.g., camera parameters). */
+        /** @type {Object.<string, StarFieldData>} Map of canvas names to rendering data (e.g., camera parameters). */
         this.dataMap = {};
 
         /** @type {Object.<string, Function>} Map of message types to their handler functions. */
@@ -43,6 +56,7 @@ class StarFieldWorkerWrapper {
      * Handles incoming messages from the main thread.
      * Dispatches messages to the appropriate handler based on the message type.
      * @param {MessageEvent} message - The message event containing the type and data.
+     * @returns {void}
      */
     onmessage(message) {
         const { type, ...data } = message.data;
@@ -63,6 +77,7 @@ class StarFieldWorkerWrapper {
      * @param {number} data.gridSize - Size of each grid cell in world coordinates.
      * @param {number} data.coloursPerLayer - Number of colors per parallax layer.
      * @param {number} data.layers - Number of parallax layers in the starfield.
+     * @returns {void}
      */
     handleInit(data) {
         this.starField = new StarFieldWorker(data.starsPerCell, data.gridSize, data.coloursPerLayer, data.layers);
@@ -75,6 +90,7 @@ class StarFieldWorkerWrapper {
      * @param {string} data.name - The name of the canvas to resize.
      * @param {number} data.width - The new width of the canvas in pixels.
      * @param {number} data.height - The new height of the canvas in pixels.
+     * @returns {void}
      */
     handleResize(data) {
         const name = data.name;
@@ -87,13 +103,8 @@ class StarFieldWorkerWrapper {
 
     /**
      * Stores rendering data for the specified canvas and triggers rendering.
-     * @param {Object} data - Rendering data.
-     * @param {string} data.name - The name of the canvas to render to.
-     * @param {number} data.cameraPositionX - The world x position of the camera.
-     * @param {number} data.cameraPositionY - The world y position of the camera.
-     * @param {number} data.cameraZoom - The zoom level of the camera.
-     * @param {number} data.fadeout - The alpha level for background fade (1.0 clears to black, < 1.0 leaves trails).
-     * @param {number} data.white - The white-out amount (0.0 = black, 1.0 = full white).
+     * @param {StarFieldData} data - Rendering data.
+     * @returns {void}
      */
     handleRender(data) {
         const name = data.name;
@@ -106,20 +117,29 @@ class StarFieldWorkerWrapper {
      * @param {Object} data - Canvas data.
      * @param {string} data.name - The name of the canvas.
      * @param {OffscreenCanvas} data.canvas - The OffscreenCanvas to render to.
+     * @returns {void}
      */
     handleAddCanvas(data) {
         const name = data.name;
         const canvas = data.canvas;
         this.canvasMap[name] = canvas;
-        this.ctxMap[name] = /** @type {OffscreenCanvasRenderingContext2D} */ (canvas.getContext('2d', { alpha: false }));
+        /** @type {OffscreenCanvasRenderingContext2D|null} */
+        const context = /** @type {OffscreenCanvasRenderingContext2D|null} */ canvas.getContext('2d', { alpha: false });
+        if (context === null) throw new Error('Failed to acquire OffscreenCanvasRenderingContext2D from canvas');
+        /** @type {CanvasRenderingContext2D} The 2D rendering context for the main canvas. */
+        this.ctxMap[name] = context;
     }
 
     /**
      * Renders the starfield to all canvases with available data.
      * Runs continuously via requestAnimationFrame to handle rendering updates.
      * @private
+     * @returns {void}
      */
     render() {
+        if (!this.starField) {
+            throw new TypeError('starField is missing');
+        }
         for (const name in this.canvasMap) {
             if (!name) continue;
             const data = this.dataMap[name];

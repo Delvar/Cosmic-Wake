@@ -1,7 +1,7 @@
 // /src/camera/camera.js
 
 import { Vector2D } from '/src/core/vector2d.js';
-import { normalizeAngle, TWO_PI } from '/src/core/utils.js';
+import { normalizeAngle } from '/src/core/utils.js';
 import { StarSystem } from '/src/starSystem/starSystem.js';
 import { GameObject } from '/src/core/gameObject.js';
 
@@ -11,12 +11,13 @@ import { GameObject } from '/src/core/gameObject.js';
 export class Camera {
     /**
      * Creates a new Camera instance.
-     * @param {HTMLCanvasElement} foregroundCanvas - The main canvas for rendering ships etc.
-     * @param {HTMLCanvasElement} backgroundCanvas - The background canvas for rendering starfield.
-     * @param {HTMLCanvasElement} [hudCanvas=null] - The canvas for rendering the HUD (optional).
-     * @param {number} [zoom=1] - The initial zoom level (default is  1.0).
+     * @param {HTMLCanvasElement} foregroundCanvas - The main canvas for rendering ships and world objects.
+     * @param {HTMLCanvasElement} backgroundCanvas - The background canvas for rendering the starfield.
+     * @param {HTMLCanvasElement} hudCanvas - The HUD canvas for UI overlays.
+     * @param {HTMLCanvasElement} hudOutlineCanvas - The HUD outline canvas for secondary overlays.
+     * @param {number} [zoom=1.0] - The initial zoom level (default is 1.0).
      */
-    constructor(foregroundCanvas, backgroundCanvas, hudCanvas = null, hudOutlineCanvas = null, zoom = 1.0) {
+    constructor(foregroundCanvas, backgroundCanvas, hudCanvas, hudOutlineCanvas, zoom = 1.0) {
         /** @type {boolean} Enables or disables debug mode for the camera. */
         this.debug = false;
         /** @type {StarSystem|null} The star system the camera is currently viewing. */
@@ -26,21 +27,27 @@ export class Camera {
 
         /** @type {HTMLCanvasElement} The main canvas for rendering. */
         this.foregroundCanvas = foregroundCanvas;
+        const foregroundCtx = this.foregroundCanvas.getContext('2d');
+        if (foregroundCtx === null) throw new Error('Failed to acquire CanvasRenderingContext2D from foregroundCanvas');
         /** @type {CanvasRenderingContext2D} The 2D rendering context for the main canvas. */
-        this.foregroundCtx = this.foregroundCanvas.getContext('2d');
+        this.foregroundCtx = foregroundCtx;
 
-        /** @type {HTMLCanvasElement} The main canvas for rendering. */
+        /** @type {HTMLCanvasElement} The background canvas for rendering. */
         this.backgroundCanvas = backgroundCanvas;
 
-        /** @type {HTMLCanvasElement} The canvas for rendering the HUD. */
+        /** @type {HTMLCanvasElement} The HUD canvas for UI overlays. */
         this.hudCanvas = hudCanvas;
+        const hudCtx = this.hudCanvas.getContext('2d');
+        if (hudCtx === null) throw new Error('Failed to acquire CanvasRenderingContext2D from hudCanvas');
         /** @type {CanvasRenderingContext2D} The 2D rendering context for the HUD canvas. */
-        this.hudCtx = this.hudCanvas ? this.hudCanvas.getContext('2d') : null;
+        this.hudCtx = hudCtx;
 
-        /** @type {HTMLCanvasElement} The canvas for rendering the HUD. */
+        /** @type {HTMLCanvasElement} The HUD outline canvas for secondary overlays. */
         this.hudOutlineCanvas = hudOutlineCanvas;
-        /** @type {CanvasRenderingContext2D} The 2D rendering context for the HUD canvas. */
-        this.hudOutlineCtx = this.hudOutlineCanvas ? this.hudOutlineCanvas.getContext('2d') : null;
+        const hudOutlineCtx = this.hudOutlineCanvas.getContext('2d');
+        if (hudOutlineCtx === null) throw new Error('Failed to acquire CanvasRenderingContext2D from hudOutlineCanvas');
+        /** @type {CanvasRenderingContext2D} The 2D rendering context for the HUD outline canvas. */
+        this.hudOutlineCtx = hudOutlineCtx;
 
         /** @type {Vector2D} The size of the screen in pixels. */
         this.screenSize = new Vector2D(0.0, 0.0);
@@ -52,19 +59,23 @@ export class Camera {
         this.worldSize = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} The center of the screen in pixels. */
         this.screenCenter = new Vector2D(0.0, 0.0);
-        /** @type {Object} The bounds of the camera's view in world coordinates, with angles for visibility. */
+        /**
+         * @type {{
+         *   left: number,
+         *   right: number,
+         *   top: number,
+         *   bottom: number,
+         *   minAngle: number,
+         *   maxAngle: number
+         * }}
+         * The bounds of the camera's view in world coordinates, with angles for visibility.
+         */
         this.worldBounds = {
-            /** @type {number} The left boundary of the camera's view in world coordinates. */
             left: 0.0,
-            /** @type {number} The right boundary of the camera's view in world coordinates. */
             right: 0.0,
-            /** @type {number} The top boundary of the camera's view in world coordinates. */
             top: 0.0,
-            /** @type {number} The bottom boundary of the camera's view in world coordinates. */
             bottom: 0.0,
-            /** @type {number} The minimum angle of the camera's view corners. */
             minAngle: 0.0,
-            /** @type {number} The maximum angle of the camera's view corners. */
             maxAngle: 0.0
         };
         // Set initial bounds
@@ -83,8 +94,9 @@ export class Camera {
 
     /**
      * Updates the camera's position to follow a target.
-     * @param {StarSystem} starSystem - The initial starSystem.
+     * @param {StarSystem} starSystem - The star system that the camera is viewing.
      * @param {Vector2D} position - The new position to set in world coordinates.
+     * @returns {void}
      */
     update(starSystem, position) {
         if (!starSystem) {
@@ -99,6 +111,7 @@ export class Camera {
      * Resizes the screen and updates the world size and screen center.
      * @param {number} screenSizeX - The new screen width in pixels.
      * @param {number} screenSizeY - The new screen height in pixels.
+     * @returns {void}
      */
     resize(screenSizeX, screenSizeY) {
         this.screenSize.set(screenSizeX, screenSizeY);
@@ -110,16 +123,13 @@ export class Camera {
 
         this.foregroundCtx.font = 'bolder 16px "Century Gothic Paneuropean", "Century Gothic", "CenturyGothic", "AppleGothic", sans-serif';
 
-        if (this.hudCanvas) {
-            this.hudCanvas.width = screenSizeX;
-            this.hudCanvas.height = screenSizeY;
-            this.hudCtx.font = 'bolder 16px "Century Gothic Paneuropean", "Century Gothic", "CenturyGothic", "AppleGothic", sans-serif';
-        }
-        if (this.hudOutlineCanvas) {
-            this.hudOutlineCanvas.width = screenSizeX;
-            this.hudOutlineCanvas.height = screenSizeY;
-            this.hudOutlineCtx.font = 'bolder 16px "Century Gothic Paneuropean", "Century Gothic", "CenturyGothic", "AppleGothic", sans-serif';
-        }
+        this.hudCanvas.width = screenSizeX;
+        this.hudCanvas.height = screenSizeY;
+        this.hudCtx.font = 'bolder 16px "Century Gothic Paneuropean", "Century Gothic", "CenturyGothic", "AppleGothic", sans-serif';
+
+        this.hudOutlineCanvas.width = screenSizeX;
+        this.hudOutlineCanvas.height = screenSizeY;
+        this.hudOutlineCtx.font = 'bolder 16px "Century Gothic Paneuropean", "Century Gothic", "CenturyGothic", "AppleGothic", sans-serif';
 
         this._updateWorldBounds(); // Update world-space bounds
     }
@@ -127,6 +137,7 @@ export class Camera {
     /**
      * Sets the zoom level, constrained between 0.5 and 5.0, and updates world size.
      * @param {number} zoom - The new zoom level.
+     * @returns {void}
      */
     setZoom(zoom) {
         this.zoom = Math.max(0.5, Math.min(5, zoom));
@@ -138,6 +149,7 @@ export class Camera {
     /**
      * Sets the camera's center position.
      * @param {Vector2D} position - The new center position in world coordinates.
+     * @returns {void}
      */
     setCenter(position) {
         this.position.set(position); // Reuse position vector
@@ -146,6 +158,7 @@ export class Camera {
 
     /**
      * Updates the world-space bounds for visibility checks without allocation.
+     * @returns {void}
      */
     _updateWorldBounds() {
         const halfWidth = this.worldSize.width / 2.0;
@@ -297,15 +310,16 @@ export class Camera {
 export class TargetCamera extends Camera {
     /**
      * Creates a new TargetCamera instance.
-     * @param {HTMLCanvasElement} foregroundCanvas - The main canvas for rendering ships etc.
-     * @param {HTMLCanvasElement} backgroundCanvas - The background canvas for rendering starfield.
-     * @param {HTMLCanvasElement} hudCanvas - The canvas for rendering the HUD.
+     * @param {HTMLCanvasElement} foregroundCanvas - The main canvas for rendering ships and world objects.
+     * @param {HTMLCanvasElement} backgroundCanvas - The background canvas for rendering the starfield.
+     * @param {HTMLCanvasElement} hudCanvas - The HUD canvas for UI overlays.
+     * @param {HTMLCanvasElement} hudOutlineCanvas - The HUD outline canvas for secondary overlays.
      * @param {number} [zoom=1] - The initial zoom level (default is  1.0).
      */
-    constructor(foregroundCanvas, backgroundCanvas, hudCanvas = null, hudOutlineCanvas = null, zoom = 1.0) {
+    constructor(foregroundCanvas, backgroundCanvas, hudCanvas, hudOutlineCanvas, zoom = 1.0) {
         super(foregroundCanvas, backgroundCanvas, hudCanvas, hudOutlineCanvas, zoom);
         /** @type {number} Cache for the last target size to avoid recomputing zoom. */
-        this.lastTargetSize = null;
+        this.lastTargetSize = 0.0;
         /** @type {number} Cache for the last zoom level to detect changes. */
         this.lastZoom = this.zoom;
 
@@ -341,7 +355,7 @@ export class TargetCamera extends Camera {
         // Compute target size and check if it has changed
         size = target.radius;
 
-        if (this.lastTargetSize == null || size !== this.lastTargetSize) {
+        if (this.lastTargetSize == 0.0 || size !== this.lastTargetSize) {
             // Adjust zoom calculation to ensure the target fits comfortably on screen
             const targetWorldSize = size * 4.0;
             const viewSize = Math.min(this.screenSize.width, this.screenSize.height);

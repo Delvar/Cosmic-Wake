@@ -51,6 +51,7 @@ export class WandererJob extends Job {
      * Updates the job's behavior by delegating to the current state handler.
      * @param {number} deltaTime - Time elapsed since last update (seconds).
      * @param {GameManager} gameManager - The game manager instance for context.
+     * @returns {void}
      */
     update(deltaTime, gameManager) {
         const handler = this.stateHandlers[this.state];
@@ -67,6 +68,7 @@ export class WandererJob extends Job {
      * Handles the 'Starting' state, planning a route to a random planet.
      * @param {number} deltaTime - Time elapsed since last update (seconds).
      * @param {GameManager} gameManager - The game manager instance for context.
+     * @returns {void}
      */
     updateStarting(deltaTime, gameManager) {
         this.debugLog(() => console.log(`${this.constructor.name}: Planning route, ship state: ${this.ship.state}`));
@@ -90,6 +92,7 @@ export class WandererJob extends Job {
      * Handles the 'Travelling' state, managing takeoff and navigation to the target.
      * @param {number} deltaTime - Time elapsed since last update (seconds).
      * @param {GameManager} gameManager - The game manager instance for context.
+     * @returns {void}
      */
     updateTravelling(deltaTime, gameManager) {
         if (this.ship.state === 'Landed' && this.target === this.finalTarget && this.route.length === 0.0) {
@@ -106,9 +109,12 @@ export class WandererJob extends Job {
                 this.state = 'Starting';
                 return;
             }
+            if (!this.ship.dockingContext) {
+                throw new TypeError('dockingContext is missing on Landed ship');
+            }
             this.waitTime -= deltaTime;
             if (this.waitTime <= 0.0) {
-                this.debugLog(() => console.log(`${this.constructor.name}: Initiating takeoff toward ${this.target.name}`));
+                this.debugLog(() => console.log(`${this.constructor.name}: Initiating takeoff toward ${this.target?.name}`));
                 this.ship.setTarget(this.target);
                 this.ship.dockingContext.takeOff();
                 this.waitTime = 0.0;
@@ -130,15 +136,15 @@ export class WandererJob extends Job {
                 this.state = 'Starting';
                 return;
             }
-            this.debugLog(() => console.log(`${this.constructor.name}: Selected new target ${this.target.name}`));
+            this.debugLog(() => console.log(`${this.constructor.name}: Selected new target ${this.target?.name}`));
         }
 
         if (!this.pilot.autopilot) {
             if (this.target instanceof JumpGate) {
-                this.debugLog(() => console.log(`${this.constructor.name}: Setting TraverseJumpGateAutopilot for ${this.target.name}`));
+                this.debugLog(() => console.log(`${this.constructor.name}: Setting TraverseJumpGateAutopilot for ${this.target?.name}`));
                 this.pilot.setAutopilot(new TraverseJumpGateAutopilot(this.ship, this.target));
             } else if (this.target instanceof JumpGate) {
-                this.debugLog(() => console.log(`${this.constructor.name}: Setting LandOnPlanetAutopilot for ${this.target.name}`));
+                this.debugLog(() => console.log(`${this.constructor.name}: Setting LandOnPlanetAutopilot for ${this.target?.name}`));
                 this.pilot.setAutopilot(new LandOnPlanetAutopilot(this.ship, this.target));
             } else {
                 //FIXME: need a better recovery method than this.
@@ -160,6 +166,7 @@ export class WandererJob extends Job {
      * Handles the 'Waiting' state, delaying before re-planning.
      * @param {number} deltaTime - Time elapsed since last update (seconds).
      * @param {GameManager} gameManager - The game manager instance for context.
+     * @returns {void}
      */
     updateWaiting(deltaTime, gameManager) {
         if (this.ship.state !== 'Landed') {
@@ -192,7 +199,7 @@ export class WandererJob extends Job {
             if (this.finalTarget) {
                 this.target = this.finalTarget;
                 this.route = [];
-                this.debugLog(() => console.log(`${this.constructor.name}: Selected same-system target: ${this.finalTarget.name}`));
+                this.debugLog(() => console.log(`${this.constructor.name}: Selected same-system target: ${this.finalTarget?.name}`));
                 return true;
             }
         }
@@ -213,7 +220,7 @@ export class WandererJob extends Job {
             if (this.finalTarget) {
                 this.target = this.finalTarget;
                 this.route = [];
-                this.debugLog(() => console.log(`${this.constructor.name}: No jump gate, selected fallback: ${this.finalTarget.name}`));
+                this.debugLog(() => console.log(`${this.constructor.name}: No jump gate, selected fallback: ${this.finalTarget?.name}`));
                 return true;
             }
             return false;
@@ -226,7 +233,7 @@ export class WandererJob extends Job {
             if (this.finalTarget) {
                 this.target = this.finalTarget;
                 this.route = [];
-                this.debugLog(() => console.log(`${this.constructor.name}: No planet in destination, selected fallback: ${this.finalTarget.name}`));
+                this.debugLog(() => console.log(`${this.constructor.name}: No planet in destination, selected fallback: ${this.finalTarget?.name}`));
                 return true;
             }
             return false;
@@ -234,7 +241,7 @@ export class WandererJob extends Job {
 
         this.target = jumpGate;
         this.route = [jumpGate, this.finalTarget];
-        this.debugLog(() => console.log(`${this.constructor.name}: Selected cross-system target: ${this.finalTarget.name} via ${jumpGate.name}`));
+        this.debugLog(() => console.log(`${this.constructor.name}: Selected cross-system target: ${this.finalTarget?.name} via ${jumpGate.name}`));
         return true;
     }
 
@@ -244,11 +251,11 @@ export class WandererJob extends Job {
      */
     selectNextValidTarget() {
         while (this.route.length > 0.0) {
-            const nextTarget = this.route.shift();
+            const nextTarget = this.route.shift() || null;
             if (isValidTarget(this.ship, nextTarget)) {
                 return nextTarget;
             }
-            this.debugLog(() => console.log(`${this.constructor.name}: Skipped invalid route target ${nextTarget.name}`));
+            this.debugLog(() => console.log(`${this.constructor.name}: Skipped invalid route target ${nextTarget?.name}`));
         }
 
         if (this.finalTarget && isValidTarget(this.ship, this.finalTarget)) {
@@ -260,6 +267,7 @@ export class WandererJob extends Job {
 
     /**
      * Pauses the job, saving the current state.
+     * @returns {void}
      */
     pause() {
         super.pause();
@@ -271,6 +279,7 @@ export class WandererJob extends Job {
 
     /**
      * Resumes the job, resetting to Starting.
+     * @returns {void}
      */
     resume() {
         super.resume();

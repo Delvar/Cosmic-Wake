@@ -39,6 +39,7 @@ export class EscortJob extends Job {
      * Updates the job's behavior by delegating to the current state handler.
      * @param {number} deltaTime - Time elapsed since last update (seconds).
      * @param {GameManager} gameManager - The game manager instance for context.
+     * @returns {void}
      */
     update(deltaTime, gameManager) {
         const handler = this.stateHandlers[this.state];
@@ -66,6 +67,7 @@ export class EscortJob extends Job {
      * Handles the 'Starting' state, validating the escorted ship and initializing escorting.
      * @param {number} deltaTime - Time elapsed since last update (seconds).
      * @param {GameManager} gameManager - The game manager instance for context.
+     * @returns {void}
      */
     updateStarting(deltaTime, gameManager) {
         if (!this.target || this.target.isDespawned() || !(this.target instanceof Ship)) {
@@ -81,6 +83,7 @@ export class EscortJob extends Job {
      * Handles the 'Escorting' state, monitoring for attacks and managing EscortAutopilot.
      * @param {number} deltaTime - Time elapsed since last update (seconds).
      * @param {GameManager} gameManager - The game manager instance for context.
+     * @returns {void}
      */
     updateEscorting(deltaTime, gameManager) {
         if (!this.target || this.target.isDespawned()) {
@@ -92,7 +95,7 @@ export class EscortJob extends Job {
 
         if (this.pilot.state !== 'Attack') {
             if (this.target.lastAttacker && isValidTarget(this.ship, this.target.lastAttacker)) {
-                this.debugLog(() => console.log(`${this.constructor.name}: Escorted ship attacked by ${this.target.lastAttacker.name}, switching to Attack state`));
+                this.debugLog(() => console.log(`${this.constructor.name}: Escorted ship attacked by ${this.target?.lastAttacker?.name}, switching to Attack state`));
                 this.pilot.changeState('Attack', new AttackAutopilot(this.ship, this.target.lastAttacker, true));
             } else if (!this.pilot.autopilot || !this.pilot.autopilot.active) {
                 this.debugLog(() => console.log(`${this.constructor.name}: Reinstating EscortAutopilot for ${this.target.name}`));
@@ -104,6 +107,7 @@ export class EscortJob extends Job {
 
     /**
      * Resumes the job, resetting to Starting state.
+     * @returns {void}
      */
     resume() {
         super.resume();

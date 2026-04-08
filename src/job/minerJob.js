@@ -21,11 +21,11 @@ export class MinerJob extends Job {
      * Creates a new MinerJob instance.
      * @param {Ship} ship - The ship to control.
      * @param {AiPilot} pilot - The pilot controlling the ship.
-     * @param {Planet|null} [homePlanet=null] - The home planet to return to; if null, uses closest planet.
+     * @param {Planet} homePlanet - The home planet to return to.
      */
-    constructor(ship, pilot, homePlanet = null) {
+    constructor(ship, pilot, homePlanet) {
         super(ship, pilot);
-        /** @type {Planet|null} The home planet to return to after mining. */
+        /** @type {Planet} The home planet to return to after mining. */
         this.homePlanet = homePlanet;
         /** @type {Asteroid|null} The current target asteroid to mine. */
         this.targetAsteroid = null;
@@ -58,18 +58,11 @@ export class MinerJob extends Job {
      * Updates the job by validating targets and delegating to state handlers.
      * @param {number} deltaTime - Time elapsed in seconds.
      * @param {GameManager} gameManager - The game manager instance for context.
+     * @returns {void}
      */
     update(deltaTime, gameManager) {
         if (this.state === 'Failed') {
             return;
-        }
-        // Reassign homePlanet if invalid
-        if (!this.homePlanet || this.homePlanet.isDespawned()) {
-            this.homePlanet = this.ship.starSystem?.getClosestPlanet(this.ship);
-            if (!this.homePlanet) {
-                this.state = 'Failed';
-                return;
-            }
         }
 
         // Run state handler
@@ -86,6 +79,7 @@ export class MinerJob extends Job {
      * Handles the 'Starting' state, deciding to mine or wait based on ship state.
      * @param {number} deltaTime - Time elapsed in seconds.
      * @param {GameManager} gameManager - The game manager instance for context.
+     * @returns {void}
      */
     updateStarting(deltaTime, gameManager) {
         //ensure we have a target asteroid or we fail
@@ -98,7 +92,10 @@ export class MinerJob extends Job {
             }
         }
         if (this.ship.state === 'Landed') {
-            if (this.ship.dockingContext?.landedObject === this.homePlanet) {
+            if (!this.ship.dockingContext) {
+                throw new TypeError('dockingContext is missing on Landed ship');
+            }
+            if (this.ship.dockingContext.landedObject === this.homePlanet) {
                 this.waitTime = randomBetween(this.waitTimeMin, this.waitTimeMax);
                 this.state = 'WaitingOnHomePlanet';
                 this.debugLog(() => console.log(`${this.constructor.name}: Landed on home planet, transitioning to WaitingOnHomePlanet`));
@@ -123,6 +120,7 @@ export class MinerJob extends Job {
      * Handles the 'FlyingToAsteroid' state, managing flight to the target asteroid.
      * @param {number} deltaTime - Time elapsed in seconds.
      * @param {GameManager} gameManager - The game manager instance for context.
+     * @returns {void}
      */
     updateFlyingToAsteroid(deltaTime, gameManager) {
         if (!this.targetAsteroid || !isValidTarget(this.ship, this.targetAsteroid)) {
@@ -150,8 +148,12 @@ export class MinerJob extends Job {
      * Handles the 'Mining' state, waiting while mining the asteroid.
      * @param {number} deltaTime - Time elapsed in seconds.
      * @param {GameManager} gameManager - The game manager instance for context.
+     * @returns {void}
      */
     updateMining(deltaTime, gameManager) {
+        if (!this.ship.dockingContext) {
+            throw new TypeError('dockingContext is missing on Landed ship');
+        }
         this.waitTime -= deltaTime;
         if (this.waitTime <= 0.0) {
             this.ship.dockingContext.takeOff();
@@ -165,6 +167,7 @@ export class MinerJob extends Job {
      * Handles the 'FlyingToHomePlanet' state, managing flight to the home planet.
      * @param {number} deltaTime - Time elapsed in seconds.
      * @param {GameManager} gameManager - The game manager instance for context.
+     * @returns {void}
      */
     updateFlyingToHomePlanet(deltaTime, gameManager) {
         if (this.pilot.autopilot == null || this.pilot.autopilot.isComplete()) {
@@ -183,8 +186,12 @@ export class MinerJob extends Job {
      * Handles the 'WaitingOnHomePlanet' state, waiting before restarting the cycle.
      * @param {number} deltaTime - Time elapsed in seconds.
      * @param {GameManager} gameManager - The game manager instance for context.
+     * @returns {void}
      */
     updateWaitingOnHomePlanet(deltaTime, gameManager) {
+        if (!this.ship.dockingContext) {
+            throw new TypeError('dockingContext is missing on Landed ship');
+        }
         this.waitTime -= deltaTime;
         if (this.waitTime <= 0.0) {
             this.ship.dockingContext.takeOff();
@@ -194,6 +201,7 @@ export class MinerJob extends Job {
 
     /**
      * Pauses the job, saving the current state.
+     * @returns {void}
      */
     pause() {
         super.pause();
@@ -202,6 +210,7 @@ export class MinerJob extends Job {
 
     /**
      * Resumes the job, adjusting state based on ship status.
+     * @returns {void}
      */
     resume() {
         super.resume();

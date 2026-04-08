@@ -1,10 +1,5 @@
 // /src/starSystem/starSystem.js
 
-/**
- * This file contains classes for managing star systems and their connections via hyperlanes.
- * The StarSystem class represents a star system with celestial bodies, ships, and hyperlanes.
- * The Hyperlane class represents a connection between two star systems.
- */
 import { Vector2D } from '/src/core/vector2d.js';
 import { GameObject, isValidTarget } from '/src/core/gameObject.js';
 import { Planet, Star, JumpGate } from '/src/starSystem/celestialBody.js';
@@ -178,7 +173,7 @@ export class StarSystem {
     initializeJumpGates() {
         this.hyperlanes.forEach(lane => {
             if (lane.source === this) {
-                const jumpGate = new JumpGate(lane, this.position);
+                const jumpGate = new JumpGate(this, lane, this.position);
                 this.jumpGates.push(jumpGate);
                 lane.sourceGate = jumpGate; // Set source gate reference
             }
@@ -207,8 +202,8 @@ export class StarSystem {
      * Selects a random ship from the available ships, using a provided validation function.
      * @param {Ship|null} [ship=null] the ship looking for a target
      * @param {GameObject|null} [exclude=null] exclude this other GameObject
-     * @param {function(GameObject, GameObject): boolean} [isValid=isValidTarget] - Validation function to check if a target is valid.
-     * @return {Ship|null} The selected ship, or null if none available.
+     * @param {function(Ship, Ship): boolean} [isValid=isValidTarget] - Validation function to check if a target is valid.
+     * @returns {Ship|null} The selected ship, or null if none available.
      */
     getRandomShip(ship = null, exclude = null, isValid = isValidTarget) {
         const arr1 = this.ships;
@@ -238,7 +233,7 @@ export class StarSystem {
      * Selects a random valid planet from the available planets in the star system.
      * @param {Ship|null} [ship=null] The ship looking for a target (used for validation if provided).
      * @param {Planet|null} [exclude=null] Exclude this planet from selection.
-     * @return {Planet|null} The selected planet, or null if none available.
+     * @returns {Planet|null} The selected planet, or null if none available.
      */
     getRandomPlanet(ship = null, exclude = null) {
         const arr1 = this.planets;
@@ -268,7 +263,7 @@ export class StarSystem {
      * Selects a random valid star from the available stars in the star system.
      * @param {Ship|null} [ship=null] The ship looking for a target (used for validation if provided).
      * @param {Star|null} [exclude=null] Exclude this star from selection.
-     * @return {Star|null} The selected star, or null if none available.
+     * @returns {Star|null} The selected star, or null if none available.
      */
     getRandomStar(ship = null, exclude = null) {
         const arr1 = this.stars;
@@ -298,7 +293,7 @@ export class StarSystem {
      * Selects a random valid jump gate from the available jump gates in the star system.
      * @param {Ship|null} [ship=null] The ship looking for a target (used for validation if provided).
      * @param {JumpGate|null} [exclude=null] Exclude this jump gate from selection.
-     * @return {JumpGate|null} The selected jump gate, or null if none available.
+     * @returns {JumpGate|null} The selected jump gate, or null if none available.
      */
     getRandomJumpGate(ship = null, exclude = null) {
         const arr1 = this.jumpGates;
@@ -328,7 +323,7 @@ export class StarSystem {
      * Selects a random valid asteroid from the available asteroids in the star system.
      * @param {Ship|null} [ship=null] The ship looking for a target (used for validation if provided).
      * @param {Asteroid|null} [exclude=null] Exclude this asteroid from selection.
-     * @return {Asteroid|null} The selected asteroid, or null if none available.
+     * @returns {Asteroid|null} The selected asteroid, or null if none available.
      */
     getRandomAsteroid(ship = null, exclude = null) {
         const arr1 = this.asteroids;
@@ -358,7 +353,7 @@ export class StarSystem {
      * Selects a random valid jump gate or planet from the available ones in the star system.
      * @param {Ship|null} [ship=null] The ship looking for a target (used for validation if provided).
      * @param {GameObject|null} [exclude=null] Exclude this game object from selection.
-     * @return {JumpGate|Planet|null} The selected jump gate or planet, or null if none available.
+     * @returns {JumpGate|Planet|null} The selected jump gate or planet, or null if none available.
      */
     getRandomJumpGatePlanet(ship = null, exclude = null) {
         const arr1 = this.planets;
@@ -394,7 +389,7 @@ export class StarSystem {
      * Selects a random valid planet or asteroid from the available ones in the star system.
      * @param {Ship|null} [ship=null] The ship looking for a target (used for validation if provided).
      * @param {GameObject|null} [exclude=null] Exclude this game object from selection.
-     * @return {Planet|Asteroid|null} The selected planet or asteroid, or null if none available.
+     * @returns {Planet|Asteroid|null} The selected planet or asteroid, or null if none available.
      */
     getRandomPlanetAsteroid(ship = null, exclude = null) {
         const arr1 = this.planets;
@@ -430,7 +425,7 @@ export class StarSystem {
      * Selects a random valid jump gate, planet, or asteroid from the available ones in the star system.
      * @param {Ship|null} [ship=null] The ship looking for a target (used for validation if provided).
      * @param {GameObject|null} [exclude=null] Exclude this game object from selection.
-     * @return {JumpGate|Planet|Asteroid|null} The selected jump gate, planet, or asteroid, or null if none available.
+     * @returns {JumpGate|Planet|Asteroid|null} The selected jump gate, planet, or asteroid, or null if none available.
      */
     getRandomJumpGatePlanetAsteroid(ship = null, exclude = null) {
         const arr1 = this.planets;
@@ -773,7 +768,7 @@ export class StarSystem {
      * Finds the closest valid jump gate or planet to the ship.
      * @param {Ship} ship The ship looking for a target.
      * @param {GameObject|null} [exclude=null] Exclude this game object from selection.
-     * @return {JumpGate|Planet|null} The closest jump gate or planet, or null if none available.
+     * @returns {JumpGate|Planet|null} The closest jump gate or planet, or null if none available.
      */
     getClosestJumpGatePlanet(ship, exclude = null) {
         const arr1 = this.planets;

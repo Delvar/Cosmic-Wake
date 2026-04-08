@@ -269,6 +269,7 @@ export class Ship extends GameObject {
     /**
      * Creates a new DockingContext for the given landed object, disposing any existing one.
      * @param {CelestialBody|Asteroid|Ship} landedObject - The object the ship is landing on or boarding.
+     * @returns {void}
      */
     createDockingContext(landedObject) {
         if (this.dockingContext) {
@@ -279,6 +280,7 @@ export class Ship extends GameObject {
 
     /**
      * Destroys the current DockingContext, disposing it and clearing the reference.
+     * @returns {void}
      */
     destroyDockingContext() {
         if (this.dockingContext) {
@@ -290,6 +292,7 @@ export class Ship extends GameObject {
     /**
      * Logs a message to the UI log if available.
      * @param {...any} messages - Values to log (same as console.log).
+     * @returns {void}
      */
     uiLog(...messages) {
         if (this._uiLog) {
@@ -300,6 +303,7 @@ export class Ship extends GameObject {
     /**
      * Sets the UI log for this ship.
      * @param {UiLog|null} uiLog - The UI log instance or null.
+     * @returns {void}
      */
     setUiLog(uiLog) {
         this._uiLog = uiLog;
@@ -307,6 +311,7 @@ export class Ship extends GameObject {
 
     /**
      * Removes the UI log for this ship.
+     * @returns {void}
      */
     removeUiLog() {
         this._uiLog = null;
@@ -442,6 +447,7 @@ export class Ship extends GameObject {
 
     /**
      * Sets up the ship's bounding box for collision detection.
+     * @returns {void}
      */
     setupBoundingBox() {
         // Set a fixed bounding box size (20x20 units) and collision radius
@@ -451,6 +457,7 @@ export class Ship extends GameObject {
 
     /**
      * Initializes positions for engines, turrets, and lights.
+     * @returns {void}
      */
     setupFeaturePoints() {
         // Initialize empty arrays for dynamic visual elements
@@ -465,6 +472,7 @@ export class Ship extends GameObject {
     /**
      * Configures the ship's particle trail based on the rearmost engine position.
      * Must be called after `setupFeaturePoints()`.
+     * @returns {void}
      */
     setupTrail() {
         if (!this.featurePoints?.engines || this.featurePoints.engines.length === 0) {
@@ -489,6 +497,7 @@ export class Ship extends GameObject {
 
     /**
      * Sets up turrets from featurePoints.turrets.
+     * @returns {void}
      */
     setupTurrets() {
         this.turrets = [];
@@ -500,6 +509,7 @@ export class Ship extends GameObject {
 
     /**
      * Sets up fixed weapons from featurePoints.fixedWeapons.
+     * @returns {void}
      */
     setupFixedWeapons() {
         this.fixedWeapons = this.featurePoints.fixedWeapons.map(feature =>
@@ -510,6 +520,7 @@ export class Ship extends GameObject {
     /**
      * Marks the ship as despawned and removes it from the landed object.
      * @override
+     * @returns {void}
      */
     despawn() {
         super.despawn();
@@ -557,6 +568,7 @@ export class Ship extends GameObject {
     /**
      * Sets the pilot for this ship.
      * @param {Pilot} pilot - The pilot to control the ship.
+     * @returns {void}
      */
     setPilot(pilot) {
         this.pilot = pilot;
@@ -565,6 +577,7 @@ export class Ship extends GameObject {
     /**
      * Transitions the ship to a new state, resetting animation time.
      * @param {string} newState - The state to transition to (e.g., 'Flying', 'Landing').
+     * @returns {void}
      */
     setState(newState) {
         const previousState = this.state;
@@ -605,6 +618,7 @@ export class Ship extends GameObject {
     /**
      * Sets the ship's current target.
      * @param {GameObject|null} target - The target object (e.g., planet, asteroid).
+     * @returns {void}
      */
     setTarget(target) {
         this.target = target;
@@ -612,6 +626,7 @@ export class Ship extends GameObject {
 
     /**
      * Clears the ship's current target.
+     * @returns {void}
      */
     clearTarget() {
         this.target = null;
@@ -620,6 +635,7 @@ export class Ship extends GameObject {
     /**
      * Sets the desired rotation angle for the ship.
      * @param {number} angle - The target angle in radians.
+     * @returns {void}
      */
     setTargetAngle(angle) {
         this.targetAngle = normalizeAngle(angle);
@@ -628,6 +644,7 @@ export class Ship extends GameObject {
     /**
      * Toggles the ship's thrust state.
      * @param {boolean} thrusting - Whether to apply thrust.
+     * @returns {void}
      */
     applyThrust(thrusting) {
         if (this.state === 'Flying') {
@@ -640,6 +657,7 @@ export class Ship extends GameObject {
     /**
      * Toggles the ship's braking state.
      * @param {boolean} braking - Whether to apply brakes.
+     * @returns {void}
      */
     applyBrakes(braking) {
         this.isBraking = braking;
@@ -660,6 +678,7 @@ export class Ship extends GameObject {
 
     /**
      * Stops mining.
+     * @returns {void}
      */
     stopMining() {
         if (this.miningEnabled) {
@@ -712,9 +731,11 @@ export class Ship extends GameObject {
         if (this.canLand(target)) {
             // Create a docking context for this landed ship, for player and AI access.
             this.createDockingContext(target);
+
             if (!this.dockingContext) {
-                return false;
+                throw new TypeError('dockingContext is missing on Landed ship');
             }
+
             this.setState('Landing');
             this.startPosition.set(this.velocity).multiplyInPlace(1.0 / 60.0).addInPlace(this.position).subtractInPlace(this.dockingContext.landedObject.position);
             if (this.dockingContext.landedObject instanceof Planet) {
@@ -748,9 +769,11 @@ export class Ship extends GameObject {
         if (this.canBoard(target)) {
             // Create a docking context for this boarded ship
             this.createDockingContext(target);
+
             if (!this.dockingContext) {
-                return false;
+                throw new TypeError('dockingContext is missing on Landed ship');
             }
+
             this.setState('Landing');
             this.startPosition.set(this.velocity).multiplyInPlace(1.0 / 60.0).addInPlace(this.position).subtractInPlace(this.dockingContext.landedObject.position);
             this.endPosition.set(0.0, 0.0);
@@ -846,6 +869,7 @@ export class Ship extends GameObject {
 
     /**
      * Fires all the ship's weapons.
+     * @returns {void}
      */
     fire() {
         if (this.state !== 'Flying') return;
@@ -855,6 +879,7 @@ export class Ship extends GameObject {
 
     /**
      * Fires the ship's fixed weapons.
+     * @returns {void}
      */
     fireFixedWeapons() {
         if (this.state !== 'Flying') return;
@@ -865,6 +890,7 @@ export class Ship extends GameObject {
 
     /**
      * Fires the ship's turrets.
+     * @returns {void}
      */
     fireTurrets() {
         if (this.state !== 'Flying') return;
@@ -875,6 +901,7 @@ export class Ship extends GameObject {
 
     /**
      * Cycles the turret mode to the next available mode.
+     * @returns {void}
      */
     cycleTurretMode() {
         const modes = ['Full-auto', 'Auto-target', 'Target-only', 'Disabled'];
@@ -924,6 +951,7 @@ export class Ship extends GameObject {
      * @param {number} damage - Amount of damage to apply.
      * @param {Vector2D} hitPosition - World-space position of the hit.
      * @param {Ship} source - Ship causing damage.
+     * @returns {void}
      */
     takeDamage(damage, hitPosition, source) {
         if (source instanceof Ship && isValidAttackTarget(this, source, false)) {
@@ -961,6 +989,7 @@ export class Ship extends GameObject {
     /**
      * Updates the ship's state and visuals each frame.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @returns {void}
      */
     update(deltaTime) {
         if (this.despawned) return; // Skip updates for despawned ships
@@ -1083,6 +1112,7 @@ export class Ship extends GameObject {
     /**
      * Updates the ship in the 'Flying' state, handling rotation and movement.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @returns {void}
      */
     updateFlying(deltaTime) {
         // Check for Disabled or Exploding state transitions
@@ -1165,13 +1195,14 @@ export class Ship extends GameObject {
     /**
      * Updates the ship in the 'Landing' state, animating the landing process.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @returns {void}
      */
     updateLanding(deltaTime) {
         this.animationTime += deltaTime;
         const t = Math.min(this.animationTime / this.animationLandingDuration, 1.0);
 
         if (!this.dockingContext) {
-            return false;
+            throw new TypeError('dockingContext is missing on Landed ship');
         }
 
         // Adjust scale based on target type
@@ -1212,6 +1243,7 @@ export class Ship extends GameObject {
     /**
      * Updates the ship in the 'Landed' state, keeping it attached to the target.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @returns {void}
      */
     updateLanded(deltaTime) {
         if (this.dockingContext?.landedObject instanceof Asteroid) {
@@ -1246,12 +1278,15 @@ export class Ship extends GameObject {
     /**
      * Updates the ship in the 'TakingOff' state, animating the takeoff process.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @returns {void}
      */
     updateTakingOff(deltaTime) {
         this.animationTime += deltaTime;
+
         if (!this.dockingContext) {
-            return false;
+            throw new TypeError('dockingContext is missing on Landed ship');
         }
+
         const landedObject = this.dockingContext.landedObject;
         const t = Math.min(this.animationTime / this.animationLandingDuration, 1.0);
 
@@ -1289,6 +1324,7 @@ export class Ship extends GameObject {
     /**
      * Updates the ship in the 'JumpingOut' state, animating the exit jump.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @returns {void}
      */
     updateJumpingOut(deltaTime) {
         this.animationTime += deltaTime;
@@ -1336,6 +1372,7 @@ export class Ship extends GameObject {
     /**
      * Updates the ship in the 'JumpingIn' state, animating the entry jump.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @returns {void}
      */
     updateJumpingIn(deltaTime) {
         this.animationTime += deltaTime;
@@ -1379,6 +1416,7 @@ export class Ship extends GameObject {
     /**
      * Updates the ship in the 'Disabled' state, decelerating.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @returns {void}
      */
     updateDisabled(deltaTime) {
         // Check for transition to Exploding
@@ -1415,6 +1453,7 @@ export class Ship extends GameObject {
     /**
      * Updates the ship in the 'Exploding' state, triggering explosions based on hull integrity.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @returns {void}
      */
     updateExploding(deltaTime) {
         this.velocity.multiplyInPlace(1.0 - (0.1 * deltaTime)); // 10% loss per second
@@ -1494,6 +1533,7 @@ export class Ship extends GameObject {
     /**
      * Generates a random point within the ship's rotated bounding box.
      * @param {Vector2D} out - The vector to store the world-space position.
+     * @returns {void}
      */
     _getRandomPointInBoundingBox(out) {
         // Generate random point in unrotated bounding box, centred at (0.0,0)
@@ -1519,6 +1559,7 @@ export class Ship extends GameObject {
      * @param {Vector2D} explosionPos - World-space position of the explosion.
      * @param {number} currentForce - Magnitude of the linear force to apply.
      * @param {number} currentTorque - Magnitude of the angular impulse to apply.
+     * @returns {void}
      */
     _applyExplosionImpulse(explosionPos, currentForce, currentTorque) {
         // Calculate force direction (randomized)
@@ -1541,6 +1582,7 @@ export class Ship extends GameObject {
      * Renders the ship and its visual effects to the canvas.
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
      * @param {Camera} camera - The camera object for world-to-screen conversion.
+     * @returns {void}
      */
     draw(ctx, camera) {
         // Draw trail if visible and scaled
@@ -1586,6 +1628,7 @@ export class Ship extends GameObject {
      * Draws the shield effect using the Shield class.
      * @param {CanvasRenderingContext2D} ctx - Canvas context.
      * @param {Camera} camera - Camera for world-to-screen transform.
+     * @returns {void}
      */
     drawShieldEffect(ctx, camera) {
         this.shield.draw(ctx, camera, this.position, this.radius);
@@ -1595,6 +1638,7 @@ export class Ship extends GameObject {
      * Configures the path for the windows in the ctx, to be used in drawWindows
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
      * @param {Camera} camera - The camera object.
+     * @returns {void}
      */
     getWindowPath(ctx, camera) {
         // Draw the cockpit
@@ -1607,6 +1651,7 @@ export class Ship extends GameObject {
      * Draws the ship's main body
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
      * @param {Camera} camera - The camera object.
+     * @returns {void}
      */
     drawShip(ctx, camera) {
         ctx.save();
@@ -1633,6 +1678,7 @@ export class Ship extends GameObject {
      * Draws engine thrust effects if active.
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
      * @param {Camera} camera - The camera object.
+     * @returns {void}
      */
     drawEngines(ctx, camera) {
         if (this.thrustTime <= 0.0) return; // Skip if no thrust effect
@@ -1678,6 +1724,7 @@ export class Ship extends GameObject {
      * Draws turrets as rectangles (base + barrel).
      * @param {CanvasRenderingContext2D} ctx - Canvas context.
      * @param {Camera} camera - Camera for transform.
+     * @returns {void}
      */
     drawTurrets(ctx, camera) {
         if (!this.turrets || this.turrets.length == 0.0) return;
@@ -1732,6 +1779,7 @@ export class Ship extends GameObject {
      * Draws blinking navigation lights.
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
      * @param {Camera} camera - The camera object.
+     * @returns {void}
      */
     drawLights(ctx, camera) {
         if (this.state === 'Exploding') return;
@@ -1817,6 +1865,7 @@ export class Ship extends GameObject {
      * Draws the ship's windows/cockpit.
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
      * @param {Camera} camera - The camera object.
+     * @returns {void}
      */
     drawWindows(ctx, camera) {
         // Draw the cockpit
@@ -1857,11 +1906,12 @@ export class Ship extends GameObject {
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
      * @param {Camera} camera - The camera object.
      * @param {number} scale - The current render scale.
+     * @returns {void}
      */
     drawDebug(ctx, camera, scale) {
         if (!this.debug || !camera.debug) return;
 
-        this.trail.drawDebug(ctx, camera, this.position);
+        this.trail.drawDebug(ctx, camera);
         ctx.lineWidth = 2.0;
 
         // Convert world positions to screen coordinates

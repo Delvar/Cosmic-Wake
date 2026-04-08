@@ -51,6 +51,7 @@ export class ProjectileManager {
      * @param {Vector2D} velocity - Initial velocity.
      * @param {number} typeIndex - Projectile type index.
      * @param {Ship|null} owner - The ship that fired the projectile, or null.
+     * @returns {void}
      */
     spawn(position, velocity, typeIndex, owner) {
         const type = ProjectileManager.projectileTypes[typeIndex];
@@ -71,6 +72,7 @@ export class ProjectileManager {
     /**
      * Updates all active projectiles, moving them, checking collisions, and removing expired or hit ones.
      * @param {number} deltaTime - Time step in seconds.
+     * @returns {void}
      */
     update(deltaTime) {
         this.currentTime += deltaTime;
@@ -87,7 +89,7 @@ export class ProjectileManager {
             // Check collisions with flying ships
             const type = ProjectileManager.projectileTypes[p.typeIndex];
             for (const ship of this.starSystem.ships) {
-                if (ship === p.owner || !(ship.state === 'Flying' || ship.state === 'Disabled' || ship.state === 'Exploding') || ship.despawned) continue;
+                if (!p.owner || ship === p.owner || !(ship.state === 'Flying' || ship.state === 'Disabled' || ship.state === 'Exploding') || ship.despawned) continue;
                 const relationship = p.owner.getRelationship(ship);
                 //skip Allied or Neutral ships that are not targeted
                 if (relationship !== FactionRelationship.Hostile && ship !== p.owner.target) continue;
@@ -142,6 +144,7 @@ export class ProjectileManager {
      * fading from solid at position to transparent at the back.
      * @param {CanvasRenderingContext2D} ctx - Canvas context.
      * @param {Camera} camera - Camera for world-to-screen transform.
+     * @returns {void}
      */
     draw(ctx, camera) {
         ctx.save();
@@ -188,6 +191,7 @@ export class ProjectileManager {
 
     /**
      * Clears all projectiles.
+     * @returns {void}
      */
     clear() {
         this.projectiles.length = 0.0;

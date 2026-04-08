@@ -11,9 +11,9 @@ export class Job {
     /**
      * Creates a new Job instance.
      * @param {Ship} ship - The ship to control.
-     * @param {AiPilot|null} [pilot=null] - The pilot controlling the ship (optional).
+     * @param {AiPilot} pilot - The pilot controlling the ship.
      */
-    constructor(ship, pilot = null) {
+    constructor(ship, pilot) {
         /** @type {Ship} The ship controlled by this job. */
         this.ship = ship;
         /** @type {AiPilot} The AiPilot using this job. */
@@ -30,20 +30,22 @@ export class Job {
 
     /**
      * Logs a message to the console if debug mode is enabled.
-     * @param {...any} messages - Values to log (same as console.log).
+     * If a callback is passed, it is executed only when debug is true, so the console frame
+     * is attributed to the caller location.
+     * @param {Function} callback - Callback function
+     * @returns {void}
      */
-    debugLog(...messages) {
-        if (!this.ship.debug) return;
-        const err = new Error();
-        // stack[0] = Error constructor, stack[1] = debugLog, stack[2] = original caller
-        const caller = err.stack.split('\n')[2]?.trim() || '(unknown call site)';
-        console.log(`[${caller}]`, ...messages);
+    debugLog(callback) {
+        if (this.ship) {
+            this.ship.debugLog(callback);
+        }
     }
 
     /**
      * Updates the job's behavior. Must be overridden by subclasses.
      * @param {number} deltaTime - Time elapsed since last update (seconds).
      * @param {GameManager} gameManager - The game manager instance for context.
+     * @returns {void}
      * @throws {Error} If not implemented by subclass.
      */
 
@@ -53,6 +55,7 @@ export class Job {
 
     /**
      * Pauses the job, saving the current state.
+     * @returns {void}
      */
     pause() {
         if (this.state !== 'Paused') {
@@ -63,10 +66,15 @@ export class Job {
 
     /**
      * Resumes the job, restoring the previously saved state.
+     * @returns {void}
      */
     resume() {
         if (this.state === 'Paused') {
-            this.state = this.pausedState;
+            if (this.pausedState) {
+                this.state = this.pausedState;
+            } else {
+                this.state = 'Starting';
+            }
         }
     }
 

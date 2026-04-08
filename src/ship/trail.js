@@ -30,6 +30,7 @@ class TrailPointPool {
     /**
      * Resets the trail by clearing all points.
      * Useful for events like ship jumps to restart the trail.
+     * @returns {void}
      */
     clear() {
         this.head = 0.0;
@@ -43,6 +44,7 @@ class TrailPointPool {
      * @param {Vector2D} backwards - The backward direction vector (backX, backY).
      * @param {Vector2D} right - The right direction vector (rightX, rightY).
      * @param {number} age - Initial age of the point in seconds.
+     * @returns {void}
      */
     addPoint(position, backwards, right, age) {
         if (this.count >= this.maxPoints) {
@@ -191,6 +193,7 @@ export class Trail {
 
     /**
      * Resets the bounding box when the trail is cleared.
+     * @returns {void}
      */
     clear() {
         this.points.clear();
@@ -202,6 +205,7 @@ export class Trail {
      * Updates the bounding box to include a new point.
      * @param {number} x - The x-coordinate of the point.
      * @param {number} y - The y-coordinate of the point.
+     * @returns {void}
      */
     updateBounds(x, y) {
         this.boundsMin.x = Math.min(this.boundsMin.x, x);
@@ -216,6 +220,7 @@ export class Trail {
      * @param {Vector2D} currentPosition - The current position of the parent.
      * @param {number} currentAngle - The current angle of the parent in radians.
      * @param {boolean} debug - Whether to enable debug rendering.
+     * @returns {void}
      */
     update(deltaTime, currentPosition, currentAngle, debug) {
         this.debug = debug;
@@ -331,6 +336,7 @@ export class Trail {
      * @param {CanvasRenderingContext2D} ctx - The 2D canvas rendering context.
      * @param {Camera} camera - Camera object with worldToScreen and worldToSize methods.
      * @param {Number} shipScale - The current scale of the ship.
+     * @returns {void}
      */
     draw(ctx, camera, shipScale) {
         if (this.points.count < 2.0) return;
@@ -411,8 +417,12 @@ export class Trail {
         ctx.fill();
         ctx.restore();
     }
-
-    drawDebug(ctx, camera, shipPosition) {
+    /**
+     * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
+     * @param {Camera} camera - The camera object.
+     * @returns {void}
+     */
+    drawDebug(ctx, camera) {
         // Optional debug rendering
         if (this.debug) {
             ctx.fillStyle = 'red';

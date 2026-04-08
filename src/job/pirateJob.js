@@ -43,6 +43,7 @@ export class PirateJob extends Job {
      * Updates the job's behavior by delegating to the current state handler.
      * @param {number} deltaTime - Time elapsed since last update (seconds).
      * @param {GameManager} gameManager - The game manager instance for context.
+     * @returns {void}
      */
     update(deltaTime, gameManager) {
         if (this.ship.isCargoFull()) {
@@ -60,9 +61,13 @@ export class PirateJob extends Job {
      * Handles the 'Starting' state, initiating takeoff if landed.
      * @param {number} deltaTime - Time elapsed since last update (seconds).
      * @param {GameManager} gameManager - The game manager instance for context.
+     * @returns {void}
      */
     updateStarting(deltaTime, gameManager) {
         if (this.ship.state === 'Landed') {
+            if (!this.ship.dockingContext) {
+                throw new TypeError('dockingContext is missing on Landed ship');
+            }
             this.debugLog(() => console.log(`${this.constructor.name}: Initial start, initiating takeoff`));
             this.ship.dockingContext.takeOff();
         } else if (this.ship.state === 'Flying') {
@@ -75,6 +80,7 @@ export class PirateJob extends Job {
      * Handles the 'Hunting' state, scanning for targets to attack.
      * @param {number} deltaTime - Time elapsed since last update (seconds).
      * @param {GameManager} gameManager - The game manager instance for context.
+     * @returns {void}
      */
     updateHunting(deltaTime, gameManager) {
         if (this.ship.state !== 'Flying') {

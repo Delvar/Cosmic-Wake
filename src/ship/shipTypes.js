@@ -90,6 +90,8 @@ export class Flivver extends Ship {
 
     /**
      * Draws the ship's hull, wings, and detail lines
+     * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
+     * @param {Camera} camera - The camera object.
      */
     drawShip(ctx, camera) {
         // Draw the hull
@@ -265,6 +267,8 @@ export class Shuttle extends Ship {
 
     /**
      * Draws the ship's hull, wings, and detail lines
+     * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
+     * @param {Camera} camera - The camera object.
      */
     drawShip(ctx, camera) {
         // Draw the hull
@@ -420,6 +424,8 @@ export class HeavyShuttle extends Ship {
 
     /**
      * Draws the ship's hull, wings, and detail lines
+     * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
+     * @param {Camera} camera - The camera object.
      */
     drawShip(ctx, camera) {
         // Draw the hull
@@ -578,6 +584,8 @@ export class StarBarge extends Ship {
 
     /**
      * Draws the ship's hull, wings, and detail lines
+     * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
+     * @param {Camera} camera - The camera object.
      */
     drawShip(ctx, camera) {
         // Draw the hull
@@ -799,6 +807,8 @@ export class Freighter extends Ship {
 
     /**
      * Draws the ship's hull, wings, and detail lines
+     * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
+     * @param {Camera} camera - The camera object.
      */
     drawShip(ctx, camera) {
         // Draw the hull
@@ -1340,6 +1350,8 @@ export class Arrow extends Ship {
 
     /**
      * Draws the ship's hull, wings, and detail lines
+     * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
+     * @param {Camera} camera - The camera object.
      */
     drawShip(ctx, camera) {
         // Draw the hull
@@ -1505,6 +1517,8 @@ export class Boxwing extends Ship {
 
     /**
      * Draws the ship's hull, wings, and detail lines
+     * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
+     * @param {Camera} camera - The camera object.
      */
     drawShip(ctx, camera) {
         // Draw the hull
@@ -1676,6 +1690,8 @@ export class Interceptor extends Ship {
 
     /**
      * Draws the ship's hull, wings, and detail lines
+     * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
+     * @param {Camera} camera - The camera object.
      */
     drawShip(ctx, camera) {
         // Draw the hull
@@ -1839,6 +1855,8 @@ export class Fighter extends Ship {
 
     /**
      * Draws the ship's hull, wings, and detail lines
+     * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
+     * @param {Camera} camera - The camera object.
      */
     drawShip(ctx, camera) {
         // Draw the hull

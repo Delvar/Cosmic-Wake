@@ -50,6 +50,7 @@ export class GameObject {
      * Marks the object as despawned, removing it from active gameplay.
      */
     despawn() {
+        if (this.despawned) return;
         this.despawned = true;
         this.position.set(0.0, 0.0);
         this.debug = false;

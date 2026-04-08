@@ -1,9 +1,9 @@
 // /src/starSystem/cargoContainerManager.js
 
 import { Vector2D } from '/src/core/vector2d.js';
-import { CargoContainer } from './cargoContainer.js';
+import { CargoContainer } from '/src/starSystem/cargoContainer.js';
 import { TWO_PI, randomBetween, remapClamp, normalizeAngle, removeObjectFromArrayInPlace, drawLightGlow } from '/src/core/utils.js';
-import { StarSystem } from './starSystem.js';
+import { StarSystem } from '/src/starSystem/starSystem.js';
 import { Camera } from '/src/camera/camera.js';
 import { Colour } from '/src/core/colour.js';
 import { Ship } from '/src/ship/ship.js';
@@ -51,6 +51,7 @@ export class CargoContainerManager {
      * @param {Vector2D} velocity
      * @param {string} commodityType
      * @param {number} amount
+     * @returns {void}
      */
     spawn(position, velocity, commodityType, amount) {
         if (this.cargoContainers.length >= 1000.0) {
@@ -136,6 +137,7 @@ export class CargoContainerManager {
     /**
      * Removes a cargo container from the manager's list.
      * @param {CargoContainer} container - The container to remove.
+     * @returns {void}
      */
     removeCargoContainer(container) {
         removeObjectFromArrayInPlace(container, this.cargoContainers);
@@ -152,6 +154,7 @@ export class CargoContainerManager {
     /**
      * Updates positions, applies drag and rotation.
      * @param {number} deltaTime
+     * @returns {void}
      */
     update(deltaTime) {
         this.currentTime += deltaTime;
@@ -175,6 +178,7 @@ export class CargoContainerManager {
      * Renders visible cargo containers and beacon lights.
      * @param {CanvasRenderingContext2D} ctx
      * @param {Camera} camera
+     * @returns {void}
      */
     draw(ctx, camera) {
         ctx.save();
@@ -218,6 +222,7 @@ export class CargoContainerManager {
 
     /**
      * Clears all cargo.
+     * @returns {void}
      */
     clear() {
         this.cargoContainers.length = 0;

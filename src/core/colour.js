@@ -74,10 +74,10 @@ export class Colour {
 
     /**
      * Converts the color to an RGBA string format, with an alpha override.
-     * @param {number} overrideAlpha - An alpha value to override the instance’s alpha (clamped between 0.0 and  1.0).
+     * @param {number|null} [overrideAlpha=null] - An alpha value to override the instance’s alpha (clamped between 0.0 and  1.0).
      * @returns {string} The RGBA string in the format 'rgba(r, g, b, a)', where r, g, b are integers from 0.0 to  255.0, and a is from 0.0 to 1.0.
      */
-    toRGBA(overrideAlpha) {
+    toRGBA(overrideAlpha = null) {
         const alpha = overrideAlpha !== null ? Math.min(Math.max(overrideAlpha, 0.0), 1.0) : this.a;
         const r = Math.round(clamp(this.r, 0.0, 1.0) * 255.0);
         const g = Math.round(clamp(this.g, 0.0, 1.0) * 255.0);

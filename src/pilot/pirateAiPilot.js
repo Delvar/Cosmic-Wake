@@ -1,6 +1,6 @@
 // /src/pilot/pirateAiPilot.js
 
-import { AiPilot } from './aiPilot.js';
+import { AiPilot } from '/src/pilot/aiPilot.js';
 import { Ship, isValidAttackTarget } from '/src/ship/ship.js';
 import { FleeAutopilot } from '/src/autopilot/fleeAutopilot.js';
 import { AvoidAutopilot } from '/src/autopilot/avoidAutopilot.js';
@@ -8,7 +8,6 @@ import { AttackAutopilot } from '/src/autopilot/attackAutopilot.js';
 import { remapClamp } from '/src/core/utils.js';
 import { FactionRelationship } from '/src/core/faction.js';
 import { GameManager } from '/src/core/game.js';
-import { Job } from '/src/job/job.js';
 import { CargoCollectorAutopilot } from '/src/autopilot/cargoCollectorAutopilot.js';
 
 /**
@@ -34,6 +33,7 @@ export class PirateAiPilot extends AiPilot {
      * Updates the AI pilot's behavior, tracking safe time and delegating to state handlers.
      * @param {number} deltaTime - Time elapsed in seconds.
      * @param {GameManager} gameManager - The game manager instance for context.
+     * @returns {void}
      */
     update(deltaTime, gameManager) {
         // Check shields/hull for immediate flee
@@ -61,6 +61,7 @@ export class PirateAiPilot extends AiPilot {
      * Handles the 'Job' state, running the job and checking for threats to trigger reactions.
      * @param {number} deltaTime - Time elapsed in seconds.
      * @param {GameManager} gameManager - The game manager instance for context.
+     * @returns {void}
      */
     updateJob(deltaTime, gameManager) {
         // Check reactions
@@ -87,6 +88,7 @@ export class PirateAiPilot extends AiPilot {
      * Handles the 'Avoid' state, running AvoidAutopilot and checking for flee or job transitions.
      * @param {number} deltaTime - Time elapsed in seconds.
      * @param {GameManager} gameManager - The game manager instance for context.
+     * @returns {void}
      */
     updateAvoid(deltaTime, gameManager) {
         super.updateAvoid(deltaTime, gameManager);
@@ -106,6 +108,7 @@ export class PirateAiPilot extends AiPilot {
      * Handles the 'Flee' state, running FleeAutopilot and checking for job transition.
      * @param {number} deltaTime - Time elapsed in seconds.
      * @param {GameManager} gameManager - The game manager instance for context.
+     * @returns {void}
      */
     updateFlee(deltaTime, gameManager) {
         super.updateFlee(deltaTime, gameManager);
@@ -115,6 +118,7 @@ export class PirateAiPilot extends AiPilot {
      * Handles damage, updating state based on shields and hull.
      * @param {number} damage - Amount of damage received.
      * @param {Ship} source - The ship causing the damage.
+     * @returns {void}
      */
     onDamage(damage, source) {
         super.onDamage(damage, source);

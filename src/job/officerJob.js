@@ -52,6 +52,7 @@ export class OfficerJob extends Job {
      * Updates the job's behavior by delegating to the current state handler.
      * @param {number} deltaTime - Time elapsed since last update (seconds).
      * @param {GameManager} gameManager - The game manager instance for context.
+     * @returns {void}
      */
     update(deltaTime, gameManager) {
         const handler = this.stateHandlers[this.state];
@@ -66,6 +67,7 @@ export class OfficerJob extends Job {
      * Handles the 'Starting' state, initiating takeoff if landed.
      * @param {number} deltaTime - Time elapsed since last update (seconds).
      * @param {GameManager} gameManager - The game manager instance for context.
+     * @returns {void}
      */
     updateStarting(deltaTime, gameManager) {
         if (this.ship.state === 'Landed') {
@@ -84,6 +86,7 @@ export class OfficerJob extends Job {
      * Handles the 'Hunting' state, scanning for hostile or disabled targets.
      * @param {number} deltaTime - Time elapsed since last update (seconds).
      * @param {GameManager} gameManager - The game manager instance for context.
+     * @returns {void}
      */
     updateHunting(deltaTime, gameManager) {
         if (this.ship.state !== 'Flying') return;
@@ -103,17 +106,19 @@ export class OfficerJob extends Job {
             this.nextTargetScan = this.ship.age + this.targetScanInterval;
 
             // Prioritize hostiles
-            let target = this.ship.hostiles.find(s => this.ship.getRelationship(s) === FactionRelationship.Hostile && isValidAttackTarget(this.ship, s, this.attackDisabledShips));
+            const hostile = this.ship.starSystem.getRandomShip(this.ship, null, OfficerJob.isValidHostileTarget);
+            /** @type {Ship|null} */
+            let target = null;
 
             // Fallback to random hostile ship
-            if (!target) {
-                target = this.ship.starSystem.getRandomShip(this.ship, null, OfficerJob.isValidHostileTarget);
+            if (hostile) {
+                target = hostile;
             }
 
             if (target) {
                 this.ship.target = target;
                 this.pilot.changeState('Attack', new AttackAutopilot(this.ship, target, true));
-                this.debugLog(() => console.log(`${this.constructor.name}: Found hostile target ${target.name}, initiating Attack`));
+                this.debugLog(() => console.log(`${this.constructor.name}: Found hostile target ${target?.name}, initiating Attack`));
                 return;
             }
 
@@ -144,6 +149,7 @@ export class OfficerJob extends Job {
      * Handles the 'Boarding' state, managing boarding of disabled ships.
      * @param {number} deltaTime - Time elapsed since last update (seconds).
      * @param {GameManager} gameManager - The game manager instance for context.
+     * @returns {void}
      */
     updateBoarding(deltaTime, gameManager) {
         if (this.ship.state === 'Landed' && this.ship.dockingContext?.landedObject instanceof Ship) {
@@ -164,6 +170,7 @@ export class OfficerJob extends Job {
      * Handles the 'Boarded' state, transitioning to landing on a planet.
      * @param {number} deltaTime - Time elapsed since last update (seconds).
      * @param {GameManager} gameManager - The game manager instance for context.
+     * @returns {void}
      */
     updateBoarded(deltaTime, gameManager) {
         this.state = 'Hunting';
@@ -173,6 +180,7 @@ export class OfficerJob extends Job {
      * Handles the 'Landing' state, managing planet landing.
      * @param {number} deltaTime - Time elapsed since last update (seconds).
      * @param {GameManager} gameManager - The game manager instance for context.
+     * @returns {void}
      */
     updateLanding(deltaTime, gameManager) {
         if (this.ship.state === 'Landed' && this.ship.dockingContext?.landedObject instanceof Planet) {
@@ -193,6 +201,7 @@ export class OfficerJob extends Job {
      * Handles the 'Landed' state, transitioning to Waiting.
      * @param {number} deltaTime - Time elapsed since last update (seconds).
      * @param {GameManager} gameManager - The game manager instance for context.
+     * @returns {void}
      */
     updateLanded(deltaTime, gameManager) {
         if (this.ship.state === 'Landed') {
@@ -208,6 +217,7 @@ export class OfficerJob extends Job {
      * Handles the 'Waiting' state, scanning for targets while landed.
      * @param {number} deltaTime - Time elapsed since last update (seconds).
      * @param {GameManager} gameManager - The game manager instance for context.
+     * @returns {void}
      */
     updateWaiting(deltaTime, gameManager) {
         if (this.ship.state !== 'Landed') {
@@ -216,13 +226,17 @@ export class OfficerJob extends Job {
             return;
         }
 
+        if (!this.ship.dockingContext) {
+            throw new TypeError('dockingContext is missing on Landed ship');
+        }
+
         // Check for hostiles first
         let target = this.ship.starSystem.getRandomShip(this.ship, null, OfficerJob.isValidHostileTarget);
         if (target) {
             this.ship.target = target;
             this.pilot.changeState('Attack', new AttackAutopilot(this.ship, target, true));
             this.ship.dockingContext.takeOff();
-            this.debugLog(() => console.log(`${this.constructor.name}: Found hostile target ${target.name}, initiating takeoff and Attack`));
+            this.debugLog(() => console.log(`${this.constructor.name}: Found hostile target ${target?.name}, initiating takeoff and Attack`));
             return;
         }
 
@@ -242,11 +256,10 @@ export class OfficerJob extends Job {
      * @static
      * @param {Ship} source - The source ship.
      * @param {Ship} target - The target ship.
-     * @param {boolean} [includeDisabled=false] - Whether to include disabled ships as valid targets.
      * @returns {boolean} True if the target is valid, false otherwise.
      */
-    static isValidHostileTarget(source, target, includeDisabled = false) {
-        if (!isValidAttackTarget(source, target, includeDisabled)) return false;
+    static isValidHostileTarget(source, target) {
+        if (!isValidAttackTarget(source, target, false)) return false;
         if (source.getRelationship(target) === FactionRelationship.Hostile) return true;
         if (target instanceof Ship && target.hostiles.some(s => source.getRelationship(s) === FactionRelationship.Allied)) return true;
         return false;

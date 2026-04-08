@@ -8,6 +8,12 @@ import { Camera } from '/src/camera/camera.js';
 import { Colour } from '/src/core/colour.js';
 
 /**
+ * @typedef {Object} AsteroidCellData
+ * @property {Float32Array} data
+ * @property {number} time
+ */
+
+/**
  * A precomputed asteroid shape, stored as a Float32Array of [x1, y1, x2, y2, ...].
  */
 class AsteroidShape {
@@ -61,11 +67,12 @@ export class AsteroidBelt {
      * @param {number} outerRadius - Outer radius of the belt.
      * @param {number} backgroundDensity - Asteroids per 500x500 unit area.
      * @param {number} interactiveCount - Number of interactive asteroids.
-     * @param {number} [layerCount=10] - Number of orbital layers.
+     * @param {number} layerCount - Number of orbital layers.
+     * @param {StarSystem} starSystem - The Star system this belt is attached to
      */
-    constructor(innerRadius, outerRadius, backgroundDensity, interactiveCount, layerCount = 10.0) {
-        /** @type {StarSystem|null} The star system the asteroid belt belongs to. */
-        this.starSystem = null;
+    constructor(innerRadius, outerRadius, backgroundDensity, interactiveCount, layerCount, starSystem) {
+        /** @type {StarSystem} The star system the asteroid belt belongs to. */
+        this.starSystem = starSystem;
         /** @type {number} The inner radius of the asteroid belt. */
         this.innerRadius = innerRadius;
         /** @type {number} The outer radius of the asteroid belt. */
@@ -74,7 +81,7 @@ export class AsteroidBelt {
         this.backgroundDensity = backgroundDensity;
         /** @type {number} The number of interactive asteroids in the belt. */
         this.interactiveCount = interactiveCount;
-        /** @type {Array} Array of interactive asteroids in the belt. */
+        /** @type {Array<Asteroid>} Array of interactive asteroids in the belt. */
         this.interactiveAsteroids = [];
         /** @type {number} The number of orbital layers in the belt, clamped between 1 and 10. */
         this.layerCount = clamp(Math.floor(layerCount), 1.0, 10.0);
@@ -92,7 +99,7 @@ export class AsteroidBelt {
         this.cellAngleSize = TWO_PI / this.cellCount;
         /** @type {number} The number of asteroids per cell, based on density and cell area. */
         this.asteroidsPerCell = clamp(Math.ceil((backgroundDensity * (0.5 * this.cellAngleSize * (outerRadius * outerRadius - innerRadius * innerRadius))) / (250000 * this.layerCount)), 1.0, 50.0);
-        /** @type {Map} Cache storing asteroid data for cells to improve performance. */
+        /** @type {Map<number,AsteroidCellData>} Cache storing asteroid data for cells to improve performance. */
         this.cellCache = new Map();
         /** @type {number} Maximum number of cells to cache. */
         this.maxCacheSize = 100.0;
@@ -127,6 +134,10 @@ export class AsteroidBelt {
         if (new.target === AsteroidBelt) Object.seal(this);
     }
 
+    /**
+     * Initializes the asteroid belt by creating interactive asteroids.
+     * @returns {void}
+     */
     init() {
         if (!this.starSystem) {
             console.warn('No star system on asteroid belt init', this);
@@ -135,15 +146,22 @@ export class AsteroidBelt {
             this.interactiveAsteroids.push(new Asteroid(this));
         }
     }
-
+    /**
+     * Removes an Asteroid.
+     * @param {Asteroid} interactiveAsteroid - Asteroid to remove
+     * @returns {boolean} True if the asteroid was successfully removed, false otherwise.
+     */
     removeAsteroid(interactiveAsteroid) {
         if (!(interactiveAsteroid instanceof Asteroid)) return false;
         removeObjectFromArrayInPlace(interactiveAsteroid, this.interactiveAsteroids);
-        interactiveAsteroid.starSystem = null;
-        interactiveAsteroid.belt = null;
+        interactiveAsteroid.despawn();
         return true;
     }
-
+    /**
+     * Adds an Asteroid.
+     * @param {Asteroid} interactiveAsteroid - Asteroid to add
+     * @returns {boolean} True if the asteroid was successfully added, false otherwise.
+     */
     addAsteroid(interactiveAsteroid) {
         if (!(interactiveAsteroid instanceof Asteroid)) return false;
         removeObjectFromArrayInPlace(interactiveAsteroid, this.interactiveAsteroids);
@@ -153,6 +171,12 @@ export class AsteroidBelt {
         return true;
     }
 
+    /**
+     * Gets a random interactive asteroid from the belt.
+     * @param {GameObject|null} ship - The ship requesting the asteroid (for validation).
+     * @param {Asteroid|null} exclude - Asteroid to exclude from selection.
+     * @returns {Asteroid|null} A random asteroid or null if none available.
+     */
     getRandomAsteroid(ship = null, exclude = null) {
         const arr1 = this.interactiveAsteroids;
         const length1 = arr1 ? arr1.length : 0.0;
@@ -227,7 +251,8 @@ export class AsteroidBelt {
             try {
                 const seed = hash(layer, Math.round(cellAngle / this.cellAngleSize), 0.0);
                 const rng = new SimpleRNG(seed);
-                asteroidData = { data: new Float32Array(this.asteroidsPerCell * 5.0), time };
+                /** @type {AsteroidCellData} */
+                asteroidData = /** @type {AsteroidCellData} */ { data: new Float32Array(this.asteroidsPerCell * 5.0), time: 0.0 };
                 for (let i = 0.0; i < this.asteroidsPerCell; i++) {
                     const idx = i * 5.0;
                     asteroidData.data[idx] = remapRange01(rng.next(), this.innerRadius, this.outerRadius);
@@ -251,6 +276,7 @@ export class AsteroidBelt {
     /**
      * Prunes old cache entries.
      * @param {number} time - Current time in milliseconds.
+     * @returns {void}
      */
     pruneCache(time) {
         if (time - this._lastCachePrune < 10000.0) return;
@@ -263,6 +289,7 @@ export class AsteroidBelt {
     /**
      * Updates the visuals each frame.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @returns {void}
      */
     update(deltaTime) {
         this.elapsedTime += deltaTime;
@@ -275,6 +302,7 @@ export class AsteroidBelt {
      * Renders the asteroids to the canvas.
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
      * @param {Camera} camera - The camera object for world-to-screen conversion.
+     * @returns {void}
      */
     draw(ctx, camera) {
         // Quick bounds check
@@ -500,19 +528,20 @@ export class Asteroid extends GameObject {
 
     /**
      * Marks the object as despawned, removing it from active gameplay.
+     * @returns {void}
      */
     despawn() {
+        if (this.despawned) return;
         super.despawn();
         if (this.belt) {
             this.belt.removeAsteroid(this);
         }
-        this.shapeIndex = null;
-        this.shape = null;
     }
 
     /**
      * Updates the visuals each frame.
      * @param {number} deltaTime - Time elapsed since the last update in seconds.
+     * @returns {void}
      */
     update(deltaTime) {
         this.orbitAngle += this.orbitSpeed * deltaTime;

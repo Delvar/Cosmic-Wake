@@ -38,6 +38,7 @@ export class Projectile {
      * @param {number} typeIndex - Projectile type index.
      * @param {number} expirationTime - Time (in seconds) when projectile expires.
      * @param {Ship|null} owner - The ship that fired the projectile, or null.
+     * @returns {void}
      */
     reset(position, velocity, originalPosition, typeIndex, expirationTime, owner) {
         this.position.set(position);

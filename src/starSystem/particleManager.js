@@ -33,14 +33,6 @@ export class ParticleManager {
 
     /**
      * Static array of particle types.
-     * @type {Array<{
-     *   lineWidth?: number,
-     *   minLength?: number,
-     *   maxLength?: number,
-     *   minSpeed?: number,
-     *   maxSpeed?: number,
-     *   lifetime?: number,
-     * }>}
      */
     static particleTypes = [
         // Spark Line (Type  0.0)
@@ -64,6 +56,7 @@ export class ParticleManager {
      * @param {Vector2D} position - Explosion center.
      * @param {number} radius - Explosion radius (world units, e.g., 1–300).
      * @param {Vector2D} initialVelocity - The initial velocity.
+     * @returns {void}
      */
     spawnExplosion(position, radius, initialVelocity) {
         if (this.particles.length >= 1000.0) {
@@ -77,14 +70,17 @@ export class ParticleManager {
 
         // Spawn Spark Lines (Type  0.0)
         const sparkType = ParticleManager.particleTypes[0];
+        if (!sparkType) {
+            throw new TypeError('unable to find sparkYpe in particle types array');
+        }
         const sparkCount = radius <= 5 ? 0.0 : Math.floor(remapClamp(t, 0.0, 1.0, 3.0, 40.0)); // 5–20 sparks
         for (let i = 0.0; i < sparkCount; i++) {
             const particle = new Particle();
             const speed = remapClamp(t * t * randomBetween(0.75, 1.25), 0.0, 1.0, sparkType.minSpeed, sparkType.maxSpeed);
             const angle = randomBetween(0.0, TWO_PI);
             const velocity = this._scratchVelocity.setFromPolar(speed, angle).addInPlace(initialVelocity);
-            const length = randomBetween(sparkType.minLength, sparkType.maxLength);
-            particle.reset(position, velocity, 0.0, this.currentTime, sparkType.lifetime * (randomBetween(1.0, 2.0) + t * 2.0), length);
+            const length = randomBetween(sparkType.minLength || 0.0, sparkType.maxLength || 0.0);
+            particle.reset(position, velocity, 0.0, this.currentTime, (sparkType.lifetime || 0.0) * (randomBetween(1.0, 2.0) + t * 2.0), length);
             this.particles.push(particle);
         }
 
@@ -102,6 +98,7 @@ export class ParticleManager {
     /**
      * Updates all active particles, moving them and removing expired ones.
      * @param {number} deltaTime - Time step in seconds.
+     * @returns {void}
      */
     update(deltaTime) {
         this.currentTime += deltaTime;
@@ -120,6 +117,7 @@ export class ParticleManager {
      * Draws all active, visible particles (spark lines as fading lines, explosions as expanding circles).
      * @param {CanvasRenderingContext2D} ctx - Canvas context.
      * @param {Camera} camera - Camera for world-to-screen transform.
+     * @returns {void}
      */
     draw(ctx, camera) {
         ctx.save();
@@ -155,7 +153,7 @@ export class ParticleManager {
                 gradient.addColorStop(0.0, `rgba(${r}, ${g}, ${b}, ${opacity})`);
                 gradient.addColorStop(1, `rgba(${r}, ${g}, ${b},  0.0)`);
                 ctx.strokeStyle = gradient;
-                ctx.lineWidth = camera.worldToSize(type.lineWidth);
+                ctx.lineWidth = camera.worldToSize(type.lineWidth || 0.0);
 
                 ctx.beginPath();
                 ctx.moveTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
@@ -202,6 +200,7 @@ export class ParticleManager {
 
     /**
      * Clears all particles.
+     * @returns {void}
      */
     clear() {
         this.particles.length = 0.0;

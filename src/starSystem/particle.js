@@ -35,8 +35,9 @@ export class Particle {
      * @param {Vector2D} velocity - Initial velocity or expansion speed.
      * @param {number} typeIndex - Particle type index.
      * @param {number} startTime - Time (in seconds) when particle started.
-     * @param {number} startTime - Time (in seconds) how long the particle will live.
+     * @param {number} lifetime - Time (in seconds) how long the particle will live.
      * @param {number} length - Length for spark lines or initial radius for explosions.
+     * @returns {void}
      */
     reset(position, velocity, typeIndex, startTime, lifetime, length) {
         this.position.set(position);

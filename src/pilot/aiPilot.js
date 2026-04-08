@@ -71,6 +71,7 @@ export class AiPilot extends Pilot {
     /**
      * Sets the job for this pilot.
      * @param {Job} job - The new job to set.
+     * @returns {void}
      */
     setJob(job) {
         job.pilot = this;
@@ -85,6 +86,7 @@ export class AiPilot extends Pilot {
      * If a callback is passed, it is executed only when debug is true, so the console frame
      * is attributed to the caller location.
      * @param {Function} callback - Callback function
+     * @returns {void}
      */
     debugLog(callback) {
         this.ship.debugLog(callback);
@@ -94,6 +96,7 @@ export class AiPilot extends Pilot {
      * Updates the AI pilot's behavior based on the current state.
      * @param {number} deltaTime - Time elapsed since last update (seconds).
      * @param {GameManager} gameManager - The game manager instance for context.
+     * @returns {void}
      */
     update(deltaTime, gameManager) {
         // Skip if ship is in animation or non-functional states
@@ -120,6 +123,7 @@ export class AiPilot extends Pilot {
      * Handles the 'Disabled' state, we do nothing!
      * @param {number} deltaTime - Time elapsed since last update (seconds).
      * @param {GameManager} gameManager - The game manager instance for context.
+     * @returns {void}
      */
     updateDisabled(deltaTime, gameManager) {
         //this._throwNoJobError();
@@ -131,12 +135,10 @@ export class AiPilot extends Pilot {
      * Handles the 'Job' state, running the job and checking reactions.
      * @param {number} deltaTime - Time elapsed since last update (seconds).
      * @param {GameManager} gameManager - The game manager instance for context.
+     * @returns {void}
      */
     updateJob(deltaTime, gameManager) {
-        // TODO: FIXME: bug found where job becomes null.
         if (!this.job) {
-            //console.warn('No job in updateJob', this);
-            //return;
             throw new TypeError(`${this.constructor.name}: In job state but no job set`);
         }
 
@@ -159,10 +161,10 @@ export class AiPilot extends Pilot {
         // If autopilot is complete null it, this ensures Job gets to see the complete autopilot first
         if (this.autopilot) {
             if (this.autopilot.error) {
-                this.debugLog(() => console.log(`${this.constructor.name}: autopilot ${this.autopilot.constructor.name} has an error: ${this.autopilot.error}`));
+                this.debugLog(() => console.log(`${this.constructor.name}: autopilot ${this.autopilot?.constructor.name} has an error: ${this.autopilot?.error}`));
             }
             if (this.autopilot.isComplete()) {
-                this.debugLog(() => console.log(`${this.constructor.name}: ${this.autopilot.constructor.name} is complete, setting to null`));
+                this.debugLog(() => console.log(`${this.constructor.name}: ${this.autopilot?.constructor.name} is complete, setting to null`));
                 this.setAutopilot(null);
             }
         }
@@ -172,6 +174,7 @@ export class AiPilot extends Pilot {
      * Handles the 'Avoid' state, managing avoidance behavior and reactions.
      * @param {number} deltaTime - Time elapsed since last update (seconds).
      * @param {GameManager} gameManager - The game manager instance for context.
+     * @returns {void}
      */
     updateAvoid(deltaTime, gameManager) {
         // Select a target from hostiles
@@ -202,6 +205,7 @@ export class AiPilot extends Pilot {
      * Handles the 'Flee' state, managing flee behavior and reactions.
      * @param {number} deltaTime - Time elapsed since last update (seconds).
      * @param {GameManager} gameManager - The game manager instance for context.
+     * @returns {void}
      */
     updateFlee(deltaTime, gameManager) {
         // Select a target from hostiles
@@ -232,6 +236,7 @@ export class AiPilot extends Pilot {
      * Handles the 'Attack' state, managing attack behavior.
      * @param {number} deltaTime - Time elapsed in seconds.
      * @param {GameManager} gameManager - The game manager instance for context.
+     * @returns {void}
      */
     updateAttack(deltaTime, gameManager) {
         if (this.ship.state !== 'Flying') {
@@ -240,12 +245,12 @@ export class AiPilot extends Pilot {
             return;
         }
 
-        if (this.autopilot && this.autopilot.active && this.autopilot instanceof AttackAutopilot && !this.autopilot.error) {
+        if (this.autopilot && this.autopilot.active && this.autopilot instanceof AttackAutopilot && !this.autopilot?.error) {
             this.autopilot.update(deltaTime, gameManager);
         } else {
             // Log error if present
             if (this.autopilot && this.autopilot.error) {
-                this.debugLog(() => console.log(`${this.constructor.name}: AttackAutopilot error: ${this.autopilot.error}`));
+                this.debugLog(() => console.log(`${this.constructor.name}: AttackAutopilot error: ${this.autopilot?.error}`));
             }
 
             // Select a target from hostiles
@@ -267,6 +272,7 @@ export class AiPilot extends Pilot {
      * Handles the 'Collecting' state, collecting cargo using CargoCollectorAutopilot.
      * @param {number} deltaTime - Time elapsed in seconds.
      * @param {GameManager} gameManager - The game manager instance for context.
+     * @returns {void}
      */
     updateCollecting(deltaTime, gameManager) {
         // Use CargoCollectorAutopilot
@@ -275,7 +281,7 @@ export class AiPilot extends Pilot {
         }
 
         // Did the autopilot complete? Either no cargo room left or no cargo containers available.
-        if (this.autopilot.isComplete()) {
+        if (this.autopilot && this.autopilot.isComplete()) {
             this.debugLog(() => console.log(`${this.constructor.name}: Collecting complete, back to Job`));
             this.ship.target = null;
             this.changeState('Job');
@@ -297,6 +303,7 @@ export class AiPilot extends Pilot {
      * Handles the 'Despawning' state, landing on the closest planet and despawning.
      * @param {number} deltaTime - Time elapsed in seconds.
      * @param {GameManager} gameManager - The game manager instance for context.
+     * @returns {void}
      */
     updateDespawning(deltaTime, gameManager) {
         if (!(this.autopilot instanceof LandOnPlanetDespawnAutopilot)) {
@@ -309,7 +316,7 @@ export class AiPilot extends Pilot {
             }
         }
         if (this.autopilot?.error) {
-            this.debugLog(() => console.log(`${this.constructor.name}: Despawn failed: ${this.autopilot.error}`));
+            this.debugLog(() => console.log(`${this.constructor.name}: Despawn failed: ${this.autopilot?.error}`));
             this.ship.despawn();
             this.setAutopilot(null);
         }
@@ -317,9 +324,10 @@ export class AiPilot extends Pilot {
 
     /**
      * Sets a new autopilot, stopping and cleaning up the current one.
-     * @param {Autopilot|null} newAutopilot - The new autopilot to set, or null to clear.
+     * @param {Autopilot<any>|null} [newAutopilot=null] - The new autopilot to set, or null to clear.
+     * @returns {void}
      */
-    setAutopilot(newAutopilot) {
+    setAutopilot(newAutopilot = null) {
         this.debugLog(() => console.log(`${this.constructor.name}: setAutopilot ${this.ship.name}: ${this.autopilot?.constructor?.name} >> ${newAutopilot?.constructor?.name}`));
         if (this.autopilot) {
             this.autopilot.stop();
@@ -352,6 +360,7 @@ export class AiPilot extends Pilot {
      * Notified when the ship takes damage.
      * @param {number} damage - Amount of damage received.
      * @param {Ship} source - Ship causing damage.
+     * @returns {void}
      */
     onDamage(damage, source) {
 
@@ -360,19 +369,19 @@ export class AiPilot extends Pilot {
     /**
      * Changes state and autopilot, handling cleanup.
      * @param {string} newState - The new state ('Job', 'Flee', 'Avoid', 'Attack').
-     * @param {Autopilot} [newAutopilot=null] - The new autopilot, if any.
+     * @param {Autopilot<any>|null} [newAutopilot=null] - The new autopilot, if any.
+     * @returns {void}
      */
     changeState(newState, newAutopilot = null) {
         if (this.state === newState) return;
         // Pause job only when leaving Job state
-        if (this.state === 'Job') {
+        if (this.state === 'Job' && this.job) {
             this.job.pause();
         }
-
         if (!this.job) {
             console.error('!this.job', this);
+            throw new TypeError('this.job missing on Pilot');
         }
-
         // Resume the job when entering Job state
         if (newState === 'Job') {
             this.job.resume();
@@ -404,9 +413,9 @@ export class AiPilot extends Pilot {
     getStatus() {
         if (this.state === 'Job') {
             if (this.autopilot?.active) {
-                return `${this.getActionName()}: ${this.job.getStatus()}: ${this.autopilot.getStatus()}`;
+                return `${this.getActionName()}: ${this.job?.getStatus()}: ${this.autopilot.getStatus()}`;
             } else {
-                return `${this.getActionName()}: ${this.job.getStatus()}`;
+                return `${this.getActionName()}: ${this.job?.getStatus()}`;
             }
         } else if (this.autopilot?.active) {
             return `${this.getActionName()}: ${this.autopilot.getStatus()}`;

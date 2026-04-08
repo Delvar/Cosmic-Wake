@@ -63,6 +63,7 @@ export class Shield {
      * Updates the shield's state, handling recharge, restart, and effect timings.
      * @param {number} deltaTime - Time step in seconds.
      * @param {number} currentTime - Current game time in seconds.
+     * @returns {void}
      */
     update(deltaTime, currentTime) {
         // Update effect timers
@@ -134,6 +135,7 @@ export class Shield {
      * @param {Camera} camera - Camera for world-to-screen transform.
      * @param {Vector2D} shipPosition - Ship's current world-space position.
      * @param {number} shipRadius - Ship's radius in world units.
+     * @returns {void}
      */
     draw(ctx, camera, shipPosition, shipRadius) {
         // Validate inputs

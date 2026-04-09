@@ -4,6 +4,15 @@ import { GameManager } from '/src/core/game.js';
 import { DockingContext } from '/src/ship/dockingContext.js';
 
 /**
+ * Enum-like object for button states to ensure type safety and avoid string literals.
+ */
+const ButtonState = Object.freeze({
+    HIDDEN: 'hidden',
+    ACTIVE: 'active',
+    DISABLED: 'disabled'
+});
+
+/**
  * DockingUiController manages the UI state and interactions for the docking screen.
  * It handles button visibility, labels, and click handlers based on the current DockingContext.
  * This separates UI logic from the GameManager and DockingContext, allowing AI to use DockingContext directly.
@@ -47,15 +56,15 @@ export class DockingUiController {
         /** @type {DockingContext|null} The current docking context. */
         this.dockingContext = null;
 
-        /** @type {{landedObjectName: string|null, takeOffVisible: boolean|null, repairVisible: boolean|null, miningStartVisible: boolean|null, miningStopVisible: boolean|null, captureVisible: boolean|null, undockVisible: boolean|null}} The last displayed values to avoid unnecessary DOM updates. */
+        /** @type {{landedObjectName: string|null, takeOffButtonState: string|null, undockButtonState: string|null, repairButtonState: string|null, miningStartButtonState: string|null, miningStopButtonState: string|null, captureButtonState: string|null}} The last displayed values to avoid unnecessary DOM updates. */
         this._lastDisplayed = {
             landedObjectName: null,
-            takeOffVisible: null,
-            undockVisible: null,
-            repairVisible: null,
-            miningStartVisible: null,
-            miningStopVisible: null,
-            captureVisible: null
+            takeOffButtonState: ButtonState.HIDDEN,
+            undockButtonState: ButtonState.HIDDEN,
+            repairButtonState: ButtonState.HIDDEN,
+            miningStartButtonState: ButtonState.HIDDEN,
+            miningStopButtonState: ButtonState.HIDDEN,
+            captureButtonState: ButtonState.HIDDEN
         };
 
         // Bind event handlers
@@ -77,27 +86,32 @@ export class DockingUiController {
     setDockingContext(dockingContext) {
         this.dockingContext = dockingContext;
         this._lastDisplayed.landedObjectName = null;
-        this._lastDisplayed.takeOffVisible = null;
-        this._lastDisplayed.repairVisible = null;
-        this._lastDisplayed.miningStartVisible = null;
-        this._lastDisplayed.miningStopVisible = null;
-        this._lastDisplayed.captureVisible = null;
-        this._lastDisplayed.undockVisible = null;
+        this._lastDisplayed.takeOffButtonState = null;
+        this._lastDisplayed.repairButtonState = null;
+        this._lastDisplayed.miningStartButtonState = null;
+        this._lastDisplayed.miningStopButtonState = null;
+        this._lastDisplayed.captureButtonState = null;
+        this._lastDisplayed.undockButtonState = null;
         this.update();
     }
 
     /**
-     * Hides or shows a UI element by adding/removing the hidden class.
-     * @param {HTMLElement} element - The element to hide/show.
-     * @param {boolean} hidden - True to hide, false to show.
+     * Sets the state of a button element (hidden, active, or disabled) by managing CSS classes.
+     * @param {HTMLElement} element - The button element to update.
+     * @param {string} state - The desired state: ButtonState.HIDDEN, ButtonState.ACTIVE, or ButtonState.DISABLED.
      * @returns {void}
      */
-    _setHidden(element, hidden) {
+    _setButtonState(element, state) {
         if (!element) return;
-        if (hidden) {
+        if (state === ButtonState.HIDDEN) {
             element.classList.add('hidden');
-        } else {
+            element.classList.remove('disabled');
+        } else if (state === ButtonState.ACTIVE) {
             element.classList.remove('hidden');
+            element.classList.remove('disabled');
+        } else if (state === ButtonState.DISABLED) {
+            element.classList.remove('hidden');
+            element.classList.add('disabled');
         }
     }
 
@@ -120,49 +134,55 @@ export class DockingUiController {
         }
 
         // Boarding disabled ship - show capture and undock buttons
-        const captureVisible = this.dockingContext.hasCaptureAction;
-        if (captureVisible !== this._lastDisplayed.captureVisible) {
-            this._setHidden(this.captureButton, !captureVisible);
-            this._lastDisplayed.captureVisible = captureVisible;
+        const captureButtonState = this.dockingContext.hasCaptureAction ? ButtonState.ACTIVE : ButtonState.HIDDEN;
+        if (captureButtonState !== this._lastDisplayed.captureButtonState) {
+            this._setButtonState(this.captureButton, captureButtonState);
+            this._lastDisplayed.captureButtonState = captureButtonState;
         }
 
-        const undockVisible = this.dockingContext.hasUndockAction;
-        if (undockVisible !== this._lastDisplayed.undockVisible) {
-            this._setHidden(this.undockButton, !undockVisible);
-            this._lastDisplayed.undockVisible = undockVisible;
+        const undockButtonState = this.dockingContext.hasUndockAction ? ButtonState.ACTIVE : ButtonState.HIDDEN;
+        if (undockButtonState !== this._lastDisplayed.undockButtonState) {
+            this._setButtonState(this.undockButton, undockButtonState);
+            this._lastDisplayed.undockButtonState = undockButtonState;
         }
 
         // Normal planet/asteroid docking - show normal buttons
-        const takeOffVisible = this.dockingContext.hasTakeOffAction;
-        if (takeOffVisible !== this._lastDisplayed.takeOffVisible) {
-            this._setHidden(this.takeoffButton, !takeOffVisible);
-            this._lastDisplayed.takeOffVisible = takeOffVisible;
+        const takeOffButtonState = this.dockingContext.hasTakeOffAction ? ButtonState.ACTIVE : ButtonState.HIDDEN;
+        if (takeOffButtonState !== this._lastDisplayed.takeOffButtonState) {
+            this._setButtonState(this.takeoffButton, takeOffButtonState);
+            this._lastDisplayed.takeOffButtonState = takeOffButtonState;
         }
 
-        const repairVisible = this.dockingContext.hasRepairAction;
-        if (repairVisible !== this._lastDisplayed.repairVisible) {
-            this._setHidden(this.repairButton, !repairVisible);
-            this._lastDisplayed.repairVisible = repairVisible;
+        const isHullFull = this.dockingContext.ship.hullIntegrity >= this.dockingContext.ship.maxHull;
+        const repairButtonState = !this.dockingContext.hasRepairAction ? ButtonState.HIDDEN : isHullFull ? ButtonState.DISABLED : ButtonState.ACTIVE;
+        if (repairButtonState !== this._lastDisplayed.repairButtonState) {
+            this._setButtonState(this.repairButton, repairButtonState);
+            this._lastDisplayed.repairButtonState = repairButtonState;
         }
 
         if (!this.dockingContext.hasMiningAction) {
-            if (this._lastDisplayed.miningStartVisible !== false) {
-                this._setHidden(this.startMiningButton, true);
-                this._lastDisplayed.miningStartVisible = false;
+            const miningStartButtonState = ButtonState.HIDDEN;
+            if (this._lastDisplayed.miningStartButtonState !== miningStartButtonState) {
+                this._setButtonState(this.startMiningButton, miningStartButtonState);
+                this._lastDisplayed.miningStartButtonState = miningStartButtonState;
             }
-            if (this._lastDisplayed.miningStopVisible !== false) {
-                this._setHidden(this.stopMiningButton, true);
-                this._lastDisplayed.miningStopVisible = false;
+            const miningStopButtonState = ButtonState.HIDDEN;
+            if (this._lastDisplayed.miningStopButtonState !== miningStopButtonState) {
+                this._setButtonState(this.stopMiningButton, miningStopButtonState);
+                this._lastDisplayed.miningStopButtonState = miningStopButtonState;
             }
         } else {
+            const isCargoFull = this.dockingContext.ship.isCargoFull();
             const miningEnabled = this.dockingContext.ship.miningEnabled;
-            if (this._lastDisplayed.miningStartVisible !== !miningEnabled) {
-                this._setHidden(this.startMiningButton, miningEnabled);
-                this._lastDisplayed.miningStartVisible = !miningEnabled;
+            const miningStartButtonState = miningEnabled ? ButtonState.HIDDEN : isCargoFull ? ButtonState.DISABLED : ButtonState.ACTIVE;
+            if (this._lastDisplayed.miningStartButtonState !== miningStartButtonState) {
+                this._setButtonState(this.startMiningButton, miningStartButtonState);
+                this._lastDisplayed.miningStartButtonState = miningStartButtonState;
             }
-            if (this._lastDisplayed.miningStopVisible !== miningEnabled) {
-                this._setHidden(this.stopMiningButton, !miningEnabled);
-                this._lastDisplayed.miningStopVisible = miningEnabled;
+            const miningStopButtonState = !miningEnabled ? ButtonState.HIDDEN : ButtonState.ACTIVE;
+            if (this._lastDisplayed.miningStopButtonState !== miningStopButtonState) {
+                this._setButtonState(this.stopMiningButton, miningStopButtonState);
+                this._lastDisplayed.miningStopButtonState = miningStopButtonState;
             }
         }
     }

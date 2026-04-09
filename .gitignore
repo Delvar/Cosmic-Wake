@@ -1,6 +1,95 @@
-Old Versions/
+# Logs
+*.log
+*_log
+error_log
+
+# OS generated files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Archives / dumps
+*.sql
+*.sql.gz
+*.zip
+*.tar
+*.gz
+
+# Certificates / keys
+*.pem
+*.key
+*.crt
+
+# Node
 node_modules/
-settings.json
-eslint.config.mjs
-package-lock.json
-package.json
+
+# Java / JVM
+*.class
+*.jar
+*.war
+target/
+
+# Python
+*.py[cod]
+
+# Test reports
+TEST*.xml
+
+# Applications / binaries
+*.app
+*.exe
+
+# Large media files
+*.mp4
+*.tiff
+*.avi
+*.flv
+*.mov
+*.wmv
+
+# Backup / temporary / accidental copies
+*.bak
+*.backup
+*.old
+*.orig
+*.save
+*.tmp
+*.temp
+copy of *
+*.copy
+*.disabled
+*.off
+*.rollback
+*.undo
+*.new
+
+# Common editor / merge leftovers
+*.rej
+*.diff
+*.patch
+
+# Temporary office / lock files
+~$*
+*.lock~
+
+# Partial uploads / temp web-server files
+*.part
+*.partial
+
+# Merge conflict leftovers if copied manually
+*.BASE.*
+*.LOCAL.*
+*.REMOTE.*
+*.BACKUP.*

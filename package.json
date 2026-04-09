@@ -1,0 +1,19 @@
+{
+  "name": "cosmic-wake",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.html",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.21.0",
+    "eslint": "^9.21.0",
+    "eslint-plugin-jsdoc": "^50.7.1",
+    "globals": "^16.0.0"
+  },
+  "dependencies": {
+    "@stylistic/eslint-plugin-js": "^4.2.0"
+  }
+}

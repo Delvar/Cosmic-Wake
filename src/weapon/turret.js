@@ -57,6 +57,7 @@ export class Turret {
      * Updates turret direction to aim at target or ship forward.
      * @param {number} deltaTime - Time step in seconds.
      * @param {Ship} ship - Parent ship.
+     * @returns {void}
      */
     update(deltaTime, ship) {
         this.weapon.update(deltaTime);
@@ -119,6 +120,7 @@ export class Turret {
     /**
      * Selects a target for the turret.
      * @param {Ship} ship - Parent ship.
+     * @returns {void}
      */
     selectTarget(ship) {
         if (ship.turretMode === 'Target-only' && ship.target instanceof Ship && PlayerPilot.isValidHostileTarget(ship, ship.target)) {
@@ -183,6 +185,7 @@ export class Turret {
      * @param {Vector2D} outLateralOffset - Output vector for lateral offset.
      * @param {Vector2D} outLeadDirection - Output vector for normalized lead direction.
      * @param {Vector2D} outVelocityError - Output vector for velocity error.
+     * @returns {void}
      */
     computeLeadPosition(
         ship,
@@ -213,6 +216,7 @@ export class Turret {
      * Fires the turret's weapon.
      * @param {Ship} ship - Parent ship.
      * @param {ProjectileManager} projectileManager - Manager for spawning projectiles.
+     * @returns {void}
      */
     fire(ship, projectileManager) {
         const cosAngle = Math.cos(ship.angle + this.direction);

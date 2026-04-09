@@ -72,6 +72,7 @@ export class DockingUiController {
     /**
      * Sets the docking context for this controller.
      * @param {DockingContext|null} dockingContext - The docking context to set.
+     * @returns {void}
      */
     setDockingContext(dockingContext) {
         this.dockingContext = dockingContext;
@@ -86,13 +87,10 @@ export class DockingUiController {
     }
 
     /**
-     * Updates the UI based on the current docking context.
-     * Shows or hides buttons and sets labels accordingly.
-     */
-    /**
      * Hides or shows a UI element by adding/removing the hidden class.
      * @param {HTMLElement} element - The element to hide/show.
      * @param {boolean} hidden - True to hide, false to show.
+     * @returns {void}
      */
     _setHidden(element, hidden) {
         if (!element) return;
@@ -103,6 +101,10 @@ export class DockingUiController {
         }
     }
 
+    /**
+     * Updates the docking UI based on the current docking context, showing/hiding buttons and updating labels as needed.
+     * @returns {void}
+     */
     update() {
         if (!this.dockingContext) {
             this.hide();
@@ -166,21 +168,24 @@ export class DockingUiController {
     }
 
     /**
-     * Shows the docking UI.
+     * Displays the docking UI to the user.
+     * @returns {void}
      */
     show() {
         this.dockingUI.classList.remove('hidden');
     }
 
     /**
-     * Hides the docking UI.
+     * Hides the docking UI from the user.
+     * @returns {void}
      */
     hide() {
         this.dockingUI.classList.add('hidden');
     }
 
     /**
-     * Handles the take off button click.
+     * Handles the takeoff button click by initiating takeoff from the docked object.
+     * @returns {void}
      */
     onTakeOff() {
         if (this.dockingContext) {
@@ -189,7 +194,8 @@ export class DockingUiController {
     }
 
     /**
-     * Handles the repair hull button click.
+     * Handles the repair hull button click by repairing the ship's hull using the docking context and updating the UI.
+     * @returns {void}
      */
     onRepair() {
         if (this.dockingContext) {
@@ -200,7 +206,8 @@ export class DockingUiController {
     }
 
     /**
-     * Handles the start mining button click.
+     * Handles the start mining button click by enabling mining on the docked object if not already enabled and updating the UI.
+     * @returns {void}
      */
     onStartMining() {
         if (this.dockingContext) {
@@ -213,7 +220,8 @@ export class DockingUiController {
     }
 
     /**
-     * Handles the stop mining button click.
+     * Handles the stop mining button click by disabling mining on the docked object if enabled and updating the UI.
+     * @returns {void}
      */
     onStopMining() {
         if (this.dockingContext) {
@@ -226,7 +234,8 @@ export class DockingUiController {
     }
 
     /**
-     * Handles the capture button click.
+     * Handles the capture button click by capturing the docked object using the docking context and updating the UI.
+     * @returns {void}
      */
     onCapture() {
         if (this.dockingContext) {
@@ -237,7 +246,8 @@ export class DockingUiController {
     }
 
     /**
-     * Disposes of this controller, clearing references.
+     * Disposes of this controller by clearing the docking context reference and removing event handlers from the UI elements.
+     * @returns {void}
      */
     dispose() {
         this.dockingContext = null;

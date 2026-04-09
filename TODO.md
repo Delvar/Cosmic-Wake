@@ -43,8 +43,8 @@
 - [ ] **Enable AI Repair Control** Add to basic AI Pilots the ability to repair hull via docking when landed.
 - [ ] **Fix WandererJob route/landing bug** - WandererJob currently shuttles between systems without landing on planets; rewrite route selection and state transitions to ensure planet landing behaviors.
 
-
 ## User Interface
+
 - [X] **Planet landing services window** - When the player lands on a planet, open a services window with options for at least the cargo market and ship market.
 - [ ] **Planet cargo market UI** - Build the landed cargo trading interface so the player can inspect local prices, buy cargo, and sell cargo from the ship hold.
 - [ ] **Planet ship market UI** - Build a ship market interface for viewing available ships, comparing stats, and purchasing or swapping ships while landed.
@@ -70,7 +70,6 @@
 
 - [ ] **Refactor ship animations** Currently all ship animations (takeoff, landing, jumping, etc.) are stored directly on the `Ship` class with many scratch variables and mixed state. Refactor into separate, lightweight animation classes (e.g. `TakeoffAnimation`, `LandingAnimation`, `JumpOutAnimation`) that are assigned to the ship when the animation starts and automatically removed when complete. This will clean up the `Ship` class, improve maintainability, and keep animation logic encapsulated.
 - [ ] **Fix takeoff animation jerking** if during takeoff animation the target changes the ship jerks immediately to point at the target, should not change direction until animation is finished.
-
 
 ## Bug Fixes
 

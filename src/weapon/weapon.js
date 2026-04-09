@@ -34,6 +34,7 @@ export class Weapon {
     /**
      * Updates the weapon's internal time for cooldown checks.
      * @param {number} deltaTime - Time step in seconds.
+     * @returns {void}
      */
     update(deltaTime) {
         this.currentTime += deltaTime;
@@ -43,11 +44,11 @@ export class Weapon {
      * Fires a projectile from turret position and direction.
      * @param {Ship} ship - The ship firing the weapon.
      * @param {ProjectileManager} projectileManager - Manager to spawn projectiles.
-     * @param {Vector2D} [position = null] - World-space firing position.
+     * @param {Vector2D} position - World-space firing position.
      * @param {number} [direction = 0] - Firing direction (radians).
      * @returns {boolean} True if fired, false if on cooldown or invalid type.
      */
-    fire(ship, projectileManager, position = null, direction = 0.0) {
+    fire(ship, projectileManager, position, direction = 0.0) {
         if (this.currentTime < this.nextFireTime) return false;
 
         const type = ProjectileManager.projectileTypes[this.projectileTypeIndex];
@@ -56,15 +57,8 @@ export class Weapon {
             return false;
         }
 
-        if (!position) {
-            // Spawn position: offset from ship center by radius + 5 units along angle
-            const muzzleOffset = ship.radius + 5.0;
-            direction = direction == 0.0 ? ship.angle : direction;
-            this._scratchPosition.setFromPolar(muzzleOffset, direction).addInPlace(ship.position);
-        } else {
-            // Spawn position: provided turret barrel position
-            this._scratchPosition.set(position);
-        }
+        // Spawn position: provided turret barrel position
+        this._scratchPosition.set(position);
 
         // Velocity: ship velocity + projectile speed in turret direction
         const angle = normalizeAngle(direction === null ? ship.angle : direction);
@@ -76,8 +70,8 @@ export class Weapon {
     }
 
     /**
-     * Returns true if the weapon is read to fire
-     * @returns {boolean} True if it is ready to fired, false if on cooldown. 
+     * Returns true if the weapon is ready to fire.
+     * @returns {boolean} True if ready to fire, false if on cooldown.
      */
     canFire() {
         return (this.currentTime < this.nextFireTime);

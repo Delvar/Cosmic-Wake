@@ -18,27 +18,12 @@ export class UiLog {
         this.maxAge = 10000;
         /** @type {number} Interval ID for the age checking timer. */
         this.interval = setInterval(() => this._checkAges(), 100);
-
-        /* Testing by adding log entries on the fly */
-        // const sampleMsgs = ["Health Potion +2", "Sword upgraded", "+85 Gold", "Goblin defeated", "Mana Crystal acquired", "Rare herb found", "Level Up!", "Critical strike", "Boots of Speed", "Enemy stunned"];
-        // let count = 1;
-        // document.getElementById('add-btn').onclick = () => {
-        //     const text = sampleMsgs[Math.floor(Math.random() * sampleMsgs.length)];
-        //     this.log(text + ` #${count++}`);
-        // };
-        // let text = sampleMsgs[Math.floor(Math.random() * sampleMsgs.length)];
-        // this.log(text + ` #${count++}`);
-        // text = sampleMsgs[Math.floor(Math.random() * sampleMsgs.length)];
-        // this.log(text + ` #${count++}`);
-        // text = sampleMsgs[Math.floor(Math.random() * sampleMsgs.length)];
-        // this.log(text + ` #${count++}`);
-        // text = sampleMsgs[Math.floor(Math.random() * sampleMsgs.length)];
-        // this.log(text + ` #${count++}`);
     }
 
     /**
      * Adds a new message to the log, managing line limits and animations.
      * @param {...any} messages - Values to log (same as console.log).
+     * @returns {void}
      */
     log(...messages) {
         // Concatenate all arguments into a single string (same behaviour as console.log)
@@ -67,6 +52,8 @@ export class UiLog {
     /**
      * Checks the age of log lines and applies fade-out animations or removes old lines.
      * Called periodically by the interval timer.
+     * @private
+     * @returns {void}
      */
     _checkAges() {
         const now = Date.now();

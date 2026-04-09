@@ -24,19 +24,44 @@ Cosmic Wake is a space simulation game built with vanilla JavaScript and Canvas.
 ## Coding Conventions
 
 - Every file must begin with a file path comment from the project root:
-  ```js
+  ```javascript
   // /src/ship/ship.js
   ```
 - Imports must use root-based paths:
-  ```js
+  ```javascript
   import { Camera } from '/src/camera/camera.js';
   ```
 - Every class and public method must have a clear JSDoc comment explaining intent, parameters, and return values.
+
+### JSDoc Standards
+
+To ensure consistent documentation across all files, follow these guidelines when creating or updating JSDocs:
+- **File Header**: Every file must begin with a full path comment (e.g., `// /src/folder/file.js`) followed by a blank line.
+- **Imports**: All imports must use root-based full paths (e.g., `import { Class } from '/src/folder/class.js';`).
+- **Class and Method Comments**: 
+  - Every class and public method requires a clear JSDoc comment.
+  - Include a brief description explaining intent and behaviors.
+  - Use @param {Type} name - Description for each parameter.
+  - Always include @returns {Type} - Description, even if it's @returns {void} for methods that return nothing.
+  - Add other tags (e.g., @private for private methods) as needed.
+- **Properties**: Use inline /** @type {Type} Description */ comments for class properties.
+- **Updates**: When updating JSDocs, ensure descriptions are accurate and detailed without changing code logic. Prefer in-place updates to maintain performance patterns.
+
+Example for a method:
+```javascript
+   /**
+    * Updates the UI based on context.
+    * @param {Context} context - The context to use.
+    * @returns {void}
+    */
+   update(context) { ... }
+```
+
 - Boolean properties and methods must use `is*`/`has*`/`can*` prefix (e.g. `isThrusting`, `hasCargo`, `canLand`).
 - Private methods and scratch properties prefixed with `_`.
 - Use state machine pattern with `this.stateHandlers` object mapping states to bound handler methods.
 - Use `Object.seal(this)` in base class constructors only when `new.target === Class` (allowing inheritance):
-  ```js
+  ```javascript
   if (new.target === Shield) Object.seal(this);
   ```
 - Follow exact patterns from `ship.js`: scratch vectors, in-place ops, `Colour` class, `remapClamp`/`lerp`/`normalizeAngle` from utils, `ctx.save/restore` in draw methods.
@@ -44,6 +69,7 @@ Cosmic Wake is a space simulation game built with vanilla JavaScript and Canvas.
 ## Core Architecture
 
 ### 1. Game Loop & Rendering
+
 - **File:** `game.js`
 - **Class:** `Game`
 - Manages the main game loop, canvas rendering, and frame updates
@@ -52,6 +78,7 @@ Cosmic Wake is a space simulation game built with vanilla JavaScript and Canvas.
 - Renders game world, HUD, and target view
 
 ### 2. Galaxy & Star Systems
+
 - **File:** `galaxy.js`
 - **Function:** `createGalaxy()`
 - Creates three star systems: Sol, Alpha Centauri, Proxima Centauri
@@ -59,6 +86,7 @@ Cosmic Wake is a space simulation game built with vanilla JavaScript and Canvas.
 - Sets up faction relationships between systems
 
 ### 3. Star System Management
+
 - **File:** `starSystem.js`
 - **Class:** `StarSystem`
 - Container for planets, ships, jump gates, and asteroid belts
@@ -70,6 +98,7 @@ Cosmic Wake is a space simulation game built with vanilla JavaScript and Canvas.
 ## Game Objects
 
 ### Ships
+
 - **Files:** `ship.js`, `shipTypes.js`
 - **Base Class:** `Ship extends GameObject`
 - **Subclasses:** Shuttle, HeavyShuttle, StarBarge, Freighter, Arrow, Boxwing, Interceptor, Fighter
@@ -78,12 +107,14 @@ Cosmic Wake is a space simulation game built with vanilla JavaScript and Canvas.
 - **Features:** bounding box, feature points (engines, turrets, lights)
 
 ### Celestial Bodies
+
 - **File:** `celestialBody.js`
 - **Classes:** Star, Planet, JumpGate
 - Render as coloured circles with optional rings and labels
 - Planets support landing mechanics and docking
 
 ### Asteroids
+
 - **File:** `asteroidBelt.js`
 - **Class:** Asteroid
 - Interactive objects that can be mined or collided with
@@ -94,6 +125,7 @@ Cosmic Wake is a space simulation game built with vanilla JavaScript and Canvas.
 ## AI & Piloting
 
 ### Pilots
+
 - **File:** `pilot.js`
 - **Base Class:** `Pilot` (abstract)
 - **Player Pilot:** `PlayerPilot` - human-controlled via input
@@ -101,6 +133,7 @@ Cosmic Wake is a space simulation game built with vanilla JavaScript and Canvas.
   - **Subtypes:** CivilianAiPilot, PirateAiPilot, OfficerAiPilot
 
 ### Jobs
+
 - **File:** `job.js`
 - **Base Class:** `Job` - defines interface for ship behaviours
 - **Implementations:**
@@ -110,6 +143,7 @@ Cosmic Wake is a space simulation game built with vanilla JavaScript and Canvas.
   - `MinerJob` - mine asteroids and return to home planet
 
 ### Autopilots
+
 - **Files:** `autopilot.js`, `attackAutopilot.js`
 - **Base Class:** `Autopilot` - tactical navigation and manoeuvres
 - **Navigation Modes:**
@@ -125,18 +159,21 @@ Cosmic Wake is a space simulation game built with vanilla JavaScript and Canvas.
 ## Combat & Weapons
 
 ### Weapons
+
 - **File:** `weapon.js`
 - **Class:** `Weapon`
 - Fires projectiles with cooldown and spread
 - Integrated with ship turrets and fixed weapons
 
 ### Turrets
+
 - **File:** `turret.js`
 - **Class:** `Turret`
 - Auto-aiming turrets that track and fire on hostile targets
 - Mounted on specific feature points of ships
 
 ### Projectiles
+
 - **File:** `projectile.js`, `projectileManager.js`
 - **Class:** `Projectile` - lightweight data holder
 - **Manager:** `ProjectileManager`
@@ -149,6 +186,7 @@ Cosmic Wake is a space simulation game built with vanilla JavaScript and Canvas.
 ## Visual Effects
 
 ### Particles
+
 - **Files:** `particle.js`, `particleManager.js`
 - **Class:** `Particle` - spark lines and explosions
 - **Manager:** `ParticleManager`
@@ -156,6 +194,7 @@ Cosmic Wake is a space simulation game built with vanilla JavaScript and Canvas.
   - Manages particle lifetime and updating
 
 ### Trails
+
 - **File:** `trail.js`
 - **Class:** `Trail`
 - Renders ship engine trails as tapering ribbon
@@ -163,6 +202,7 @@ Cosmic Wake is a space simulation game built with vanilla JavaScript and Canvas.
 - Fades with age and width decay
 
 ### Star Field
+
 - **Files:** `starField.js`, `starFieldWorker.js`
 - **Class:** `StarField`
 - Procedurally generates infinite star field
@@ -174,6 +214,7 @@ Cosmic Wake is a space simulation game built with vanilla JavaScript and Canvas.
 ## Camera & UI
 
 ### Camera
+
 - **File:** `camera.js`
 - **Classes:** `Camera`, `TargetCamera`
 - World-to-screen coordinate transformation
@@ -181,12 +222,14 @@ Cosmic Wake is a space simulation game built with vanilla JavaScript and Canvas.
 - Follows player ship or tracks targets
 
 ### Heads-Up Display
+
 - **File:** `headsUpDisplay.js`
 - **Class:** `HeadsUpDisplay`
 - Renders HUD elements: compass, velocity, status, faction icons
 - Displays current job/autopilot status
 
 ### Factions & Relationships
+
 - **File:** `faction.js`
 - **Enum:** `FactionRelationship` - Allied, Neutral, Hostile
 - **Classes:** `Faction`, `FactionManager`
@@ -198,6 +241,7 @@ Cosmic Wake is a space simulation game built with vanilla JavaScript and Canvas.
 ## Utilities
 
 ### Vector2D
+
 - **File:** `vector2d.js`
 - **Class:** `Vector2D`
 - 2D vector math with in-place operations for performance
@@ -205,18 +249,21 @@ Cosmic Wake is a space simulation game built with vanilla JavaScript and Canvas.
 - **Aliases:** width/height for use as dimensions
 
 ### Math & Utils
+
 - **File:** `utils.js`
 - **Constants:** TWO_PI, HALF_PI
 - **Functions:** remapClamp(), clamp(), randomBetween(), normalizeAngle()
 - **Array operations:** removeObjectFromArrayInPlace()
 
 ### Colour
+
 - **File:** `colour.js`
 - **Class:** `Colour`
 - RGBA colour representation with static colour constants
 - **Methods:** toRGB(), toRGBA(), interpolation
 
 ### Game Object
+
 - **File:** `gameObject.js`
 - **Base Class:** `GameObject`
 - Base for all world objects (Ship, CelestialBody, Asteroid)
@@ -224,6 +271,7 @@ Cosmic Wake is a space simulation game built with vanilla JavaScript and Canvas.
 - Collision detection helpers
 
 ### Ship Name Generator
+
 - **File:** `shipNameGenerator.js`
 - **Class:** `ShipNameGenerator`
 - Generates faction-appropriate ship names from word lists
@@ -236,6 +284,7 @@ Cosmic Wake is a space simulation game built with vanilla JavaScript and Canvas.
 ### Key State Machines
 
 #### Ship States
+
 - **Flying:** Active in space
 - **Landed:** Docked at celestial body
 - **JumpingOut:** Animation leaving via jump gate
@@ -243,6 +292,7 @@ Cosmic Wake is a space simulation game built with vanilla JavaScript and Canvas.
 - **Disabled:** Non-functional, can be boarded
 
 #### Pilot States (AiPilot)
+
 - **Job:** Executing assigned job
 - **Flee:** Running from threat
 - **Avoid:** Manoeuvring around obstacle
@@ -250,6 +300,7 @@ Cosmic Wake is a space simulation game built with vanilla JavaScript and Canvas.
 - **Despawning:** Landing and disappearing
 
 #### Job States (example: WandererJob)
+
 - **Starting:** Initial setup, taking off
 - **Planning:** Calculating route
 - **Travelling:** Moving toward target
@@ -257,6 +308,7 @@ Cosmic Wake is a space simulation game built with vanilla JavaScript and Canvas.
 - **Failed:** Unable to proceed
 
 #### Autopilot States (example: AttackAutopilot)
+
 - **Approaching:** Moving to attack range
 - **Attacking:** In range, firing on target
 - **Orbiting:** Maintaining orbital distance
@@ -298,12 +350,14 @@ Cosmic Wake is a space simulation game built with vanilla JavaScript and Canvas.
 ## Tools & Behaviour (for Cosmic Wake Dev Agent)
 
 ### Tools
+
 Prefer using these tools (in order):
 1. **File Editor** (open/modify files)
 2. **Search**
 Avoid using unnecessary / unrelated tools; do not perform a post-edit lint or formatting step unless explicitly asked.
 
 ### Behaviour
+
 - Keep responses short, focused, and actionable.
 - When reviewing or editing existing code: if it does not fully match these standards, notify the user and ask if they want it updated. If already editing the file for other reasons, silently bring it up to standard and mention the changes made at the end.
 - When the user raises an idea, feature, or change: acknowledge it, discuss trade-offs/clarifications, and only implement once we agree on the approach.
@@ -314,5 +368,4 @@ Avoid using unnecessary / unrelated tools; do not perform a post-edit lint or fo
   - “Fix the AI pilot never leaving orbit after combat in `pilot.js`.”
   - “Add a new ship type with two turrets and a custom name pattern.”
   - “Explain how `ProjectileManager` detects collisions.”
-
-Ready for you to copy-paste over your current `agents.md`. Let me know if you want any tweaks or further adjustments.
+  - “Update JSDoc Comments for `ProjectileManager`.”

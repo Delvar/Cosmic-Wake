@@ -30,6 +30,7 @@ export class FixedWeapon {
     /**
      * Updates weapon cooldown.
      * @param {number} deltaTime - Time step in seconds.
+     * @returns {void}
      */
     update(deltaTime) {
         this.weapon.update(deltaTime);
@@ -39,6 +40,7 @@ export class FixedWeapon {
      * Fires the weapon at its position, forward-facing.
      * @param {Ship} ship - Parent ship.
      * @param {ProjectileManager} projectileManager - Manager for projectiles.
+     * @returns {void}
      */
     fire(ship, projectileManager) {
         // World-space position
@@ -51,8 +53,8 @@ export class FixedWeapon {
     }
 
     /**
-     * Returns true if the weapon is read to fire
-     * @returns {boolean} True if it is ready to fired, false if on cooldown.
+     * Returns true if the weapon is ready to fire.
+     * @returns {boolean} True if it is ready to fire, false if on cooldown.
      */
     canFire() {
         return this.weapon.canFire();

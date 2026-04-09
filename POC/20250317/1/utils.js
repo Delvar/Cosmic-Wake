@@ -1,0 +1,33 @@
+// utils.js
+
+/**
+ * Remaps a value from 0 to 1 to a specified output range.
+ * @param {number} value - The value to remap (between 0 and 1).
+ * @param {number} minOut - The minimum of the output range.
+ * @param {number} maxOut - The maximum of the output range.
+ * @returns {number} The remapped value.
+ */
+export function remapRange01(value, minOut, maxOut) {
+    return (value * (maxOut - minOut)) + minOut;
+}
+
+/**
+ * Generates a random number between min and max.
+ * @param {number} min - The minimum value.
+ * @param {number} max - The maximum value.
+ * @returns {number} A random number between min and max.
+ */
+export function randomBetween(min, max) {
+    return Math.random() * (max - min) + min;
+}
+
+/**
+ * Clamps a value between a minimum and maximum.
+ * @param {number} value - The value to clamp.
+ * @param {number} min - The minimum value.
+ * @param {number} max - The maximum value.
+ * @returns {number} The clamped value.
+ */
+export function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+}

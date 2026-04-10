@@ -17,19 +17,18 @@ import { WandererJob } from '/src/job/wandererJob.js';
 import { MinerJob } from '/src/job/minerJob.js';
 import { PirateJob } from '/src/job/pirateJob.js';
 import { OfficerJob } from '/src/job/officerJob.js';
-import { CelestialBody, Planet } from '/src/starSystem/celestialBody.js';
-import { CargoContainer } from '/src/starSystem/cargoContainer.js';
+import { Planet } from '/src/starSystem/celestialBody.js';
 import { StarSystem } from '/src/starSystem/starSystem.js';
 import { EscortJob } from '/src/job/escortJob.js';
-import { FactionManager, FactionRelationship } from './faction.js';
+import { FactionManager, FactionRelationship } from '/src/core/faction.js';
 import { Colour } from '/src/core/colour.js';
 import { generateShipName } from '/src/ship/shipNameGenerator.js';
-import { Commodities, CommodityType } from '/src/core/commodity.js';
+import { CommodityType } from '/src/core/commodity.js';
 import { UiLog } from '/src/ui/uiLog.js'
-import { Asteroid } from '/src/starSystem/asteroidBelt.js';
 import { CivilianAiPilot } from '/src/pilot/civilianAiPilot.js';
-import { DockingContext } from '/src/ship/dockingContext.js';
 import { DockingUiController } from '/src/ui/dockingUiController.js';
+import { UiDomWindow } from '/src/ui/uiDomWindow.js';
+import { UiDomWindowTarget } from '/src/ui/uiDomWindowTarget.js';
 
 /**
  * Handles the game loop, rendering, and updates for the game.
@@ -70,6 +69,14 @@ export class Game {
         this.zoomTextTimer = 0.0;
         /** @type {Function} The bound game loop function for rendering and updating the game. */
         this.gameLoop = this.gameLoop.bind(this);
+
+        const targetParent = this.targetCamera.foregroundCanvas.parentElement;
+        if (!targetParent) {
+            throw new TypeError('No parent element on this.targetCamera.foregroundCanvas');
+        }
+        // Initialize UiDomWindowTarget for handling target window resizing
+        this.uiDomWindowTarget = new UiDomWindowTarget(targetParent, this.targetCamera, this.targetHud, this.starField);
+
         // Initialize canvas size
         this.resizeMainCamera();
         this.resizeTargetCamera();
@@ -895,32 +902,6 @@ export class GameManager {
      * Sets up event listeners for user input and window events.
      */
     setupEventListeners() {
-        let offsetX = 0.0, offsetY = 0.0;
-
-        const parent = this.targetCamera.foregroundCanvas.parentElement;
-        if (!parent) {
-            throw new TypeError('No parent element on camera.foregroundCanvas');
-        }
-        parent.addEventListener('dragstart', (e) => {
-            offsetX = e.offsetX;
-            offsetY = e.offsetY;
-        });
-
-        parent.addEventListener('drag', (e) => {
-            if (e.clientX > 0.0 && e.clientY > 0.0) {
-                parent.style.left = `${e.clientX - offsetX}px`;
-                parent.style.top = `${e.clientY - offsetY}px`;
-            }
-        });
-
-        // Set up ResizeObserver to call resizeTargetCamera on size change
-        const resizeObserver = new ResizeObserver(() => {
-            this.game.resizeTargetCamera();
-        });
-
-        // Start observing
-        resizeObserver.observe(parent);
-
         window.addEventListener('resize', () => { this.game.resizeMainCamera() });
 
         window.addEventListener('keydown', (e) => {
@@ -982,83 +963,6 @@ export class GameManager {
             const zoomStep = 0.1;
             this.mainCamera.setZoom(this.mainCamera.zoom + (e.deltaY < 0.0 ? zoomStep : -zoomStep));
             this.zoomTextTimer = 120.0;
-        });
-
-        // Handle resizing via corner handles
-        const handles = parent.querySelectorAll('.resize-handle');
-        let isResizing = false;
-        let startX = 0.0, startY = 0.0, startWidth = 0.0, startHeight = 0.0, startRight = 0.0, startTop = 0.0, corner = '';
-
-        handles.forEach((handle) => {
-            handle.addEventListener('mousedown', (e) => {
-                e.preventDefault(); // Prevent drag interference
-                isResizing = true;
-                corner = handle.classList[1]; // e.g., 'top-left'
-                if (e instanceof MouseEvent) {
-                    startX = e.clientX;
-                    startY = e.clientY;
-                }
-                const rect = parent.getBoundingClientRect();
-                startWidth = rect.width;
-                startHeight = rect.height;
-                startRight = window.innerWidth - (rect.right - 2.0); // Account for 2px border
-                startTop = rect.top - 2.0;
-            });
-        });
-
-        // Inside initTargetCameraEvents, replace the mousemove handler
-        document.addEventListener('mousemove', (e) => {
-            if (!isResizing) return;
-
-            const minWidth = 100.0; // Match CSS min-width
-            const minHeight = 100.0; // Match CSS min-height
-            let newWidth, newHeight, newRight, newTop;
-
-            // Calculate mouse movement (positive deltaX when dragging left)
-            const deltaX = startX - e.clientX; // Left drag = positive
-            const deltaY = startY - e.clientY; // Up drag = positive
-
-            if (corner === 'top-left') {
-                // Resize left: Increase/decrease width, keep right fixed
-                newWidth = Math.max(minWidth, startWidth + deltaX);
-                newRight = startRight; // Right edge stays fixed
-                // Resize up: Increase/decrease height, adjust top
-                newHeight = Math.max(minHeight, startHeight + deltaY);
-                newTop = startTop - deltaY;
-            } else if (corner === 'top-right') {
-                // Resize right: Increase/decrease width, adjust right
-                newWidth = Math.max(minWidth, startWidth - deltaX);
-                newRight = startRight + deltaX;
-                // Resize up: Increase/decrease height, adjust top
-                newHeight = Math.max(minHeight, startHeight + deltaY);
-                newTop = startTop - deltaY;
-            } else if (corner === 'bottom-left') {
-                // Resize left: Increase/decrease width, keep right fixed
-                newWidth = Math.max(minWidth, startWidth + deltaX);
-                newRight = startRight;
-                // Resize down: Increase/decrease height, keep top fixed
-                newHeight = Math.max(minHeight, startHeight - deltaY);
-                newTop = startTop;
-            } else if (corner === 'bottom-right') {
-                // Resize right: Increase/decrease width, adjust right
-                newWidth = Math.max(minWidth, startWidth - deltaX);
-                newRight = startRight + deltaX;
-                // Resize down: Increase/decrease height, keep top fixed
-                newHeight = Math.max(minHeight, startHeight - deltaY);
-                newTop = startTop;
-            }
-
-            // Update div styles
-            parent.style.width = `${newWidth}px`;
-            parent.style.height = `${newHeight}px`;
-            parent.style.right = `${newRight}px`;
-            parent.style.top = `${newTop}px`;
-            parent.style.left = ''; // Clear conflicting style
-
-        });
-
-        document.addEventListener('mouseup', () => {
-            isResizing = false;
         });
     }
 }

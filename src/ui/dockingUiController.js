@@ -85,13 +85,13 @@ export class DockingUiController {
      */
     setDockingContext(dockingContext) {
         this.dockingContext = dockingContext;
-        this._lastDisplayed.landedObjectName = null;
-        this._lastDisplayed.takeOffButtonState = null;
-        this._lastDisplayed.repairButtonState = null;
-        this._lastDisplayed.miningStartButtonState = null;
-        this._lastDisplayed.miningStopButtonState = null;
-        this._lastDisplayed.captureButtonState = null;
-        this._lastDisplayed.undockButtonState = null;
+        this._lastDisplayed.landedObjectName = ButtonState.HIDDEN;
+        this._lastDisplayed.takeOffButtonState = ButtonState.HIDDEN;
+        this._lastDisplayed.repairButtonState = ButtonState.HIDDEN;
+        this._lastDisplayed.miningStartButtonState = ButtonState.HIDDEN;
+        this._lastDisplayed.miningStopButtonState = ButtonState.HIDDEN;
+        this._lastDisplayed.captureButtonState = ButtonState.HIDDEN;
+        this._lastDisplayed.undockButtonState = ButtonState.HIDDEN;
         this.update();
     }
 

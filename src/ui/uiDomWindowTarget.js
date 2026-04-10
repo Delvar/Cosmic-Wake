@@ -18,7 +18,7 @@ export class UiDomWindowTarget extends UiDomWindow {
      * @param {StarField} starField - The starfield for the target view.
      */
     constructor(element, targetCamera, targetHud, starField) {
-        super(element);
+        super(element, 200.0, 200.0);
         /** @type {TargetCamera} The camera for the target view. */
         this.targetCamera = targetCamera;
         /** @type {HeadsUpDisplay} The HUD for displaying game information. */

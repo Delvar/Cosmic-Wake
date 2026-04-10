@@ -76,3 +76,7 @@
 
 - [ ] **Fix Docking with disabled ship** <a id="fix-Docking-with-disabled-ship">[↩](#fix-Docking-with-disabled-ship)</a> When boarding a ship, another ship can also board the same ship and captures it and it starts moving off, first limit the number of ships that can dock to 1, also check if the docked ship is now not disabled, is moving etc so undock automatically. Related To: [Refactor ship-to-ship docking system](#refactor-ship-to-ship-docking-system)
 
+## Refactor
+
+- [ ] **Refactor direct state updates** Locate and refactor any place where we directly update states instead of using setState() methods. Also rename any similar functions like updateState(), changeState() etc to setState() for consistency.
+

@@ -8,6 +8,7 @@ import { AiPilot } from "/src/pilot/aiPilot.js";
 import { OfficerAiPilot } from "/src/pilot/officerAiPilot.js";
 import { CivilianAiPilot } from "/src/pilot/civilianAiPilot.js";
 import { EscortJob } from "/src/job/escortJob.js";
+import { LandOnPlanetDespawnAutopilot } from "/src/autopilot/landOnPlanetDespawnAutopilot.js";
 
 /**
  * DockingContext represents the in-game context for a landed or docked ship.
@@ -173,7 +174,7 @@ export class DockingContext {
         // Activate shield
         boardedShip.shield.isActive = true;
         // Set to flying state
-        boardedShip.state = 'Flying';
+        boardedShip.setState('Flying');
         // Clear hostiles
         boardedShip.hostiles.length = 0;
         boardedShip.lastAttacker = null;
@@ -186,8 +187,8 @@ export class DockingContext {
         } else if (this.ship.pilot instanceof AiPilot) {
             boardedShip.pilot = new CivilianAiPilot(boardedShip);
             const pilot = new CivilianAiPilot(boardedShip);
+            pilot.changeState('Despawning', new LandOnPlanetDespawnAutopilot(boardedShip));
             boardedShip.setPilot(pilot);
-            boardedShip.setState('Despawning');
         }
 
         // Take off from the captured ship

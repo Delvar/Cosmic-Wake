@@ -1,7 +1,8 @@
-// /src/ui/dockingUiController.js
+// /src/ui/uiDomWindowDocking.js
 
 import { GameManager } from '/src/core/game.js';
 import { DockingContext } from '/src/ship/dockingContext.js';
+import { UiDomWindow } from '/src/ui/uiDomWindow.js';
 
 /**
  * Enum-like object for button states to ensure type safety and avoid string literals.
@@ -13,13 +14,13 @@ const ButtonState = Object.freeze({
 });
 
 /**
- * DockingUiController manages the UI state and interactions for the docking screen.
+ * UiDomWindowDocking manages the UI state and interactions for the docking screen.
  * It handles button visibility, labels, and click handlers based on the current DockingContext.
  * This separates UI logic from the GameManager and DockingContext, allowing AI to use DockingContext directly.
  */
-export class DockingUiController {
+export class UiDomWindowDocking extends UiDomWindow {
     /**
-     * Creates a new DockingUiController instance.
+     * Creates a new UiDomWindowDocking instance.
      *
      * @param {GameManager} manager - The game manager instance.
      * @param {Object} elements - DOM elements for the docking UI.
@@ -33,6 +34,7 @@ export class DockingUiController {
      * @param {HTMLButtonElement} elements.captureButton - The capture button.
      */
     constructor(manager, elements) {
+        super(elements.dockingUI, 250.0, 160.0);
         /** @type {GameManager} The game manager instance. */
         this.manager = manager;
 
@@ -75,7 +77,7 @@ export class DockingUiController {
         this.stopMiningButton.onclick = this.onStopMining.bind(this);
         this.captureButton.onclick = this.onCapture.bind(this);
 
-        if (new.target === DockingUiController) Object.seal(this);
+        if (new.target === UiDomWindowDocking) Object.seal(this);
     }
 
     /**
@@ -85,13 +87,13 @@ export class DockingUiController {
      */
     setDockingContext(dockingContext) {
         this.dockingContext = dockingContext;
-        this._lastDisplayed.landedObjectName = ButtonState.HIDDEN;
-        this._lastDisplayed.takeOffButtonState = ButtonState.HIDDEN;
-        this._lastDisplayed.repairButtonState = ButtonState.HIDDEN;
-        this._lastDisplayed.miningStartButtonState = ButtonState.HIDDEN;
-        this._lastDisplayed.miningStopButtonState = ButtonState.HIDDEN;
-        this._lastDisplayed.captureButtonState = ButtonState.HIDDEN;
-        this._lastDisplayed.undockButtonState = ButtonState.HIDDEN;
+        this._lastDisplayed.landedObjectName = null;
+        this._lastDisplayed.takeOffButtonState = null;
+        this._lastDisplayed.repairButtonState = null;
+        this._lastDisplayed.miningStartButtonState = null;
+        this._lastDisplayed.miningStopButtonState = null;
+        this._lastDisplayed.captureButtonState = null;
+        this._lastDisplayed.undockButtonState = null;
         this.update();
     }
 

@@ -44,6 +44,7 @@
             right: 5%;
             visibility: visible;
             opacity: 1;
+            box-sizing: border-box;
         }
 
         /* Canvases: Fill div, stack with z-index */
@@ -90,6 +91,7 @@
             position: absolute;
             width: 20px;
             height: 20px;
+            /* background-color: #e94560; */
         }
 
         .resize-handle.top-left {
@@ -170,21 +172,25 @@
         /* Docking UI */
         #docking-ui {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
+            margin: 0.0;
+            padding: 0.0;
             outline: 2px solid white;
             border-radius: 20px;
+            overflow: hidden;
             background-color: black;
             border: 1px black solid;
             transition: visibility 0.5s linear, opacity 0.5s ease-in-out;
+            height: 160px;
+            width: 250px;
+            top: 50%;
+            left: 50%;
             visibility: visible;
             opacity: 1;
-            padding: 20px;
             text-align: center;
+            padding: 20px;
             color: #eee;
             text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
-            min-width: 150px;
+            box-sizing: border-box;
         }
 
         #docking-ui.hidden {
@@ -238,14 +244,18 @@
     <div class="ui-log">
         <div class="log-inner" id="log-inner"></div>
     </div>
-    <div id="docking-ui" class="hidden">
-        <span id="docking-ui-name"></span><br>
+    <div id="docking-ui" class="hidden" draggable="true">
+        <span id="docking-ui-name">UNSET</span><br>
         <button id="docking-ui-takeoff">🚀︎ Take Off</button>
         <button id="docking-ui-undock">🚀︎ Undock</button>
         <button id="docking-ui-repair">🛠︎ Repair Hull</button>
         <button id="docking-ui-start-mining">⛏︎ Start Mining</button>
         <button id="docking-ui-stop-mining">⛏︎ Stop Mining</button>
         <button id="docking-ui-capture">⚔︎ Capture Ship</button>
+        <span class="resize-handle top-left"></span>
+        <span class="resize-handle top-right"></span>
+        <span class="resize-handle bottom-left"></span>
+        <span class="resize-handle bottom-right"></span>
     </div>
     <!-- <button id="add-btn">＋ Add Log Entry</button> -->
     <script type="module" src="src/core/game.js"></script>

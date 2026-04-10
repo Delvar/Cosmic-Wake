@@ -13,13 +13,16 @@ export const Corner = Object.freeze({
 
 /**
  * Abstract base class for managing DOM-based UI windows with optional resizing, dragging, and visibility toggling.
+ * @abstract
  */
 export class UiDomWindow {
     /**
-     * Creates a new UiDomWindow instance.
-     * @param {HTMLElement} element - The DOM element to manage.
+     * Initializes a new UiDomWindow instance. This class is abstract and cannot be instantiated directly.
+     * @param {HTMLElement} element - The DOM element to manage as a UI window.
+     * @param {number} minWidth - The minimum width allowed for the window during resizing.
+     * @param {number} minHeight - The minimum height allowed for the window during resizing.
      */
-    constructor(element) {
+    constructor(element, minWidth, minHeight) {
         if (this.constructor === UiDomWindow) {
             throw new TypeError('UiDomWindow is an abstract class and cannot be instantiated directly.');
         }
@@ -38,8 +41,8 @@ export class UiDomWindow {
         this._startWidth = 0.0;
         /** @type {number} Starting height for resizing. */
         this._startHeight = 0.0;
-        /** @type {number} Starting right position for resizing. */
-        this._startRight = 0.0;
+        /** @type {number} Starting left position for resizing. */
+        this._startLeft = 0.0;
         /** @type {number} Starting top position for resizing. */
         this._startTop = 0.0;
         /** @type {'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | ''} The corner being resized. */
@@ -51,6 +54,11 @@ export class UiDomWindow {
         /** @type {number} Offset Y for dragging. */
         this._offsetY = 0.0;
 
+        /** @type {number} Enforced minimum width. */
+        this.minWidth = minWidth;
+        /** @type {number} Enforced minimum height. */
+        this.minHeight = minHeight;
+
         this._setupResizing();
         this._setupDragging();
         this._setupVisibility();
@@ -61,6 +69,10 @@ export class UiDomWindow {
      * @private
      */
     _setupResizing() {
+        const rect = this.element.getBoundingClientRect();
+        this.element.style.width = `${Math.max(this.minWidth, rect.width)}px`;
+        this.element.style.height = `${Math.max(this.minHeight, rect.height)}px`;
+
         const handles = this.element.querySelectorAll('.resize-handle');
         if (handles.length === 0) return; // No handles, skip setup
 
@@ -103,8 +115,8 @@ export class UiDomWindow {
         const rect = this.element.getBoundingClientRect();
         this._startWidth = rect.width;
         this._startHeight = rect.height;
-        this._startRight = window.innerWidth - (rect.right - 2.0); // Account for 2px border
-        this._startTop = rect.top - 2.0;
+        this._startLeft = rect.left;
+        this._startTop = rect.top;
     }
 
     /**
@@ -115,50 +127,50 @@ export class UiDomWindow {
     _onMouseMove(e) {
         if (!this._isResizing) return;
 
-        const minWidth = 100.0; // Match CSS min-width
-        const minHeight = 100.0; // Match CSS min-height
-        let newWidth, newHeight, newRight, newTop;
+        const minWidth = this.minWidth;
+        const minHeight = this.minHeight;
+        let newWidth = this._startWidth, newHeight = this._startHeight, newLeft = this._startLeft, newTop = this._startTop;
 
         // Calculate mouse movement (positive deltaX when dragging left)
         const deltaX = this._startX - e.clientX; // Left drag = positive
         const deltaY = this._startY - e.clientY; // Up drag = positive
 
         if (this._corner === Corner.TOP_LEFT) {
-            // Resize left: Increase/decrease width, keep right fixed
+            // Resize left: Increase/decrease width, Increase/decrease left
             newWidth = Math.max(minWidth, this._startWidth + deltaX);
-            newRight = this._startRight; // Right edge stays fixed
-            // Resize up: Increase/decrease height, adjust top
+            const effectiveDeltaX = newWidth - this._startWidth;
+            newLeft = this._startLeft - effectiveDeltaX;
+            // Resize up: Increase/decrease height, Increase/decrease top
             newHeight = Math.max(minHeight, this._startHeight + deltaY);
-            newTop = this._startTop - deltaY;
+            const effectiveDeltaY = newHeight - this._startHeight;
+            newTop = this._startTop - effectiveDeltaY;
         } else if (this._corner === Corner.TOP_RIGHT) {
-            // Resize right: Increase/decrease width, adjust right
+            // Resize right: Increase/decrease width, left fixed
             newWidth = Math.max(minWidth, this._startWidth - deltaX);
-            newRight = this._startRight + deltaX;
-            // Resize up: Increase/decrease height, adjust top
+            // Resize up: Increase/decrease height, Increase/decrease top
             newHeight = Math.max(minHeight, this._startHeight + deltaY);
-            newTop = this._startTop - deltaY;
+            const effectiveDeltaY = newHeight - this._startHeight;
+            newTop = this._startTop - effectiveDeltaY;
         } else if (this._corner === Corner.BOTTOM_LEFT) {
-            // Resize left: Increase/decrease width, keep right fixed
+            // Resize left: Increase/decrease width, Increase/decrease left
             newWidth = Math.max(minWidth, this._startWidth + deltaX);
-            newRight = this._startRight;
-            // Resize down: Increase/decrease height, keep top fixed
+            const effectiveDeltaX = newWidth - this._startWidth;
+            newLeft = this._startLeft - effectiveDeltaX;
+            // Resize down: Increase/decrease height, top fixed
             newHeight = Math.max(minHeight, this._startHeight - deltaY);
-            newTop = this._startTop;
         } else if (this._corner === Corner.BOTTOM_RIGHT) {
-            // Resize right: Increase/decrease width, adjust right
+            // Resize right: Increase/decrease width, left fixed
             newWidth = Math.max(minWidth, this._startWidth - deltaX);
-            newRight = this._startRight + deltaX;
-            // Resize down: Increase/decrease height, keep top fixed
+            // Resize down: Increase/decrease height, top fixed
             newHeight = Math.max(minHeight, this._startHeight - deltaY);
-            newTop = this._startTop;
         }
 
         // Update element styles
         this.element.style.width = `${newWidth}px`;
         this.element.style.height = `${newHeight}px`;
-        this.element.style.right = `${newRight}px`;
+        this.element.style.left = `${newLeft}px`;
         this.element.style.top = `${newTop}px`;
-        this.element.style.left = ''; // Clear conflicting style
+
         this._onResize();
     }
 
@@ -166,7 +178,7 @@ export class UiDomWindow {
      * Called during resizing (on mouse move). Override in subclasses.
      * @protected
      */
-    _onResize() {}
+    _onResize() { }
 
     /**
      * Handles mouseup event to end resizing.
@@ -181,7 +193,7 @@ export class UiDomWindow {
      * Called when resizing ends (on mouse up). Override in subclasses.
      * @protected
      */
-    _onResizeEnd() {}
+    _onResizeEnd() { }
 
     /**
      * Sets up dragging functionality if the element is draggable.
@@ -226,6 +238,7 @@ export class UiDomWindow {
 
     /**
      * Shows the UI window.
+     * @returns {void}
      */
     show() {
         this.element.classList.remove('hidden');
@@ -233,6 +246,7 @@ export class UiDomWindow {
 
     /**
      * Hides the UI window.
+     * @returns {void}
      */
     hide() {
         this.element.classList.add('hidden');

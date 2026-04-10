@@ -378,14 +378,15 @@ export class AiPilot extends Pilot {
         if (this.state === 'Job' && this.job) {
             this.job.pause();
         }
-        if (!this.job) {
-            console.error('!this.job', this);
-            throw new TypeError('this.job missing on Pilot');
-        }
+
         // Resume the job when entering Job state
         if (newState === 'Job') {
+            if (!this.job) {
+                throw new TypeError('this.job missing on Pilot');
+            }
             this.job.resume();
         }
+        
         // Set new state and autopilot
         this.state = newState;
         this.setAutopilot(newAutopilot);

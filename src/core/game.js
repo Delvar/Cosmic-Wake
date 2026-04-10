@@ -26,7 +26,7 @@ import { generateShipName } from '/src/ship/shipNameGenerator.js';
 import { CommodityType } from '/src/core/commodity.js';
 import { UiLog } from '/src/ui/uiLog.js'
 import { CivilianAiPilot } from '/src/pilot/civilianAiPilot.js';
-import { DockingUiController } from '/src/ui/dockingUiController.js';
+import { UiDomWindowDocking } from '../ui/uiDomWindowDocking.js';
 import { UiDomWindow } from '/src/ui/uiDomWindow.js';
 import { UiDomWindowTarget } from '/src/ui/uiDomWindowTarget.js';
 
@@ -74,7 +74,7 @@ export class Game {
         if (!targetParent) {
             throw new TypeError('No parent element on this.targetCamera.foregroundCanvas');
         }
-        // Initialize UiDomWindowTarget for handling target window resizing
+        /** @type {UiDomWindowTarget} Initialize UiDomWindowTarget for handling target window resizing */
         this.uiDomWindowTarget = new UiDomWindowTarget(targetParent, this.targetCamera, this.targetHud, this.starField);
 
         // Initialize canvas size
@@ -441,8 +441,8 @@ export class GameManager {
         /** @type {boolean} Whether the docking UI is currently shown. */
         this.dockingUIShown = false;
 
-        /** @type {DockingUiController} The controller for docking UI interactions. */
-        this.dockingUiController = new DockingUiController(this, {
+        /** @type {UiDomWindowDocking} The controller for docking UI interactions. */
+        this.uiDomWindowDocking = new UiDomWindowDocking(this, {
             dockingUI: /** @type {HTMLElement} */ (document.getElementById('docking-ui')),
             dockingName: /** @type {HTMLElement} */ (document.getElementById('docking-ui-name')),
             takeoffButton: /** @type {HTMLButtonElement} */ (document.getElementById('docking-ui-takeoff')),
@@ -613,14 +613,14 @@ export class GameManager {
         const shouldShow = this.cameraTarget instanceof Ship && this.cameraTarget.pilot instanceof PlayerPilot && this.cameraTarget.dockingContext && this.cameraTarget.state == 'Landed';
         if (shouldShow) {
             if (!this.dockingUIShown) {
-                this.dockingUiController.setDockingContext(this.cameraTarget.dockingContext);
-                this.dockingUiController.show();
+                this.uiDomWindowDocking.setDockingContext(this.cameraTarget.dockingContext);
+                this.uiDomWindowDocking.show();
                 this.dockingUIShown = true;
             }
-            this.dockingUiController.update();
+            this.uiDomWindowDocking.update();
         } else {
             if (this.dockingUIShown) {
-                this.dockingUiController.hide();
+                this.uiDomWindowDocking.hide();
                 this.dockingUIShown = false;
             }
         }

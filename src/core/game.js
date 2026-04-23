@@ -627,6 +627,21 @@ export class GameManager {
         // Quick hack to test cargo containers by dropping them from the player
         //this.playerShip.starSystem.cargoManager.spawn(this.playerShip.position, this.playerShip.velocity, CommodityType.FOOD, 1);
 
+        // Get total number of ships, ensure we ddont have too many galaxy wide.
+        let totalShipCount = 0;
+        let totalMaxAiShips = 0;
+        this.galaxy.forEach(system => {
+            totalShipCount += system.ships.length;
+            totalMaxAiShips += system.maxAiShips;
+        })
+
+        if (totalShipCount >= totalMaxAiShips) {
+            if (this.debug) {
+                console.log(`spawnAiShipsIfNeeded : totalShipCount : ${totalShipCount} of ${totalMaxAiShips}`);
+            }
+            return;
+        }
+
         this.galaxy.forEach(system => {
             let systemShipsLength = system.ships.length;
             let aiCount = 0.0;

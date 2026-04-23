@@ -152,7 +152,7 @@ export class StarSystem {
             this.asteroidBelt.init();
         }
         this.initializeJumpGates();
-        this.maxAiShips = this.planets.length * 5.0;
+        this.maxAiShips = this.planets.length * 4.0;
     }
 
     /**

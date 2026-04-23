@@ -2,14 +2,29 @@
 
 /**
  * Enum for faction relationship states.
- * @type {Object.<string, number>}
+ * @enum {number}
  */
 export const FactionRelationship = {
     Allied: 0.0,
     Neutral: 1.0,
-    Hostile: 2
+    Hostile: 2.0,
+    Disabled: 3.0
 };
 Object.freeze(FactionRelationship);
+
+/**
+ * Gets the string name of a FactionRelationship value.
+ * @param {FactionRelationship} relationshipValue - A FactionRelationship value (0.0, 1.0, 2.0, or 3.0).
+ * @returns {string|null} The string name (e.g., "Allied", "Neutral") or null if not found.
+ */
+export function getFactionRelationshipName(relationshipValue) {
+    for (const [name, value] of Object.entries(FactionRelationship)) {
+        if (value === relationshipValue) {
+            return name;
+        }
+    }
+    return null;
+}
 
 /**
  * Represents a faction with a unique name and ID.

@@ -1,7 +1,5 @@
 // /src/ui/uiDomWindow.js
 
-import { FactionRelationship } from '/src/core/faction.js';
-
 /**
  * Enum for resize corners.
  * @enum {string}
@@ -19,25 +17,12 @@ export const Corner = Object.freeze({
  */
 export class UiDomWindow {
     /**
-     * Static map of FactionRelationship values to their corresponding tint class names.
-     * Avoids string allocation on every call to setTintFromRelationship().
-     * @type {Object<FactionRelationship, string>}
-     */
-    static #TINT_CLASS_MAP = {
-        [FactionRelationship.Allied]: 'tint-allied',
-        [FactionRelationship.Neutral]: 'tint-neutral',
-        [FactionRelationship.Hostile]: 'tint-hostile',
-        [FactionRelationship.Disabled]: 'tint-disabled'
-    };
-
-    /**
      * Initializes a new UiDomWindow instance. This class is abstract and cannot be instantiated directly.
      * @param {HTMLElement} element - The DOM element to manage as a UI window.
      * @param {number} minWidth - The minimum width allowed for the window during resizing.
      * @param {number} minHeight - The minimum height allowed for the window during resizing.
-     * @param {FactionRelationship|null} factionRelationship - Optional faction relationship value to set initial tint (FactionRelationship).
      */
-    constructor(element, minWidth, minHeight, factionRelationship = null) {
+    constructor(element, minWidth, minHeight) {
         if (this.constructor === UiDomWindow) {
             throw new TypeError('UiDomWindow is an abstract class and cannot be instantiated directly.');
         }
@@ -78,20 +63,9 @@ export class UiDomWindow {
         /** @type {number} Enforced minimum height. */
         this.minHeight = minHeight;
 
-        // Cache for visibility and tint state to avoid unnecessary DOM updates
-        /** @type {boolean} Cached visibility state (true if element has 'hidden' class). */
-        this.isHidden = this.element.classList.contains('hidden');
-        /** @type {string|null} Cached tint class name (e.g., 'tint-allied' or null if none). */
-        this.tintClass = null;
-
         this._setupResizing();
         this._setupDragging();
         this._setupVisibility();
-
-        // Apply tint based on faction relationship if provided
-        if (factionRelationship !== null) {
-            this.setTintFromRelationship(factionRelationship);
-        }
     }
 
     /**
@@ -112,6 +86,7 @@ export class UiDomWindow {
      * @private
      */
     _setupResizing() {
+
         const rect = this._resizableElement.getBoundingClientRect();
         this._resizableElement.style.width = `${Math.max(this.minWidth, rect.width)}px`;
         this._resizableElement.style.height = `${Math.max(this.minHeight, rect.height)}px`;
@@ -134,17 +109,12 @@ export class UiDomWindow {
      * @private
      */
     _onMouseDown(e) {
-        // console.log(`${this.constructor.name}: _onMouseDown`, e);
         if (!(e instanceof MouseEvent)) return;
         if (!e.target) return;
         if (!(e.target instanceof HTMLElement)) return;
 
-        e.preventDefault();
-        e.stopPropagation();
-
+        e.preventDefault(); // Prevent drag interference
         this._isResizing = true;
-        this.element.classList.add('resizing');
-
         this._corner = '';
         for (const cls of e.target.classList) {
             if (cls === Corner.TOP_LEFT || cls === Corner.TOP_RIGHT ||
@@ -171,16 +141,12 @@ export class UiDomWindow {
      * @private
      */
     _onMouseMove(e) {
-        // console.log(`${this.constructor.name}: _onMouseMove : _isResizing: ${this._isResizing}`, e);
         if (!this._isResizing) return;
 
         // Bottom-right only (per agreed prototype - other corners added later)
         if (this._corner !== Corner.BOTTOM_RIGHT) {
             return;
         }
-
-        e.preventDefault();
-        e.stopPropagation();
 
         const minWidth = this.minWidth;
         const minHeight = this.minHeight;
@@ -245,28 +211,18 @@ export class UiDomWindow {
 
     /**
      * Handles mouseup event to end resizing.
-     * @param {MouseEvent} e - The mouse event.
      * @private
      */
-    _onMouseUp(e) {
-        // console.log(`${this.constructor.name}: _onMouseUp : _isResizing: ${this._isResizing}`, e);
+    _onMouseUp() {
         this._isResizing = false;
-
-        e.preventDefault();
-        e.stopPropagation();
-
-        this.element.classList.remove('resizing');
-        this._onResizeEnd(e);
+        this._onResizeEnd();
     }
 
     /**
      * Called when resizing ends (on mouse up). Override in subclasses.
-     * @param {MouseEvent} e - The mouse event.
      * @protected
      */
-    _onResizeEnd(e) {
-        // console.log(`${this.constructor.name}: _onResizeEnd : _isResizing: ${this._isResizing}`, e);
-    }
+    _onResizeEnd() { }
 
     /**
      * Sets up dragging functionality if the element is draggable.
@@ -277,17 +233,13 @@ export class UiDomWindow {
 
         // Remove any native draggable attribute to prevent red no-drop cursor
         this.element.draggable = false;
-
-        const rect = this.element.getBoundingClientRect();
-        this.element.style.left = `${rect.left}px`;
-        this.element.style.top = `${rect.top}px`;
-        this.element.style.bottom = 'unset';
-        this.element.style.right = 'unset';
+        //this.element.style.cursor = 'grab';
 
         this.element.addEventListener('mousedown', this._onDragMouseDown.bind(this));
         document.addEventListener('mousemove', this._onDragMouseMove.bind(this));
         document.addEventListener('mouseup', this._onDragMouseUp.bind(this));
     }
+
 
     /**
      * Starts dragging when mouse is pressed on the window (title bar area or whole element).
@@ -295,7 +247,6 @@ export class UiDomWindow {
      * @private
      */
     _onDragMouseDown(e) {
-        // console.log(`${this.constructor.name}: _onDragMouseDown : _isResizing: ${this._isResizing} : _isDragging: ${this._isDragging}`, e);
         if (e.button !== 0) return;                    // left mouse button only
         if (this._isResizing) return;                  // don't drag while resizing
 
@@ -316,11 +267,7 @@ export class UiDomWindow {
      * @private
      */
     _onDragMouseMove(e) {
-        // console.log(`${this.constructor.name}: _onDragMouseMove : _isResizing: ${this._isResizing} : _isDragging: ${this._isDragging}`, e);
         if (!this._isDragging) return;
-
-        e.preventDefault();
-        e.stopPropagation();
 
         this.element.style.left = `${e.clientX - this._offsetX}px`;
         this.element.style.top = `${e.clientY - this._offsetY}px`;
@@ -328,15 +275,10 @@ export class UiDomWindow {
 
     /**
      * Ends dragging.
-     * @param {MouseEvent} e - The mouse event.
      * @private
      */
-    _onDragMouseUp(e) {
-        // console.log(`${this.constructor.name}: _onDragMouseUp : _isResizing: ${this._isResizing} : _isDragging: ${this._isDragging}`, e);
+    _onDragMouseUp() {
         if (!this._isDragging) return;
-
-        e.preventDefault();
-        e.stopPropagation();
 
         this._isDragging = false;
         this.element.classList.remove('dragging');
@@ -355,10 +297,7 @@ export class UiDomWindow {
      * @returns {void}
      */
     show() {
-        if (this.isHidden) {
-            this.element.classList.remove('hidden');
-            this.isHidden = false;
-        }
+        this.element.classList.remove('hidden');
     }
 
     /**
@@ -366,43 +305,6 @@ export class UiDomWindow {
      * @returns {void}
      */
     hide() {
-        if (!this.isHidden) {
-            this.element.classList.add('hidden');
-            this.isHidden = true;
-        }
-    }
-
-    /**
-     * Sets the window tint based on a faction relationship value.
-     * Uses a static map to look up the tint class, avoiding string allocations.
-     * Only updates the DOM if the tint class has actually changed.
-     * @param {FactionRelationship} relationshipValue - A FactionRelationship value (Allied, Neutral, Hostile, or Disabled).
-     * @returns {void}
-     * @throws {Error} If the relationship value is not found in the tint class map.
-     */
-    setTintFromRelationship(relationshipValue) {
-        // Look up the tint class from the static map
-        const targetTintClass = UiDomWindow.#TINT_CLASS_MAP[relationshipValue];
-        if (targetTintClass === undefined) {
-            throw new Error(`Unknown relationship value: ${relationshipValue}. Add mapping to UiDomWindow.#TINT_CLASS_MAP.`);
-        }
-
-        // Only update DOM if the tint class has changed
-        if (this.tintClass === targetTintClass) {
-            return; // No change needed
-        }
-
-        // Remove old tint class if one was applied
-        if (this.tintClass) {
-            this.element.classList.remove(this.tintClass);
-        }
-
-        // Apply new tint class if one is needed
-        if (targetTintClass) {
-            this.element.classList.add(targetTintClass);
-        }
-
-        // Update cache
-        this.tintClass = targetTintClass;
+        this.element.classList.add('hidden');
     }
 }

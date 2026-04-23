@@ -64,8 +64,9 @@
 - [X] **Extended ship UI logging** - Expand the ship UI log to include notifications for other events like landing on planets/asteroids, taking off, entering autopilot modes, combat engagements, and system jumps.
 - [ ] **Unified DOM UI base class** - Unify the DOM GUI elements (Docking UI, Targeting, UILog) into a single DomUi base class supporting resizing, dragging, closing, and opening.
 - [ ] **Self-destruct confirmation window** - Add a dedicated self-destruct window with a prominent activation control and a clear confirmation step.
-- [ ] **Improved DOM UI window styling** - Create better looking window borders, headers, footers, and drag handles for all DOM UI windows to enhance visual consistency and usability.
+- [X] **Improved DOM UI window styling** - Create better looking window borders, headers, footers, and drag handles for all DOM UI windows to enhance visual consistency and usability.
 - [ ] **Self-destruct countdown flow** - Implement the armed self-destruct timer, audiovisual warning state, and final ship explosion sequence after activation.
+- [ ] **Improve Docking UI** - Should add better styling, a larg area at the top for landing image, trade, shipyard etc, text area at the bottom for planet description, local news, events etc, buttons down each side.
 
 ## Animations & Polish
 
@@ -79,4 +80,5 @@
 ## Refactor
 
 - [ ] **Refactor direct state updates** Locate and refactor any place where we directly update states instead of using setState() methods. Also rename any similar functions like updateState(), changeState() etc to setState() for consistency.
+- [ ] **Refactor uiDomWindow onMouse events** Combine the mouse event handelers for drag and resize, optionaly register/unregister the handelers when not in use. 
 

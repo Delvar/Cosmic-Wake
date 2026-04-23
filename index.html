@@ -6,6 +6,374 @@
     <style>
         @import url("https://fonts.cdnfonts.com/css/century-gothic-paneuropean");
 
+        /* =========================== */
+        /*  COLOUR PALETTE             */
+        /* =========================== */
+
+        :root {
+            /* 1970s muted colours */
+            --colour-red: #E57373;
+            --colour-red-orange: #ECA682;
+            --colour-orange: #F4A261;
+            --colour-orange-yellow: #EAB13B;
+            --colour-yellow: #E2B13C;
+            --colour-yellow-green: #B6D462;
+            --colour-green: #66CC66;
+            --colour-green-blue: #6699CC;
+            --colour-blue: #4C66E6;
+            --colour-blue-purple: #8066E6;
+            --colour-purple: #B266E6;
+            --colour-purple-red: #CB749F;
+
+            /* Light variants */
+            --colour-red-light: #F69696;
+            --colour-red-orange-light: #FCA586;
+            --colour-orange-light: #FDB47D;
+            --colour-orange-yellow-light: #F4C04E;
+            --colour-yellow-light: #F0C04E;
+            --colour-yellow-green-light: #CCDE75;
+            --colour-green-light: #78E278;
+            --colour-green-blue-light: #78B4E2;
+            --colour-blue-light: #637EF6;
+            --colour-blue-purple-light: #9678F6;
+            --colour-purple-light: #C378F6;
+            --colour-purple-red-light: #D89CB7;
+
+            /* Dark variants */
+            --colour-red-dark: #C05151;
+            --colour-red-orange-dark: #C6634B;
+            --colour-orange-dark: #CC7545;
+            --colour-orange-yellow-dark: #C57E2A;
+            --colour-yellow-dark: #C07E2A;
+            --colour-yellow-green-dark: #8A9C48;
+            --colour-green-dark: #489348;
+            --colour-green-blue-dark: #486F93;
+            --colour-blue-dark: #3648A2;
+            --colour-blue-purple-dark: #5A48A2;
+            --colour-purple-dark: #7F48A2;
+            --colour-purple-red-dark: #90637A;
+
+            /* Neutrals */
+            --colour-white: #F5ECDF;
+            --colour-grey: #9E968B;
+            --colour-black: #403C38;
+
+            --colour-white-light: #FAF3EB;
+            --colour-grey-light: #C0B8AD;
+            --colour-black-light: #635E57;
+
+            --colour-white-dark: #D6CFC4;
+            --colour-grey-dark: #7C756B;
+            --colour-black-dark: #2A2927;
+        }
+
+        /* =========================== */
+        /*  REUSABLE UI WINDOW SYSTEM  */
+        /* =========================== */
+
+        .ui-window {
+            --inner-radius: 5px;
+            --border-width: 2px;
+
+            --padding-top: 10px;
+            --padding-right: 5px;
+            --padding-bottom: 5px;
+            --padding-left: 5px;
+
+            --padding-border-top: calc(var(--border-width) + var(--padding-top));
+            --padding-border-right: calc(var(--border-width) + var(--padding-right));
+            --padding-border-bottom: calc(var(--border-width) + var(--padding-bottom));
+            --padding-border-left: calc(var(--border-width) + var(--padding-left));
+
+            --layer: 2.0;
+
+            position: absolute;
+            cursor: grab;
+        }
+
+        .ui-window.hidden {
+            visibility: hidden;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .ui-window.dragging {
+            cursor: grabbing;
+        }
+
+        /* Layer classes (0 = innermost) */
+        .ui-layer {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            border: var(--border-width) solid black;
+            padding: var(--padding-top) var(--padding-right) var(--padding-bottom) var(--padding-left);
+            transition: background-color 0.25s linear;
+        }
+
+        .ui-layer-2 {
+            background-color: var(--layer-2-bg, red);
+            --layer: 2.0;
+            border-top-left-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-top), var(--padding-border-left)) * var(--layer));
+            border-top-right-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-top), var(--padding-border-right)) * var(--layer));
+            border-bottom-left-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-bottom), var(--padding-border-left)) * var(--layer));
+            /* border-bottom-right-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-bottom), var(--padding-border-right)) * var(--layer)); */
+        }
+
+        .ui-layer-1 {
+            background-color: var(--layer-1-bg, green);
+            --layer: 1.0;
+            border-top-left-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-top), var(--padding-border-left)) * var(--layer));
+            border-top-right-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-top), var(--padding-border-right)) * var(--layer));
+            border-bottom-left-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-bottom), var(--padding-border-left)) * var(--layer));
+            /* border-bottom-right-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-bottom), var(--padding-border-right)) * var(--layer)); */
+        }
+
+        .ui-layer-0 {
+            background-color: var(--layer-0-bg, black);
+            --layer: 0.0;
+            border-top-left-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-top), var(--padding-border-left)) * var(--layer));
+            border-top-right-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-top), var(--padding-border-right)) * var(--layer));
+            border-bottom-left-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-bottom), var(--padding-border-left)) * var(--layer));
+            /* border-bottom-right-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-bottom), var(--padding-border-right)) * var(--layer)); */
+            padding: 0px;
+        }
+
+        /* Optional title bar */
+        .ui-window-title-bar {
+            position: absolute;
+            top: var(--border-width);
+            left: 0;
+            width: 100%;
+            display: flex;
+        }
+
+        .ui-window-title-left-wing {
+            width: calc(20px + (var(--padding-left) + var(--border-width)) * var(--layer) + var(--inner-radius));
+            flex-shrink: 0;
+            /* background-color: cadetblue; */
+        }
+
+        .ui-window-title-text {
+            background-color: var(--colour-black-dark);
+            padding: 2px 10px;
+            color: var(--title-text, turquoise);
+            font-size: calc(var(--border-width) + var(--layer) * (var(--padding-top) + var(--border-width)) - 1px);
+            font-weight: bold;
+            letter-spacing: 2px;
+            border-left-width: 4px;
+            border-left-style: solid;
+            border-left-color: var(--title-border, red);
+            border-right-width: 4px;
+            border-right-style: solid;
+            border-right-color: var(--title-border, red);
+            outline: var(--border-width) solid black;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-box: trim-both cap alphabetic;
+            transition: background-color 0.25s linear, color 0.25s linear, border-color 0.25s linear;
+        }
+
+        .ui-window-title-right-wing {
+            width: calc(20px + (var(--padding-right) + var(--border-width)) * var(--layer) + var(--inner-radius));
+            flex-shrink: 0;
+            /* background-color: cadetblue; */
+        }
+
+        .ui-window-content {
+            background-color: var(--content-bg, turquoise);
+            padding: 10px;
+            border-top-left-radius: var(--inner-radius);
+            border-top-right-radius: var(--inner-radius);
+            border-bottom-left-radius: var(--inner-radius);
+            border-bottom-right-radius: var(--inner-radius);
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
+        }
+
+        .ui-window-content:not(:first-child) {
+            margin-top: var(--border-width);
+        }
+
+        .ui-window-content:last-child {
+            border-bottom-right-radius: 0px;
+        }
+
+        /* =========================== */
+        /*  TINT SYSTEM                */
+        /* =========================== */
+
+        .tint-allied {
+            --layer-2-bg: var(--colour-green);
+            --layer-1-bg: var(--colour-green-blue-dark);
+            --layer-0-bg: var(--colour-black);
+            --content-bg: var(--colour-green-blue-light);
+            --title-border: var(--layer-2-bg);
+            --title-text: var(--colour-blue-light);
+        }
+
+        .tint-neutral {
+            --layer-2-bg: var(--colour-blue);
+            --layer-1-bg: var(--colour-blue-purple-dark);
+            --layer-0-bg: var(--colour-black);
+            --content-bg: var(--colour-blue-purple-light);
+            --title-border: var(--layer-2-bg);
+            --title-text: var(--colour-purple-light);
+        }
+
+        .tint-hostile {
+            --layer-2-bg: var(--colour-red);
+            --layer-1-bg: var(--colour-orange-dark);
+            --layer-0-bg: var(--colour-black);
+            --content-bg: var(--colour-red-orange-light);
+            --title-border: var(--layer-2-bg);
+            --title-text: var(--colour-orange-light);
+        }
+
+        .tint-disabled {
+            --layer-2-bg: var(--colour-grey-dark);
+            --layer-1-bg: var(--colour-black);
+            --layer-0-bg: var(--colour-black-dark);
+            --content-bg: var(--colour-grey);
+            --title-border: var(--layer-2-bg);
+            --title-text: var(--colour-grey-light);
+        }
+
+        /* =========================== */
+        /*  RESIZE HANDLES             */
+        /* =========================== */
+
+        .resize-handle {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-color: rgba(64, 224, 208, 0.219);
+        }
+
+        .resize-handle.top-left {
+            /* top: -4px; */
+            /* left: -4px; */
+            cursor: nwse-resize;
+        }
+
+        .resize-handle.top-right {
+            /* top: -4px; */
+            /* right: -4px; */
+            cursor: nesw-resize;
+        }
+
+        .resize-handle.bottom-left {
+            /* bottom: -4px; */
+            /* left: -4px; */
+            cursor: nesw-resize;
+        }
+
+        .resize-handle.bottom-right {
+            bottom: 0px;
+            right: 0px;
+            cursor: nwse-resize;
+            background: linear-gradient(-45deg,
+                    #0000004b 10%, #0000004b, #ffffff4b, #ffffff4b, #00000000, #00000000 20%,
+                    #0000004b 20%, #0000004b, #ffffff4b, #ffffff4b, #00000000, #00000000 30%,
+                    #0000004b 30%, #0000004b, #ffffff4b, #ffffff4b, #00000000, #00000000 40%,
+                    #0000004b 40%, #0000004b, #ffffff4b, #ffffff4b, #00000000, #00000000 50%)
+        }
+
+        /* =========================== */
+        /*  WINDOWS                    */
+        /* =========================== */
+
+        .ui-window {
+            transition: visibility 0.25s linear, opacity 0.25s ease-in-out;
+        }
+
+        .ui-window .ui-layer.ui-layer-0 {
+            display: grid;
+            grid-template-rows: 1fr;
+        }
+
+        .ui-window:not(.resizing, .dragging) .ui-layer.ui-layer-0 {
+            transition: grid-template-rows 0.25s ease-in-out;
+        }
+
+        .ui-window .ui-layer.ui-layer-0>div {
+            overflow: hidden;
+        }
+
+        .ui-window.hidden:not(.resizing, .dragging) .ui-layer.ui-layer-0 {
+            grid-template-rows: 0fr;
+        }
+
+        #target-ui {
+            top: 5%;
+            right: 5%
+        }
+
+        #target-ui canvas {
+            box-sizing: border-box;
+            border-top-left-radius: var(--inner-radius);
+            border-top-right-radius: var(--inner-radius);
+            border-bottom-left-radius: var(--inner-radius);
+            /* border-bottom-right-radius: var(--inner-radius); */
+        }
+
+        #docking-ui {
+            top: 50%;
+            left: 50%
+        }
+
+        /* =========================== */
+        /*  Buttons                    */
+        /* =========================== */
+
+        #docking-ui button {
+            /* margin-top: 10px; */
+            padding: 10px 20px;
+            font-size: 16px;
+            background: var(--colour-red-dark);
+            color: var(--colour-white);
+            border: none;
+            /* border-radius: 8px; */
+            cursor: pointer;
+            width: 100%;
+            display: flow;
+        }
+
+        #docking-ui button.disabled {
+            background: var(--colour-grey-dark);
+            color: var(--colour-grey);
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        #docking-ui button.hidden {
+            display: none !important;
+        }
+
+        /* All visible buttons get top margin */
+        #docking-ui button:not(.hidden) {
+            margin-top: var(--border-width);
+        }
+
+        /* First visible button – no top margin + rounded top */
+        #docking-ui button:nth-child(1 of :not(.hidden)) {
+            margin-top: 0;
+            border-top-left-radius: var(--inner-radius);
+            border-top-right-radius: var(--inner-radius);
+        }
+
+        /* Last visible button – rounded bottom */
+        #docking-ui button:nth-last-child(1 of :not(.hidden)) {
+            border-bottom-left-radius: var(--inner-radius);
+            /* border-bottom-right-radius: var(--inner-radius); */
+        }
+
+        /* =========================== */
+        /*  OTHER STUFF                */
+        /* =========================== */
+
         body {
             margin: 0.0;
             padding: 0.0;
@@ -23,28 +391,6 @@
             width: 100vw;
             height: 100vh;
             background-color: black;
-        }
-
-        /* Target camera: Positioned, draggable */
-        #targetCamera {
-            position: absolute;
-            margin: 0.0;
-            padding: 0.0;
-            outline: 2px solid white;
-            border-radius: 20px;
-            overflow: hidden;
-            min-width: 100px;
-            min-height: 100px;
-            background-color: black;
-            border: 1px black solid;
-            transition: visibility 0.5s linear, opacity 0.5s ease-in-out;
-            height: 20%;
-            width: 20%;
-            top: 5%;
-            right: 5%;
-            visibility: visible;
-            opacity: 1;
-            box-sizing: border-box;
         }
 
         /* Canvases: Fill div, stack with z-index */
@@ -79,43 +425,6 @@
         body.layered-hud-mode #targetCameraHud,
         body.layered-hud-mode #targetCameraHudOutline {
             display: block;
-        }
-
-        /* Optional: Draggable div (instead of canvas) */
-        #targetCamera.draggable {
-            cursor: move;
-        }
-
-        /* Resize handles */
-        .resize-handle {
-            position: absolute;
-            width: 20px;
-            height: 20px;
-            /* background-color: #e94560; */
-        }
-
-        .resize-handle.top-left {
-            top: -4px;
-            left: -4px;
-            cursor: nwse-resize;
-        }
-
-        .resize-handle.top-right {
-            top: -4px;
-            right: -4px;
-            cursor: nesw-resize;
-        }
-
-        .resize-handle.bottom-left {
-            bottom: -4px;
-            left: -4px;
-            cursor: nesw-resize;
-        }
-
-        .resize-handle.bottom-right {
-            bottom: -4px;
-            right: -4px;
-            cursor: nwse-resize;
         }
 
         /* Log list */
@@ -168,59 +477,6 @@
             align-items: end;
             transition: all 380ms ease-out;
         }
-
-        /* Docking UI */
-        #docking-ui {
-            position: absolute;
-            margin: 0.0;
-            padding: 0.0;
-            outline: 2px solid white;
-            border-radius: 20px;
-            overflow: hidden;
-            background-color: black;
-            border: 1px black solid;
-            transition: visibility 0.5s linear, opacity 0.5s ease-in-out;
-            height: 160px;
-            width: 250px;
-            top: 50%;
-            left: 50%;
-            visibility: visible;
-            opacity: 1;
-            text-align: center;
-            padding: 20px;
-            color: #eee;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
-            box-sizing: border-box;
-        }
-
-        #docking-ui.hidden {
-            visibility: hidden;
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        #docking-ui button {
-            margin-top: 10px;
-            padding: 10px 20px;
-            font-size: 16px;
-            background: #e94560;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            width: 100%;
-            display: flow;
-        }
-
-        #docking-ui button.hidden {
-            display: none !important;
-        }
-
-        #docking-ui button.disabled {
-            background: #666666;
-            cursor: not-allowed;
-            opacity: 0.6;
-        }
     </style>
 </head>
 
@@ -231,32 +487,58 @@
         <canvas id="mainCameraHud" style="visibility: visible; opacity: 1;"></canvas>
         <canvas id="mainCameraHudOutline" style="visibility: visible; opacity: 1;"></canvas>
     </div>
-    <div id="targetCamera" draggable="true">
-        <canvas id="targetCameraBackground"></canvas>
-        <canvas id="targetCameraForeground"></canvas>
-        <canvas id="targetCameraHud" style="visibility: visible; opacity: 1;"></canvas>
-        <canvas id="targetCameraHudOutline" style="visibility: visible; opacity: 1;"></canvas>
-        <span class="resize-handle top-left"></span>
-        <span class="resize-handle top-right"></span>
-        <span class="resize-handle bottom-left"></span>
-        <span class="resize-handle bottom-right"></span>
+
+    <div id="target-ui" draggable="true" class="ui-window tint-neutral hidden">
+        <div class="ui-layer ui-layer-2">
+            <div class="ui-layer ui-layer-1">
+                <div class="ui-layer ui-layer-0">
+                    <div>
+                        <div style="position: relative; ">
+                            <canvas id="targetCameraBackground"></canvas>
+                            <canvas id="targetCameraForeground"></canvas>
+                            <canvas id="targetCameraHud" style="visibility: visible; opacity: 1;"></canvas>
+                            <canvas id="targetCameraHudOutline" style="visibility: visible; opacity: 1;"></canvas>
+                            </canvas>
+                            <span class="resize-handle bottom-right"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="ui-window-title-bar">
+            <div class="ui-window-title-left-wing"></div>
+            <div class="ui-window-title-text">TARGET</div>
+            <div class="ui-window-title-right-wing"></div>
+        </div>
     </div>
+
+    <div id="docking-ui" draggable="true" class="ui-window tint-neutral hidden">
+        <div class="ui-layer ui-layer-2">
+            <div class="ui-layer ui-layer-1">
+                <div class="ui-layer ui-layer-0">
+                    <div>
+                        <button id="docking-ui-takeoff">🚀︎ Take Off</button>
+                        <button id="docking-ui-undock">🚀︎ Undock</button>
+                        <button id="docking-ui-repair">🛠︎ Repair Hull</button>
+                        <button id="docking-ui-start-mining">⛏︎ Start Mining</button>
+                        <button id="docking-ui-stop-mining">⛏︎ Stop Mining</button>
+                        <button id="docking-ui-capture">⚔︎ Capture Ship</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="ui-window-title-bar">
+            <div class="ui-window-title-left-wing"></div>
+            <div class="ui-window-title-text">DOCKING</div>
+            <div class="ui-window-title-right-wing"></div>
+        </div>
+    </div>
+
+
     <div class="ui-log">
         <div class="log-inner" id="log-inner"></div>
     </div>
-    <div id="docking-ui" class="hidden" draggable="true">
-        <span id="docking-ui-name">UNSET</span><br>
-        <button id="docking-ui-takeoff">🚀︎ Take Off</button>
-        <button id="docking-ui-undock">🚀︎ Undock</button>
-        <button id="docking-ui-repair">🛠︎ Repair Hull</button>
-        <button id="docking-ui-start-mining">⛏︎ Start Mining</button>
-        <button id="docking-ui-stop-mining">⛏︎ Stop Mining</button>
-        <button id="docking-ui-capture">⚔︎ Capture Ship</button>
-        <span class="resize-handle top-left"></span>
-        <span class="resize-handle top-right"></span>
-        <span class="resize-handle bottom-left"></span>
-        <span class="resize-handle bottom-right"></span>
-    </div>
+
     <!-- <button id="add-btn">＋ Add Log Entry</button> -->
     <script type="module" src="src/core/game.js"></script>
 </body>

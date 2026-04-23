@@ -34,9 +34,9 @@ export class UiDomWindowTarget extends UiDomWindow {
      * @override
      */
     _onResize() {
-        this.targetCamera.resize(this.element.clientWidth, this.element.clientHeight);
-        this.targetHud.resize(this.element.clientWidth, this.element.clientHeight);
-        this.starField.resize('target', this.element.clientWidth, this.element.clientHeight);
+        this.targetCamera.resize(this._resizableElement.clientWidth, this._resizableElement.clientHeight);
+        this.targetHud.resize(this._resizableElement.clientWidth, this._resizableElement.clientHeight);
+        this.starField.resize('target', this._resizableElement.clientWidth, this._resizableElement.clientHeight);
     }
 
     /**

@@ -22,39 +22,52 @@ export class UiDomWindowDocking extends UiDomWindow {
     /**
      * Creates a new UiDomWindowDocking instance.
      *
-     * @param {GameManager} manager - The game manager instance.
-     * @param {Object} elements - DOM elements for the docking UI.
-     * @param {HTMLElement} elements.dockingUI - The main docking UI div.
-     * @param {HTMLElement} elements.dockingName - The span for the docked object's name.
-     * @param {HTMLButtonElement} elements.takeoffButton - The takeoff button.
-     * @param {HTMLButtonElement} elements.undockButton - The undock button.
-     * @param {HTMLButtonElement} elements.repairButton - The repair hull button.
-     * @param {HTMLButtonElement} elements.startMiningButton - The start mining button.
-     * @param {HTMLButtonElement} elements.stopMiningButton - The stop mining button.
-     * @param {HTMLButtonElement} elements.captureButton - The capture button.
+     * @param {HTMLElement} element - The DOM element to manage.
      */
-    constructor(manager, elements) {
-        super(elements.dockingUI, 250.0, 160.0);
-        /** @type {GameManager} The game manager instance. */
-        this.manager = manager;
+    constructor(element) {
+        super(element, 250.0, 160.0);
 
-        /** @type {HTMLElement} The main docking UI div. */
-        this.dockingUI = elements.dockingUI;
+        const dockingName = element.querySelector('.ui-window-title-text');
+        const takeoffButton = document.getElementById('docking-ui-takeoff');
+        const undockButton = document.getElementById('docking-ui-undock');
+        const repairButton = document.getElementById('docking-ui-repair');
+        const startMiningButton = document.getElementById('docking-ui-start-mining');
+        const stopMiningButton = document.getElementById('docking-ui-stop-mining');
+        const captureButton = document.getElementById('docking-ui-capture');
+
+        if (!dockingName || !takeoffButton || !undockButton || !repairButton || !startMiningButton || !stopMiningButton || !captureButton) {
+            throw new TypeError('Missing required element!');
+        }
+
+        if (!(dockingName instanceof HTMLElement)) {
+            throw new TypeError('Element not a HTMLElement');
+        }
+
+        if (
+            !(takeoffButton instanceof HTMLButtonElement) ||
+            !(undockButton instanceof HTMLButtonElement) ||
+            !(repairButton instanceof HTMLButtonElement) ||
+            !(startMiningButton instanceof HTMLButtonElement) ||
+            !(stopMiningButton instanceof HTMLButtonElement) ||
+            !(captureButton instanceof HTMLButtonElement)
+        ) {
+            throw new TypeError('Element not a HTMLButtonElement');
+        }
+
         /** @type {HTMLElement} The span for the docked object's name. */
-        this.dockingName = elements.dockingName;
+        this.dockingName = dockingName;
         /** @type {HTMLButtonElement} The takeoff button. */
-        this.takeoffButton = elements.takeoffButton;
+        this.takeoffButton = takeoffButton;
         /** @type {HTMLButtonElement} The undock button. */
-        this.undockButton = elements.undockButton;
+        this.undockButton = undockButton;
         /** @type {HTMLButtonElement} The repair hull button. */
-        this.repairButton = elements.repairButton;
+        this.repairButton = repairButton;
         /** @type {HTMLButtonElement} The start mining button. */
-        this.startMiningButton = elements.startMiningButton;
+        this.startMiningButton = startMiningButton;
         /** @type {HTMLButtonElement} The stop mining button. */
-        this.stopMiningButton = elements.stopMiningButton;
+        this.stopMiningButton = stopMiningButton;
         /** @type {HTMLButtonElement} The capture button. */
-        this.captureButton = elements.captureButton;
-
+        this.captureButton = captureButton;
         /** @type {DockingContext|null} The current docking context. */
         this.dockingContext = null;
 
@@ -187,22 +200,6 @@ export class UiDomWindowDocking extends UiDomWindow {
                 this._lastDisplayed.miningStopButtonState = miningStopButtonState;
             }
         }
-    }
-
-    /**
-     * Displays the docking UI to the user.
-     * @returns {void}
-     */
-    show() {
-        this.dockingUI.classList.remove('hidden');
-    }
-
-    /**
-     * Hides the docking UI from the user.
-     * @returns {void}
-     */
-    hide() {
-        this.dockingUI.classList.add('hidden');
     }
 
     /**

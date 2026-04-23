@@ -70,13 +70,6 @@ export class Game {
         /** @type {Function} The bound game loop function for rendering and updating the game. */
         this.gameLoop = this.gameLoop.bind(this);
 
-        const targetParent = this.targetCamera.foregroundCanvas.parentElement;
-        if (!targetParent) {
-            throw new TypeError('No parent element on this.targetCamera.foregroundCanvas');
-        }
-        /** @type {UiDomWindowTarget} Initialize UiDomWindowTarget for handling target window resizing */
-        this.uiDomWindowTarget = new UiDomWindowTarget(targetParent, this.targetCamera, this.targetHud, this.starField);
-
         // Initialize canvas size
         this.resizeMainCamera();
         this.resizeTargetCamera();
@@ -150,7 +143,7 @@ export class Game {
             // Draw starfield for main camera
             this.starField.draw('main', this.mainCamera, fadeout, white);
         }
-        if (renderStarfield && this.starField && this.targetCamera && this.targetCamera.foregroundCanvas.parentElement?.style.visibility === 'visible') {
+        if (renderStarfield && this.starField && this.targetCamera && !this.manager.uiDomWindowTarget.isHidden) {
             let fadeout = 1.0;
             let white = 0.0;
             const target = this.manager.cameraTarget.target;
@@ -314,37 +307,19 @@ export class Game {
 
         const camera = this.targetCamera;
         const ctx = camera.foregroundCtx;
-        const parent = camera.foregroundCanvas.parentElement;
-        if (!parent) {
-            throw new TypeError('No parent element on camera.foregroundCanvas');
-        }
+        const targetWindow = this.manager.uiDomWindowTarget;
+
         if (!target) {
-            if (parent.style.visibility !== 'hidden') {
-                parent.style.visibility = 'hidden';
-                parent.style.opacity = '0.0';
-            }
+            targetWindow.hide();
             return;
         } else {
-            if (parent.style.visibility !== 'visible') {
-                parent.style.visibility = 'visible';
-                parent.style.opacity = '1.0';
-            }
+            targetWindow.show();
         }
 
         if (this.manager.cameraTarget.target instanceof Ship) {
-            switch (this.manager.cameraTarget.getRelationship(this.manager.cameraTarget.target)) {
-                case FactionRelationship.Allied:
-                    parent.style.outlineColor = Colour.Allied.toRGB();
-                    break;
-                case FactionRelationship.Neutral:
-                    parent.style.outlineColor = Colour.Neutral.toRGB();
-                    break;
-                case FactionRelationship.Hostile:
-                    parent.style.outlineColor = Colour.Hostile.toRGB();
-                    break;
-            }
+            targetWindow.setTintFromRelationship(this.manager.cameraTarget.getRelationship(this.manager.cameraTarget.target));
         } else {
-            parent.style.outlineColor = Colour.Neutral.toRGB();
+            targetWindow.setTintFromRelationship(FactionRelationship.Neutral);
         }
 
         ctx.clearRect(0.0, 0.0, camera.screenSize.width, camera.screenSize.height);
@@ -438,25 +413,22 @@ export class GameManager {
         /** @type {UiLog} The logging class that displayed on screen */
         this.uiLog = new UiLog(logArea);
 
-        /** @type {boolean} Whether the docking UI is currently shown. */
-        this.dockingUIShown = false;
-
-        /** @type {UiDomWindowDocking} The controller for docking UI interactions. */
-        this.uiDomWindowDocking = new UiDomWindowDocking(this, {
-            dockingUI: /** @type {HTMLElement} */ (document.getElementById('docking-ui')),
-            dockingName: /** @type {HTMLElement} */ (document.getElementById('docking-ui-name')),
-            takeoffButton: /** @type {HTMLButtonElement} */ (document.getElementById('docking-ui-takeoff')),
-            undockButton: /** @type {HTMLButtonElement} */ (document.getElementById('docking-ui-undock')),
-            repairButton: /** @type {HTMLButtonElement} */ (document.getElementById('docking-ui-repair')),
-            startMiningButton: /** @type {HTMLButtonElement} */ (document.getElementById('docking-ui-start-mining')),
-            stopMiningButton: /** @type {HTMLButtonElement} */ (document.getElementById('docking-ui-stop-mining')),
-            captureButton: /** @type {HTMLButtonElement} */ (document.getElementById('docking-ui-capture')),
-        });
+        const dockingUI = document.getElementById('docking-ui');
+        if (dockingUI) {
+            /** @type {UiDomWindowDocking} The controller for docking UI interactions. */
+            this.uiDomWindowDocking = new UiDomWindowDocking(dockingUI);
+        }
 
         /** @type {StarField} The starfield for rendering background stars. */
         this.starField = new StarField(10, 1000.0, 10.0, true, 10.0);
         this.starField.addCanvas('main', mainCameraBackgroundCanvas);
         this.starField.addCanvas('target', targetCameraBackgroundCanvas);
+
+        const targetUi = document.getElementById('target-ui');
+        if (targetUi) {
+            /** @type {UiDomWindowTarget} Initialize UiDomWindowTarget for handling target window resizing */
+            this.uiDomWindowTarget = new UiDomWindowTarget(targetUi, this.targetCamera, this.targetHud, this.starField);
+        }
 
         /** @type {Object.<string, boolean>} Tracks the current state of keyboard inputs. */
         this.keys = {};
@@ -612,16 +584,14 @@ export class GameManager {
     updateDockingUI() {
         const shouldShow = this.cameraTarget instanceof Ship && this.cameraTarget.pilot instanceof PlayerPilot && this.cameraTarget.dockingContext && this.cameraTarget.state == 'Landed';
         if (shouldShow) {
-            if (!this.dockingUIShown) {
+            if (this.uiDomWindowDocking.isHidden) {
                 this.uiDomWindowDocking.setDockingContext(this.cameraTarget.dockingContext);
                 this.uiDomWindowDocking.show();
-                this.dockingUIShown = true;
             }
             this.uiDomWindowDocking.update();
         } else {
-            if (this.dockingUIShown) {
+            if (!this.uiDomWindowDocking.isHidden) {
                 this.uiDomWindowDocking.hide();
-                this.dockingUIShown = false;
             }
         }
     }

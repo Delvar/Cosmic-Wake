@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Cosmic Wake GUI Samples</title>
+    <style>
+        @import url("https://fonts.cdnfonts.com/css/century-gothic-paneuropean");
+
+        /* =========================== */
+        /*  COLOUR PALETTE             */
+        /* =========================== */
+
+        :root {
+            /* 1970s muted colours */
+            --colour-red: #E57373;
+            --colour-red-orange: #ECA682;
+            --colour-orange: #F4A261;
+            --colour-orange-yellow: #EAB13B;
+            --colour-yellow: #E2B13C;
+            --colour-yellow-green: #B6D462;
+            --colour-green: #66CC66;
+            --colour-green-blue: #6699CC;
+            --colour-blue: #4C66E6;
+            --colour-blue-purple: #8066E6;
+            --colour-purple: #B266E6;
+            --colour-purple-red: #CB749F;
+
+            /* Light variants */
+            --colour-red-light: #F69696;
+            --colour-red-orange-light: #FCA586;
+            --colour-orange-light: #FDB47D;
+            --colour-orange-yellow-light: #F4C04E;
+            --colour-yellow-light: #F0C04E;
+            --colour-yellow-green-light: #CCDE75;
+            --colour-green-light: #78E278;
+            --colour-green-blue-light: #78B4E2;
+            --colour-blue-light: #637EF6;
+            --colour-blue-purple-light: #9678F6;
+            --colour-purple-light: #C378F6;
+            --colour-purple-red-light: #D89CB7;
+
+            /* Dark variants */
+            --colour-red-dark: #C05151;
+            --colour-red-orange-dark: #C6634B;
+            --colour-orange-dark: #CC7545;
+            --colour-orange-yellow-dark: #C57E2A;
+            --colour-yellow-dark: #C07E2A;
+            --colour-yellow-green-dark: #8A9C48;
+            --colour-green-dark: #489348;
+            --colour-green-blue-dark: #486F93;
+            --colour-blue-dark: #3648A2;
+            --colour-blue-purple-dark: #5A48A2;
+            --colour-purple-dark: #7F48A2;
+            --colour-purple-red-dark: #90637A;
+
+            /* Neutrals */
+            --colour-white: #F5ECDF;
+            --colour-grey: #9E968B;
+            --colour-black: #403C38;
+
+            --colour-white-light: #FAF3EB;
+            --colour-grey-light: #C0B8AD;
+            --colour-black-light: #635E57;
+
+            --colour-white-dark: #D6CFC4;
+            --colour-grey-dark: #7C756B;
+            --colour-black-dark: #2A2927;
+        }
+
+        /* =========================== */
+        /*  TINT SYSTEM                */
+        /* =========================== */
+
+        .tint-allied {
+            --layer-2-bg: var(--colour-green);
+            --layer-1-bg: var(--colour-green-blue-dark);
+            --layer-0-bg: var(--colour-black);
+            --content-bg: var(--colour-green-blue-light);
+            --title-border: var(--layer-2-bg);
+            --title-text: var(--colour-blue-light);
+        }
+
+        .tint-neutral {
+            --layer-2-bg: var(--colour-blue);
+            --layer-1-bg: var(--colour-blue-purple-dark);
+            --layer-0-bg: var(--colour-black);
+            --content-bg: var(--colour-blue-purple-light);
+            --title-border: var(--layer-2-bg);
+            --title-text: var(--colour-purple-light);
+        }
+
+        .tint-hostile {
+            --layer-2-bg: var(--colour-red);
+            --layer-1-bg: var(--colour-orange-dark);
+            --layer-0-bg: var(--colour-black);
+            --content-bg: var(--colour-red-orange-light);
+            --title-border: var(--layer-2-bg);
+            --title-text: var(--colour-orange-light);
+        }
+
+        .tint-disabled {
+            --layer-2-bg: var(--colour-grey-dark);
+            --layer-1-bg: var(--colour-black);
+            --layer-0-bg: var(--colour-black-dark);
+            --content-bg: var(--colour-grey);
+            --title-border: var(--layer-2-bg);
+            --title-text: var(--colour-grey-light);
+        }
+
+        body {
+            margin: 0.0;
+            padding: 0.0;
+            font-family: "Century Gothic Paneuropean", "Century Gothic", "CenturyGothic", "AppleGothic", sans-serif;
+            overflow: hidden;
+        }
+
+        /* Resize handles */
+        .resize-handle {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-color: rgba(64, 224, 208, 0.219);
+        }
+
+        .resize-handle.top-left {
+            /* top: -4px; */
+            /* left: -4px; */
+            cursor: nwse-resize;
+        }
+
+        .resize-handle.top-right {
+            /* top: -4px; */
+            /* right: -4px; */
+            cursor: nesw-resize;
+        }
+
+        .resize-handle.bottom-left {
+            /* bottom: -4px; */
+            /* left: -4px; */
+            cursor: nesw-resize;
+        }
+
+        .resize-handle.bottom-right {
+            bottom: 0px;
+            right: 0px;
+            cursor: nwse-resize;
+            background: linear-gradient(-45deg,
+                    #0000004b 10%, #0000004b, #ffffff4b, #ffffff4b, #00000000, #00000000 20%,
+                    #0000004b 20%, #0000004b, #ffffff4b, #ffffff4b, #00000000, #00000000 30%,
+                    #0000004b 30%, #0000004b, #ffffff4b, #ffffff4b, #00000000, #00000000 40%,
+                    #0000004b 40%, #0000004b, #ffffff4b, #ffffff4b, #00000000, #00000000 50%)
+        }
+
+        /* =========================== */
+        /*  REUSABLE UI WINDOW SYSTEM  */
+        /* =========================== */
+
+        .ui-window {
+            --inner-radius: 5px;
+            --border-width: 2px;
+
+            --padding-top: 10px;
+            --padding-right: 5px;
+            --padding-bottom: 5px;
+            --padding-left: 5px;
+
+            --padding-border-top: calc(var(--border-width) + var(--padding-top));
+            --padding-border-right: calc(var(--border-width) + var(--padding-right));
+            --padding-border-bottom: calc(var(--border-width) + var(--padding-bottom));
+            --padding-border-left: calc(var(--border-width) + var(--padding-left));
+
+            --layer: 2.0;
+
+            position: absolute;
+            cursor: grab;
+        }
+
+        .ui-window.dragging {
+            cursor: grabbing;
+        }
+
+        /* Layer classes (0 = innermost) */
+        .ui-layer {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            border: var(--border-width) solid black;
+            padding: var(--padding-top) var(--padding-right) var(--padding-bottom) var(--padding-left);
+        }
+
+        .ui-layer-2 {
+            background-color: var(--layer-2-bg, red);
+            --layer: 2.0;
+            border-top-left-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-top), var(--padding-border-left)) * var(--layer));
+            border-top-right-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-top), var(--padding-border-right)) * var(--layer));
+            border-bottom-left-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-bottom), var(--padding-border-left)) * var(--layer));
+            /* border-bottom-right-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-bottom), var(--padding-border-right)) * var(--layer)); */
+        }
+
+        .ui-layer-1 {
+            background-color: var(--layer-1-bg, green);
+            --layer: 1.0;
+            border-top-left-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-top), var(--padding-border-left)) * var(--layer));
+            border-top-right-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-top), var(--padding-border-right)) * var(--layer));
+            border-bottom-left-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-bottom), var(--padding-border-left)) * var(--layer));
+            /* border-bottom-right-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-bottom), var(--padding-border-right)) * var(--layer)); */
+        }
+
+        .ui-layer-0 {
+            background-color: var(--layer-0-bg, black);
+            --layer: 0.0;
+            border-top-left-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-top), var(--padding-border-left)) * var(--layer));
+            border-top-right-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-top), var(--padding-border-right)) * var(--layer));
+            border-bottom-left-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-bottom), var(--padding-border-left)) * var(--layer));
+            /* border-bottom-right-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-bottom), var(--padding-border-right)) * var(--layer)); */
+            padding: 0px;
+        }
+
+        /* Optional title bar */
+        .ui-window-title-bar {
+            position: absolute;
+            top: var(--border-width);
+            left: 0;
+            width: 100%;
+            display: flex;
+        }
+
+        .ui-window-title-left-wing {
+            width: calc(20px + (var(--padding-left) + var(--border-width)) * var(--layer) + var(--inner-radius));
+            flex-shrink: 0;
+            /* background-color: cadetblue; */
+        }
+
+        .ui-window-title-text {
+            background-color: var(--colour-black-dark);
+            padding: 0 10px;
+            color: var(--title-text, turquoise);
+            font-size: calc(var(--border-width) + var(--layer) * (var(--padding-top) + var(--border-width)));
+            font-weight: bold;
+            letter-spacing: 2px;
+            border-left-width: 4px;
+            border-left-style: solid;
+            border-left-color: var(--title-border, red);
+            border-right-width: 4px;
+            border-right-style: solid;
+            border-right-color: var(--title-border, red);
+            outline: var(--border-width) solid black;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: calc(var(--border-width) + var(--layer) * (var(--padding-top)));
+        }
+
+        .ui-window-title-right-wing {
+            width: calc(20px + (var(--padding-right) + var(--border-width)) * var(--layer) + var(--inner-radius));
+            flex-shrink: 0;
+            /* background-color: cadetblue; */
+        }
+
+        .ui-window-content {
+            background-color: var(--content-bg, turquoise);
+            padding: 10px;
+            border-top-left-radius: var(--inner-radius);
+            border-top-right-radius: var(--inner-radius);
+            border-bottom-left-radius: var(--inner-radius);
+            border-bottom-right-radius: var(--inner-radius);
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
+        }
+
+        .ui-window-content:not(:first-child) {
+            margin-top: var(--border-width);
+        }
+
+        .ui-window-content:last-child {
+            border-bottom-right-radius: 0px;
+        }
+    </style>
+</head>
+
+<body class="layered-hud-mode" style="background-color:black">
+    <div id="mainCamera">
+        <canvas id="mainCameraForeground"></canvas>
+    </div>
+
+    <div id="target-ui" draggable="true" class="ui-window tint-hostile">
+        <div class="ui-layer ui-layer-2">
+            <div class="ui-layer ui-layer-1">
+                <div class="ui-layer ui-layer-0">
+                    <div style="position: relative; ">
+                        <canvas id="targetCameraForeground" style="background-color: var(--colour-black); width: 100%; height: 100%; border-radius: var(--inner-radius);">
+                        </canvas>
+                        <span class="resize-handle bottom-right"></span>
+                    </div>
+                    <div class="ui-window-content">
+                        Content<br> Content <br>Content <br>Content <br>Content <br>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="ui-window-title-bar">
+            <div class="ui-window-title-left-wing"></div>
+            <div class="ui-window-title-text">HOSTILE</div>
+            <div class="ui-window-title-right-wing"></div>
+        </div>
+    </div>
+
+    <div id="target-ui2" draggable="true" class="ui-window tint-allied" style="left: 350px">
+        <div class="ui-layer ui-layer-2">
+            <div class="ui-layer ui-layer-1">
+                <div class="ui-layer ui-layer-0">
+                    <div class="ui-window-content">
+                        Content<br> Content <br>Content <br>Content <br>Content
+                    </div>
+                    <div class="ui-window-content" style="position: relative;">
+                        Content<br> Content <br>Content <br>Content <br>Content
+                        <span class="resize-handle bottom-right"></span>
+                    </div>
+                    <div class="ui-window-content">
+                        Content<br> Content <br>Content <br>Content <br>Content
+                    </div>
+                </div>
+                <div class="ui-window-content">
+                    Content<br> Content <br>Content <br>Content <br>Content
+                </div>
+            </div>
+        </div>
+        <div class="ui-window-title-bar">
+            <div class="ui-window-title-left-wing"></div>
+            <div class="ui-window-title-text">ALLIED</div>
+            <div class="ui-window-title-right-wing"></div>
+        </div>
+    </div>
+
+    <div id="target-ui3" draggable="true" class="ui-window tint-neutral" style="left: 600px">
+        <div class="ui-layer ui-layer-2">
+            <div class="ui-layer ui-layer-1">
+                <div class="ui-layer ui-layer-0">
+                    <div class="ui-window-content" style="position: relative;">
+                        Content<br> Content <br>Content <br>Content <br>Content
+                        <span class="resize-handle bottom-right"></span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        <div class="ui-window-title-bar">
+            <div class="ui-window-title-left-wing"></div>
+            <div class="ui-window-title-text">NEUTRAL</div>
+            <div class="ui-window-title-right-wing"></div>
+        </div>
+    </div>
+
+    <div id="target-ui4" draggable="true" class="ui-window tint-disabled" style="left: 850px">
+        <div class="ui-layer ui-layer-2">
+            <div class="ui-layer ui-layer-1">
+                <div class="ui-layer ui-layer-0">
+                    <div class="ui-window-content" style="position: relative;">
+                        Content<br> Content <br>Content <br>Content <br>Content
+                        <span class="resize-handle bottom-right"></span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        <div class="ui-window-title-bar">
+            <div class="ui-window-title-left-wing"></div>
+            <div class="ui-window-title-text">DISABLED</div>
+            <div class="ui-window-title-right-wing"></div>
+        </div>
+    </div>
+
+    <div id="target-ui5" draggable="true" class="ui-window" style="left: 850px; top: 50%">
+        <div class="ui-layer ui-layer-2" style="position: relative;">
+            <div class="ui-layer ui-layer-1">
+                <div class="ui-layer ui-layer-0">
+                    <div class="ui-window-content">
+                        Content<br> Content <br>Content <br>Content <br>Content
+                        <span class="resize-handle bottom-right"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="ui-window-title-bar">
+            <div class="ui-window-title-left-wing"></div>
+            <div class="ui-window-title-text">NONE</div>
+            <div class="ui-window-title-right-wing"></div>
+        </div>
+    </div>
+
+    <script type="module" src="src/core/game.js"></script>
+</body>
+
+</html>

@@ -41,7 +41,7 @@
 - [ ] **Pirate cargo selling behaviour** - If pirates are full of cargo, they will jump out of system and land on a planet to sell their stolen commodities.
 - [ ] **Enable AI Mining Control** Update Mining AI to start/stop mining, mine until cargo is full then head to planet to sell.
 - [ ] **Enable AI Repair Control** Add to basic AI Pilots the ability to repair hull via docking when landed.
-- [ ] **Fix WandererJob route/landing bug** - WandererJob currently shuttles between systems without landing on planets; rewrite route selection and state transitions to ensure planet landing behaviors.
+- [X] **Fix WandererJob route/landing bug** - WandererJob currently shuttles between systems without landing on planets; rewrite route selection and state transitions to ensure planet landing behaviors.
 
 ## User Interface
 
@@ -76,6 +76,7 @@
 ## Bug Fixes
 
 - [ ] **Fix Docking with disabled ship** <a id="fix-Docking-with-disabled-ship">[↩](#fix-Docking-with-disabled-ship)</a> When boarding a ship, another ship can also board the same ship and captures it and it starts moving off, first limit the number of ships that can dock to 1, also check if the docked ship is now not disabled, is moving etc so undock automatically. Related To: [Refactor ship-to-ship docking system](#refactor-ship-to-ship-docking-system)
+- [ ] **Fix disabled ship shield restarting** - the shields on disabeld ships restart, they should be deactivated compeltely.
 
 ## Refactor
 

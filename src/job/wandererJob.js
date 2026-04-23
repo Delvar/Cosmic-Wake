@@ -1,19 +1,18 @@
 // /src/job/wandererJob.js
 
 import { Job } from '/src/job/job.js';
-import { Vector2D } from '/src/core/vector2d.js';
 import { LandOnPlanetAutopilot } from '/src/autopilot/landOnPlanetAutopilot.js';
-import { CelestialBody, JumpGate, Planet } from '/src/starSystem/celestialBody.js';
-import { isValidTarget } from '/src/core/gameObject.js';
+import { JumpGate, Planet } from '/src/starSystem/celestialBody.js';
 import { Ship } from '/src/ship/ship.js';
 import { AiPilot } from '/src/pilot/aiPilot.js';
 import { GameManager } from '/src/core/game.js';
-import { StarSystem } from '/src/starSystem/starSystem.js';
-import { Asteroid } from '/src/starSystem/asteroidBelt.js';
 import { TraverseJumpGateAutopilot } from '/src/autopilot/traverseJumpGateAutopilot.js';
+import { isValidTarget } from '/src/core/gameObject.js';
 
 /**
- * Job for a ship to wander between planets, prioritizing different star systems.
+ * Job for a ship to wander between planets and star systems using simple last-visited tracking to avoid immediate looping.
+ * Replaces complex route/finalTarget/target planning with random selection of a planet or jump gate in the current system (excluding lastVisited).
+ * Retains Starting/Travelling/Waiting states with the exact flow specified in the plan.
  * @extends Job
  */
 export class WandererJob extends Job {
@@ -26,29 +25,22 @@ export class WandererJob extends Job {
         super(ship, pilot);
         /** @type {string} The current job state ('Starting', 'Travelling', 'Waiting'). */
         this.state = 'Starting';
-        /** @type {CelestialBody|Asteroid|JumpGate|null} The current navigation target (jump gate or planet). */
-        this.target = null;
-        /** @type {CelestialBody|Asteroid|null} The final destination planet. */
-        this.finalTarget = null;
-        /** @type {(JumpGate|CelestialBody|Asteroid)[]} Array of jump gates and planets to reach finalTarget. */
-        this.route = [];
+        /** @type {Planet|JumpGate|null} The last visited body or gate to prevent immediate looping. */
+        this.lastVisited = null;
         /** @type {number} Time (seconds) spent in Waiting state. */
         this.waitTime = 0.0;
-        /** @type {Vector2D} Temporary vector for distance calculations. */
-        this._scratchVector = new Vector2D();
         /** @type {Object.<string, Function>} Map of state names to handler methods. */
         this.stateHandlers = {
             Starting: this.updateStarting.bind(this),
             Travelling: this.updateTravelling.bind(this),
-            Waiting: this.updateWaiting.bind(this),
-            'Failed': () => { }
+            Waiting: this.updateWaiting.bind(this)
         };
 
         if (new.target === WandererJob) Object.seal(this);
     }
 
     /**
-     * Updates the job's behavior by delegating to the current state handler.
+     * Updates the job's behaviour by delegating to the current state handler.
      * @param {number} deltaTime - Time elapsed since last update (seconds).
      * @param {GameManager} gameManager - The game manager instance for context.
      * @returns {void}
@@ -65,60 +57,71 @@ export class WandererJob extends Job {
     }
 
     /**
-     * Handles the 'Starting' state, planning a route to a random planet.
+     * Sets the initial lastVisited based on ship state (landed planet or closest planet).
+     * @returns {void}
+     */
+    setInitialLastVisited() {
+        this.debugLog(() => console.log(`${this.constructor.name}: Setting initial lastVisited, ship state: ${this.ship.state}`));
+        if (this.ship.state === 'Landed' && this.ship.dockingContext?.landedObject instanceof Planet) {
+            this.lastVisited = this.ship.dockingContext.landedObject;
+        } else {
+            //this.lastVisited = this._getClosestPlanet();
+            this.lastVisited = this.ship.starSystem.getClosestPlanet(this.ship, null);
+        }
+    }
+
+    /**
+     * Picks a random valid planet or jump gate in the current system, excluding lastVisited.
+     * @returns {Planet|JumpGate|null} The selected destination or null if none available.
+     */
+    pickDestination() {
+        const currentSystem = this.ship.starSystem;
+        const excludePlanet = this.lastVisited instanceof Planet ? this.lastVisited : null;
+        const excludejumpGate = this.lastVisited instanceof JumpGate ? this.lastVisited : null;
+
+        this.debugLog(() => console.log(`${this.constructor.name}: Picking destination excluding ${this.lastVisited?.name || 'none'}`));
+
+        // simple 50/50 random choice between planet and gate
+        if (Math.random() < 0.5) {
+            const planet = currentSystem.getRandomPlanet(this.ship, excludePlanet);
+            if (planet) {
+                return planet;
+            }
+        } else {
+            let jumpGate = currentSystem.getRandomJumpGate(this.ship, excludejumpGate);
+            if (jumpGate) {
+                return jumpGate;
+            }
+        }
+
+        // fallback
+        return currentSystem.getRandomPlanet(this.ship) || null;
+    }
+
+    /**
+     * Handles the 'Starting' state: sets lastVisited then switches to Travelling.
      * @param {number} deltaTime - Time elapsed since last update (seconds).
      * @param {GameManager} gameManager - The game manager instance for context.
      * @returns {void}
      */
     updateStarting(deltaTime, gameManager) {
-        this.debugLog(() => console.log(`${this.constructor.name}: Planning route, ship state: ${this.ship.state}`));
-
-        this.target = null;
-        this.finalTarget = null;
-        this.route = [];
-
-        if (!this.planRoute()) {
-            this.debugLog(() => console.log(`${this.constructor.name}: Failed to plan route, retrying next frame`));
-            this.error = 'No valid destination found';
-            return;
-        }
-
-        this.debugLog(() => console.log(`${this.constructor.name}: Planned target ${this.target?.name}, transitioning to Travelling`));
-
+        this.setInitialLastVisited();
+        this.debugLog(() => console.log(`${this.constructor.name}: Transitioning to Travelling`));
         this.state = 'Travelling';
     }
 
     /**
-     * Handles the 'Travelling' state, managing takeoff and navigation to the target.
+     * Handles the 'Travelling' state: manages autopilot completion (updates lastVisited if jumped) and picks/sets new autopilot if none.
+     * Switches to Waiting if landed on a planet.
      * @param {number} deltaTime - Time elapsed since last update (seconds).
      * @param {GameManager} gameManager - The game manager instance for context.
      * @returns {void}
      */
     updateTravelling(deltaTime, gameManager) {
-        if (this.ship.state === 'Landed' && this.target === this.finalTarget && this.route.length === 0.0) {
-            this.debugLog(() => console.log(`${this.constructor.name}: Landed at final target ${this.target?.name}, transitioning to Waiting`));
-            this.waitTime = 10 + Math.random() * 20.0;
-            this.state = 'Waiting';
-            return;
-        }
-
         if (this.ship.state === 'Landed') {
-            if (!this.target || !isValidTarget(this.ship, this.target)) {
-                this.debugLog(() => console.log(`${this.constructor.name}: Invalid target while landed, transitioning to Starting`));
-                this.error = 'Invalid target';
-                this.state = 'Starting';
-                return;
-            }
-            if (!this.ship.dockingContext) {
-                throw new TypeError('dockingContext is missing on Landed ship');
-            }
-            this.waitTime -= deltaTime;
-            if (this.waitTime <= 0.0) {
-                this.debugLog(() => console.log(`${this.constructor.name}: Initiating takeoff toward ${this.target?.name}`));
-                this.ship.setTarget(this.target);
-                this.ship.dockingContext.takeOff();
-                this.waitTime = 0.0;
-            }
+            this.debugLog(() => console.log(`${this.constructor.name}: Landed at planet, transitioning to Waiting`));
+            this.waitTime = 5.0 + Math.random() * 5.0;
+            this.state = 'Waiting';
             return;
         }
 
@@ -128,42 +131,37 @@ export class WandererJob extends Job {
             return;
         }
 
-        if (!this.target || !isValidTarget(this.ship, this.target)) {
-            this.target = this.selectNextValidTarget();
-            if (!this.target) {
-                this.debugLog(() => console.log(`${this.constructor.name}: No valid target or route, transitioning to Starting`));
-                this.error = 'No valid target';
-                this.state = 'Starting';
-                return;
+        if (this.pilot.autopilot?.isComplete()) {
+            const autopilot = this.pilot.autopilot;
+            if (autopilot instanceof TraverseJumpGateAutopilot) {
+                this.debugLog(() => console.log(`${this.constructor.name}: Jump complete, setting lastVisited to closest arrival jump gate`));
+                if (autopilot.target?.lane.targetGate) {
+                    this.lastVisited = autopilot.target?.lane.targetGate;
+                }
             }
-            this.debugLog(() => console.log(`${this.constructor.name}: Selected new target ${this.target?.name}`));
+            this.pilot.setAutopilot(null);
         }
 
         if (!this.pilot.autopilot) {
-            if (this.target instanceof JumpGate) {
-                this.debugLog(() => console.log(`${this.constructor.name}: Setting TraverseJumpGateAutopilot for ${this.target?.name}`));
-                this.pilot.setAutopilot(new TraverseJumpGateAutopilot(this.ship, this.target));
-            } else if (this.target instanceof JumpGate) {
-                this.debugLog(() => console.log(`${this.constructor.name}: Setting LandOnPlanetAutopilot for ${this.target?.name}`));
-                this.pilot.setAutopilot(new LandOnPlanetAutopilot(this.ship, this.target));
-            } else {
-                //FIXME: need a better recovery method than this.
-                this.resume();
-                //this.debugLog(() => console.warn(`${this.constructor.name}: Autopilot missing, no valid target, restarting!`));
-                console.warn(`${this.constructor.name}: Autopilot missing, no valid target, restarting!`)
+            const destination = this.pickDestination();
+            if (!destination) {
+                this.debugLog(() => console.log(`${this.constructor.name}: No valid destination found, transitioning to Starting`));
+                this.error = 'No valid destination found';
+                this.state = 'Starting';
                 return;
             }
-        }
 
-        if (this.pilot.autopilot?.isComplete()) {
-            this.debugLog(() => console.log(`${this.constructor.name}: Autopilot complete, clearing`));
-            this.pilot.setAutopilot(null);
-            this.target = null;
+            this.debugLog(() => console.log(`${this.constructor.name}: Setting autopilot to ${destination.name}`));
+            if (destination instanceof JumpGate) {
+                this.pilot.setAutopilot(new TraverseJumpGateAutopilot(this.ship, destination));
+            } else {
+                this.pilot.setAutopilot(new LandOnPlanetAutopilot(this.ship, destination));
+            }
         }
     }
 
     /**
-     * Handles the 'Waiting' state, delaying before re-planning.
+     * Handles the 'Waiting' state: waits, then sets lastVisited to current planet, takes off, and switches to Travelling.
      * @param {number} deltaTime - Time elapsed since last update (seconds).
      * @param {GameManager} gameManager - The game manager instance for context.
      * @returns {void}
@@ -178,95 +176,24 @@ export class WandererJob extends Job {
 
         this.waitTime -= deltaTime;
         if (this.waitTime <= 0.0) {
-            this.debugLog(() => console.log(`${this.constructor.name}: Finished Waiting, transitioning to Starting`));
-            this.state = 'Starting';
+            this.debugLog(() => console.log(`${this.constructor.name}: Finished Waiting, setting lastVisited to current planet and taking off`));
+            if (this.ship.dockingContext?.landedObject instanceof Planet) {
+                this.lastVisited = this.ship.dockingContext.landedObject;
+            } else {
+                this.lastVisited = this.ship.starSystem.getClosestPlanet(this.ship, null);
+            }
             this.waitTime = 0.0;
+
+            if (!this.ship.dockingContext) {
+                throw new TypeError('dockingContext is missing on Landed ship');
+            }
+            this.ship.dockingContext.takeOff();
+            this.state = 'Travelling';
         }
     }
 
     /**
-     * Plans a route to a random planet, prioritizing different star systems (80% chance).
-     * @returns {boolean} True if a valid route was planned, false otherwise.
-     */
-    planRoute() {
-        const currentSystem = this.ship.starSystem;
-        const excludePlanet = (this.ship.state === 'Landed' && this.ship.dockingContext?.landedObject instanceof Planet) ? this.ship.dockingContext.landedObject : null;
-
-        this.debugLog(() => console.log(`${this.constructor.name}: Planning route, system: ${currentSystem.name}, exclude: ${excludePlanet?.name || 'none'}`));
-
-        if (Math.random() < 0.2) {
-            this.finalTarget = currentSystem.getRandomPlanet(this.ship, excludePlanet);
-            if (this.finalTarget) {
-                this.target = this.finalTarget;
-                this.route = [];
-                this.debugLog(() => console.log(`${this.constructor.name}: Selected same-system target: ${this.finalTarget?.name}`));
-                return true;
-            }
-        }
-
-        return this.planCrossSystemRoute(currentSystem, excludePlanet);
-    }
-
-    /**
-     * Plans a route to a planet in a different star system.
-     * @param {StarSystem} currentSystem - The current star system.
-     * @param {Planet|null} excludePlanet - Planet to exclude.
-     * @returns {boolean} True if a valid route was planned, false otherwise.
-     */
-    planCrossSystemRoute(currentSystem, excludePlanet) {
-        const jumpGate = currentSystem.getRandomJumpGate(this.ship);
-        if (!jumpGate) {
-            this.finalTarget = currentSystem.getRandomPlanet(this.ship, excludePlanet) || excludePlanet;
-            if (this.finalTarget) {
-                this.target = this.finalTarget;
-                this.route = [];
-                this.debugLog(() => console.log(`${this.constructor.name}: No jump gate, selected fallback: ${this.finalTarget?.name}`));
-                return true;
-            }
-            return false;
-        }
-
-        const destinationSystem = jumpGate.lane.target;
-        this.finalTarget = destinationSystem.getRandomPlanet();
-        if (!this.finalTarget) {
-            this.finalTarget = currentSystem.getRandomPlanet(this.ship, excludePlanet) || excludePlanet;
-            if (this.finalTarget) {
-                this.target = this.finalTarget;
-                this.route = [];
-                this.debugLog(() => console.log(`${this.constructor.name}: No planet in destination, selected fallback: ${this.finalTarget?.name}`));
-                return true;
-            }
-            return false;
-        }
-
-        this.target = jumpGate;
-        this.route = [jumpGate, this.finalTarget];
-        this.debugLog(() => console.log(`${this.constructor.name}: Selected cross-system target: ${this.finalTarget?.name} via ${jumpGate.name}`));
-        return true;
-    }
-
-    /**
-     * Selects the next valid target from the route or finalTarget.
-     * @returns {CelestialBody|Asteroid|JumpGate|null} The next valid target, or null if none.
-     */
-    selectNextValidTarget() {
-        while (this.route.length > 0.0) {
-            const nextTarget = this.route.shift() || null;
-            if (isValidTarget(this.ship, nextTarget)) {
-                return nextTarget;
-            }
-            this.debugLog(() => console.log(`${this.constructor.name}: Skipped invalid route target ${nextTarget?.name}`));
-        }
-
-        if (this.finalTarget && isValidTarget(this.ship, this.finalTarget)) {
-            return this.finalTarget;
-        }
-
-        return null;
-    }
-
-    /**
-     * Pauses the job, saving the current state.
+     * Pauses the job, clearing autopilot.
      * @returns {void}
      */
     pause() {
@@ -278,16 +205,17 @@ export class WandererJob extends Job {
     }
 
     /**
-     * Resumes the job, resetting to Starting.
+     * Resumes the job, resetting to Starting state and clearing lastVisited.
      * @returns {void}
      */
     resume() {
         super.resume();
-        this.state = 'Starting';
-        this.target = null;
-        this.finalTarget = null;
-        this.route = [];
-        this.waitTime = 0.0;
-        this.debugLog(() => console.log(`${this.constructor.name}: Resumed, transitioning to Starting`));
+        const autopilot = this.pilot.autopilot;
+        if ((autopilot instanceof TraverseJumpGateAutopilot || autopilot instanceof LandOnPlanetAutopilot) && !isValidTarget(this.ship, autopilot.target)) {
+            this.state = 'Starting';
+            this.lastVisited = null;
+            this.waitTime = 0.0;
+        }
+        this.debugLog(() => console.log(`${this.constructor.name}: Resumed, transitioning to ${this.state}`));
     }
 }

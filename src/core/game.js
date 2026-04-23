@@ -639,6 +639,7 @@ export class GameManager {
             if (this.debug) {
                 console.log(`spawnAiShipsIfNeeded : totalShipCount : ${totalShipCount} of ${totalMaxAiShips}`);
             }
+            this.spawnInterval = this.randomSpawnInterval();
             return;
         }
 
@@ -848,7 +849,7 @@ export class GameManager {
         });
 
         this.lastSpawnTime = currentTime;
-        this.spawnInterval = this.randomSpawnInterval();
+        //this.spawnInterval = this.randomSpawnInterval();
     }
 
     /**

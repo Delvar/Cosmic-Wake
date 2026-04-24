@@ -62,7 +62,7 @@
 - [ ] **Expanded debug display design** - Define a more comprehensive debug display layout so current and future debug information can be shown in a readable way instead of all appearing in one place.
 - [X] **Cargo pickup HUD notifications** - Add fading, scrolling notification list to HUD (right/left side) for cargo pickups: show cargo type + quantity per entry; flash on pickup, fade alpha over time; new entries push older up; max lines/height drops oldest. Player-facing: Clear feedback on collections. Supporting: Event from cargo system to HeadsUpDisplay, render queue with timers/positions.
 - [X] **Extended ship UI logging** - Expand the ship UI log to include notifications for other events like landing on planets/asteroids, taking off, entering autopilot modes, combat engagements, and system jumps.
-- [ ] **Unified DOM UI base class** - Unify the DOM GUI elements (Docking UI, Targeting, UILog) into a single DomUi base class supporting resizing, dragging, closing, and opening.
+- [X] **Unified DOM UI base class** - Unify the DOM GUI elements (Docking UI, Targeting, UILog) into a single DomUi base class supporting resizing, dragging, closing, and opening.
 - [ ] **Self-destruct confirmation window** - Add a dedicated self-destruct window with a prominent activation control and a clear confirmation step.
 - [X] **Improved DOM UI window styling** - Create better looking window borders, headers, footers, and drag handles for all DOM UI windows to enhance visual consistency and usability.
 - [ ] **Self-destruct countdown flow** - Implement the armed self-destruct timer, audiovisual warning state, and final ship explosion sequence after activation.

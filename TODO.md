@@ -67,6 +67,8 @@
 - [X] **Improved DOM UI window styling** - Create better looking window borders, headers, footers, and drag handles for all DOM UI windows to enhance visual consistency and usability.
 - [ ] **Self-destruct countdown flow** - Implement the armed self-destruct timer, audiovisual warning state, and final ship explosion sequence after activation.
 - [ ] **Improve Docking UI** - Should add better styling, a larg area at the top for landing image, trade, shipyard etc, text area at the bottom for planet description, local news, events etc, buttons down each side.
+- [ ] **Remove ship health bars from HUD** - Remove the ship health bars from the HUD and convert them into a uiDomWindow.
+- [ ] **Add target info to target window** - Add target info data to the target window (uiDomWindowTarget): target name, type, faction, hull %, shields %.
 
 ## Animations & Polish
 

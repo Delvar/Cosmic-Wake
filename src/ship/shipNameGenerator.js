@@ -87,7 +87,7 @@ const wordLists = {
         'Drake', 'Grendel', 'Horus', 'Judas', 'Khan', 'Kidd', 'Lafitte', 'Lilith',
         'Medusa', 'Mordred', 'Morgan', 'Rackham', 'Rasputin', 'Ravenna', 'Seren',
         'Teach', 'Vane', 'Vexan', 'Vlad'],
-    PersonifiedNouns: ['Admiral', 'Aunt', 'Bard', 'Baron', 'Baroness"', 'Brother',
+    PersonifiedNouns: ['Admiral', 'Aunt', 'Bard', 'Baron', 'Baroness', 'Brother',
         'Caliph', 'Captain', 'Chairman', 'Chairwoman', 'Champion', 'Chieftain', 'Commodore',
         'Companion', 'Count', 'Countess', 'Cousin', 'Director', 'Dreamer', 'Drifter',
         'Duchess', 'Duke', 'Earl', 'Emperor', 'Empress', 'Explorer', 'Fellow', 'Friend',

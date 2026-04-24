@@ -91,4 +91,21 @@ export class GameObject {
             callback();
         }
     }
+
+    /**
+     * Gets the name of the game object.
+     * @returns {string|null} The name of the game object.
+     */
+    getName() {
+        return this.name;
+    }
+
+    /**
+     * Sets the name of the game object.
+     * @param {string|null} name - The new name for the game object.
+     * @returns {void}
+     */
+    setName(name) {
+        this.name = name;
+    }
 }

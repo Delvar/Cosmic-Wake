@@ -22,7 +22,6 @@ import { StarSystem } from '/src/starSystem/starSystem.js';
 import { EscortJob } from '/src/job/escortJob.js';
 import { FactionManager, FactionRelationship } from '/src/core/faction.js';
 import { Colour } from '/src/core/colour.js';
-import { generateShipName } from '/src/ship/shipNameGenerator.js';
 import { CommodityType } from '/src/core/commodity.js';
 import { UiLog } from '/src/ui/uiLog.js'
 import { CivilianAiPilot } from '/src/pilot/civilianAiPilot.js';
@@ -496,14 +495,12 @@ export class GameManager {
         escort01.colors.wings = this.playerShip.colors.wings;
         escort01.colors.hull = this.playerShip.colors.hull;
         escort01.trail.color = this.playerShip.trail.color;
-        escort01.name = generateShipName(escort01);
         this.galaxy[0].addGameObject(escort01);
         this.playerShip.setTarget(escort01);
         this.playerShip.turretMode = 'Target-only';
 
         // Set player pilot
-        this.playerShip.pilot = this.playerPilot;
-        this.playerShip.name = generateShipName(this.playerShip);
+        this.playerShip.setPilot(this.playerPilot);
         this.galaxy[0].ships.push(this.playerShip);
 
         // Initialize game systems
@@ -741,7 +738,6 @@ export class GameManager {
                     aiShip.shipScale = 0.0;
                     aiShip.velocity.set(0.0, 0.0);
                     aiShip.createDockingContext(spawnPlanet);
-                    aiShip.name = generateShipName(aiShip);
                     spawnPlanet.addLandedShip(aiShip);
                     system.addGameObject(aiShip);
                     officerCount++;
@@ -802,7 +798,6 @@ export class GameManager {
                     aiShip.shipScale = 0.0;
                     aiShip.velocity.set(0.0, 0.0);
                     aiShip.createDockingContext(spawnPlanet);
-                    aiShip.name = generateShipName(aiShip);
                     spawnPlanet.addLandedShip(aiShip);
                     system.addGameObject(aiShip);
 
@@ -831,7 +826,6 @@ export class GameManager {
                             escortShip.shipScale = 0.0;
                             escortShip.velocity.set(0.0, 0.0);
                             escortShip.createDockingContext(spawnPlanet);
-                            escortShip.name = generateShipName(escortShip);
                             spawnPlanet.addLandedShip(escortShip);
                             system.addGameObject(escortShip);
                             if (escortShip.faction === civilianFaction) {

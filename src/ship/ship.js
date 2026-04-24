@@ -19,6 +19,7 @@ import { Faction, FactionRelationship } from '/src/core/faction.js';
 import { CommodityType, Commodities } from '/src/core/commodity.js';
 import { UiLog } from '/src/ui/uiLog.js'
 import { DockingContext } from '/src/ship/dockingContext.js';
+import { generateShipName } from '/src/ship/shipNameGenerator.js';
 
 //Colours used for the lights
 const colourRed = new Colour(1.0, 0.0, 0.0);
@@ -66,7 +67,7 @@ export class Ship extends GameObject {
         /** @type {Ship[]} List of hostile ships. */
         this.hostiles = [];
         /** @type {string} Unique name for the ship, generated randomly. */
-        this.name = 'unnamed';
+        this.setName('unnamed');
         /** @type {number} Rotation speed in radians per second. */
         this.rotationSpeed = Math.PI;
         /** @type {number} the radius in world units. */
@@ -530,6 +531,7 @@ export class Ship extends GameObject {
                 this.dockingContext.landedObject.removeLandedShip(this);
             }
         }
+        console.log(`${this.constructor.name}: DESPAWN ${this.getName()}`);
     }
 
     /**
@@ -572,6 +574,7 @@ export class Ship extends GameObject {
      */
     setPilot(pilot) {
         this.pilot = pilot;
+        this._ensureNameIsSet();
     }
 
     /**
@@ -993,6 +996,8 @@ export class Ship extends GameObject {
      */
     update(deltaTime) {
         if (this.despawned) return; // Skip updates for despawned ships
+
+        this._ensureNameIsSet();
 
         this.age += deltaTime; // Increment ship age for animations
 
@@ -1477,8 +1482,8 @@ export class Ship extends GameObject {
 
             // Despawn the ship
             this.despawn();
-            this.uiLog(`Ship ${this.name} exploded!`);
-            this.debugLog(() => console.log(`${this.constructor.name}: Ship ${this.name} despawned with final explosion at (${this._scratchExplosionPos.x.toFixed(2.0)}, ${this._scratchExplosionPos.y.toFixed(2.0)})`));
+            this.uiLog(`Ship ${this.getName()} exploded!`);
+            this.debugLog(() => console.log(`${this.constructor.name}: Ship ${this.getName()} despawned with final explosion at (${this._scratchExplosionPos.x.toFixed(2.0)}, ${this._scratchExplosionPos.y.toFixed(2.0)})`));
             return;
         }
 
@@ -1528,6 +1533,21 @@ export class Ship extends GameObject {
         if (Math.abs(this.angularVelocity) > this.maxAngularVelocity) {
             this.angularVelocity = Math.sign(this.angularVelocity) * this.maxAngularVelocity;
         }
+    }
+
+    /**
+     * Ensures the ship's name is set if not already, performing necessary validations.
+     * @returns {void}
+     */
+    _ensureNameIsSet() {
+        if (this.getName() !== 'unnamed') return;
+
+        if (this.radius === 0) return;
+        if (!this.pilot) return;
+        if (this.pilot instanceof AiPilot && !this.pilot.job) return;
+
+        this.setName(generateShipName(this));
+        // console.log(`${this.constructor.name}: SPAWN ${this.getName()}`);
     }
 
     /**

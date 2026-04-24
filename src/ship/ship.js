@@ -17,7 +17,7 @@ import { Camera } from '/src/camera/camera.js';
 import { FlyToTargetAutopilot } from '/src/autopilot/flyToTargetAutopilot.js';
 import { Faction, FactionRelationship } from '/src/core/faction.js';
 import { CommodityType, Commodities } from '/src/core/commodity.js';
-import { UiLog } from '/src/ui/uiLog.js'
+import { UiDomWindowLog } from '../ui/uiDomWindowLog.js'
 import { DockingContext } from '/src/ship/dockingContext.js';
 import { generateShipName } from '/src/ship/shipNameGenerator.js';
 
@@ -66,8 +66,6 @@ export class Ship extends GameObject {
         this.faction = faction;
         /** @type {Ship[]} List of hostile ships. */
         this.hostiles = [];
-        /** @type {string} Unique name for the ship, generated randomly. */
-        this.setName('unnamed');
         /** @type {number} Rotation speed in radians per second. */
         this.rotationSpeed = Math.PI;
         /** @type {number} the radius in world units. */
@@ -223,11 +221,11 @@ export class Ship extends GameObject {
         this.cargoCapacity = 100;
         /** @type {Object.<string, number>} Cargo storage as a map of commodity types to quantities. */
         this.cargo = {};
-        /** @type {UiLog|null} Optional UI log for displaying cargo pickup messages. */
+        /** @type {UiDomWindowLog|null} Optional UI log for displaying cargo pickup messages. */
         this._uiLog = null;
 
         /** @type {boolean} Whether automatic cargo container pickup is enabled. */
-        this.isRetrievingCargo = true;
+        this.isRetrievingCargo = false;
 
         /** @type {boolean} Whether the ship is jettisoning cargo. */
         this.isJettisoningCargo = false;
@@ -303,7 +301,7 @@ export class Ship extends GameObject {
 
     /**
      * Sets the UI log for this ship.
-     * @param {UiLog|null} uiLog - The UI log instance or null.
+     * @param {UiDomWindowLog|null} uiLog - The UI log instance or null.
      * @returns {void}
      */
     setUiLog(uiLog) {
@@ -1540,9 +1538,9 @@ export class Ship extends GameObject {
      * @returns {void}
      */
     _ensureNameIsSet() {
-        if (this.getName() !== 'unnamed') return;
-
-        if (this.radius === 0) return;
+        if (this.name !== null) return;
+        if (!this.faction) return;
+        if (!this.radius) return;
         if (!this.pilot) return;
         if (this.pilot instanceof AiPilot && !this.pilot.job) return;
 

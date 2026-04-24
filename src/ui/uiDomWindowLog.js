@@ -1,15 +1,24 @@
-// /src/ui/uiLog.js
+// /src/ui/uiDomWindowLog.js
+
+import { UiDomWindow } from "/src/ui/uiDomWindow.js";
 
 /**
  * Manages an in-game log display with automatic message fading and line limits.
  * Handles adding new log entries, removing old ones, and animating their appearance/disappearance.
  */
-export class UiLog {
+export class UiDomWindowLog extends UiDomWindow {
     /**
      * Creates a new UiLog instance.
-     * @param {HTMLElement} inner - The HTML element to append log lines to.
+     * @param {HTMLElement} element - The DOM element to manage.
      */
-    constructor(inner) {
+    constructor(element) {
+        super(element, 200.0, 200.0);
+
+        const inner = document.getElementById('log-ui-inner');
+
+        if (!(inner instanceof HTMLElement)) {
+            throw new TypeError('Inner element not a HTMLElement');
+        }
         /** @type {HTMLElement} The container element for log lines. */
         this.inner = inner;
         /** @type {number} Maximum number of log lines to display. */

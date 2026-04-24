@@ -112,12 +112,12 @@ export class UiDomWindow {
      * @private
      */
     _setupResizing() {
+        const handles = this.element.querySelectorAll('.resize-handle');
+        if (handles.length === 0) return; // No handles, skip setup
+
         const rect = this._resizableElement.getBoundingClientRect();
         this._resizableElement.style.width = `${Math.max(this.minWidth, rect.width)}px`;
         this._resizableElement.style.height = `${Math.max(this.minHeight, rect.height)}px`;
-
-        const handles = this.element.querySelectorAll('.resize-handle');
-        if (handles.length === 0) return; // No handles, skip setup
 
         handles.forEach((handle) => {
             handle.addEventListener('mousedown', this._onMouseDown.bind(this));

@@ -324,6 +324,82 @@
             left: 50%
         }
 
+        #log-ui {
+            top: 40px;
+            left: 10px;
+            display: flex;
+            flex-direction: row;
+        }
+
+        #log-ui .bar {
+            width: var(--padding-border-left);
+            background-color: var(--layer-2-bg);
+            border-top-left-radius: var(--padding-border-left);
+            border-bottom-left-radius: var(--padding-border-left);
+            flex-shrink: 0;
+            transition: height 100ms ease-out;
+            border: var(--border-width) solid black;
+        }
+
+        #log-ui .inner {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            height: 100%;
+            box-sizing: border-box;
+            margin-left: var(--padding-border-left);
+        }
+
+        #log-ui .log-line {
+            color: var(--colour-white-light);
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
+            height: 22px;
+            line-height: 22px;
+            display: flex;
+        }
+
+        @keyframes pulse {
+            0% {
+                color: var(--colour-white-light);
+            }
+
+            50% {
+                color: var(--colour-grey-dark);
+            }
+
+            100% {
+                color: var(--colour-white-light);
+            }
+        }
+
+        #log-ui .log-line.in {
+            opacity: 1;
+            align-items: start;
+            transition-property: opacity, height;
+            transition-duration: 200ms;
+            transition-timing-function: ease-out;
+            animation: pulse 200ms 2;
+            @starting-style {
+                opacity: 0;
+                height: 0px;
+                margin-top: 0px;
+                margin-bottom: 0px;
+                padding-top: 0px;
+                padding-bottom: 0px;
+            }
+        }
+
+        #log-ui .log-line.out {
+            opacity: 0;
+            height: 0px;
+            margin-top: 0px;
+            margin-bottom: 0px;
+            padding-top: 0px;
+            padding-bottom: 0px;
+            align-items: end;
+            transition: all 380ms ease-out;
+        }
+
         /* =========================== */
         /*  Buttons                    */
         /* =========================== */
@@ -426,57 +502,6 @@
         body.layered-hud-mode #targetCameraHudOutline {
             display: block;
         }
-
-        /* Log list */
-        .ui-log {
-            position: absolute;
-            bottom: 45px;
-            left: 10px;
-            min-width: 390px;
-            box-sizing: border-box;
-        }
-
-        .log-inner {
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
-            height: 100%;
-            box-sizing: border-box;
-        }
-
-        .log-line {
-            color: #eee;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
-            height: 22px;
-            line-height: 22px;
-            display: flex;
-        }
-
-        .log-line.in {
-            opacity: 1;
-            align-items: start;
-            transition: all 380ms ease-out;
-
-            @starting-style {
-                opacity: 0;
-                height: 0px;
-                margin-top: 0px;
-                margin-bottom: 0px;
-                padding-top: 0px;
-                padding-bottom: 0px;
-            }
-        }
-
-        .log-line.out {
-            opacity: 0;
-            height: 0px;
-            margin-top: 0px;
-            margin-bottom: 0px;
-            padding-top: 0px;
-            padding-bottom: 0px;
-            align-items: end;
-            transition: all 380ms ease-out;
-        }
     </style>
 </head>
 
@@ -534,9 +559,9 @@
         </div>
     </div>
 
-
-    <div class="ui-log">
-        <div class="log-inner" id="log-inner"></div>
+    <div id="log-ui" draggable="true" class="ui-window tint-neutral">
+        <div class="bar"></div>
+        <div id="log-ui-inner" class="inner"></div>
     </div>
 
     <!-- <button id="add-btn">＋ Add Log Entry</button> -->

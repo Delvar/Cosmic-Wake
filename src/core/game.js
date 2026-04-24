@@ -23,7 +23,7 @@ import { EscortJob } from '/src/job/escortJob.js';
 import { FactionManager, FactionRelationship } from '/src/core/faction.js';
 import { Colour } from '/src/core/colour.js';
 import { CommodityType } from '/src/core/commodity.js';
-import { UiLog } from '/src/ui/uiLog.js'
+import { UiDomWindowLog } from '../ui/uiDomWindowLog.js'
 import { CivilianAiPilot } from '/src/pilot/civilianAiPilot.js';
 import { UiDomWindowDocking } from '../ui/uiDomWindowDocking.js';
 import { UiDomWindow } from '/src/ui/uiDomWindow.js';
@@ -390,10 +390,6 @@ export class GameManager {
         if (!targetCameraHudOutlineCanvas) {
             throw new TypeError('Unable to find element targetCameraHudOutline');
         }
-        const logArea = /** @type {HTMLElement} */ document.getElementById('log-inner');
-        if (!logArea) {
-            throw new TypeError('Unable to find element log-inner');
-        }
 
         /** @type {Camera} The main camera tracking the player's ship. */
         this.mainCamera = new Camera(mainCameraForegroundCanvas, mainCameraBackgroundCanvas, mainCameraHudCanvas, mainCameraHudOutlineCanvas, 1.0);
@@ -408,20 +404,22 @@ export class GameManager {
         this.targetHud.showCameraTargetName = true;
         /** @type {Ship} The current target for the camera, typically the player's ship. */
         this.cameraTarget = /** @type {any} */ (null);
+        /** @type {StarField} The starfield for rendering background stars. */
+        this.starField = new StarField(10, 1000.0, 10.0, true, 10.0);
+        this.starField.addCanvas('main', mainCameraBackgroundCanvas);
+        this.starField.addCanvas('target', targetCameraBackgroundCanvas);
 
-        /** @type {UiLog} The logging class that displayed on screen */
-        this.uiLog = new UiLog(logArea);
+        const logUI = document.getElementById('log-ui');
+        if (logUI) {
+            /** @type {UiDomWindowLog} The logging class that displayed on screen */
+            this.uiDomWindowLog = new UiDomWindowLog(logUI);
+        }
 
         const dockingUI = document.getElementById('docking-ui');
         if (dockingUI) {
             /** @type {UiDomWindowDocking} The controller for docking UI interactions. */
             this.uiDomWindowDocking = new UiDomWindowDocking(dockingUI);
         }
-
-        /** @type {StarField} The starfield for rendering background stars. */
-        this.starField = new StarField(10, 1000.0, 10.0, true, 10.0);
-        this.starField.addCanvas('main', mainCameraBackgroundCanvas);
-        this.starField.addCanvas('target', targetCameraBackgroundCanvas);
 
         const targetUi = document.getElementById('target-ui');
         if (targetUi) {
@@ -448,7 +446,7 @@ export class GameManager {
         }
         /** @type {Ship} The player's ship, positioned relative to a planet. */
         this.playerShip = new Interceptor(spawnPlanet.position.x + spawnPlanet.radius * 1.5, spawnPlanet.position.y, this.galaxy[0], playerFaction);
-        this.playerShip.setUiLog(this.uiLog);
+        this.playerShip.setUiLog(this.uiDomWindowLog);
 
         //FIXME: Hack to test cargo space and jettisoning
         // const commodities = Object.values(CommodityType);
@@ -875,7 +873,7 @@ export class GameManager {
         const nextIndex = (currentIndex + 1.0) % ships.length;
         this.cameraTarget = ships[nextIndex];
         this.cameraTarget.debug = this.debug;
-        this.cameraTarget.setUiLog(this.uiLog);
+        this.cameraTarget.setUiLog(this.uiDomWindowLog);
     }
 
     /**
@@ -896,7 +894,7 @@ export class GameManager {
                     this.cameraTarget.removeUiLog();
                 }
                 this.cameraTarget = this.playerShip;
-                this.cameraTarget.setUiLog(this.uiLog);
+                this.cameraTarget.setUiLog(this.uiDomWindowLog);
             }
             if (e.key === 'D') {
                 this.debug = !this.debug;

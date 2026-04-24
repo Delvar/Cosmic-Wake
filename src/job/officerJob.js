@@ -89,7 +89,11 @@ export class OfficerJob extends Job {
      * @returns {void}
      */
     updateHunting(deltaTime, gameManager) {
-        if (this.ship.state !== 'Flying') return;
+        if (this.ship.state !== 'Flying') {
+            this.state = 'Starting';
+            this.debugLog(() => console.log(`${this.constructor.name}: Not flying in hunting state, transitioning to Starting`));
+            return;
+        }
 
         if (this.pilot.state === 'Attack') {
             // Already attacking, let pilot handle

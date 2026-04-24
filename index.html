@@ -306,6 +306,11 @@
             grid-template-rows: 0fr;
         }
 
+        .ui-layer-2.ui-glow {
+            transition: box-shadow 0.25s linear;
+            box-shadow: 0 0 40px color-mix(var(--layer-2-bg, red) 40%, transparent);
+        }
+
         #target-ui {
             top: 5%;
             right: 5%
@@ -339,6 +344,7 @@
             flex-shrink: 0;
             transition: height 100ms ease-out;
             border: var(--border-width) solid black;
+            box-shadow: 0 0 20px var(--layer-2-bg, red);
         }
 
         #log-ui .inner {
@@ -379,6 +385,7 @@
             transition-duration: 200ms;
             transition-timing-function: ease-out;
             animation: pulse 200ms 2;
+
             @starting-style {
                 opacity: 0;
                 height: 0px;
@@ -514,7 +521,7 @@
     </div>
 
     <div id="target-ui" draggable="true" class="ui-window tint-neutral hidden">
-        <div class="ui-layer ui-layer-2">
+        <div class="ui-layer ui-layer-2 ui-glow">
             <div class="ui-layer ui-layer-1">
                 <div class="ui-layer ui-layer-0">
                     <div>
@@ -538,7 +545,7 @@
     </div>
 
     <div id="docking-ui" draggable="true" class="ui-window tint-neutral hidden">
-        <div class="ui-layer ui-layer-2">
+        <div class="ui-layer ui-layer-2 ui-glow">
             <div class="ui-layer ui-layer-1">
                 <div class="ui-layer ui-layer-0">
                     <div>

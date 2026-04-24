@@ -26,7 +26,6 @@ import { CommodityType } from '/src/core/commodity.js';
 import { UiDomWindowLog } from '../ui/uiDomWindowLog.js'
 import { CivilianAiPilot } from '/src/pilot/civilianAiPilot.js';
 import { UiDomWindowDocking } from '../ui/uiDomWindowDocking.js';
-import { UiDomWindow } from '/src/ui/uiDomWindow.js';
 import { UiDomWindowTarget } from '/src/ui/uiDomWindowTarget.js';
 
 /**
@@ -494,7 +493,6 @@ export class GameManager {
         escort01.colors.hull = this.playerShip.colors.hull;
         escort01.trail.color = this.playerShip.trail.color;
         this.galaxy[0].addGameObject(escort01);
-        this.playerShip.setTarget(escort01);
         this.playerShip.turretMode = 'Target-only';
 
         // Set player pilot

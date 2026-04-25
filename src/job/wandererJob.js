@@ -25,6 +25,8 @@ export class WandererJob extends Job {
         super(ship, pilot);
         /** @type {string} The current job state ('Starting', 'Travelling', 'Waiting'). */
         this.state = 'Starting';
+        /** @type {Planet|JumpGate|null} The destination picked to travel to, sued when resuming. */
+        this.destination = null;
         /** @type {Planet|JumpGate|null} The last visited body or gate to prevent immediate looping. */
         this.lastVisited = null;
         /** @type {number} Time (seconds) spent in Waiting state. */
@@ -35,6 +37,7 @@ export class WandererJob extends Job {
             Travelling: this.updateTravelling.bind(this),
             Waiting: this.updateWaiting.bind(this)
         };
+
 
         if (new.target === WandererJob) Object.seal(this);
     }
@@ -65,7 +68,6 @@ export class WandererJob extends Job {
         if (this.ship.state === 'Landed' && this.ship.dockingContext?.landedObject instanceof Planet) {
             this.lastVisited = this.ship.dockingContext.landedObject;
         } else {
-            //this.lastVisited = this._getClosestPlanet();
             this.lastVisited = this.ship.starSystem.getClosestPlanet(this.ship, null);
         }
     }
@@ -106,7 +108,23 @@ export class WandererJob extends Job {
      */
     updateStarting(deltaTime, gameManager) {
         this.setInitialLastVisited();
-        this.debugLog(() => console.log(`${this.constructor.name}: Transitioning to Travelling`));
+        const destination = this.pickDestination();
+        if (!destination) {
+            console.error(`${this.constructor.name}: updateStarting: No valid destination found`);
+            this.state = 'Error';
+            this.error = 'No valid destination found';
+            return;
+        }
+        this.debugLog(() => console.log(`${this.constructor.name}: updateStarting: Setting autopilot to ${destination.name}`));
+        if (destination instanceof JumpGate) {
+            this.pilot.setAutopilot(new TraverseJumpGateAutopilot(this.ship, destination));
+            this.debugLog(() => console.log(`${this.constructor.name}: updateStarting: updateTravelling : setAutopilot TraverseJumpGateAutopilot ${destination.name}`));
+        } else {
+            this.pilot.setAutopilot(new LandOnPlanetAutopilot(this.ship, destination));
+            this.debugLog(() => console.log(`${this.constructor.name}: updateStarting: updateTravelling : setAutopilot LandOnPlanetAutopilot ${destination.name}`));
+        }
+        this.destination = destination;
+        this.debugLog(() => console.log(`${this.constructor.name}: updateStarting: Transitioning to Travelling`));
         this.state = 'Travelling';
     }
 
@@ -131,32 +149,41 @@ export class WandererJob extends Job {
             return;
         }
 
-        if (this.pilot.autopilot?.isComplete()) {
-            const autopilot = this.pilot.autopilot;
-            if (autopilot instanceof TraverseJumpGateAutopilot) {
-                this.debugLog(() => console.log(`${this.constructor.name}: Jump complete, setting lastVisited to closest arrival jump gate`));
-                if (autopilot.target?.lane.targetGate) {
-                    this.lastVisited = autopilot.target?.lane.targetGate;
-                }
-            }
-            this.pilot.setAutopilot(null);
+        if (!this.pilot.autopilot || !(this.pilot.autopilot instanceof TraverseJumpGateAutopilot || this.pilot.autopilot instanceof LandOnPlanetAutopilot)) {
+            this.state = 'Starting';
+            this.debugLog(() => console.log(`${this.constructor.name}: Not a valid autopilot (state: ${this.pilot.autopilot?.constructor.name}), transitioning to Starting`));
+            return;
         }
 
-        if (!this.pilot.autopilot) {
-            const destination = this.pickDestination();
-            if (!destination) {
-                this.debugLog(() => console.log(`${this.constructor.name}: No valid destination found, transitioning to Starting`));
-                this.error = 'No valid destination found';
-                this.state = 'Starting';
-                return;
+        if (this.pilot.autopilot.isComplete()) {
+            if (this.pilot.autopilot instanceof TraverseJumpGateAutopilot) {
+                this.debugLog(() => console.log(`${this.constructor.name}: Jump complete, setting lastVisited to arrival jump gate`));
+                if (this.pilot.autopilot.target?.lane.targetGate) {
+                    this.lastVisited = this.pilot.autopilot.target?.lane.targetGate;
+                }
+                const destination = this.pickDestination();
+                if (!destination) {
+                    console.error(`${this.constructor.name}: updateTravelling: No valid destination found`);
+                    this.state = 'Error';
+                    this.error = 'No valid destination found';
+                    return;
+                }
+                this.debugLog(() => console.log(`${this.constructor.name}: updateTravelling: Setting autopilot to ${destination.name}`));
+                if (destination instanceof JumpGate) {
+                    this.pilot.setAutopilot(new TraverseJumpGateAutopilot(this.ship, destination));
+                    this.debugLog(() => console.log(`${this.constructor.name}: updateTravelling: updateTravelling : setAutopilot TraverseJumpGateAutopilot ${destination.name}`));
+                } else {
+                    this.pilot.setAutopilot(new LandOnPlanetAutopilot(this.ship, destination));
+                    this.debugLog(() => console.log(`${this.constructor.name}: updateTravelling: updateTravelling : setAutopilot LandOnPlanetAutopilot ${destination.name}`));
+                }
+                this.destination = destination;
             }
+        }
 
-            this.debugLog(() => console.log(`${this.constructor.name}: Setting autopilot to ${destination.name}`));
-            if (destination instanceof JumpGate) {
-                this.pilot.setAutopilot(new TraverseJumpGateAutopilot(this.ship, destination));
-            } else {
-                this.pilot.setAutopilot(new LandOnPlanetAutopilot(this.ship, destination));
-            }
+        if (this.destination == null || !(this.destination instanceof JumpGate || this.destination instanceof Planet) || !isValidTarget(this.ship, this.destination)) {
+            this.state = 'Starting';
+            this.debugLog(() => console.log(`${this.constructor.name}: Not a valid destination (state: ${this.destination?.constructor.name}), transitioning to Starting`));
+            return;
         }
     }
 
@@ -210,12 +237,21 @@ export class WandererJob extends Job {
      */
     resume() {
         super.resume();
-        const autopilot = this.pilot.autopilot;
-        if ((autopilot instanceof TraverseJumpGateAutopilot || autopilot instanceof LandOnPlanetAutopilot) && !isValidTarget(this.ship, autopilot.target)) {
-            this.state = 'Starting';
-            this.lastVisited = null;
-            this.waitTime = 0.0;
-        }
+        // const destination = this.destination;
+        // if (!(destination instanceof JumpGate || destination instanceof Planet) || !isValidTarget(this.ship, destination)) {
+        //     this.state = 'Starting';
+        //     this.lastVisited = null;
+        //     this.waitTime = 0.0;
+        //     this.debugLog(() => console.log(`${this.constructor.name}: resume : (!(destination instanceof JumpGate || destination instanceof Planet) || !isValidTarget(this.ship, destination))`));
+        // } else {
+        //     if (destination instanceof JumpGate) {
+        //         this.pilot.setAutopilot(new TraverseJumpGateAutopilot(this.ship, destination));
+        //         this.debugLog(() => console.log(`${this.constructor.name}: resume : setAutopilot TraverseJumpGateAutopilot ${destination.name}`));
+        //     } else if (destination instanceof Planet) {
+        //         this.pilot.setAutopilot(new LandOnPlanetAutopilot(this.ship, destination));
+        //         this.debugLog(() => console.log(`${this.constructor.name}: resume : setAutopilot LandOnPlanetAutopilot ${destination.name}`));
+        //     }
+        // }
         this.debugLog(() => console.log(`${this.constructor.name}: Resumed, transitioning to ${this.state}`));
     }
 }

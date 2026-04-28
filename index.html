@@ -541,7 +541,6 @@
 
             --layer:0;
             /* Default configurable values (overridable per bar) */
-            --bar-width: 200px;
             --segment-width: 25px;
             --gap: 5px;
             --height: 18px;
@@ -557,12 +556,14 @@
             text-box: trim-both cap alphabetic;
         }
 
+        .ui-progress-bar-label-percent-value {
+            text-align: right;
+            min-width: 4.8ch;
+        }
+
         .ui-progress-bar-label-percent-value::after {
             counter-reset: progress-counter var(--percent);
             content: counter(progress-counter) '%';
-            padding-left: 5px;
-            text-align: left;
-            justify-content: left;
         }
 
         .ui-progress-bar-label-text {
@@ -706,7 +707,7 @@
         <div id="log-ui-inner" class="inner"></div>
     </div>
 
-    <div id="stats-ui" draggable="true" class="ui-window tint-neutral" style="bottom: 10px; left: 10px; right: 10px; min-width: 200px; max-width: 1900px; min-height:50px; max-height: 50px;">
+    <div id="stats-ui" draggable="true" class="ui-window tint-neutral" style="bottom: 10px; left: 10px; right: 10px; min-width: 208px; max-width: 1853px; width: 1853px; min-height:50px; max-height: 50px;">
         <div class="ui-progress-container">
             <div class="ui-progress-bar" id="main-status-hull">
                 <div class="ui-progress-bar-label ui-progress-bar-label-text">

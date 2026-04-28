@@ -520,16 +520,17 @@
             display: block;
         }
 
+        .ui-progress-container {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            align-items: center;
+            column-gap: 10px;
+            row-gap: 6px;
+        }
+
         .ui-progress-bar {
             width: 100%;
-            /* max-width: 100%; */
-            /* margin-bottom: 24px; */
-            display: flex;
-            flex-direction: row;
-            flex-wrap: nowrap;
-            align-items: center;
-            justify-content: center;
-            align-content: center;
+            display: contents;
 
             /* Register once for the whole page */
             @property --percent {
@@ -550,14 +551,10 @@
 
         .ui-progress-bar-label {
             font-size: var(--height);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
             letter-spacing: 2px;
             white-space: nowrap;
             overflow: hidden;
             text-box: trim-both cap alphabetic;
-            flex-shrink: 0;
         }
 
         .ui-progress-bar-label-percent-value::after {
@@ -565,14 +562,11 @@
             content: counter(progress-counter) '%';
             padding-left: 5px;
             text-align: left;
-            min-width: 55px;
             justify-content: left;
         }
 
         .ui-progress-bar-label-text {
-            padding-right: 5px;
             text-align: right;
-            min-width: 70px;
             justify-content: right;
         }
 
@@ -713,33 +707,28 @@
     </div>
 
     <div id="stats-ui" draggable="true" class="ui-window tint-neutral" style="bottom: 10px; left: 10px; right: 10px; min-width: 200px; max-width: 1900px; min-height:50px; max-height: 50px;">
-        <div>
-            <div>
-                <div class="ui-progress-bar" id="main-status-hull">
-                    <div class="ui-progress-bar-label ui-progress-bar-label-text">
-                        HULL
-                    </div>
-                    <div class="ui-progress-bar-bar-container">
-                        <div class="ui-progress-bar-bar"></div>
-                    </div>
-                    <div class="ui-progress-bar-label ui-progress-bar-label-percent-value">
-                    </div>
+        <div class="ui-progress-container">
+            <div class="ui-progress-bar" id="main-status-hull">
+                <div class="ui-progress-bar-label ui-progress-bar-label-text">
+                    HULL
+                </div>
+                <div class="ui-progress-bar-bar-container">
+                    <div class="ui-progress-bar-bar"></div>
+                </div>
+                <div class="ui-progress-bar-label ui-progress-bar-label-percent-value">
                 </div>
             </div>
 
-            <div>
-                <div class="ui-progress-bar" id="main-status-shield">
-                    <div class="ui-progress-bar-label ui-progress-bar-label-text">
-                        SHIELD
-                    </div>
-                    <div class="ui-progress-bar-bar-container">
-                        <div class="ui-progress-bar-bar"></div>
-                    </div>
-                    <div class="ui-progress-bar-label ui-progress-bar-label-percent-value">
-                    </div>
+            <div class="ui-progress-bar" id="main-status-shield">
+                <div class="ui-progress-bar-label ui-progress-bar-label-text">
+                    SHIELD
+                </div>
+                <div class="ui-progress-bar-bar-container">
+                    <div class="ui-progress-bar-bar"></div>
+                </div>
+                <div class="ui-progress-bar-label ui-progress-bar-label-percent-value">
                 </div>
             </div>
-
         </div>
         <span class="resize-handle bottom-right"></span>
     </div>

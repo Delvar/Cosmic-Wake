@@ -554,10 +554,20 @@ export class GameManager {
                     const dist = shipA.position.distanceTo(shipB.position);
                     const minDist = shipA.radius + shipB.radius;
                     if (dist < minDist && dist > 0.0) {
+                        const closestCelestialBody = starSystem.getClosestJumpGatePlanet(shipA, null);
+                        let forceModulation = 1.0;
+                        if (closestCelestialBody) {
+                            const celestialBodyDistance = shipA.position.distanceSquaredTo(closestCelestialBody?.position);
+                            if (celestialBodyDistance < (20.0 * 20.0)) {
+                                continue;
+                            } else {
+                                forceModulation = remapClamp(celestialBodyDistance, 20.0 * 20.0, 150.0 * 150.0, 0.0, 1.0);
+                            }
+                        }
                         const overlap = minDist - dist;
                         const totalRadius = shipA.radius + shipB.radius;
-                        const pushB = (shipA.radius / totalRadius) * Math.min(overlap, 25.0 * deltaTime);
-                        const pushA = (shipB.radius / totalRadius) * Math.min(overlap, 25.0 * deltaTime);
+                        const pushB = (shipA.radius / totalRadius) * Math.min(overlap, 25.0 * deltaTime) * forceModulation;
+                        const pushA = (shipB.radius / totalRadius) * Math.min(overlap, 25.0 * deltaTime) * forceModulation;
                         // Vector from A to B
                         this._scratchAB.set(shipB.position).subtractInPlace(shipA.position);
                         this._scratchAB.normalizeInPlace();

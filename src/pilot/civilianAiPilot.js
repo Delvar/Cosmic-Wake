@@ -7,6 +7,7 @@ import { FactionRelationship } from '/src/core/faction.js';
 import { isValidAttackTarget, Ship } from '/src/ship/ship.js';
 import { GameManager } from '/src/core/game.js';
 import { CargoCollectorAutopilot } from '/src/autopilot/cargoCollectorAutopilot.js';
+import { randomBetween } from '/src/core/utils.js';
 
 /**
  * AI pilot for civilian ships, focusing on avoidance and fleeing.
@@ -23,6 +24,8 @@ export class CivilianAiPilot extends AiPilot {
         this.threatScanInterval = 0.5;
         /** @type {number} Ship age (seconds) when the next threat scan is due. */
         this.nextThreatScan = 0.0;
+        /** @type {number} Maximum squared distance for opportunistic cargo collection. between 1 and 3 seconds at max speed. */
+        this.maxCargoCollectionDistanceSq = (this.ship.maxVelocity * randomBetween(1.0, 3.0)) ** 2.0;
 
         if (new.target === CivilianAiPilot) Object.seal(this);
     }
@@ -40,7 +43,7 @@ export class CivilianAiPilot extends AiPilot {
             const closest = manager.getClosestContainer(this.ship);
             if (closest) {
                 const distSq = this._scratchDistance.set(closest.position).subtractInPlace(this.ship.position).squareMagnitude();
-                if (distSq < 250.0 * 250.0) {
+                if (distSq < this.maxCargoCollectionDistanceSq) {
                     this.debugLog(() => console.log(`${this.constructor.name}: Safe and cargo nearby, opportunistic collecting`));
                     this.changeState('Collecting', new CargoCollectorAutopilot(this.ship));
                     return;

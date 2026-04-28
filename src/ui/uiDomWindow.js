@@ -1,6 +1,7 @@
 // /src/ui/uiDomWindow.js
 
 import { FactionRelationship } from '/src/core/faction.js';
+import { clamp } from '/src/core/utils.js';
 
 /**
  * Enum for resize corners.
@@ -33,11 +34,9 @@ export class UiDomWindow {
     /**
      * Initializes a new UiDomWindow instance. This class is abstract and cannot be instantiated directly.
      * @param {HTMLElement} element - The DOM element to manage as a UI window.
-     * @param {number} minWidth - The minimum width allowed for the window during resizing.
-     * @param {number} minHeight - The minimum height allowed for the window during resizing.
      * @param {FactionRelationship|null} factionRelationship - Optional faction relationship value to set initial tint (FactionRelationship).
      */
-    constructor(element, minWidth, minHeight, factionRelationship = null) {
+    constructor(element, factionRelationship = null) {
         if (this.constructor === UiDomWindow) {
             throw new TypeError('UiDomWindow is an abstract class and cannot be instantiated directly.');
         }
@@ -73,10 +72,20 @@ export class UiDomWindow {
         /** @type {number} Offset Y for dragging. */
         this._offsetY = 0.0;
 
+        const computedStyle = window.getComputedStyle(this._resizableElement);
+        const minWidth = parseFloat(computedStyle.minWidth) || 0.0;
+        const maxWidth = computedStyle.maxWidth === 'none' ? Infinity : parseFloat(computedStyle.maxWidth);
+        const minHeight = parseFloat(computedStyle.minHeight) || 0.0;
+        const maxHeight = computedStyle.maxHeight === 'none' ? Infinity : parseFloat(computedStyle.maxHeight);
+
         /** @type {number} Enforced minimum width. */
         this.minWidth = minWidth;
+        /** @type {number} Enforced maximum width. */
+        this.maxWidth = maxWidth;
         /** @type {number} Enforced minimum height. */
         this.minHeight = minHeight;
+        /** @type {number} Enforced maximum height. */
+        this.maxHeight = maxHeight;
 
         // Cache for visibility and tint state to avoid unnecessary DOM updates
         /** @type {boolean} Cached visibility state (true if element has 'hidden' class). */
@@ -116,8 +125,8 @@ export class UiDomWindow {
         if (handles.length === 0) return; // No handles, skip setup
 
         const rect = this._resizableElement.getBoundingClientRect();
-        this._resizableElement.style.width = `${Math.max(this.minWidth, rect.width)}px`;
-        this._resizableElement.style.height = `${Math.max(this.minHeight, rect.height)}px`;
+        this._resizableElement.style.width = `${clamp(rect.width, this.minWidth, this.maxWidth)}px`;
+        this._resizableElement.style.height = `${clamp(rect.width, this.minHeight, this.maxHeight)}px`;
 
         handles.forEach((handle) => {
             handle.addEventListener('mousedown', this._onMouseDown.bind(this));
@@ -231,6 +240,10 @@ export class UiDomWindow {
         // Bottom-right only
         newWidth = Math.max(minWidth, this._startWidth - deltaX);
         newHeight = Math.max(minHeight, this._startHeight - deltaY);
+
+        newWidth = clamp(newWidth, this.minWidth, this.maxWidth);
+        newHeight = clamp(newHeight, this.minHeight, this.maxHeight);
+
         this._resizableElement.style.width = `${newWidth}px`;
         this._resizableElement.style.height = `${newHeight}px`;
 

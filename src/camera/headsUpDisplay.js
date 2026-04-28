@@ -504,7 +504,7 @@ export class HeadsUpDisplay {
             this.hudOutlineCtx.clearRect(0, 0, this.size.width, this.size.height);
         }
 
-        if (cameraTarget instanceof Ship) {
+        if (cameraTarget instanceof Ship && !this.showNavigationRings) {
             this.drawShipStats(cameraTarget);
         }
 

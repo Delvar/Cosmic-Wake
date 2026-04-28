@@ -121,15 +121,15 @@ export class Camera {
         this.foregroundCanvas.width = screenSizeX;
         this.foregroundCanvas.height = screenSizeY;
 
-        this.foregroundCtx.font = 'bolder 16px "Century Gothic Paneuropean", "Century Gothic", "CenturyGothic", "AppleGothic", sans-serif';
+        this.foregroundCtx.font = 'bold 16px "Poppins", "Century Gothic", "CenturyGothic", "AppleGothic", sans-serif';
 
         this.hudCanvas.width = screenSizeX;
         this.hudCanvas.height = screenSizeY;
-        this.hudCtx.font = 'bolder 16px "Century Gothic Paneuropean", "Century Gothic", "CenturyGothic", "AppleGothic", sans-serif';
+        this.hudCtx.font = 'bold 16px "Poppins", "Century Gothic", "CenturyGothic", "AppleGothic", sans-serif';
 
         this.hudOutlineCanvas.width = screenSizeX;
         this.hudOutlineCanvas.height = screenSizeY;
-        this.hudOutlineCtx.font = 'bolder 16px "Century Gothic Paneuropean", "Century Gothic", "CenturyGothic", "AppleGothic", sans-serif';
+        this.hudOutlineCtx.font = 'bold 16px "Poppins", "Century Gothic", "CenturyGothic", "AppleGothic", sans-serif';
 
         this._updateWorldBounds(); // Update world-space bounds
     }

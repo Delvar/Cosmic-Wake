@@ -25,7 +25,7 @@ export class UiDomWindowDocking extends UiDomWindow {
      * @param {HTMLElement} element - The DOM element to manage.
      */
     constructor(element) {
-        super(element, 250.0, 160.0);
+        super(element);
 
         const dockingName = element.querySelector('.ui-window-title-text');
         const takeoffButton = document.getElementById('docking-ui-takeoff');

@@ -337,6 +337,22 @@ export class Ship extends GameObject {
     }
 
     /**
+     * Gets the ship's current hull integrity ratio.
+     * @returns {number} Hull ratio from 0.0 (destroyed) to 1.0 (full health).
+     */
+    get hullRatio() {
+        return this.hullIntegrity / this.maxHull;
+    }
+
+    /**
+     * Gets the ship's current shield strength ratio.
+     * @returns {number} Shield ratio from 0.0 (depleted) to 1.0 (full strength).
+     */
+    get shieldRatio() {
+        return this.shield.strength / this.shield.maxStrength;
+    }
+
+    /**
      * Get how much of a given commodity is currently stored.
      * @param {string} type - CommodityType key
      */

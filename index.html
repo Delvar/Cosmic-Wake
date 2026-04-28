@@ -3,9 +3,10 @@
 
 <head>
     <title>Cosmic Wake</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
     <style>
-        @import url("https://fonts.cdnfonts.com/css/century-gothic-paneuropean");
-
         /* =========================== */
         /*  COLOUR PALETTE             */
         /* =========================== */
@@ -343,8 +344,8 @@
             border-bottom-left-radius: var(--padding-border-left);
             flex-shrink: 0;
             transition: height 100ms ease-out;
-            border: var(--border-width) solid black;
-            box-shadow: 0 0 20px var(--layer-2-bg, red);
+            /* border: var(--border-width) solid black; */
+            box-shadow: 0 0 calc(2.0 * var(--padding-border-left)) color-mix(var(--layer-2-bg, red) 70%, transparent);
         }
 
         #log-ui .inner {
@@ -412,16 +413,21 @@
         /* =========================== */
 
         #docking-ui button {
-            /* margin-top: 10px; */
             padding: 10px 20px;
-            font-size: 16px;
             background: var(--colour-red-dark);
-            color: var(--colour-white);
             border: none;
-            /* border-radius: 8px; */
             cursor: pointer;
             width: 100%;
             display: flow;
+            font-family: "Poppins", "Century Gothic", "CenturyGothic", "AppleGothic", sans-serif;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            text-shadow: 1.5px 1.5px 2px black;
+        }
+
+        #docking-ui button .icon {
+            font-weight: normal;
         }
 
         #docking-ui button.disabled {
@@ -460,7 +466,11 @@
         body {
             margin: 0.0;
             padding: 0.0;
-            font-family: "Century Gothic Paneuropean", "Century Gothic", "CenturyGothic", "AppleGothic", sans-serif;
+            font-family: "Poppins", "Century Gothic", "CenturyGothic", "AppleGothic", sans-serif;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            text-shadow: 1.5px 1.5px 2px black;
             overflow: hidden;
         }
 
@@ -509,6 +519,137 @@
         body.layered-hud-mode #targetCameraHudOutline {
             display: block;
         }
+
+        .ui-progress-bar {
+            width: 100%;
+            /* max-width: 100%; */
+            /* margin-bottom: 24px; */
+            display: flex;
+            flex-direction: row;
+            flex-wrap: nowrap;
+            align-items: center;
+            justify-content: center;
+            align-content: center;
+
+            /* Register once for the whole page */
+            @property --percent {
+                syntax: "<number>";
+                inherits: true;
+                initial-value: 0;
+            }
+
+            --layer:0;
+            /* Default configurable values (overridable per bar) */
+            --bar-width: 200px;
+            --segment-width: 25px;
+            --gap: 5px;
+            --height: 18px;
+            --color: var(--colour-green);
+            --bg: var(--colour-green-dark);
+        }
+
+        .ui-progress-bar-label {
+            font-size: var(--height);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            letter-spacing: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-box: trim-both cap alphabetic;
+            flex-shrink: 0;
+        }
+
+        .ui-progress-bar-label-percent-value::after {
+            counter-reset: progress-counter var(--percent);
+            content: counter(progress-counter) '%';
+            padding-left: 5px;
+            text-align: left;
+            min-width: 55px;
+            justify-content: left;
+        }
+
+        .ui-progress-bar-label-text {
+            padding-right: 5px;
+            text-align: right;
+            min-width: 70px;
+            justify-content: right;
+        }
+
+        .ui-progress-bar-bar-container {
+            container-type: inline-size;
+            width: 100%;
+            height: var(--height);
+            background: var(--bg);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            position: relative;
+
+            --segment-step: calc(var(--segment-width) + var(--gap));
+            --segment-step-pct: calc((var(--segment-width) + var(--gap)) / 100cqi * 100%);
+
+            border-top-left-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-top), var(--padding-border-left)) * var(--layer));
+            border-top-right-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-top), var(--padding-border-right)) * var(--layer));
+            border-bottom-left-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-bottom), var(--padding-border-left)) * var(--layer));
+            border-bottom-right-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-bottom), var(--padding-border-right)) * var(--layer));
+
+            box-shadow: 0 0 var(--height) color-mix(var(--bg, red) 40%, transparent);
+        }
+
+        .ui-progress-bar-bar {
+            height: 100%;
+            background: var(--color);
+            width: calc(round(var(--percent) * 1%, var(--segment-step-pct)));
+            /* Segment mask */
+            mask-image: repeating-linear-gradient(to right,
+                    #000 0,
+                    #000 var(--segment-width),
+                    transparent var(--segment-width),
+                    transparent calc(var(--segment-width) + var(--gap)));
+            mask-size: calc(var(--segment-width) + var(--gap)) 100%;
+            /* Shadow will not show due to parent overflow: hidden :(*/
+            /* box-shadow: 0 0 var(--height) color-mix(var(--color, red) 90%, transparent); */
+        }
+
+        .ui-window:not(.resizing, .dragging):not(.resizing, .dragging) .ui-progress-bar-bar {
+            transition: width 250ms ease-in-out;
+        }
+
+        /* Rapid recharge pulse – left-to-right shine on shield only */
+        .ui-progress-bar.rapid-recharge .ui-progress-bar-bar {
+            animation: shield-recharge-pulse 2s linear infinite;
+            background: linear-gradient(90deg,
+                    var(--color) 0%,
+                    var(--color) 40%,
+                    var(--charge-colour) 45%,
+                    var(--charge-colour) 55%,
+                    var(--color) 60%,
+                    var(--color) 100%);
+            background-size: 300% 100%;
+        }
+
+        /* The shine sweep */
+        @keyframes shield-recharge-pulse {
+            0% {
+                background-position-x: 300%;
+            }
+
+            100% {
+                background-position-x: 0%;
+            }
+        }
+
+        #main-status-hull {
+            --color: var(--colour-green);
+            --bg: var(--colour-green-dark);
+            --charge-colour: var(--colour-yellow-green-light);
+        }
+
+        #main-status-shield {
+            --color: var(--colour-blue);
+            --bg: var(--colour-blue-dark);
+            --charge-colour: var(--colour-green-blue-light);
+        }
     </style>
 </head>
 
@@ -525,7 +666,7 @@
             <div class="ui-layer ui-layer-1">
                 <div class="ui-layer ui-layer-0">
                     <div>
-                        <div style="position: relative; ">
+                        <div style="position: relative; min-width: 200px; max-width: 500px; min-height:200px; max-height: 500px;">
                             <canvas id="targetCameraBackground"></canvas>
                             <canvas id="targetCameraForeground"></canvas>
                             <canvas id="targetCameraHud" style="visibility: visible; opacity: 1;"></canvas>
@@ -544,17 +685,17 @@
         </div>
     </div>
 
-    <div id="docking-ui" draggable="true" class="ui-window tint-neutral hidden">
+    <div id="docking-ui" draggable="true" class="ui-window tint-neutral hidden" style="min-width: 250px; max-width: 250px; width: 250px; min-height:160px; max-height: 160px; height: 160px;">
         <div class="ui-layer ui-layer-2 ui-glow">
             <div class="ui-layer ui-layer-1">
                 <div class="ui-layer ui-layer-0">
                     <div>
-                        <button id="docking-ui-takeoff">🚀︎ Take Off</button>
-                        <button id="docking-ui-undock">🚀︎ Undock</button>
-                        <button id="docking-ui-repair">🛠︎ Repair Hull</button>
-                        <button id="docking-ui-start-mining">⛏︎ Start Mining</button>
-                        <button id="docking-ui-stop-mining">⛏︎ Stop Mining</button>
-                        <button id="docking-ui-capture">⚔︎ Capture Ship</button>
+                        <button id="docking-ui-takeoff"><span class="icon">🚀︎</span> Take Off</button>
+                        <button id="docking-ui-undock"><span class="icon">🚀︎</span> Undock</button>
+                        <button id="docking-ui-repair"><span class="icon">🛠︎</span> Repair Hull</button>
+                        <button id="docking-ui-start-mining"><span class="icon">⛏︎</span> Start Mining</button>
+                        <button id="docking-ui-stop-mining"><span class="icon">⛏︎</span> Stop Mining</button>
+                        <button id="docking-ui-capture"><span class="icon">⚔︎</span> Capture Ship</button>
                     </div>
                 </div>
             </div>
@@ -571,7 +712,37 @@
         <div id="log-ui-inner" class="inner"></div>
     </div>
 
-    <!-- <button id="add-btn">＋ Add Log Entry</button> -->
+    <div id="stats-ui" draggable="true" class="ui-window tint-neutral" style="bottom: 10px; left: 10px; right: 10px; min-width: 200px; max-width: 1900px; min-height:50px; max-height: 50px;">
+        <div>
+            <div>
+                <div class="ui-progress-bar" id="main-status-hull">
+                    <div class="ui-progress-bar-label ui-progress-bar-label-text">
+                        HULL
+                    </div>
+                    <div class="ui-progress-bar-bar-container">
+                        <div class="ui-progress-bar-bar"></div>
+                    </div>
+                    <div class="ui-progress-bar-label ui-progress-bar-label-percent-value">
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <div class="ui-progress-bar" id="main-status-shield">
+                    <div class="ui-progress-bar-label ui-progress-bar-label-text">
+                        SHIELD
+                    </div>
+                    <div class="ui-progress-bar-bar-container">
+                        <div class="ui-progress-bar-bar"></div>
+                    </div>
+                    <div class="ui-progress-bar-label ui-progress-bar-label-percent-value">
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <span class="resize-handle bottom-right"></span>
+    </div>
     <script type="module" src="src/core/game.js"></script>
 </body>
 

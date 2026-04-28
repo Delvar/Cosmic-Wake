@@ -12,7 +12,7 @@ export class UiDomWindowLog extends UiDomWindow {
      * @param {HTMLElement} element - The DOM element to manage.
      */
     constructor(element) {
-        super(element, 200.0, 200.0);
+        super(element);
 
         const inner = document.getElementById('log-ui-inner');
 

@@ -42,6 +42,8 @@
 - [ ] **Enable AI Mining Control** Update Mining AI to start/stop mining, mine until cargo is full then head to planet to sell.
 - [ ] **Enable AI Repair Control** Add to basic AI Pilots the ability to repair hull via docking when landed.
 - [X] **Fix WandererJob route/landing bug** - WandererJob currently shuttles between systems without landing on planets; rewrite route selection and state transitions to ensure planet landing behaviors.
+- [ ] **Limit civilian cargo pickup range** Currently they are too eager to pickup cargo, instead of pure range check it should be base don time to travel, see too many freighters trying to waddle over and pickup cargo only to miss out.
+- [ ] **Tone down ship Separation** Ship separation is too strong near planets, often causing them to wobble on landing or take off, looks bad, need to reduce the push factor close to planets.
 
 ## User Interface
 
@@ -69,6 +71,7 @@
 - [ ] **Improve Docking UI** - Should add better styling, a larg area at the top for landing image, trade, shipyard etc, text area at the bottom for planet description, local news, events etc, buttons down each side.
 - [ ] **Remove ship health bars from HUD** - Remove the ship health bars from the HUD and convert them into a uiDomWindow.
 - [ ] **Add target info to target window** - Add target info data to the target window (uiDomWindowTarget): target name, type, faction, hull %, shields %.
+- [ ] **Add min + max width + height** - Update uiDomWindow to look for the min + max width + height from the element styles and use them when resizing instead of hard coded values.
 
 ## Animations & Polish
 
@@ -79,6 +82,7 @@
 
 - [ ] **Fix Docking with disabled ship** <a id="fix-Docking-with-disabled-ship">[↩](#fix-Docking-with-disabled-ship)</a> When boarding a ship, another ship can also board the same ship and captures it and it starts moving off, first limit the number of ships that can dock to 1, also check if the docked ship is now not disabled, is moving etc so undock automatically. Related To: [Refactor ship-to-ship docking system](#refactor-ship-to-ship-docking-system)
 - [ ] **Fix disabled ship shield restarting** - the shields on disabeld ships restart, they should be deactivated compeltely.
+- [ ] **Fix Zombi escort ship** - escorts sometimes end up in Landed state but still drawn in System, green flashign lights, no movement as not Flying.
 
 ## Refactor
 

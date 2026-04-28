@@ -22,12 +22,11 @@ export class AiPilot extends Pilot {
      * Creates a new AiPilot instance.
      * @param {Ship} ship - The ship to control.
      * @param {boolean} [attackDisabledShips=false] - Whether to attack ships that are disabled.
-     * @throws {Error} If called directly instead of sub classing.
      */
     constructor(ship, attackDisabledShips = false) {
         super(ship);
         /** @type {Job|null} The job instance controlling high-level behavior (e.g., WandererJob). */
-        this.job = null;
+        this._job = null;
         /** @type {boolean} Whether to attack ships that are disabled. */
         this.attackDisabledShips = attackDisabledShips;
         /** @type {string} The current state ('Job', 'Flee', 'Avoid', 'Attack'). */
@@ -69,6 +68,33 @@ export class AiPilot extends Pilot {
     // }
 
     /**
+     * Current `Job` assigned to this pilot.
+     * @returns {Job|null} The active job, or null if none has been assigned.
+     */
+    get job() {
+        return this._job;
+    }
+
+    /**
+     * Sets the current `Job` for this pilot.
+     * @param {Job} value - The job to assign.
+     * @returns {void}
+     */
+    set job(value) {
+        if (value === null) {
+            // Trap the exact bug you reported
+            const error = new Error(
+                'Pilot.job cannot be set to null.\n' +
+                'This is a bug in job state machine, autopilot, or despawn logic.\n' +
+                'Full stack trace:'
+            );
+            console.error(error.stack);   // visible even if caught higher up
+            throw error;
+        }
+        this._job = value;
+    }
+
+    /**
      * Sets the job for this pilot.
      * @param {Job} job - The new job to set.
      * @returns {void}
@@ -85,7 +111,7 @@ export class AiPilot extends Pilot {
      * Logs a message to the console if debug mode is enabled.
      * If a callback is passed, it is executed only when debug is true, so the console frame
      * is attributed to the caller location.
-     * @param {Function} callback - Callback function
+     * @param {Function} callback - Callback executed when debug logging is enabled.
      * @returns {void}
      */
     debugLog(callback) {
@@ -368,11 +394,12 @@ export class AiPilot extends Pilot {
 
     /**
      * Changes state and autopilot, handling cleanup.
-     * @param {string} newState - The new state ('Job', 'Flee', 'Avoid', 'Attack').
+     * @param {string} newState - The new state ('Job', 'Flee', 'Avoid', 'Attack', 'Collecting', 'Despawning').
      * @param {Autopilot<any>|null} [newAutopilot=null] - The new autopilot, if any.
      * @returns {void}
      */
     changeState(newState, newAutopilot = null) {
+        this.debugLog(() => console.log(`${this.constructor.name}: changeState(${newState}, ${newAutopilot?.constructor.name}) : this.state ${this.state}`));
         if (this.state === newState) return;
         // Pause job only when leaving Job state
         if (this.state === 'Job' && this.job) {
@@ -385,11 +412,13 @@ export class AiPilot extends Pilot {
                 throw new TypeError('this.job missing on Pilot');
             }
             this.job.resume();
+        } else {
+            // Set the new Autopilot if not in a Job
+            this.setAutopilot(newAutopilot);
         }
-        
-        // Set new state and autopilot
+
+        // Set new state
         this.state = newState;
-        this.setAutopilot(newAutopilot);
         this.debugLog(() => console.log(`${this.constructor.name}: State changed to ${newState}`));
     }
 

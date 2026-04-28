@@ -106,6 +106,7 @@ The target camera appears when your current camera ship has a valid target.
 | --- | --- |
 | `D` | Toggle debug rendering |
 | `K` | Instantly damage the current player ship |
+| `Shift` + `X` | Spawn a Pirate ship to attack cameraTarget |
 
 ## First Session Tips
 

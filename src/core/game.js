@@ -1,6 +1,6 @@
 // /src/core/game.js
 
-import { remapClamp } from '/src/core/utils.js';
+import { remapClamp, TWO_PI } from '/src/core/utils.js';
 import { Vector2D } from '/src/core/vector2d.js';
 import { Camera, TargetCamera } from '/src/camera/camera.js';
 import { Ship } from '/src/ship/ship.js';
@@ -9,10 +9,11 @@ import { StarField } from '/src/camera/starField.js';
 import { HeadsUpDisplay } from '/src/camera/headsUpDisplay.js';
 import { PlayerPilot } from '/src/pilot/pilot.js';
 import { createGalaxy } from '/src/core/galaxy.js';
-import { isValidTarget } from '/src/core/gameObject.js';
+import { isValidTarget, GameObject } from '/src/core/gameObject.js';
 import { AiPilot } from '/src/pilot/aiPilot.js';
 import { OfficerAiPilot } from '/src/pilot/officerAiPilot.js';
 import { PirateAiPilot } from '/src/pilot/pirateAiPilot.js';
+import { AttackAutopilot } from '/src/autopilot/attackAutopilot.js';
 import { WandererJob } from '/src/job/wandererJob.js';
 import { MinerJob } from '/src/job/minerJob.js';
 import { PirateJob } from '/src/job/pirateJob.js';
@@ -27,6 +28,7 @@ import { UiDomWindowLog } from '../ui/uiDomWindowLog.js'
 import { CivilianAiPilot } from '/src/pilot/civilianAiPilot.js';
 import { UiDomWindowDocking } from '../ui/uiDomWindowDocking.js';
 import { UiDomWindowTarget } from '/src/ui/uiDomWindowTarget.js';
+import { UiDomWindowStats } from '/src/ui/uiDomWindowStats.js';
 
 /**
  * Handles the game loop, rendering, and updates for the game.
@@ -426,6 +428,12 @@ export class GameManager {
             this.uiDomWindowTarget = new UiDomWindowTarget(targetUi, this.targetCamera, this.targetHud, this.starField);
         }
 
+        const statusUi = document.getElementById('stats-ui');
+        if (statusUi) {
+            /** @type {UiDomWindowStats} Initialize UiDomWindowStats for handling target window resizing */
+            this.uiDomWindowStats = new UiDomWindowStats(statusUi, this);
+        }
+
         /** @type {Object.<string, boolean>} Tracks the current state of keyboard inputs. */
         this.keys = {};
         /** @type {Object.<string, boolean>} Tracks the previous state of keyboard inputs for detecting changes. */
@@ -515,6 +523,7 @@ export class GameManager {
         this.updateGalaxy(deltaTime);
         this.spawnAiShipsIfNeeded(currentTime);
         this.updateDockingUI();
+        this.uiDomWindowStats.update();
     }
 
     /**
@@ -535,6 +544,7 @@ export class GameManager {
                 ship.update(deltaTime);
             }
             // Prevent ship overlaps by pushing positions apart, cap push to 25.0 units per second, do not push players.
+            // Push amount is modulated by ship radii: larger ships push smaller ones more, smaller ships push larger ones less.
             for (let i = 0.0; i < starSystem.ships.length - 1; ++i) {
                 const shipA = starSystem.ships[i];
                 if (!shipA || shipA.state !== 'Flying') continue;
@@ -545,17 +555,21 @@ export class GameManager {
                     const minDist = shipA.radius + shipB.radius;
                     if (dist < minDist && dist > 0.0) {
                         const overlap = minDist - dist;
+                        const totalRadius = shipA.radius + shipB.radius;
+                        const pushB = (shipA.radius / totalRadius) * Math.min(overlap, 25.0 * deltaTime);
+                        const pushA = (shipB.radius / totalRadius) * Math.min(overlap, 25.0 * deltaTime);
                         // Vector from A to B
                         this._scratchAB.set(shipB.position).subtractInPlace(shipA.position);
                         this._scratchAB.normalizeInPlace();
-                        this._scratchAB.multiplyInPlace(Math.min(overlap, 25.0) * deltaTime);
                         // Push shipB away from shipA
                         if (!(shipB.pilot instanceof PlayerPilot)) {
+                            this._scratchAB.multiplyInPlace(pushB);
                             shipB.position.addInPlace(this._scratchAB);
+                            this._scratchAB.multiplyInPlace(1.0 / pushB); // Reset to normalized vector
                         }
+                        // Push shipA away from shipB
                         if (!(shipA.pilot instanceof PlayerPilot)) {
-                            // Push shipA away from shipB
-                            this._scratchAB.multiplyInPlace(-1.0);
+                            this._scratchAB.multiplyInPlace(-pushA);
                             shipA.position.addInPlace(this._scratchAB);
                         }
                     }
@@ -632,6 +646,7 @@ export class GameManager {
             if (this.debug) {
                 console.log(`spawnAiShipsIfNeeded : totalShipCount : ${totalShipCount} of ${totalMaxAiShips}`);
             }
+            this.lastSpawnTime = currentTime;
             this.spawnInterval = this.randomSpawnInterval();
             return;
         }
@@ -851,6 +866,44 @@ export class GameManager {
     }
 
     /**
+     * Spawns a pirate ship that immediately attacks the specified target.
+     * @param {Ship} target - The target ship for the pirate to attack.
+     */
+    spawnPirateAttacker(target) {
+        console.log(`spawnPirateAttacker`);
+
+        if (!target || !target.starSystem) {
+            console.log(`spawnPirateAttacker (!target || !target.starSystem)`);
+            return;
+        }
+        const system = target.starSystem;
+        const pirateFaction = this.factionManager.getFaction('Pirate');
+        if (!pirateFaction) {
+            console.log(`spawnPirateAttacker (!pirateFaction)`);
+            return;
+        }
+        // Create the pirate ship
+        const aiShip = createRandomFastShip(0.0, 0.0, system, pirateFaction);
+        aiShip.position.setFromPolar(1000.0, TWO_PI * Math.random());
+        aiShip.position.addInPlace(target.position);
+        const pilot = new PirateAiPilot(aiShip);
+        pilot.setJob(new PirateJob(aiShip, pilot, true));
+        aiShip.setPilot(pilot);
+        aiShip.colors.wings = Colour.RedDark;
+        aiShip.colors.hull = Colour.GreyDark;
+        aiShip.trail.color = aiShip.colors.wings.toRGBA(0.5);
+        aiShip.setState('Flying');
+        aiShip.velocity.set(0.0, 0.0);
+
+        // Add to system
+        system.addGameObject(aiShip);
+
+        // Set target and attack
+        aiShip.target = target;
+        pilot.changeState('Attack', new AttackAutopilot(aiShip, target, true));
+    }
+
+    /**
      * Spawns initial AI ships in each star system up to a limit of 10.
      */
     spawnAiShips() {
@@ -929,6 +982,10 @@ export class GameManager {
                 this.cameraTarget.takeDamage(
                     this.cameraTarget.shield.strength > 0.0 ? this.cameraTarget.shield.strength : this.cameraTarget.hullIntegrity,
                     this.cameraTarget.position, this.cameraTarget);
+            }
+
+            if (e.key === 'X') {
+                this.spawnPirateAttacker(this.cameraTarget);
             }
 
         });

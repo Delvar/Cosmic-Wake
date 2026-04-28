@@ -7,6 +7,7 @@ import { StarSystem } from '/src/starSystem/starSystem.js';
 import { Ship } from '/src/ship/ship.js';
 import { Camera } from '/src/camera/camera.js';
 import { FactionRelationship } from '/src/core/faction.js';
+import { Shield } from '/src/ship/shield.js';
 
 /**
  * Manages active projectiles in a star system, handling updates, rendering, collisions, and lifecycle.
@@ -111,7 +112,7 @@ export class ProjectileManager {
                 }
 
                 let isHit = false;
-                if (ship.shield.isActive) {
+                if (ship.shield.state == Shield.State.ACTIVE_UP) {
                     // Shield active: Hit if within radius
                     isHit = true;
                 } else {

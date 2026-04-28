@@ -68,7 +68,7 @@
 - [ ] **Self-destruct confirmation window** - Add a dedicated self-destruct window with a prominent activation control and a clear confirmation step.
 - [X] **Improved DOM UI window styling** - Create better looking window borders, headers, footers, and drag handles for all DOM UI windows to enhance visual consistency and usability.
 - [ ] **Self-destruct countdown flow** - Implement the armed self-destruct timer, audiovisual warning state, and final ship explosion sequence after activation.
-- [ ] **Improve Docking UI** - Should add better styling, a larg area at the top for landing image, trade, shipyard etc, text area at the bottom for planet description, local news, events etc, buttons down each side.
+- [ ] **Improve Docking UI** - Should add better styling, a large area at the top for landing image, trade, shipyard etc, text area at the bottom for planet description, local news, events etc, buttons down each side.
 - [ ] **Remove ship health bars from HUD** - Remove the ship health bars from the HUD and convert them into a uiDomWindow.
 - [ ] **Add target info to target window** - Add target info data to the target window (uiDomWindowTarget): target name, type, faction, hull %, shields %.
 - [ ] **Add min + max width + height** - Update uiDomWindow to look for the min + max width + height from the element styles and use them when resizing instead of hard coded values.
@@ -81,11 +81,11 @@
 ## Bug Fixes
 
 - [ ] **Fix Docking with disabled ship** <a id="fix-Docking-with-disabled-ship">[↩](#fix-Docking-with-disabled-ship)</a> When boarding a ship, another ship can also board the same ship and captures it and it starts moving off, first limit the number of ships that can dock to 1, also check if the docked ship is now not disabled, is moving etc so undock automatically. Related To: [Refactor ship-to-ship docking system](#refactor-ship-to-ship-docking-system)
-- [ ] **Fix disabled ship shield restarting** - the shields on disabeld ships restart, they should be deactivated compeltely.
-- [ ] **Fix Zombi escort ship** - escorts sometimes end up in Landed state but still drawn in System, green flashign lights, no movement as not Flying.
+- [X] **Fix disabled ship shield restarting** - the shields on disabled ships restart, they should be deactivated completely.
+- [ ] **Fix Zombie escort ship** - escorts sometimes end up in Landed state but still drawn in System, green flashing lights, no movement as not Flying.
 
 ## Refactor
 
 - [ ] **Refactor direct state updates** Locate and refactor any place where we directly update states instead of using setState() methods. Also rename any similar functions like updateState(), changeState() etc to setState() for consistency.
-- [ ] **Refactor uiDomWindow onMouse events** Combine the mouse event handelers for drag and resize, optionaly register/unregister the handelers when not in use. 
+- [ ] **Refactor uiDomWindow onMouse events** Combine the mouse event handlers for drag and resize, optionally register/unregister the handlers when not in use. 
 

@@ -9,6 +9,7 @@ import { GameManager } from '/src/core/game.js';
 import { LandOnPlanetAutopilot } from '/src/autopilot/landOnPlanetAutopilot.js';
 import { TraverseJumpGateAutopilot } from '/src/autopilot/traverseJumpGateAutopilot.js';
 import { remapClamp } from '/src/core/utils.js';
+import { Shield } from '/src/ship/shield.js';
 
 /**
  * Autopilot that executes a flee behaviour, navigating toward a safe harbour (landing pad or jump gate)
@@ -75,7 +76,7 @@ export class FleeAutopilot extends Autopilot {
             return;
         }
 
-        if ((!this.ship.shield || !this.ship.shield.isActive) && (this.ship.cargoUsed) > 0 && (remapClamp(this.ship.hullIntegrity, 0.0, this.ship.maxHull, 0.0, 1.0) < 0.75)) {
+        if ((!this.ship.shield || this.ship.shield.state !== Shield.State.ACTIVE_UP) && (this.ship.cargoUsed) > 0 && (remapClamp(this.ship.hullIntegrity, 0.0, this.ship.maxHull, 0.0, 1.0) < 0.75)) {
             if (!this.ship.isJettisoningCargo) {
                 this.ship.startJettison();
             }

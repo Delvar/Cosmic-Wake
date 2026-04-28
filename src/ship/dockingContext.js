@@ -172,7 +172,7 @@ export class DockingContext {
         // Repair the ship
         boardedShip.hullIntegrity = boardedShip.disabledThreshold + 1.0;
         // Activate shield
-        boardedShip.shield.isActive = true;
+        boardedShip.shield.activate();
         // Set to flying state
         boardedShip.setState('Flying');
         // Clear hostiles

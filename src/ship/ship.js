@@ -981,7 +981,7 @@ export class Ship extends GameObject {
         }
 
         let excessDamage = damage;
-        if (this.shield && this.shield.isActive) {
+        if (this.shield && this.shield.state == Shield.State.ACTIVE_UP) {
             excessDamage = this.shield.takeDamage(damage, hitPosition, this.position, this.age);
         }
 
@@ -1140,9 +1140,7 @@ export class Ship extends GameObject {
             this.hullIntegrity = this.disabledThreshold;
             this.isThrusting = false;
             this.isBraking = false;
-            this.shield.isActive = false;
-            this.shield.strength = 0.0;
-            this.shield.restartTime = 0.0;
+            this.shield.deactivate();
             this.target = null;
             this.protectionTime = 5.0;
 
@@ -1246,7 +1244,8 @@ export class Ship extends GameObject {
             if (this.dockingContext.landedObject instanceof Planet) {
                 this.shipScale = 0.0;
                 this.dockingContext.landedObject.addLandedShip(this);
-                this.shield.isActive = true;
+                //FIXME: add a shield method to instant recharge.
+                this.shield.state = Shield.State.ACTIVE_UP;
                 this.shield.strength = this.shield.maxStrength;
                 this.trail.clear();
             } else if (this.dockingContext.landedObject instanceof Asteroid) {
@@ -1445,9 +1444,7 @@ export class Ship extends GameObject {
             this.hullIntegrity = this.disabledThreshold;
             this.isThrusting = false;
             this.isBraking = false;
-            this.shield.isActive = false;
-            this.shield.strength = 0.0;
-            this.shield.restartTime = 0.0;
+            this.shield.deactivate();
             this.target = null;
             // Initialize explosion timer
             this.explosionTime = 0.0;

@@ -8,6 +8,11 @@ import { Camera } from '/src/camera/camera.js';
  * Manages a ship's energy shield, handling damage absorption, recharge, collapse/restart, and visual effects.
  */
 export class Shield {
+    static State = {
+        ACTIVE_UP: 'active_up',
+        ACTIVE_DOWN: 'active_down',
+        DEACTIVATED: 'deactivated'
+    };
     /**
      * Creates a new Shield instance.
      * @param {number} [maxStrength=100] - Maximum shield strength.
@@ -29,8 +34,8 @@ export class Shield {
         this.rapidRechargeRate = rapidRechargeRate;
         /** @type {number} Duration of rapid recharge in seconds. */
         this.rapidRechargeDuration = rapidRechargeDuration;
-        /** @type {boolean} Whether shields are functional (false during collapse/restart). */
-        this.isActive = true;
+        /** @type {string} Current shield state. */
+        this.state = Shield.State.ACTIVE_UP;
         /** @type {number} Timestamp (in seconds) when shields are scheduled to restart. */
         this.restartTime = 0.0;
         /** @type {number} Time remaining for rapid recharge effect in seconds.*/
@@ -80,19 +85,28 @@ export class Shield {
             this.rapidRechargeEffectTime = Math.max(this.rapidRechargeEffectTime - deltaTime, 0.0);
         }
 
-        // Update shield strength and status
-        if (this.isActive) {
-            const isRapidRecharge = this.rapidRechargeEffectTime > 0.0;
-            const rate = isRapidRecharge ? this.rapidRechargeRate : this.rechargeRate;
-            this.strength = Math.min(this.strength + rate * deltaTime, this.maxStrength);
-        } else if (this.restartTime == null) {
-            this.strength = 0.0;
-        } else if (currentTime >= this.restartTime) {
-            // Restart shields
-            this.isActive = true;
-            this.strength = 0.0;
-            this.rapidRechargeEffectTime = this.rapidRechargeDuration;
-            this.restartEffectTime = this.restartEffectMaxTime;
+        // Update based on state
+        switch (this.state) {
+            case Shield.State.DEACTIVATED:
+                this.strength = 0.0;  // Ensure stays at 0, no effects or recharge
+                break;
+            case Shield.State.ACTIVE_DOWN:
+                if (currentTime >= this.restartTime) {
+                    // Transition to ACTIVE_UP and start recharge
+                    this.state = Shield.State.ACTIVE_UP;
+                    this.strength = 0.0;
+                    this.rapidRechargeEffectTime = this.rapidRechargeDuration;
+                    this.restartEffectTime = this.restartEffectMaxTime;
+                    this.restartTime = 0.0;
+                } else {
+                    this.strength = 0.0;
+                }
+                break;
+            case Shield.State.ACTIVE_UP:
+                const isRapidRecharge = this.rapidRechargeEffectTime > 0.0;
+                const rate = isRapidRecharge ? this.rapidRechargeRate : this.rechargeRate;
+                this.strength = Math.min(this.strength + rate * deltaTime, this.maxStrength);
+                break;
         }
     }
 
@@ -106,14 +120,17 @@ export class Shield {
      * @returns {number} Excess damage not absorbed by the shield.
      */
     takeDamage(damage, hitPosition, shipPosition, currentTime) {
-        if (!this.isActive) {
-            return damage; // Shields down, pass all damage through
+        if (this.state === Shield.State.DEACTIVATED) {
+            return damage;  // Completely off, no absorption
         }
-
+        if (this.state === Shield.State.ACTIVE_DOWN) {
+            return damage;  // Down but active, still no absorption (waiting to recharge)
+        }
+        // Assume ACTIVE_UP here
         this.strength -= damage;
         if (this.strength <= 0.0) {
-            // Shields collapse
-            this.isActive = false;
+            // Transition to ACTIVE_DOWN
+            this.state = Shield.State.ACTIVE_DOWN;
             this.restartTime = currentTime + this.restartDelay;
             this.collapseEffectTime = this.collapseEffectMaxTime;
             this.rapidRechargeEffectTime = 0.0;
@@ -122,11 +139,39 @@ export class Shield {
             this.strength = 0.0;
             return excessDamage;
         }
-
         // Trigger hit pulse effect
         this.pulseEffectTime = this.pulseEffectMaxTime;
         this.hitPosition.set(hitPosition).subtractInPlace(shipPosition);
         return 0.0;
+    }
+
+    /**
+     * Deactivates the shields completely (e.g., when ship is disabled).
+     * Clears timers and effects, sets strength to 0.
+     * @returns {void}
+     */
+    deactivate() {
+        this.state = Shield.State.DEACTIVATED;
+        this.strength = 0.0;
+        this.restartTime = 0.0;
+        this.rapidRechargeEffectTime = 0.0;
+        this.pulseEffectTime = 0.0;
+        this.collapseEffectTime = 0.0;
+        this.restartEffectTime = 0.0;
+    }
+
+    /**
+     * Activates the shields, resetting to start recharging.
+     * @returns {void}
+     */
+    activate() {
+        this.state = Shield.State.ACTIVE_UP;
+        this.strength = 0.0;
+        this.restartTime = 0.0;
+        this.rapidRechargeEffectTime = this.rapidRechargeDuration;
+        this.restartEffectTime = this.restartEffectMaxTime;
+        this.pulseEffectTime = 0.0;
+        this.collapseEffectTime = 0.0;
     }
 
     /**
@@ -149,6 +194,9 @@ export class Shield {
         let shieldRadius = camera.worldToSize(shipRadius);
         if (!isFinite(shieldRadius) || shieldRadius <= 0.0) {
             // console.warn('Invalid shield radius:', shieldRadius);
+            return;
+        }
+        if (this.state === Shield.State.DEACTIVATED) {
             return;
         }
         let alphaScale = 1.0;
@@ -201,7 +249,7 @@ export class Shield {
             ctx.arc(this._scratchShieldCenter.x, this._scratchShieldCenter.y, shieldRadius, 0.0, TWO_PI);
             ctx.fillStyle = gradient;
             ctx.fill();
-        } else if (this.isActive && this.pulseEffectTime > 0.0) {
+        } else if (this.state === Shield.State.ACTIVE_UP && this.pulseEffectTime > 0.0) {
             // when hit draw a faint outline of the shield
             alphaScale = 1.0;
             const alpha = remapClamp(this.pulseEffectTime, 0.0, this.pulseEffectMaxTime, 0.0, 0.5);
@@ -219,7 +267,7 @@ export class Shield {
         }
 
         // Draw hit pulse effect (inward-moving hot spot)
-        if (this.isActive && this.pulseEffectTime > 0.0) {
+        if (this.state === Shield.State.ACTIVE_UP && this.pulseEffectTime > 0.0) {
             const alpha = this.pulseEffectTime / this.pulseEffectMaxTime;
             this._scratchWorldHit.set(this.hitPosition).multiplyInPlace(alpha).addInPlace(shipPosition);
             camera.worldToScreen(this._scratchWorldHit, this._scratchShieldHit);

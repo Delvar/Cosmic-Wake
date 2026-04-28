@@ -31,13 +31,15 @@ export class UiDomWindowStats extends UiDomWindow {
         this.shieldElement = shieldElement;
 
         this.gameManager = gameManager;
-        /** @type {{hull: number, shield: number, rapidRecharge:boolean}} The last displayed values to avoid unnecessary DOM updates. */
+        /** @type {{hull: number, hullPulse:boolean, shield: number, shieldPulse:boolean}} The last displayed values to avoid unnecessary DOM updates. */
         this._lastDisplayed = {
             hull: 0.0,
+            hullPulse: false,
             shield: 0.0,
-            rapidRecharge: false
+            shieldPulse: false
         }
     }
+
     /**
       * Updates the main status window
       * @returns {void}
@@ -51,20 +53,30 @@ export class UiDomWindowStats extends UiDomWindow {
             console.log(`hull: ${hull} : this._lastDisplayed.hull ${this._lastDisplayed.hull}`);
         }
 
+        const hullPulse = ship.protectionTime > 0;
+        if (hullPulse !== this._lastDisplayed.hullPulse) {
+            if (hullPulse) {
+                this.hullElement.classList.add('pulse');
+            } else {
+                this.hullElement.classList.remove('pulse');
+            }
+            this._lastDisplayed.hullPulse = hullPulse;
+        }
+
         const shield = clamp(Math.round(ship.shieldRatio * 100.0), 0, 100);
         if (shield !== this._lastDisplayed.shield) {
             this.shieldElement.style.setProperty('--percent', shield.toString());
             this._lastDisplayed.shield = shield;
         }
 
-        const rapidRecharge = ship.shield.rapidRechargeEffectTime > 0;
-        if (rapidRecharge !== this._lastDisplayed.rapidRecharge) {
-            if (rapidRecharge) {
-                this.shieldElement.classList.add('rapid-recharge');
+        const shieldPulse = ship.shield.rapidRechargeEffectTime > 0;
+        if (shieldPulse !== this._lastDisplayed.shieldPulse) {
+            if (shieldPulse) {
+                this.shieldElement.classList.add('pulse');
             } else {
-                this.shieldElement.classList.remove('rapid-recharge');
+                this.shieldElement.classList.remove('pulse');
             }
-            this._lastDisplayed.rapidRecharge = rapidRecharge;
+            this._lastDisplayed.shieldPulse = shieldPulse;
         }
     }
 

@@ -16,8 +16,8 @@ export class UiDomWindowStats extends UiDomWindow {
      */
     constructor(element, gameManager) {
         super(element);
-        const hullElement = document.getElementById('main-status-hull');
-        const shieldElement = document.getElementById('main-status-shield');
+        const hullElement = document.getElementById('stats-ui_hull');
+        const shieldElement = document.getElementById('stats-ui_shield');
         if (!hullElement || !shieldElement) {
             throw new TypeError('Missing required element!');
         }
@@ -30,7 +30,9 @@ export class UiDomWindowStats extends UiDomWindow {
         /** @type {HTMLElement} The span for the docked object's name. */
         this.shieldElement = shieldElement;
 
+        /** @type {GameManager} The game manager where we can find cameraTarget */
         this.gameManager = gameManager;
+
         /** @type {{hull: number, hullPulse:boolean, shield: number, shieldPulse:boolean}} The last displayed values to avoid unnecessary DOM updates. */
         this._lastDisplayed = {
             hull: 0.0,
@@ -50,7 +52,6 @@ export class UiDomWindowStats extends UiDomWindow {
         if (hull !== this._lastDisplayed.hull) {
             this.hullElement.style.setProperty('--percent', hull.toString());
             this._lastDisplayed.hull = hull;
-            console.log(`hull: ${hull} : this._lastDisplayed.hull ${this._lastDisplayed.hull}`);
         }
 
         const hullPulse = ship.protectionTime > 0;

@@ -314,13 +314,14 @@ export class Game {
             return;
         } else {
             targetWindow.show();
+            targetWindow.update();
         }
 
-        if (this.manager.cameraTarget.target instanceof Ship) {
-            targetWindow.setTintFromRelationship(this.manager.cameraTarget.getRelationship(this.manager.cameraTarget.target));
-        } else {
-            targetWindow.setTintFromRelationship(FactionRelationship.Neutral);
-        }
+        // if (this.manager.cameraTarget.target instanceof Ship) {
+        //     targetWindow.setTintFromRelationship(this.manager.cameraTarget.getRelationship(this.manager.cameraTarget.target));
+        // } else {
+        //     targetWindow.setTintFromRelationship(FactionRelationship.Neutral);
+        // }
 
         ctx.clearRect(0.0, 0.0, camera.screenSize.width, camera.screenSize.height);
 
@@ -402,7 +403,7 @@ export class GameManager {
         this.targetHud = new HeadsUpDisplay(this, this.targetCamera, true);
         this.targetHud.showNavigationRings = false;
         this.targetHud.showAutopilotStatus = false;
-        this.targetHud.showCameraTargetName = true;
+        this.targetHud.showCameraTargetName = false;
         /** @type {Ship} The current target for the camera, typically the player's ship. */
         this.cameraTarget = /** @type {any} */ (null);
         /** @type {StarField} The starfield for rendering background stars. */
@@ -425,7 +426,7 @@ export class GameManager {
         const targetUi = document.getElementById('target-ui');
         if (targetUi) {
             /** @type {UiDomWindowTarget} Initialize UiDomWindowTarget for handling target window resizing */
-            this.uiDomWindowTarget = new UiDomWindowTarget(targetUi, this.targetCamera, this.targetHud, this.starField);
+            this.uiDomWindowTarget = new UiDomWindowTarget(targetUi, this.targetCamera, this.targetHud, this.starField, this);
         }
 
         const statusUi = document.getElementById('stats-ui');

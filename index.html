@@ -110,6 +110,7 @@
             border: var(--border-width) solid black;
             padding: var(--padding-top) var(--padding-right) var(--padding-bottom) var(--padding-left);
             transition: background-color 0.25s linear;
+            width: min-content;
         }
 
         .ui-layer-2 {
@@ -299,10 +300,6 @@
             transition: grid-template-rows 0.25s ease-in-out;
         }
 
-        .ui-window .ui-layer.ui-layer-0>div {
-            overflow: hidden;
-        }
-
         .ui-window.hidden:not(.resizing, .dragging) .ui-layer.ui-layer-0 {
             grid-template-rows: 0fr;
         }
@@ -424,6 +421,7 @@
             font-size: 16px;
             font-weight: bold;
             text-shadow: 1.5px 1.5px 2px black;
+            white-space: nowrap;
         }
 
         #docking-ui button .icon {
@@ -457,6 +455,189 @@
         #docking-ui button:nth-last-child(1 of :not(.hidden)) {
             border-bottom-left-radius: var(--inner-radius);
             /* border-bottom-right-radius: var(--inner-radius); */
+        }
+
+        /* =========================== */
+        /*  STATS GRID                 */
+        /* =========================== */
+        @property --row-height {
+            syntax: "<length>";
+            inherits: true;
+            initial-value: 0px;
+        }
+
+        .ui-stats-grid {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            align-items: center;
+        }
+
+        .ui-stats-grid-text-row,
+        .ui-stats-grid-label-text-row,
+        .ui-stats-grid-bar-row {
+            display: contents;
+            font-size: var(--row-height);
+            height: var(--row-height);
+            transition: --row-height 0.1s ease-in-out, visibility 0.1s linear;
+        }
+
+        .ui-stats-grid-text-row.hidden,
+        .ui-stats-grid-label-text-row.hidden,
+        .ui-stats-grid-bar-row.hidden {
+            visibility: hidden;
+            --row-height: 0px;
+        }
+
+        .ui-stats-grid-label-text-row>div:nth-of-type(1),
+        .ui-stats-grid-bar-row>div:nth-of-type(1) {
+            text-align: right;
+        }
+
+        .ui-stats-grid-text-row>div:nth-of-type(1) {
+            grid-column: 1 / span 3;
+            text-align: center;
+        }
+
+        .ui-stats-grid-text-row>div:nth-of-type(1)::after {
+            content: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: block;
+        }
+
+        .ui-stats-grid-label-text-row>div:nth-of-type(2) {
+            grid-column: 2 / span 2;
+        }
+
+        .ui-stats-grid-label-text-row>div:nth-of-type(2)::after {
+            content: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: block;
+        }
+
+        .ui-stats-grid-bar-row>div:nth-of-type(2) {
+            container-type: inline-size;
+            width: 100%;
+            height: var(--row-height);
+            background: var(--bg);
+            border-radius: var(--inner-radius);
+            overflow: hidden;
+
+            /* border-top-left-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-top), var(--padding-border-left)) * var(--layer)); */
+            /* border-top-right-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-top), var(--padding-border-right)) * var(--layer)); */
+            /* border-bottom-left-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-bottom), var(--padding-border-left)) * var(--layer)); */
+            /* border-bottom-right-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-bottom), var(--padding-border-right)) * var(--layer)); */
+
+            box-shadow: 0 0 var(--row-height) color-mix(var(--bg, red) 40%, transparent);
+
+            @property --percent {
+                syntax: "<number>";
+                inherits: true;
+                initial-value: 0;
+            }
+
+            --layer:0;
+            --segment-width: var(--row-height);
+            --gap: 5px;
+            --segment-step: calc(var(--segment-width) + var(--gap));
+            --segment-step-pct: calc((var(--segment-width) + var(--gap)) / 100cqi * 100%);
+        }
+
+        .ui-stats-grid-bar-row>div:nth-of-type(3) {
+            text-align: right;
+            min-width: 3.9ch;
+        }
+
+        .ui-stats-grid-bar-row>div:nth-of-type(3)::after {
+            counter-reset: progress-counter var(--percent);
+            content: counter(progress-counter) '%';
+        }
+
+        .ui-stats-grid-bar-bar {
+            height: 100%;
+            background: var(--color);
+            width: calc(round(var(--percent) * 1%, var(--segment-step-pct)));
+            /* Segment mask */
+            mask-image: repeating-linear-gradient(to right,
+                    #000 0,
+                    #000 var(--segment-width),
+                    transparent var(--segment-width),
+                    transparent calc(var(--segment-width) + var(--gap)));
+            mask-size: calc(var(--segment-width) + var(--gap)) 100%;
+            /* Shadow will not show due to parent overflow: hidden :(*/
+            /* box-shadow: 0 0 var(--row-height) color-mix(var(--color, red) 90%, transparent); */
+        }
+
+        .ui-window:not(.resizing, .dragging):not(.resizing, .dragging) .ui-stats-grid-bar-bar {
+            transition: width 250ms ease-in-out;
+        }
+
+        /* Rapid recharge pulse – left-to-right shine on shield only */
+        .ui-stats-grid-bar-row.pulse .ui-stats-grid-bar-bar {
+            animation: shield-recharge-pulse 2s linear infinite;
+            background: linear-gradient(90deg,
+                    var(--color) 0%,
+                    var(--color) 40%,
+                    var(--charge-colour) 45%,
+                    var(--charge-colour) 55%,
+                    var(--color) 60%,
+                    var(--color) 100%);
+            background-size: 300% 100%;
+        }
+
+        @keyframes shield-recharge-pulse {
+            0% {
+                background-position-x: 300%;
+            }
+
+            100% {
+                background-position-x: 0%;
+            }
+        }
+
+        #target-ui .ui-stats-grid {
+            --row-height: 12px;
+            column-gap: 8px;
+            row-gap: 1px;
+            text-shadow: none;
+        }
+
+        #stats-ui .ui-stats-grid {
+            --row-height: 18px;
+            column-gap: 10px;
+            row-gap: 6px;
+        }
+
+        #stats-ui_hull {
+            --color: var(--colour-green);
+            --bg: var(--colour-green-dark);
+            --charge-colour: var(--colour-yellow-green-light);
+        }
+
+        #stats-ui_shield {
+            --color: var(--colour-blue);
+            --bg: var(--colour-blue-dark);
+            --charge-colour: var(--colour-green-blue-light);
+        }
+
+        #target-ui_hull {
+            --color: var(--colour-green);
+            --bg: var(--colour-green-dark);
+            --charge-colour: var(--colour-yellow-green-light);
+        }
+
+        #target-ui_shield {
+            --color: var(--colour-blue);
+            --bg: var(--colour-blue-dark);
+            --charge-colour: var(--colour-green-blue-light);
+
+        }
+
+        #target-ui .ui-stats-grid-bar-bar {
+            --gap: 3px;
         }
 
         /* =========================== */
@@ -519,131 +700,6 @@
         body.layered-hud-mode #targetCameraHudOutline {
             display: block;
         }
-
-        .ui-progress-container {
-            display: grid;
-            grid-template-columns: auto 1fr auto;
-            align-items: center;
-            column-gap: 10px;
-            row-gap: 6px;
-        }
-
-        .ui-progress-bar {
-            width: 100%;
-            display: contents;
-
-            /* Register once for the whole page */
-            @property --percent {
-                syntax: "<number>";
-                inherits: true;
-                initial-value: 0;
-            }
-
-            --layer:0;
-            /* Default configurable values (overridable per bar) */
-            --segment-width: 25px;
-            --gap: 5px;
-            --height: 18px;
-            --color: var(--colour-green);
-            --bg: var(--colour-green-dark);
-        }
-
-        .ui-progress-bar-label {
-            font-size: var(--height);
-            letter-spacing: 2px;
-            white-space: nowrap;
-            text-box: trim-both cap alphabetic;
-        }
-
-        .ui-progress-bar-label-percent-value {
-            text-align: right;
-            min-width: 4.8ch;
-        }
-
-        .ui-progress-bar-label-percent-value::after {
-            counter-reset: progress-counter var(--percent);
-            content: counter(progress-counter) '%';
-        }
-
-        .ui-progress-bar-label-text {
-            text-align: right;
-            justify-content: right;
-        }
-
-        .ui-progress-bar-bar-container {
-            container-type: inline-size;
-            width: 100%;
-            height: var(--height);
-            background: var(--bg);
-            border-radius: var(--border-radius);
-            overflow: hidden;
-            position: relative;
-
-            --segment-step: calc(var(--segment-width) + var(--gap));
-            --segment-step-pct: calc((var(--segment-width) + var(--gap)) / 100cqi * 100%);
-
-            border-top-left-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-top), var(--padding-border-left)) * var(--layer));
-            border-top-right-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-top), var(--padding-border-right)) * var(--layer));
-            border-bottom-left-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-bottom), var(--padding-border-left)) * var(--layer));
-            border-bottom-right-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-bottom), var(--padding-border-right)) * var(--layer));
-
-            box-shadow: 0 0 var(--height) color-mix(var(--bg, red) 40%, transparent);
-        }
-
-        .ui-progress-bar-bar {
-            height: 100%;
-            background: var(--color);
-            width: calc(round(var(--percent) * 1%, var(--segment-step-pct)));
-            /* Segment mask */
-            mask-image: repeating-linear-gradient(to right,
-                    #000 0,
-                    #000 var(--segment-width),
-                    transparent var(--segment-width),
-                    transparent calc(var(--segment-width) + var(--gap)));
-            mask-size: calc(var(--segment-width) + var(--gap)) 100%;
-            /* Shadow will not show due to parent overflow: hidden :(*/
-            /* box-shadow: 0 0 var(--height) color-mix(var(--color, red) 90%, transparent); */
-        }
-
-        .ui-window:not(.resizing, .dragging):not(.resizing, .dragging) .ui-progress-bar-bar {
-            transition: width 250ms ease-in-out;
-        }
-
-        /* Rapid recharge pulse – left-to-right shine on shield only */
-        .ui-progress-bar.pulse .ui-progress-bar-bar {
-            animation: shield-recharge-pulse 2s linear infinite;
-            background: linear-gradient(90deg,
-                    var(--color) 0%,
-                    var(--color) 40%,
-                    var(--charge-colour) 45%,
-                    var(--charge-colour) 55%,
-                    var(--color) 60%,
-                    var(--color) 100%);
-            background-size: 300% 100%;
-        }
-
-        /* The shine sweep */
-        @keyframes shield-recharge-pulse {
-            0% {
-                background-position-x: 300%;
-            }
-
-            100% {
-                background-position-x: 0%;
-            }
-        }
-
-        #main-status-hull {
-            --color: var(--colour-green);
-            --bg: var(--colour-green-dark);
-            --charge-colour: var(--colour-yellow-green-light);
-        }
-
-        #main-status-shield {
-            --color: var(--colour-blue);
-            --bg: var(--colour-blue-dark);
-            --charge-colour: var(--colour-green-blue-light);
-        }
     </style>
 </head>
 
@@ -670,6 +726,36 @@
                         </div>
                     </div>
                 </div>
+                <div class="ui-stats-grid">
+                    <div id="target-ui_name" class="ui-stats-grid-text-row">
+                        <div></div>
+                    </div>
+                    <div id="target-ui_faction" class="ui-stats-grid-label-text-row">
+                        <div>
+                            FACTION
+                        </div>
+                        <div></div>
+                    </div>
+
+                    <div class="ui-stats-grid-bar-row" id="target-ui_hull">
+                        <div>
+                            HULL
+                        </div>
+                        <div>
+                            <div class="ui-stats-grid-bar-bar"></div>
+                        </div>
+                        <div></div>
+                    </div>
+                    <div class="ui-stats-grid-bar-row" id="target-ui_shield">
+                        <div>
+                            SHIELD
+                        </div>
+                        <div>
+                            <div class="ui-stats-grid-bar-bar"></div>
+                        </div>
+                        <div></div>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="ui-window-title-bar">
@@ -684,12 +770,12 @@
             <div class="ui-layer ui-layer-1">
                 <div class="ui-layer ui-layer-0">
                     <div>
-                        <button id="docking-ui-takeoff"><span class="icon">🚀︎</span> Take Off</button>
-                        <button id="docking-ui-undock"><span class="icon">🚀︎</span> Undock</button>
-                        <button id="docking-ui-repair"><span class="icon">🛠︎</span> Repair Hull</button>
-                        <button id="docking-ui-start-mining"><span class="icon">⛏︎</span> Start Mining</button>
-                        <button id="docking-ui-stop-mining"><span class="icon">⛏︎</span> Stop Mining</button>
-                        <button id="docking-ui-capture"><span class="icon">⚔︎</span> Capture Ship</button>
+                        <button id="docking-ui_takeoff"><span class="icon">🚀︎</span> Take Off</button>
+                        <button id="docking-ui_undock"><span class="icon">🚀︎</span> Undock</button>
+                        <button id="docking-ui_repair"><span class="icon">🛠︎</span> Repair Hull</button>
+                        <button id="docking-ui_start-mining"><span class="icon">⛏︎</span> Start Mining</button>
+                        <button id="docking-ui_stop-mining"><span class="icon">⛏︎</span> Stop Mining</button>
+                        <button id="docking-ui_capture"><span class="icon">⚔︎</span> Capture Ship</button>
                     </div>
                 </div>
             </div>
@@ -706,28 +792,25 @@
         <div id="log-ui-inner" class="inner"></div>
     </div>
 
-    <div id="stats-ui" draggable="true" class="ui-window tint-neutral" style="bottom: 10px; left: 10px; right: 10px; min-width: 208px; max-width: 1853px; width: 1853px; min-height:50px; max-height: 50px;">
-        <div class="ui-progress-container">
-            <div class="ui-progress-bar" id="main-status-hull">
-                <div class="ui-progress-bar-label ui-progress-bar-label-text">
+    <div id="stats-ui" draggable="true" class="ui-window tint-neutral" style="bottom: 10px; left: 10px; right: 10px; min-width: 208px; max-width: 1894px; width: 1894px; min-height:50px; max-height: 50px;">
+        <div class="ui-stats-grid">
+            <div class="ui-stats-grid-bar-row" id="stats-ui_hull">
+                <div>
                     HULL
                 </div>
-                <div class="ui-progress-bar-bar-container">
-                    <div class="ui-progress-bar-bar"></div>
+                <div>
+                    <div class="ui-stats-grid-bar-bar"></div>
                 </div>
-                <div class="ui-progress-bar-label ui-progress-bar-label-percent-value">
-                </div>
+                <div></div>
             </div>
-
-            <div class="ui-progress-bar" id="main-status-shield">
-                <div class="ui-progress-bar-label ui-progress-bar-label-text">
+            <div class="ui-stats-grid-bar-row" id="stats-ui_shield">
+                <div>
                     SHIELD
                 </div>
-                <div class="ui-progress-bar-bar-container">
-                    <div class="ui-progress-bar-bar"></div>
+                <div>
+                    <div class="ui-stats-grid-bar-bar"></div>
                 </div>
-                <div class="ui-progress-bar-label ui-progress-bar-label-percent-value">
-                </div>
+                <div></div>
             </div>
         </div>
         <span class="resize-handle bottom-right"></span>

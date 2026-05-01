@@ -28,12 +28,12 @@ export class UiDomWindowDocking extends UiDomWindow {
         super(element);
 
         const dockingName = element.querySelector('.ui-window-title-text');
-        const takeoffButton = document.getElementById('docking-ui-takeoff');
-        const undockButton = document.getElementById('docking-ui-undock');
-        const repairButton = document.getElementById('docking-ui-repair');
-        const startMiningButton = document.getElementById('docking-ui-start-mining');
-        const stopMiningButton = document.getElementById('docking-ui-stop-mining');
-        const captureButton = document.getElementById('docking-ui-capture');
+        const takeoffButton = document.getElementById('docking-ui_takeoff');
+        const undockButton = document.getElementById('docking-ui_undock');
+        const repairButton = document.getElementById('docking-ui_repair');
+        const startMiningButton = document.getElementById('docking-ui_start-mining');
+        const stopMiningButton = document.getElementById('docking-ui_stop-mining');
+        const captureButton = document.getElementById('docking-ui_capture');
 
         if (!dockingName || !takeoffButton || !undockButton || !repairButton || !startMiningButton || !stopMiningButton || !captureButton) {
             throw new TypeError('Missing required element!');

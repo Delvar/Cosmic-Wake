@@ -2,7 +2,7 @@
 
 import { Vector2D } from '/src/core/vector2d.js';
 import { CargoContainer } from '/src/starSystem/cargoContainer.js';
-import { TWO_PI, randomBetween, remapClamp, normalizeAngle, removeObjectFromArrayInPlace, drawLightGlow } from '/src/core/utils.js';
+import { TWO_PI, randomBetween, remapClamp, normaliseAngle, removeObjectFromArrayInPlace, drawLightGlow } from '/src/core/utils.js';
 import { StarSystem } from '/src/starSystem/starSystem.js';
 import { Camera } from '/src/camera/camera.js';
 import { Colour } from '/src/core/colour.js';
@@ -160,7 +160,7 @@ export class CargoContainerManager {
         this.currentTime += deltaTime;
         for (let i = this.cargoContainers.length - 1; i >= 0; i--) {
             const c = this.cargoContainers[i];
-            c.angle = normalizeAngle(c.angle + c.angularVelocity * deltaTime);
+            c.angle = normaliseAngle(c.angle + c.angularVelocity * deltaTime);
 
             const speed = c.velocity.magnitude();
             if (speed < 1.0) {

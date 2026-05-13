@@ -6,7 +6,7 @@ import { Ship } from '/src/ship/ship.js';
 import { Asteroid } from '/src/starSystem/asteroidBelt.js';
 import { isValidTarget } from '/src/core/gameObject.js';
 import { FlyToTargetAutopilot } from '/src/autopilot/flyToTargetAutopilot.js';
-import { normalizeAngle } from '/src/core/utils.js';
+import { normaliseAngle } from '/src/core/utils.js';
 import { GameManager } from '/src/core/game.js';
 
 /**
@@ -96,7 +96,7 @@ export class LandOnAsteroidAutopilot extends Autopilot {
                     // Slow down if not ready to mine (e.g., speed too high)
                     this._scratchVelocityError.set(this.target.velocity).subtractInPlace(this.ship.velocity);
                     const desiredAngle = Math.atan2(this._scratchVelocityError.x, -this._scratchVelocityError.y);
-                    const angleToDesired = normalizeAngle(desiredAngle - this.ship.angle);
+                    const angleToDesired = normaliseAngle(desiredAngle - this.ship.angle);
                     this.ship.setTargetAngle(this.ship.angle + angleToDesired);
                     const velocityErrorMagnitude = this._scratchVelocityError.magnitude();
                     if (velocityErrorMagnitude > 1.0) {

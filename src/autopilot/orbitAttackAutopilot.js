@@ -119,7 +119,7 @@ export class OrbitAttackAutopilot extends Autopilot {
 
         // Compute desired velocity toward offset position
         this._scratchDesiredVelocity.set(this._scratchOffsetPosition).subtractInPlace(this.ship.position)
-            .normalizeInPlace().multiplyInPlace(this.ship.maxVelocity);
+            .normaliseInPlace().multiplyInPlace(this.ship.maxVelocity);
 
         // Apply thrust with hysteresis
         const shouldThrust = this.applyThrustLogic(
@@ -192,7 +192,7 @@ export class OrbitAttackAutopilot extends Autopilot {
      * It combines lateral orbit motion with radial correction based on distance and target velocity.
      * @param {Vector2D} targetVelocity - The target's velocity.
      * @param {number} distance - Distance to the target.
-     * @param {Vector2D} leadDirection - Normalized lead direction vector.
+     * @param {Vector2D} leadDirection - Normalised lead direction vector.
      * @returns {void}
      */
     computeOrbitalVelocity(targetVelocity, distance, leadDirection) {

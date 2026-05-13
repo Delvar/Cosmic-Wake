@@ -1,7 +1,7 @@
 // /src/weapon/weapon.js
 
 import { Vector2D } from '/src/core/vector2d.js';
-import { normalizeAngle } from '/src/core/utils.js';
+import { normaliseAngle } from '/src/core/utils.js';
 import { ProjectileManager } from '/src/starSystem/projectileManager.js';
 import { Ship } from '/src/ship/ship.js';
 
@@ -61,7 +61,7 @@ export class Weapon {
         this._scratchPosition.set(position);
 
         // Velocity: ship velocity + projectile speed in turret direction
-        const angle = normalizeAngle(direction === null ? ship.angle : direction);
+        const angle = normaliseAngle(direction === null ? ship.angle : direction);
         this._scratchVelocity.setFromPolar(type.speed, angle).addInPlace(ship.velocity);
 
         projectileManager.spawn(this._scratchPosition, this._scratchVelocity, this.projectileTypeIndex, ship);

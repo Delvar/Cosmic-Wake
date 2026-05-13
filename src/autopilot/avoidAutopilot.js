@@ -90,7 +90,7 @@ export class AvoidAutopilot extends Autopilot {
         );
 
         // Compute desired velocity away from threat and towards system center
-        this._scratchDesiredVelocity.set(this.ship.position).normalizeInPlace().multiplyInPlace(0.5).addInPlace(this._scratchDirectionToTarget).normalizeInPlace().multiplyInPlace(-this.ship.maxVelocity);
+        this._scratchDesiredVelocity.set(this.ship.position).normaliseInPlace().multiplyInPlace(0.5).addInPlace(this._scratchDirectionToTarget).normaliseInPlace().multiplyInPlace(-this.ship.maxVelocity);
 
         // Apply thrust with hysteresis
         const shouldThrust = this.applyThrustLogic(

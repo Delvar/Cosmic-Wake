@@ -1,7 +1,7 @@
 // /src/camera/camera.js
 
 import { Vector2D } from '/src/core/vector2d.js';
-import { normalizeAngle } from '/src/core/utils.js';
+import { normaliseAngle } from '/src/core/utils.js';
 import { StarSystem } from '/src/starSystem/starSystem.js';
 import { GameObject } from '/src/core/gameObject.js';
 
@@ -177,28 +177,28 @@ export class Camera {
 
         // Compute delta angles for each corner relative to center
         let angle = Math.atan2(this.worldBounds.left, -this.worldBounds.top);
-        let delta = normalizeAngle(angle - centerAngle);
+        let delta = normaliseAngle(angle - centerAngle);
         minDelta = Math.min(minDelta, delta);
         maxDelta = Math.max(maxDelta, delta);
 
         angle = Math.atan2(this.worldBounds.right, -this.worldBounds.top);
-        delta = normalizeAngle(angle - centerAngle);
+        delta = normaliseAngle(angle - centerAngle);
         minDelta = Math.min(minDelta, delta);
         maxDelta = Math.max(maxDelta, delta);
 
         angle = Math.atan2(this.worldBounds.left, -this.worldBounds.bottom);
-        delta = normalizeAngle(angle - centerAngle);
+        delta = normaliseAngle(angle - centerAngle);
         minDelta = Math.min(minDelta, delta);
         maxDelta = Math.max(maxDelta, delta);
 
         angle = Math.atan2(this.worldBounds.right, -this.worldBounds.bottom);
-        delta = normalizeAngle(angle - centerAngle);
+        delta = normaliseAngle(angle - centerAngle);
         minDelta = Math.min(minDelta, delta);
         maxDelta = Math.max(maxDelta, delta);
 
         // Compute final min/max angles by adding center angle back
-        this.worldBounds.minAngle = normalizeAngle(centerAngle + minDelta);
-        this.worldBounds.maxAngle = normalizeAngle(centerAngle + maxDelta);
+        this.worldBounds.minAngle = normaliseAngle(centerAngle + minDelta);
+        this.worldBounds.maxAngle = normaliseAngle(centerAngle + maxDelta);
     }
 
 
@@ -290,15 +290,15 @@ export class Camera {
 
     /**
      * Checks if a polar cell (defined by angle range) intersects the camera’s view.
-     * Assumes isBeltOffScreen has confirmed radius overlap. Angles normalized to [-π, π] with 0.0 upward.
+     * Assumes isBeltOffScreen has confirmed radius overlap. Angles normalised to [-π, π] with 0.0 upward.
      * @param {number} fromAngle - Start angle of the cell in radians.
      * @param {number} toAngle - End angle of the cell in radians.
      * @returns {boolean} True if the cell is in view, false otherwise.
      */
     isCellInView(fromAngle, toAngle) {
-        // Compute normalized angle deltas
-        let deltaToMin = normalizeAngle(toAngle - this.worldBounds.minAngle);
-        let deltaFromMax = normalizeAngle(fromAngle - this.worldBounds.maxAngle);
+        // Compute normalised angle deltas
+        let deltaToMin = normaliseAngle(toAngle - this.worldBounds.minAngle);
+        let deltaFromMax = normaliseAngle(fromAngle - this.worldBounds.maxAngle);
         return (deltaToMin > 0.0 && deltaFromMax < 0.0);
     }
 }

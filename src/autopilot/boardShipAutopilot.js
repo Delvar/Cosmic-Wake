@@ -5,7 +5,7 @@ import { FlyToTargetAutopilot } from '/src/autopilot/flyToTargetAutopilot.js';
 import { Ship } from '/src/ship/ship.js';
 import { Vector2D } from '/src/core/vector2d.js';
 import { isValidTarget } from '/src/core/gameObject.js';
-import { normalizeAngle } from '/src/core/utils.js';
+import { normaliseAngle } from '/src/core/utils.js';
 import { GameManager } from '/src/core/game.js';
 import { PlayerPilot } from '/src/pilot/pilot.js';
 
@@ -105,7 +105,7 @@ export class BoardShipAutopilot extends Autopilot {
                     this.ship.position.addInPlace(this._scratchTemp.set(this._scratchDistanceToTarget).multiplyInPlace(-0.5 * deltaTime));
                     this._scratchVelocityError.set(-this.ship.velocity.x, -this.ship.velocity.y);
                     const desiredAngle = Math.atan2(this._scratchVelocityError.x, -this._scratchVelocityError.y);
-                    const angleToDesired = normalizeAngle(desiredAngle - this.ship.angle);
+                    const angleToDesired = normaliseAngle(desiredAngle - this.ship.angle);
                     this.ship.setTargetAngle(this.ship.angle + angleToDesired);
                     this.ship.applyThrust(Math.abs(angleToDesired) < Math.PI / 12.0);
                 }

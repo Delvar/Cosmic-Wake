@@ -2,7 +2,7 @@
 
 import { Vector2D } from '/src/core/vector2d.js';
 import { Weapon } from '/src/weapon/weapon.js';
-import { normalizeAngle } from '/src/core/utils.js';
+import { normaliseAngle } from '/src/core/utils.js';
 import { ProjectileManager } from '/src/starSystem/projectileManager.js';
 import { isValidAttackTarget, Ship } from '/src/ship/ship.js';
 import { GameObject, isValidTarget } from '/src/core/gameObject.js';
@@ -83,7 +83,7 @@ export class Turret {
             // Compute direction to target
             this._scratchDirectionToTarget.set(this.target.position).subtractInPlace(this._scratchTurretWorldPosition);
             const distanceToTarget = this._scratchDirectionToTarget.magnitude();
-            this._scratchDirectionToTarget.normalizeInPlace();
+            this._scratchDirectionToTarget.normaliseInPlace();
 
             // Compute lead position
             const projectileSpeed = 1000.0;
@@ -103,18 +103,18 @@ export class Turret {
 
             // Compute angle to lead position
             this._scratchLeadDirection.set(this._scratchLeadPosition).subtractInPlace(this._scratchTurretWorldPosition);
-            targetAngle = normalizeAngle(Math.atan2(this._scratchLeadDirection.x, -this._scratchLeadDirection.y) - ship.angle);
-            const angleDifference = normalizeAngle(targetAngle - this.direction);
+            targetAngle = normaliseAngle(Math.atan2(this._scratchLeadDirection.x, -this._scratchLeadDirection.y) - ship.angle);
+            const angleDifference = normaliseAngle(targetAngle - this.direction);
             if (ship.turretMode === 'Full-auto' && distanceToTarget < 1000 && Math.abs(angleDifference) < this.target.radius / distanceToTarget) {
                 this.fire(ship, ship.starSystem.projectileManager);
             }
         }
 
         //const targetAngle = this.getTargetAngle(ship);
-        const angleDifference = normalizeAngle(targetAngle - this.direction);
+        const angleDifference = normaliseAngle(targetAngle - this.direction);
         const maxRotation = this.rotationSpeed * deltaTime;
         this.direction += Math.max(Math.min(angleDifference, maxRotation), -maxRotation);
-        this.direction = normalizeAngle(this.direction);
+        this.direction = normaliseAngle(this.direction);
     }
 
     /**
@@ -159,8 +159,8 @@ export class Turret {
 
             // Compute angle to hostile
             this._scratchDirectionToTarget.set(hostile.position).subtractInPlace(this._scratchTurretWorldPosition);
-            const targetAngle = normalizeAngle(Math.atan2(this._scratchDirectionToTarget.x, -this._scratchDirectionToTarget.y) - ship.angle);
-            const angleDifference = Math.abs(normalizeAngle(targetAngle - this.direction));
+            const targetAngle = normaliseAngle(Math.atan2(this._scratchDirectionToTarget.x, -this._scratchDirectionToTarget.y) - ship.angle);
+            const angleDifference = Math.abs(normaliseAngle(targetAngle - this.direction));
             const rotationTime = angleDifference / this.rotationSpeed;
 
             if (rotationTime < minRotationTime) {
@@ -179,11 +179,11 @@ export class Turret {
      * @param {number} projectileSpeed - Speed of projectiles for lead aiming.
      * @param {Vector2D} targetVelocity - The target's velocity.
      * @param {number} distanceToTarget - Distance to the target.
-     * @param {Vector2D} directionToTarget - Normalized direction to the target.
+     * @param {Vector2D} directionToTarget - Normalised direction to the target.
      * @param {Vector2D} outLeadPosition - Output vector for lead position.
      * @param {Vector2D} outLeadOffset - Output vector for lead offset.
      * @param {Vector2D} outLateralOffset - Output vector for lateral offset.
-     * @param {Vector2D} outLeadDirection - Output vector for normalized lead direction.
+     * @param {Vector2D} outLeadDirection - Output vector for normalised lead direction.
      * @param {Vector2D} outVelocityError - Output vector for velocity error.
      * @returns {void}
      */
@@ -209,7 +209,7 @@ export class Turret {
             this._scratchTemporaryVector.set(directionToTarget).multiplyInPlace(longitudinalComponent)
         );
         outLeadPosition.set(target.position).addInPlace(outLateralOffset);
-        outLeadDirection.set(outLeadPosition).subtractInPlace(this._scratchTurretWorldPosition).normalizeInPlace();
+        outLeadDirection.set(outLeadPosition).subtractInPlace(this._scratchTurretWorldPosition).normaliseInPlace();
     }
 
     /**

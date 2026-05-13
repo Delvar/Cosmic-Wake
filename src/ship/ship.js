@@ -5,7 +5,7 @@ import { Trail } from '/src/ship/trail.js';
 import { Colour } from '/src/core/colour.js';
 import { GameObject, isValidTarget } from '/src/core/gameObject.js';
 import { CelestialBody, JumpGate, Planet } from '/src/starSystem/celestialBody.js';
-import { TWO_PI, clamp, remapClamp, normalizeAngle, randomBetween, removeAtIndexInPlace, removeObjectFromArrayInPlace, lerp, drawLightGlow } from '/src/core/utils.js';
+import { TWO_PI, clamp, remapClamp, normaliseAngle, randomBetween, removeAtIndexInPlace, removeObjectFromArrayInPlace, lerp, drawLightGlow } from '/src/core/utils.js';
 import { Asteroid } from '/src/starSystem/asteroidBelt.js';
 import { Shield } from '/src/ship/shield.js';
 import { Turret } from '/src/weapon/turret.js';
@@ -655,7 +655,7 @@ export class Ship extends GameObject {
      * @returns {void}
      */
     setTargetAngle(angle) {
-        this.targetAngle = normalizeAngle(angle);
+        this.targetAngle = normaliseAngle(angle);
     }
 
     /**
@@ -758,7 +758,7 @@ export class Ship extends GameObject {
             if (this.dockingContext.landedObject instanceof Planet) {
                 this.endPosition.set(this.position)
                     .subtractInPlace(this.dockingContext.landedObject.position)
-                    .normalizeInPlace()
+                    .normaliseInPlace()
                     .multiplyInPlace(this.dockingContext.landedObject.radius * randomBetween(-0.75, 0.75));
                 if (this.trail) {
                     // Increase trail decay during landing
@@ -823,7 +823,7 @@ export class Ship extends GameObject {
 
         if (this.target && this.target !== landedObject) {
             this.startPosition.set(this.position).subtractInPlace(landedObject.position);
-            this.endPosition.set(this.target.position).subtractInPlace(landedObject.position).normalizeInPlace().multiplyInPlace(landedObject.radius * 1.5);
+            this.endPosition.set(this.target.position).subtractInPlace(landedObject.position).normaliseInPlace().multiplyInPlace(landedObject.radius * 1.5);
         } else {
             if (landedObject instanceof Asteroid || landedObject instanceof Ship) {
                 this.endPosition.setFromPolar(1.0, this.angle).multiplyInPlace(landedObject.radius * 1.5);
@@ -1164,9 +1164,9 @@ export class Ship extends GameObject {
         }
 
         // Rotate towards target angle
-        const angleDiff = normalizeAngle(this.targetAngle - this.angle);
+        const angleDiff = normaliseAngle(this.targetAngle - this.angle);
         this.angle += Math.min(Math.max(angleDiff, -this.rotationSpeed * deltaTime), this.rotationSpeed * deltaTime);
-        this.angle = normalizeAngle(this.angle);
+        this.angle = normaliseAngle(this.angle);
 
         if (this.isThrusting) {
             // Apply thrust in the direction the ship is facing
@@ -1175,9 +1175,9 @@ export class Ship extends GameObject {
         } else if (this.isBraking) {
             // Align with velocity direction to slow down
             const velAngle = Math.atan2(-this.velocity.x, this.velocity.y);
-            const brakeAngleDiff = normalizeAngle(velAngle - this.angle);
+            const brakeAngleDiff = normaliseAngle(velAngle - this.angle);
             this.angle += brakeAngleDiff * this.rotationSpeed * deltaTime;
-            this.angle = normalizeAngle(this.angle);
+            this.angle = normaliseAngle(this.angle);
         }
 
         // Cap velocity to maxVelocity
@@ -1229,9 +1229,9 @@ export class Ship extends GameObject {
             this.shipScale = lerp(1.0, 0.8, t); // Shrink from 1.0 to 0.8 for asteroids
             // Rotate with asteroid's spin
             const currentAngularVelocity = t * this.dockingContext.landedObject.spinSpeed;
-            this.angle = normalizeAngle(this.angle + currentAngularVelocity * deltaTime);
+            this.angle = normaliseAngle(this.angle + currentAngularVelocity * deltaTime);
         } else if (this.dockingContext.landedObject instanceof Ship) {
-            this.angle = normalizeAngle(lerp(this.startAngle, this.dockingContext.landedObject.angle, t));
+            this.angle = normaliseAngle(lerp(this.startAngle, this.dockingContext.landedObject.angle, t));
         }
 
         // Interpolate position
@@ -1250,7 +1250,7 @@ export class Ship extends GameObject {
                 this.trail.clear();
             } else if (this.dockingContext.landedObject instanceof Asteroid) {
                 this.shipScale = 0.8;
-                this.startAngle = normalizeAngle(this.angle - this.dockingContext.landedObject.spin);
+                this.startAngle = normaliseAngle(this.angle - this.dockingContext.landedObject.spin);
             } else if (this.dockingContext.landedObject instanceof Ship) {
                 this.position.set(this.endPosition).addInPlace(this.dockingContext.landedObject.position);
                 this.angle = this.dockingContext.landedObject.angle;
@@ -1321,7 +1321,7 @@ export class Ship extends GameObject {
 
         // Interpolate position and angle
         this.position.lerpInPlace(this.startPosition, this.endPosition, t).addInPlace(landedObject.position);
-        this.angle = normalizeAngle(lerp(this.startAngle, this.targetAngle, t));
+        this.angle = normaliseAngle(lerp(this.startAngle, this.targetAngle, t));
 
         // Complete takeoff when animation finishes
         if (t >= 1.0) {
@@ -1358,7 +1358,7 @@ export class Ship extends GameObject {
             // First half: Shrink and move to gate
             this.shipScale = remapClamp(landTime, 0.0, 1.0, 1.0, 0.25);
             this.position.lerpInPlace(this.startPosition, this.jumpGate.position, landTime);
-            this._scratchRadialOut.set(this.jumpGate.position).normalizeInPlace();
+            this._scratchRadialOut.set(this.jumpGate.position).normaliseInPlace();
             const desiredAngle = Math.atan2(this._scratchRadialOut.x, -this._scratchRadialOut.y);
             this.angle = lerp(this.startAngle, desiredAngle, landTime);
             this.targetAngle = this.angle;
@@ -1367,7 +1367,7 @@ export class Ship extends GameObject {
             const easedT = remapClamp(t, landRatio, 1.0, 0.0, 1.0);
             const progress = easedT ** 2.0;
             this.stretchFactor = 1 + progress * 9.0;
-            this._scratchRadialOut.set(this.jumpGate.position).normalizeInPlace();
+            this._scratchRadialOut.set(this.jumpGate.position).normaliseInPlace();
             const maxDistance = 10000.0;
             this._scratchVelocityDelta.set(this._scratchRadialOut).multiplyInPlace(maxDistance * progress);
             this.position.set(this.jumpGate.position).addInPlace(this._scratchVelocityDelta);
@@ -1405,7 +1405,7 @@ export class Ship extends GameObject {
             const easedT = remapClamp(t, 0.0, jumpInRatio, 1.0, 0.0);
             const progress = easedT ** 2.0;
             this.stretchFactor = 1 + progress * 9.0;
-            this._scratchRadialOut.set(this.jumpGate.position).normalizeInPlace();
+            this._scratchRadialOut.set(this.jumpGate.position).normaliseInPlace();
             const maxDistance = 10000.0;
             this._scratchVelocityDelta.set(this._scratchRadialOut).multiplyInPlace(maxDistance * progress);
             this.position.set(this.jumpGate.position).addInPlace(this._scratchVelocityDelta);
@@ -1538,7 +1538,7 @@ export class Ship extends GameObject {
 
         // Update angle based on angular velocity
         this.angle += this.angularVelocity * deltaTime;
-        this.angle = normalizeAngle(this.angle);
+        this.angle = normaliseAngle(this.angle);
 
         // Cap angular velocity
         if (Math.abs(this.angularVelocity) > this.maxAngularVelocity) {
@@ -1987,7 +1987,7 @@ export class Ship extends GameObject {
         ctx.save();
         ctx.translate(this._scratchScreenPos.x, this._scratchScreenPos.y);
         ctx.rotate(this.angle - Math.PI * 0.5);
-        const angleDiff = normalizeAngle(this.targetAngle - this.angle);
+        const angleDiff = normaliseAngle(this.targetAngle - this.angle);
         ctx.fillStyle = 'rgba(255,0.0,255,0.25)';
         ctx.beginPath();
         ctx.moveTo(0.0, 0.0);
@@ -2001,7 +2001,7 @@ export class Ship extends GameObject {
         const currentSpeed = this.velocity.magnitude();
         if (currentSpeed > 0.0) {
             this._scratchStoppingPoint.set(this.velocity)
-                .normalizeInPlace()
+                .normaliseInPlace()
                 .multiplyInPlace((currentSpeed * currentSpeed) / (2 * this.thrust))
                 .addInPlace(this.position);
             camera.worldToScreen(this._scratchStoppingPoint, this._scratchStoppingPoint);
@@ -2066,7 +2066,7 @@ export class Ship extends GameObject {
 
             if (leadDirection) {
                 camera.worldToScreen(this.position, this._scratchScreenPos);
-                this._scratchVelocityEnd.set(leadDirection).normalizeInPlace().multiplyInPlace(50.0).addInPlace(this.position);
+                this._scratchVelocityEnd.set(leadDirection).normaliseInPlace().multiplyInPlace(50.0).addInPlace(this.position);
                 camera.worldToScreen(this._scratchVelocityEnd, this._scratchVelocityEnd);
                 ctx.strokeStyle = 'orange';
                 ctx.setLineDash([5, 3]);

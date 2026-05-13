@@ -135,7 +135,7 @@ export class ParticleManager {
 
                 // Compute line endpoint (trail backward)
                 const length = p.length * t;
-                this._scratchLineEnd.set(p.velocity).normalizeInPlace().multiplyInPlace(-length).addInPlace(p.position);
+                this._scratchLineEnd.set(p.velocity).normaliseInPlace().multiplyInPlace(-length).addInPlace(p.position);
                 camera.worldToScreen(p.position, this._scratchScreenPos);
                 camera.worldToScreen(this._scratchLineEnd, this._scratchLineEnd);
 

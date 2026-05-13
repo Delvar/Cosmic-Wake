@@ -571,12 +571,12 @@ export class GameManager {
                         const pushA = (shipB.radius / totalRadius) * Math.min(overlap, 25.0 * deltaTime) * forceModulation;
                         // Vector from A to B
                         this._scratchAB.set(shipB.position).subtractInPlace(shipA.position);
-                        this._scratchAB.normalizeInPlace();
+                        this._scratchAB.normaliseInPlace();
                         // Push shipB away from shipA
                         if (!(shipB.pilot instanceof PlayerPilot)) {
                             this._scratchAB.multiplyInPlace(pushB);
                             shipB.position.addInPlace(this._scratchAB);
-                            this._scratchAB.multiplyInPlace(1.0 / pushB); // Reset to normalized vector
+                            this._scratchAB.multiplyInPlace(1.0 / pushB); // Reset to normalised vector
                         }
                         // Push shipA away from shipB
                         if (!(shipA.pilot instanceof PlayerPilot)) {

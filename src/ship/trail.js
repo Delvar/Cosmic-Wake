@@ -287,7 +287,7 @@ export class Trail {
         }
         if (distanceSquared > this.minPointDistSquared && !shouldAddPoint) { // Lateral movement check
             this._scratchForwardDirection.set(this._scratchRelativePos)
-                .normalizeInPlace();
+                .normaliseInPlace();
             this._scratchTemp.set(-this.points.data[secondIdx + 2], -this.points.data[secondIdx + 3]);
             const dot = this._scratchTemp.dot(this._scratchForwardDirection);
             const minDot = distance <= this.lateralThreshold ? 0.0 : Math.sqrt(1 - (this.lateralThreshold / distance) ** 2.0);

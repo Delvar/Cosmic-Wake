@@ -4,7 +4,7 @@ import { GameObject, isValidTarget } from '/src/core/gameObject.js';
 import { Vector2D } from '/src/core/vector2d.js';
 import { Ship } from '/src/ship/ship.js';
 import { Planet } from '/src/starSystem/celestialBody.js';
-import { normalizeAngle, randomBetween } from '/src/core/utils.js';
+import { normaliseAngle, randomBetween } from '/src/core/utils.js';
 import { Asteroid } from '/src/starSystem/asteroidBelt.js';
 import { GameManager } from '/src/core/game.js';
 
@@ -192,11 +192,11 @@ export class Autopilot {
      * @param {number} projectileSpeed - Speed of projectiles for lead aiming.
      * @param {Vector2D} targetVelocity - The target's velocity.
      * @param {number} distance - Distance to the target.
-     * @param {Vector2D} directionToTarget - Normalized direction to the target.
+     * @param {Vector2D} directionToTarget - Normalised direction to the target.
      * @param {Vector2D} outLeadPosition - Output vector for lead position.
      * @param {Vector2D} outLeadOffset - Output vector for lead offset.
      * @param {Vector2D} outLateralOffset - Output vector for lateral offset.
-     * @param {Vector2D} outLeadDirection - Output vector for normalized lead direction.
+     * @param {Vector2D} outLeadDirection - Output vector for normalised lead direction.
      * @param {Vector2D} outVelocityError - Output vector for velocity error.
      * @returns {number} Angle to lead position (radians).
      */
@@ -222,9 +222,9 @@ export class Autopilot {
             this._scratchTemp.set(directionToTarget).multiplyInPlace(longitudinalComponent)
         );
         outLeadPosition.set(target.position).addInPlace(outLateralOffset);
-        outLeadDirection.set(outLeadPosition).subtractInPlace(ship.position).normalizeInPlace();
+        outLeadDirection.set(outLeadPosition).subtractInPlace(ship.position).normaliseInPlace();
         const leadAngle = outLeadDirection.getAngle();
-        return normalizeAngle(leadAngle - ship.angle);
+        return normaliseAngle(leadAngle - ship.angle);
     }
 
     /**
@@ -256,7 +256,7 @@ export class Autopilot {
             return false;
         }
         const desiredAngle = outVelocityError.getAngle();
-        const angleToDesired = normalizeAngle(desiredAngle - ship.angle);
+        const angleToDesired = normaliseAngle(desiredAngle - ship.angle);
         const shouldThrust = this.shouldThrust(velocityErrorMagnitude, errorThresholdRatio);
 
         if (shouldThrust || failoverAngle === null) {

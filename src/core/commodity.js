@@ -119,9 +119,9 @@ export const Commodities = {
 };
 
 /**
- * Get the current price of a commodity based on a normalized variation range
+ * Get the current price of a commodity based on a normalised variation range
  * @param {string} commodityType - Key from CommodityType enum
- * @param {number} priceVariation - Normalized variation from 0.0 to 1.0 (0.5 = standard price, 0.0 = min price, 1.0 = max price)
+ * @param {number} priceVariation - Normalised variation from 0.0 to 1.0 (0.5 = standard price, 0.0 = min price, 1.0 = max price)
  * @returns {number|null} Price per metric tonne or null if commodity not found
  */
 export function getCommodityPrice(commodityType, priceVariation = 0.5) {

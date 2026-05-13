@@ -1,7 +1,7 @@
 // /src/starSystem/asteroidBelt.js
 
 import { Vector2D } from '/src/core/vector2d.js';
-import { TWO_PI, remapRange01, removeObjectFromArrayInPlace, SimpleRNG, hash, normalizeAngle, clamp } from '/src/core/utils.js';
+import { TWO_PI, remapRange01, removeObjectFromArrayInPlace, SimpleRNG, hash, normaliseAngle, clamp } from '/src/core/utils.js';
 import { GameObject, isValidTarget } from '/src/core/gameObject.js';
 import { StarSystem } from '/src/starSystem/starSystem.js';
 import { Camera } from '/src/camera/camera.js';
@@ -325,15 +325,15 @@ export class AsteroidBelt {
             const orbitalSpeed = this.orbitalSpeeds[layerIdx];
             // Adjust camera angles for layer rotation
             const layerAngle = orbitalSpeed * this.elapsedTime;
-            let minAngleLayer = normalizeAngle(camera.worldBounds.minAngle - layerAngle);
-            let maxAngleLayer = normalizeAngle(camera.worldBounds.maxAngle - layerAngle);
+            let minAngleLayer = normaliseAngle(camera.worldBounds.minAngle - layerAngle);
+            let maxAngleLayer = normaliseAngle(camera.worldBounds.maxAngle - layerAngle);
             // Handle wrapping (if max < min, add TWO_PI to max)
             if (maxAngleLayer < minAngleLayer) maxAngleLayer += TWO_PI;
             // Compute cell index range
             const startIdx = Math.floor(minAngleLayer / this.cellAngleSize);
             const endIdx = Math.ceil(maxAngleLayer / this.cellAngleSize);
             for (let i = startIdx; i <= endIdx; i++) {
-                // Normalize index to [0, cellCount)
+                // Normalise index to [0, cellCount)
                 const idx = (i % this.cellCount + this.cellCount) % this.cellCount;
                 const baseCellAngle = idx * this.cellAngleSize;
                 const cellAngle = baseCellAngle + layerAngle;
@@ -382,8 +382,8 @@ export class AsteroidBelt {
             camera.worldToScreen(this._scratchWorldPos, this._scratchScreenPos);
             ctx.moveTo(this._scratchScreenPos.x, this._scratchScreenPos.y);
             // Line to minAngle at outerRadius
-            let minAngle = normalizeAngle(camera.worldBounds.minAngle);
-            let maxAngle = normalizeAngle(camera.worldBounds.maxAngle);
+            let minAngle = normaliseAngle(camera.worldBounds.minAngle);
+            let maxAngle = normaliseAngle(camera.worldBounds.maxAngle);
             if (maxAngle < minAngle) maxAngle += TWO_PI;
             this._scratchWorldPos.setFromPolar(this.outerRadius, minAngle);
             camera.worldToScreen(this._scratchWorldPos, this._scratchScreenPos);
@@ -401,8 +401,8 @@ export class AsteroidBelt {
             for (let layerIdx = 0.0; layerIdx < this.layerCount; layerIdx++) {
                 const orbitalSpeed = this.orbitalSpeeds[layerIdx];
                 const layerAngle = orbitalSpeed * this.elapsedTime;
-                let minAngleLayer = normalizeAngle(camera.worldBounds.minAngle - layerAngle);
-                let maxAngleLayer = normalizeAngle(camera.worldBounds.maxAngle - layerAngle);
+                let minAngleLayer = normaliseAngle(camera.worldBounds.minAngle - layerAngle);
+                let maxAngleLayer = normaliseAngle(camera.worldBounds.maxAngle - layerAngle);
                 if (maxAngleLayer < minAngleLayer) maxAngleLayer += TWO_PI;
                 const startIdx = Math.floor(minAngleLayer / this.cellAngleSize);
                 const endIdx = Math.ceil(maxAngleLayer / this.cellAngleSize);
@@ -545,7 +545,7 @@ export class Asteroid extends GameObject {
      */
     update(deltaTime) {
         this.orbitAngle += this.orbitSpeed * deltaTime;
-        this.spin = normalizeAngle(this.spin + this.spinSpeed * deltaTime);
+        this.spin = normaliseAngle(this.spin + this.spinSpeed * deltaTime);
         this.position.setFromPolar(this.orbitRadius, this.orbitAngle);
         this.velocity.setFromPolar(this.orbitSpeed * this.orbitRadius, this.orbitAngle + Math.PI / 2.0);
         this.orbitAngle %= TWO_PI;

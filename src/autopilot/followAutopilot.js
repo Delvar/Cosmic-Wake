@@ -91,7 +91,7 @@ export class FollowAutopilot extends Autopilot {
         if (!this.target) {
             throw new TypeError('target is missing');
         }
-        // Compute distance and normalized direction to target
+        // Compute distance and normalised direction to target
         const distance = this.ship.position.getDirectionAndDistanceTo(
             this.target.position,
             this._scratchDeltaToTarget,

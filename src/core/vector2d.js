@@ -71,11 +71,11 @@ export class Vector2D {
     }
 
     /**
-     * Normalizes this vector and returns a new Vector2D.
-     * @throws {Error} Always throws; use normalizeInPlace to avoid allocations.
+     * Normalises this vector and returns a new Vector2D.
+     * @throws {Error} Always throws; use normaliseInPlace to avoid allocations.
      */
-    normalize() {
-        throw new Error("Use normalizeInPlace to avoid allocations");
+    normalise() {
+        throw new Error("Use normaliseInPlace to avoid allocations");
     }
 
     /**
@@ -180,7 +180,7 @@ export class Vector2D {
      * Computes the delta, direction, and distance to another vector.
      * @param {Vector2D} other - The target vector.
      * @param {Vector2D} outDelta - Output vector for position delta.
-     * @param {Vector2D} outDirection - Output vector for normalized direction.
+     * @param {Vector2D} outDirection - Output vector for normalised direction.
      * @returns {number} The distance.
      */
     getDirectionAndDistanceTo(other, outDelta, outDirection) {
@@ -257,11 +257,11 @@ export class Vector2D {
     }
 
     /**
-     * Normalizes this vector in-place (makes it a unit vector).
+     * Normalises this vector in-place (makes it a unit vector).
      * If the vector is zero, sets it to (0.0,  0.0).
      * @returns {Vector2D} This vector, for chaining.
      */
-    normalizeInPlace() {
+    normaliseInPlace() {
         const mag = Math.sqrt(this.x * this.x + this.y * this.y);
         if (mag > 0.0) {
             this.x /= mag;

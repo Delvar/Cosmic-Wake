@@ -1,6 +1,6 @@
 # Agent instructions
 
-Before making code changes, read:
+Before making or planning code changes, read:
 
 1. docs/atlas/00-start-here.md
 2. docs/atlas/app-structure.md
@@ -41,3 +41,7 @@ Rules:
 - Do not mark a task complete unless the headline, description, nested bullets, and linked detail requirements are complete.
 - Do not delete, rename, reorder, or broadly rewrite TODO.md unless explicitly asked.
 - If a task reveals follow-up work, propose a new TODO.md item rather than silently expanding scope.
+
+## Language 
+
+- Use UK English spelling in names, comments, and documentation.

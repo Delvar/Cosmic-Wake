@@ -251,36 +251,65 @@
             position: absolute;
             width: 20px;
             height: 20px;
-            background-color: rgba(64, 224, 208, 0.219);
+            /* background-color: rgba(64, 224, 208, 0.219); */
+            box-sizing: border-box;
         }
 
         .resize-handle.top-left {
-            /* top: -4px; */
-            /* left: -4px; */
+            top: 0px;
+            left: 0px;
             cursor: nwse-resize;
         }
 
+        .resize-handle.top {
+            top: 0px;
+            left: 50%;
+            transform: translateX(-50%);
+            cursor: ns-resize;
+        }
+
         .resize-handle.top-right {
-            /* top: -4px; */
-            /* right: -4px; */
+            top: 0px;
+            right: 0px;
             cursor: nesw-resize;
         }
 
+        .resize-handle.left {
+            left: 0px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: ew-resize;
+        }
+
+        .resize-handle.right {
+            right: 0px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: ew-resize;
+        }
+
         .resize-handle.bottom-left {
-            /* bottom: -4px; */
-            /* left: -4px; */
+            bottom: 0px;
+            left: 0px;
             cursor: nesw-resize;
+        }
+
+        .resize-handle.bottom {
+            bottom: 0px;
+            left: 50%;
+            transform: translateX(-50%);
+            cursor: ns-resize;
         }
 
         .resize-handle.bottom-right {
             bottom: 0px;
             right: 0px;
             cursor: nwse-resize;
-            background: linear-gradient(-45deg,
+            /* background: linear-gradient(-45deg,
                     #0000004b 10%, #0000004b, #ffffff4b, #ffffff4b, #00000000, #00000000 20%,
                     #0000004b 20%, #0000004b, #ffffff4b, #ffffff4b, #00000000, #00000000 30%,
                     #0000004b 30%, #0000004b, #ffffff4b, #ffffff4b, #00000000, #00000000 40%,
-                    #0000004b 40%, #0000004b, #ffffff4b, #ffffff4b, #00000000, #00000000 50%)
+                    #0000004b 40%, #0000004b, #ffffff4b, #ffffff4b, #00000000, #00000000 50%); */
         }
 
         /* =========================== */
@@ -309,11 +338,6 @@
             box-shadow: 0 0 40px color-mix(var(--layer-2-bg, red) 40%, transparent);
         }
 
-        #target-ui {
-            top: 5%;
-            right: 5%
-        }
-
         #target-ui canvas {
             box-sizing: border-box;
             border-top-left-radius: var(--inner-radius);
@@ -328,10 +352,10 @@
         }
 
         #log-ui {
-            top: 40px;
-            left: 10px;
             display: flex;
             flex-direction: row;
+            width: fit-content !important;
+            height: fit-content !important;
         }
 
         #log-ui .bar {
@@ -711,7 +735,7 @@
         <canvas id="mainCameraHudOutline" style="visibility: visible; opacity: 1;"></canvas>
     </div>
 
-    <div id="target-ui" draggable="true" class="ui-window tint-neutral hidden">
+    <div id="target-ui" draggable="true" class="ui-window tint-neutral hidden" style="top:2%; right:2%;">
         <div class="ui-layer ui-layer-2 ui-glow">
             <div class="ui-layer ui-layer-1">
                 <div class="ui-layer ui-layer-0">
@@ -721,7 +745,13 @@
                             <canvas id="targetCameraForeground"></canvas>
                             <canvas id="targetCameraHud" style="visibility: visible; opacity: 1;"></canvas>
                             <canvas id="targetCameraHudOutline" style="visibility: visible; opacity: 1;"></canvas>
-                            </canvas>
+                            <span class="resize-handle top-left"></span>
+                            <span class="resize-handle top"></span>
+                            <span class="resize-handle top-right"></span>
+                            <span class="resize-handle left"></span>
+                            <span class="resize-handle right"></span>
+                            <span class="resize-handle bottom-left"></span>
+                            <span class="resize-handle bottom"></span>
                             <span class="resize-handle bottom-right"></span>
                         </div>
                     </div>
@@ -787,12 +817,12 @@
         </div>
     </div>
 
-    <div id="log-ui" draggable="true" class="ui-window tint-neutral">
+    <div id="log-ui" draggable="true" class="ui-window tint-neutral" style="top: 50%; transform: translateY(-50%);">
         <div class="bar"></div>
         <div id="log-ui-inner" class="inner"></div>
     </div>
 
-    <div id="stats-ui" draggable="true" class="ui-window tint-neutral" style="bottom: 10px; left: 10px; right: 10px; min-width: 208px; max-width: 1894px; width: 1894px; min-height:50px; max-height: 50px;">
+    <div id="stats-ui" draggable="true" class="ui-window tint-neutral" style="bottom: 10px; left: 25%; right: 25%; min-width: 208px; min-height:60px; max-height: 60px;">
         <div class="ui-stats-grid">
             <div class="ui-stats-grid-bar-row" id="stats-ui_hull">
                 <div>
@@ -813,6 +843,13 @@
                 <div></div>
             </div>
         </div>
+        <span class="resize-handle top-left"></span>
+        <span class="resize-handle top"></span>
+        <span class="resize-handle top-right"></span>
+        <span class="resize-handle left"></span>
+        <span class="resize-handle right"></span>
+        <span class="resize-handle bottom-left"></span>
+        <span class="resize-handle bottom"></span>
         <span class="resize-handle bottom-right"></span>
     </div>
     <script type="module" src="src/core/game.js"></script>

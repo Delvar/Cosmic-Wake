@@ -3,26 +3,30 @@
 import { FactionRelationship } from '/src/core/faction.js';
 import { clamp } from '/src/core/utils.js';
 
-/**
- * Enum for resize corners.
- * @enum {string}
- */
-export const Corner = Object.freeze({
-    TOP_LEFT: 'top-left',
-    TOP_RIGHT: 'top-right',
-    BOTTOM_LEFT: 'bottom-left',
-    BOTTOM_RIGHT: 'bottom-right'
+/** @enum {string} */
+export const ResizeHandle = Object.freeze({
+    topLeft: 'top-left',
+    top: 'top',
+    topRight: 'top-right',
+    left: 'left',
+    right: 'right',
+    bottomLeft: 'bottom-left',
+    bottom: 'bottom',
+    bottomRight: 'bottom-right'
 });
 
+const PIN_ZONE_SIZE = 100;
+const PIN_EDGE_THICKNESS = 50;
+const CENTRE_ZONE_RATIO = 0.25;
+
 /**
- * Abstract base class for managing DOM-based UI windows with optional resizing, dragging, and visibility toggling.
- * @abstract
+ * Abstract base class for managing DOM-based UI windows with optional resizing,
+ * dragging, pinning to screen edges/centre, and visibility toggling.
  */
 export class UiDomWindow {
     /**
-     * Static map of FactionRelationship values to their corresponding tint class names.
-     * Avoids string allocation on every call to setTintFromRelationship().
-     * @type {Object<FactionRelationship, string>}
+     * Static map of FactionRelationship values to tint class names.
+     * @type {Record<FactionRelationship, string>}
      */
     static #TINT_CLASS_MAP = {
         [FactionRelationship.Allied]: 'tint-allied',
@@ -32,270 +36,532 @@ export class UiDomWindow {
     };
 
     /**
-     * Initializes a new UiDomWindow instance. This class is abstract and cannot be instantiated directly.
-     * @param {HTMLElement} element - The DOM element to manage as a UI window.
-     * @param {FactionRelationship|null} factionRelationship - Optional faction relationship value to set initial tint (FactionRelationship).
+     * @param {HTMLElement} element
+     * @param {FactionRelationship | null} factionRelationship
      */
     constructor(element, factionRelationship = null) {
         if (this.constructor === UiDomWindow) {
             throw new TypeError('UiDomWindow is an abstract class and cannot be instantiated directly.');
         }
 
-        /** @type {HTMLElement} The DOM element managed by this window. */
+        /** @type {HTMLElement} */
         this.element = element;
-        /** @type {HTMLElement} The actual element that owns the resize handles and will be resized (viewport). */
+        /** @type {HTMLElement} */
         this._resizableElement = this._findResizableElement();
-
-        // Instance properties for resizing
-        /** @type {boolean} Flag indicating if resizing is active. */
+        /** @type {boolean} */
+        this._isNested = this._resizableElement !== this.element;
+        /** @type {{left: number; top: number}} */
+        this._offset = { left: 0, top: 0 };
+        this._computeOffset();
+        /** @type {boolean} */
         this._isResizing = false;
-        /** @type {number} Starting X position for resizing. */
+        /** @type {number} */
         this._startX = 0.0;
-        /** @type {number} Starting Y position for resizing. */
+        /** @type {number} */
         this._startY = 0.0;
-        /** @type {number} Starting width for resizing. */
+        /** @type {number} */
         this._startWidth = 0.0;
-        /** @type {number} Starting height for resizing. */
+        /** @type {number} */
         this._startHeight = 0.0;
-        /** @type {number} Starting left position for resizing. */
+        /** @type {number} */
         this._startLeft = 0.0;
-        /** @type {number} Starting top position for resizing. */
+        /** @type {number} */
         this._startTop = 0.0;
-        /** @type {'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | ''} The corner being resized. */
-        this._corner = '';
-
-        // Instance properties for dragging
-        /** @type {boolean} Flag indicating if dragging is active. */
+        /** @type {ResizeHandle | ''} */
+        this._activeResizeHandle = '';
+        /** @type {string | null} */
+        this.tintClass = null;
+        /** @type {{top: boolean; bottom: boolean; left: boolean; right: boolean; centreHorizontal: boolean; centreVertical: boolean}} */
+        this._pins = {
+            top: false,
+            bottom: false,
+            left: false,
+            right: false,
+            centreHorizontal: false,
+            centreVertical: false
+        };
+        /** @type {Record<keyof typeof ResizeHandle, HTMLElement | null>} */
+        this._resizeHandles = {
+            topLeft: null,
+            top: null,
+            topRight: null,
+            left: null,
+            right: null,
+            bottomLeft: null,
+            bottom: null,
+            bottomRight: null
+        };
+        /** @type {boolean} */
         this._isDragging = false;
-        /** @type {number} Offset X for dragging. */
+        /** @type {number} */
         this._offsetX = 0.0;
-        /** @type {number} Offset Y for dragging. */
+        /** @type {number} */
         this._offsetY = 0.0;
 
         const computedStyle = window.getComputedStyle(this._resizableElement);
-        const minWidth = parseFloat(computedStyle.minWidth) || 0.0;
-        const maxWidth = computedStyle.maxWidth === 'none' ? Infinity : parseFloat(computedStyle.maxWidth);
-        const minHeight = parseFloat(computedStyle.minHeight) || 0.0;
-        const maxHeight = computedStyle.maxHeight === 'none' ? Infinity : parseFloat(computedStyle.maxHeight);
 
-        /** @type {number} Enforced minimum width. */
-        this.minWidth = minWidth;
-        /** @type {number} Enforced maximum width. */
-        this.maxWidth = maxWidth;
-        /** @type {number} Enforced minimum height. */
-        this.minHeight = minHeight;
-        /** @type {number} Enforced maximum height. */
-        this.maxHeight = maxHeight;
-
-        // Cache for visibility and tint state to avoid unnecessary DOM updates
-        /** @type {boolean} Cached visibility state (true if element has 'hidden' class). */
+        /** @type {number} */
+        this.minWidth = parseFloat(computedStyle.minWidth) || 0.0;
+        /** @type {number} */
+        this.maxWidth = computedStyle.maxWidth === 'none' ? Infinity : parseFloat(computedStyle.maxWidth);
+        /** @type {number} */
+        this.minHeight = parseFloat(computedStyle.minHeight) || 0.0;
+        /** @type {number} */
+        this.maxHeight = computedStyle.maxHeight === 'none' ? Infinity : parseFloat(computedStyle.maxHeight);
+        /** @type {boolean} */
         this.isHidden = this.element.classList.contains('hidden');
-        /** @type {string|null} Cached tint class name (e.g., 'tint-allied' or null if none). */
-        this.tintClass = null;
 
         this._setupResizing();
+        this._updateResizeHandlesVisibility();
         this._setupDragging();
+        window.addEventListener('resize', this._onWindowResize.bind(this));
         this._setupVisibility();
 
-        // Apply tint based on faction relationship if provided
         if (factionRelationship !== null) {
             this.setTintFromRelationship(factionRelationship);
         }
+
+        const initialRect = this.element.getBoundingClientRect();
+        this.element.style.left = `${initialRect.left}px`;
+        this.element.style.top = `${initialRect.top}px`;
+        this.element.style.bottom = 'unset';
+        this.element.style.right = 'unset';
+
+        this._evaluatePinStateFromCurrentRect();
+        this._syncInnerPosition();
     }
 
     /**
-     * Finds the element containing the resize handles (generic traversal - works with any nesting).
-     * Falls back to the root if no handles are found.
-     * @private
+     * Finds the element that contains the resize handles.
      * @returns {HTMLElement}
+     * @private
      */
     _findResizableElement() {
         const handles = this.element.querySelectorAll('.resize-handle');
         if (handles.length === 0) return this.element;
-        // Handles share a single parent by design (the viewport)
         return /** @type {HTMLElement} */ (handles[0].parentElement);
     }
 
     /**
-     * Sets up resizing functionality if resize handles are present.
+     * Computes and caches the offset between outer element and inner resizable element.
+     * @private
+     */
+    _computeOffset() {
+        if (!this._isNested) {
+            this._offset = { left: 0, top: 0 };
+            return;
+        }
+        const outerRect = this.element.getBoundingClientRect();
+        const innerRect = this._resizableElement.getBoundingClientRect();
+        this._offset = {
+            left: innerRect.left - outerRect.left,
+            top: innerRect.top - outerRect.top
+        };
+    }
+
+    /**
+     * Sets up resize handles if present in the DOM.
      * @private
      */
     _setupResizing() {
         const handles = this.element.querySelectorAll('.resize-handle');
-        if (handles.length === 0) return; // No handles, skip setup
+        if (handles.length === 0) return;
 
         const rect = this._resizableElement.getBoundingClientRect();
         this._resizableElement.style.width = `${clamp(rect.width, this.minWidth, this.maxWidth)}px`;
-        this._resizableElement.style.height = `${clamp(rect.width, this.minHeight, this.maxHeight)}px`;
+        this._resizableElement.style.height = `${clamp(rect.height, this.minHeight, this.maxHeight)}px`;
 
-        handles.forEach((handle) => {
-            handle.addEventListener('mousedown', this._onMouseDown.bind(this));
-        });
+        for (const handle of handles) {
+            if (!(handle instanceof HTMLElement)) continue;
+            for (const cls of handle.classList) {
+                const key = /** @type {keyof typeof ResizeHandle} */ (cls);
+                if (key in ResizeHandle) {
+                    this._resizeHandles[key] = handle;
+                    handle.addEventListener('mousedown', this._onResizeMouseDown.bind(this));
+                    break;
+                }
+            }
+        }
 
-        // Global listeners for mousemove and mouseup
-        document.addEventListener('mousemove', this._onMouseMove.bind(this));
-        document.addEventListener('mouseup', this._onMouseUp.bind(this));
+        document.addEventListener('mousemove', this._onResizeMouseMove.bind(this));
+        document.addEventListener('mouseup', this._onResizeMouseUp.bind(this));
     }
 
     /**
-     * Handles mousedown event on resize handles.
-     * @param {Event} e - The mouse event.
+     * Returns true if any pin or centre constraint is active.
+     * @returns {boolean}
      * @private
      */
-    _onMouseDown(e) {
-        // console.log(`${this.constructor.name}: _onMouseDown`, e);
+    _hasPin() {
+        const p = this._pins;
+        return p.top || p.bottom || p.left || p.right || p.centreHorizontal || p.centreVertical;
+    }
+
+    /**
+     * Updates visibility of resize handles based on current pins.
+     * @private
+     */
+    _updateResizeHandlesVisibility() {
+        const { top, bottom, left, right } = this._pins;
+        const visibility = {
+            topLeft: top || left,
+            top: top,
+            topRight: top || right,
+            left: left,
+            right: right,
+            bottomLeft: bottom || left,
+            bottom: bottom,
+            bottomRight: bottom || right
+        };
+
+        for (const [key, hidden] of Object.entries(visibility)) {
+            const handle = this._resizeHandles[/** @type {keyof typeof ResizeHandle} */(key)];
+            if (handle) handle.style.display = hidden ? 'none' : '';
+        }
+    }
+
+    /**
+     * Handles browser window resize events for pinned windows.
+     * @private
+     */
+    _onWindowResize() {
+        this._computeOffset();
+        if (!this._hasPin()) return;
+
+        if (this._pins.top || this._pins.bottom || this._pins.left || this._pins.right) {
+            this._applyPinStylesFromRect(this.element.getBoundingClientRect());
+        }
+        this._updateResizeHandlesVisibility();
+    }
+
+    /**
+     * Mouse down handler for resize handles.
+     * @param {MouseEvent} e
+     * @private
+     */
+    _onResizeMouseDown(e) {
+        if (this._isResizing || this._isDragging) return;
         if (!(e instanceof MouseEvent)) return;
-        if (!e.target) return;
-        if (!(e.target instanceof HTMLElement)) return;
 
         e.preventDefault();
         e.stopPropagation();
 
         this._isResizing = true;
         this.element.classList.add('resizing');
+        this._activeResizeHandle = '';
 
-        this._corner = '';
-        for (const cls of e.target.classList) {
-            if (cls === Corner.TOP_LEFT || cls === Corner.TOP_RIGHT ||
-                cls === Corner.BOTTOM_LEFT || cls === Corner.BOTTOM_RIGHT) {
-                this._corner = cls;
+        for (const [key, handle] of Object.entries(this._resizeHandles)) {
+            if (!(e.target instanceof Node)) continue;
+            if (handle && (handle === e.target || handle.contains(e.target))) {
+                this._activeResizeHandle = ResizeHandle[/** @type {keyof typeof ResizeHandle} */(key)];
                 break;
             }
         }
-        if (this._corner === '') {
-            console.warn('No valid corner class found on resize handle');
+
+        if (!this._activeResizeHandle) {
             this._isResizing = false;
             return;
         }
+
         this._startX = e.clientX;
         this._startY = e.clientY;
+
         const rect = this._resizableElement.getBoundingClientRect();
         this._startWidth = rect.width;
         this._startHeight = rect.height;
+
+        const windowRect = this.element.getBoundingClientRect();
+        this._startLeft = windowRect.left + (this._isNested ? this._offset.left : 0);
+        this._startTop = windowRect.top + (this._isNested ? this._offset.top : 0);
     }
 
     /**
-     * Handles mousemove event during resizing.
-     * @param {MouseEvent} e - The mouse event.
+     * Mouse move handler during active resize.
+     * @param {MouseEvent} e
      * @private
      */
-    _onMouseMove(e) {
-        // console.log(`${this.constructor.name}: _onMouseMove : _isResizing: ${this._isResizing}`, e);
+    _onResizeMouseMove(e) {
         if (!this._isResizing) return;
-
-        // Bottom-right only (per agreed prototype - other corners added later)
-        if (this._corner !== Corner.BOTTOM_RIGHT) {
-            return;
-        }
+        if (!(e instanceof MouseEvent)) return;
 
         e.preventDefault();
         e.stopPropagation();
+        if (!this._activeResizeHandle) return;
 
-        const minWidth = this.minWidth;
-        const minHeight = this.minHeight;
-        //let newWidth = this._startWidth, newHeight = this._startHeight, newLeft = this._startLeft, newTop = this._startTop;
-        let newWidth = this._startWidth;
-        let newHeight = this._startHeight;
+        const deltaX = e.clientX - this._startX;
+        const deltaY = e.clientY - this._startY;
 
-        // Calculate mouse movement (positive deltaX when dragging left)
-        const deltaX = this._startX - e.clientX; // Left drag = positive
-        const deltaY = this._startY - e.clientY; // Up drag = positive
+        let widthDelta = 0;
+        if (this._activeResizeHandle.includes('left')) widthDelta -= deltaX;
+        if (this._activeResizeHandle.includes('right')) widthDelta += deltaX;
+        if (this._pins.centreHorizontal && (this._activeResizeHandle.includes('left') || this._activeResizeHandle.includes('right'))) {
+            widthDelta *= 2;
+        }
+        let newWidth = clamp(this._startWidth + widthDelta, this.minWidth, this.maxWidth);
 
-        // if (this._corner === Corner.TOP_LEFT) {
-        //     // Resize left: Increase/decrease width, Increase/decrease left
-        //     newWidth = Math.max(minWidth, this._startWidth + deltaX);
-        //     const effectiveDeltaX = newWidth - this._startWidth;
-        //     newLeft = this._startLeft - effectiveDeltaX;
-        //     // Resize up: Increase/decrease height, Increase/decrease top
-        //     newHeight = Math.max(minHeight, this._startHeight + deltaY);
-        //     const effectiveDeltaY = newHeight - this._startHeight;
-        //     newTop = this._startTop - effectiveDeltaY;
-        // } else if (this._corner === Corner.TOP_RIGHT) {
-        //     // Resize right: Increase/decrease width, left fixed
-        //     newWidth = Math.max(minWidth, this._startWidth - deltaX);
-        //     // Resize up: Increase/decrease height, Increase/decrease top
-        //     newHeight = Math.max(minHeight, this._startHeight + deltaY);
-        //     const effectiveDeltaY = newHeight - this._startHeight;
-        //     newTop = this._startTop - effectiveDeltaY;
-        // } else if (this._corner === Corner.BOTTOM_LEFT) {
-        //     // Resize left: Increase/decrease width, Increase/decrease left
-        //     newWidth = Math.max(minWidth, this._startWidth + deltaX);
-        //     const effectiveDeltaX = newWidth - this._startWidth;
-        //     newLeft = this._startLeft - effectiveDeltaX;
-        //     // Resize down: Increase/decrease height, top fixed
-        //     newHeight = Math.max(minHeight, this._startHeight - deltaY);
-        // } else if (this._corner === Corner.BOTTOM_RIGHT) {
-        //     // Resize right: Increase/decrease width, left fixed
-        //     newWidth = Math.max(minWidth, this._startWidth - deltaX);
-        //     // Resize down: Increase/decrease height, top fixed
-        //     newHeight = Math.max(minHeight, this._startHeight - deltaY);
-        // }
+        let heightDelta = 0;
+        if (this._activeResizeHandle.includes('top')) heightDelta -= deltaY;
+        if (this._activeResizeHandle.includes('bottom')) heightDelta += deltaY;
+        if (this._pins.centreVertical && (this._activeResizeHandle.includes('top') || this._activeResizeHandle.includes('bottom'))) {
+            heightDelta *= 2;
+        }
+        let newHeight = clamp(this._startHeight + heightDelta, this.minHeight, this.maxHeight);
 
-        // Update element styles
-        // this.element.style.width = `${newWidth}px`;
-        // this.element.style.height = `${newHeight}px`;
-        // this.element.style.left = `${newLeft}px`;
-        // this.element.style.top = `${newTop}px`;
+        let newLeft = this._startLeft;
+        let newTop = this._startTop;
 
-        // Bottom-right only
-        newWidth = Math.max(minWidth, this._startWidth - deltaX);
-        newHeight = Math.max(minHeight, this._startHeight - deltaY);
+        if (this._activeResizeHandle.includes('left') && !this._pins.centreHorizontal) {
+            newLeft = this._startLeft + (this._startWidth - newWidth);
+        }
+        if (this._activeResizeHandle.includes('top') && !this._pins.centreVertical) {
+            newTop = this._startTop + (this._startHeight - newHeight);
+        }
 
-        newWidth = clamp(newWidth, this.minWidth, this.maxWidth);
-        newHeight = clamp(newHeight, this.minHeight, this.maxHeight);
+        if (this._activeResizeHandle.includes('left') || this._activeResizeHandle.includes('right')) {
+            this._resizableElement.style.width = `${newWidth}px`;
+        }
+        if (this._activeResizeHandle.includes('top') || this._activeResizeHandle.includes('bottom')) {
+            this._resizableElement.style.height = `${newHeight}px`;
+        }
 
-        this._resizableElement.style.width = `${newWidth}px`;
-        this._resizableElement.style.height = `${newHeight}px`;
+        if (this._activeResizeHandle.includes('left') && !this._pins.centreHorizontal) {
+            const outerLeft = this._isNested ? newLeft - this._offset.left : newLeft;
+            this.element.style.left = `${outerLeft}px`;
+            this.element.style.right = 'unset';
+        }
+        if (this._activeResizeHandle.includes('top') && !this._pins.centreVertical) {
+            const outerTop = this._isNested ? newTop - this._offset.top : newTop;
+            this.element.style.top = `${outerTop}px`;
+            this.element.style.bottom = 'unset';
+        }
 
         this._onResize();
     }
 
     /**
-     * Called during resizing (on mouse move). Override in subclasses.
+     * Called on every resize move. Override in subclasses.
      * @protected
      */
     _onResize() { }
 
     /**
-     * Handles mouseup event to end resizing.
-     * @param {MouseEvent} e - The mouse event.
+     * Mouse up handler after resize.
+     * @param {MouseEvent} e
      * @private
      */
-    _onMouseUp(e) {
-        // console.log(`${this.constructor.name}: _onMouseUp : _isResizing: ${this._isResizing}`, e);
+    _onResizeMouseUp(e) {
+        if (!this._isResizing) return;
+
         this._isResizing = false;
+        if (!(e instanceof MouseEvent)) return;
 
         e.preventDefault();
         e.stopPropagation();
 
         this.element.classList.remove('resizing');
         this._onResizeEnd(e);
+
+        this._evaluatePinStateFromCurrentRect();
+        this._syncInnerPosition();
     }
 
     /**
-     * Called when resizing ends (on mouse up). Override in subclasses.
-     * @param {MouseEvent} e - The mouse event.
+     * Called after resize ends. Override in subclasses.
+     * @param {MouseEvent} e
      * @protected
      */
-    _onResizeEnd(e) {
-        // console.log(`${this.constructor.name}: _onResizeEnd : _isResizing: ${this._isResizing}`, e);
+    _onResizeEnd(e) { }
+
+    /**
+     * Recomputes offset after layout changes (relies on CSS for inner positioning).
+     * @private
+     */
+    _syncInnerPosition() {
+        if (!this._isNested) return;
+        this._computeOffset();
     }
 
     /**
-     * Sets up dragging functionality if the element is draggable.
+     * Calculates current pin/centre state from window position.
+     * @param {DOMRect} rect
+     * @returns {typeof this._pins}
+     * @private
+     */
+    _getPinStateForRect(rect) {
+        // Calculate viewport dimensions and the center point of the window
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        const halfWidth = rect.width * 0.5;
+        const halfHeight = rect.height * 0.5;
+        const centreX = rect.left + halfWidth;
+        const centreY = rect.top + halfHeight;
+
+        // Define the central zone boundaries where centring can occur (25% of viewport by default)
+        // This creates a central area for detecting if the window should be centred horizontally/vertically
+        const centreWidth = viewportWidth * CENTRE_ZONE_RATIO;
+        const centreHeight = viewportHeight * CENTRE_ZONE_RATIO;
+        const centreLeft = (viewportWidth - centreWidth) * 0.5;
+        const centreRight = centreLeft + centreWidth;
+        const centreTop = (viewportHeight - centreHeight) * 0.5;
+        const centreBottom = centreTop + centreHeight;
+
+        // Define conditions for corner pinning (window overlaps corner zones) and edge detection
+        // Corner zones are PIN_ZONE_SIZE (100px) from edges; edges are thinner (PIN_EDGE_THICKNESS=50px) for side pinning
+        // These help detect if the window is positioned at screen corners or along edges for pinning behavior
+        const topLeft = rect.left <= PIN_ZONE_SIZE && rect.top <= PIN_ZONE_SIZE;
+        const topRight = rect.right >= viewportWidth - PIN_ZONE_SIZE && rect.top <= PIN_ZONE_SIZE;
+        const bottomLeft = rect.left <= PIN_ZONE_SIZE && rect.bottom >= viewportHeight - PIN_ZONE_SIZE;
+        const bottomRight = rect.right >= viewportWidth - PIN_ZONE_SIZE && rect.bottom >= viewportHeight - PIN_ZONE_SIZE;
+        const leftEdge = rect.left <= PIN_EDGE_THICKNESS;
+        const rightEdge = rect.right >= viewportWidth - PIN_EDGE_THICKNESS;
+        const topEdge = rect.top <= PIN_EDGE_THICKNESS;
+        const bottomEdge = rect.bottom >= viewportHeight - PIN_EDGE_THICKNESS;
+
+        // Determine pin states for each edge:
+        // - Corners trigger both adjacent edges (e.g., topLeft pins top and left)
+        // - Pure edge pinning only if not in corner zones and center is away from sides (to avoid false positives)
+        // This logic prioritizes corner detection and ensures side pinning only for non-corner edge overlaps
+        let pinTop = topLeft || topRight || (topEdge && centreX > PIN_ZONE_SIZE && centreX < viewportWidth - PIN_ZONE_SIZE);
+        let pinBottom = bottomLeft || bottomRight || (bottomEdge && centreX > PIN_ZONE_SIZE && centreX < viewportWidth - PIN_ZONE_SIZE);
+        let pinLeft = topLeft || bottomLeft || (leftEdge && centreY > PIN_ZONE_SIZE && centreY < viewportHeight - PIN_ZONE_SIZE);
+        let pinRight = topRight || bottomRight || (rightEdge && centreY > PIN_ZONE_SIZE && centreY < viewportHeight - PIN_ZONE_SIZE);
+
+        // Initialize flags for centring the window horizontally and/or vertically
+        let centreHorizontal = false;
+        let centreVertical = false;
+
+        // Check if any edge pinning is active
+        const hasAnyEdge = pinTop || pinBottom || pinLeft || pinRight;
+
+        // Centring logic:
+        // - If no edges pinned, check if window center is fully within the central zone -> enable both horizontal and vertical centring
+        // - If edges pinned, enable centring only on the axis without edge pins, and only if center is not near sides (prevents centring pinned windows)
+        // This ensures centring is applied appropriately without conflicting with edge pins
+        if (!hasAnyEdge) {
+            if (centreX >= centreLeft && centreX <= centreRight && centreY >= centreTop && centreY <= centreBottom) {
+                centreHorizontal = true;
+                centreVertical = true;
+            }
+        } else {
+            if ((pinTop || pinBottom) && !(pinLeft || pinRight) && centreX > PIN_ZONE_SIZE && centreX < viewportWidth - PIN_ZONE_SIZE) {
+                centreHorizontal = true;
+            }
+            if ((pinLeft || pinRight) && !(pinTop || pinBottom) && centreY > PIN_ZONE_SIZE && centreY < viewportHeight - PIN_ZONE_SIZE) {
+                centreVertical = true;
+            }
+        }
+
+        // Return the computed pin state object
+        return { top: pinTop, bottom: pinBottom, left: pinLeft, right: pinRight, centreHorizontal, centreVertical };
+    }
+
+    /**
+     * Applies the current pin state as CSS styles.
+     * @param {DOMRect} rect
+     * @private
+     */
+    _applyPinStylesFromRect(rect) {
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        const innerRect = this._resizableElement.getBoundingClientRect();
+        const innerWidth = clamp(innerRect.width, this.minWidth, this.maxWidth);
+        const innerHeight = clamp(innerRect.height, this.minHeight, this.maxHeight);
+
+        const { top, bottom, left, right, centreHorizontal, centreVertical } = this._pins;
+
+        // Horizontal positioning
+        if (centreHorizontal) {
+            this.element.style.left = '50%';
+            this.element.style.right = 'unset';
+        } else if (left && right) {
+            this.element.style.left = `${rect.left}px`;
+            this.element.style.right = `${viewportWidth - rect.right}px`;
+            this._resizableElement.style.width = this._resizableElement === this.element ? 'auto' : '100%';
+        } else if (left) {
+            this.element.style.left = `${rect.left}px`;
+            this.element.style.right = 'unset';
+            this._resizableElement.style.width = `${innerWidth}px`;
+        } else if (right) {
+            this.element.style.right = `${viewportWidth - rect.right}px`;
+            this.element.style.left = 'unset';
+            this._resizableElement.style.width = `${innerWidth}px`;
+        } else {
+            this.element.style.left = `${rect.left}px`;
+            this.element.style.right = 'unset';
+        }
+
+        // Vertical positioning
+        if (centreVertical) {
+            this.element.style.top = '50%';
+            this.element.style.bottom = 'unset';
+        } else if (top && bottom) {
+            this.element.style.top = `${rect.top}px`;
+            this.element.style.bottom = `${viewportHeight - rect.bottom}px`;
+            this._resizableElement.style.height = this._resizableElement === this.element ? 'auto' : '100%';
+        } else if (top) {
+            this.element.style.top = `${rect.top}px`;
+            this.element.style.bottom = 'unset';
+            this._resizableElement.style.height = `${innerHeight}px`;
+        } else if (bottom) {
+            this.element.style.bottom = `${viewportHeight - rect.bottom}px`;
+            this.element.style.top = 'unset';
+            this._resizableElement.style.height = `${innerHeight}px`;
+        } else {
+            this.element.style.top = `${rect.top}px`;
+            this.element.style.bottom = 'unset';
+        }
+
+        // Mixed dual-edge + centre overrides
+        if (left && right && centreHorizontal) {
+            this.element.style.left = '50%';
+            this.element.style.right = 'unset';
+            this._resizableElement.style.width = `${innerWidth}px`;
+        }
+        if (top && bottom && centreVertical) {
+            this.element.style.top = '50%';
+            this.element.style.bottom = 'unset';
+            this._resizableElement.style.height = `${innerHeight}px`;
+        }
+
+        // Centring transform
+        let transformValue = 'none';
+        if (centreHorizontal && centreVertical) {
+            transformValue = 'translate(-50%, -50%)';
+        } else if (centreHorizontal) {
+            transformValue = 'translateX(-50%)';
+        } else if (centreVertical) {
+            transformValue = 'translateY(-50%)';
+        }
+        this.element.style.transform = transformValue;
+    }
+
+    /**
+     * Evaluates current position and reapplies pins if changed.
+     * @private
+     */
+    _evaluatePinStateFromCurrentRect() {
+        const rect = this.element.getBoundingClientRect();
+        const newPinState = this._getPinStateForRect(rect);
+
+        const same = this._pins.top === newPinState.top &&
+            this._pins.bottom === newPinState.bottom &&
+            this._pins.left === newPinState.left &&
+            this._pins.right === newPinState.right &&
+            this._pins.centreHorizontal === newPinState.centreHorizontal &&
+            this._pins.centreVertical === newPinState.centreVertical;
+
+        this._pins = newPinState;
+        this._applyPinStylesFromRect(rect);
+        this._updateResizeHandlesVisibility();
+    }
+
+    /**
+     * Sets up dragging if the element has the draggable attribute.
      * @private
      */
     _setupDragging() {
-        if (!this.element.draggable) return; // Not draggable, skip setup
-
-        // Remove any native draggable attribute to prevent red no-drop cursor
+        if (!this.element.draggable) return;
         this.element.draggable = false;
-
-        const rect = this.element.getBoundingClientRect();
-        this.element.style.left = `${rect.left}px`;
-        this.element.style.top = `${rect.top}px`;
-        this.element.style.bottom = 'unset';
-        this.element.style.right = 'unset';
 
         this.element.addEventListener('mousedown', this._onDragMouseDown.bind(this));
         document.addEventListener('mousemove', this._onDragMouseMove.bind(this));
@@ -303,20 +569,36 @@ export class UiDomWindow {
     }
 
     /**
-     * Starts dragging when mouse is pressed on the window (title bar area or whole element).
-     * @param {MouseEvent} e - The mouse event.
+     * Mouse down handler for dragging.
+     * @param {MouseEvent} e
      * @private
      */
     _onDragMouseDown(e) {
-        // console.log(`${this.constructor.name}: _onDragMouseDown : _isResizing: ${this._isResizing} : _isDragging: ${this._isDragging}`, e);
-        if (e.button !== 0) return;                    // left mouse button only
-        if (this._isResizing) return;                  // don't drag while resizing
-
+        if (!(e instanceof MouseEvent)) return;
+        if (e.button !== 0 || this._isResizing || this._isDragging) return;
         e.preventDefault();
         e.stopPropagation();
 
+        if (this._hasPin()) {
+            const rect = this.element.getBoundingClientRect();
+            const innerRect = this._resizableElement.getBoundingClientRect();
+            const innerWidth = clamp(innerRect.width, this.minWidth, this.maxWidth);
+            const innerHeight = clamp(innerRect.height, this.minHeight, this.maxHeight);
+
+            if (this._pins.left && this._pins.right) this._resizableElement.style.width = `${innerWidth}px`;
+            if (this._pins.top && this._pins.bottom) this._resizableElement.style.height = `${innerHeight}px`;
+
+            this.element.style.left = `${rect.left}px`;
+            this.element.style.top = `${rect.top}px`;
+            this.element.style.right = 'unset';
+            this.element.style.bottom = 'unset';
+            if (this._pins.centreHorizontal || this._pins.centreVertical) {
+                this.element.style.transform = 'none';
+            }
+        }
+
         this._isDragging = true;
-        this.element.classList.add('dragging');        // triggers grabbing cursor
+        this.element.classList.add('dragging');
 
         const rect = this.element.getBoundingClientRect();
         this._offsetX = e.clientX - rect.left;
@@ -324,14 +606,13 @@ export class UiDomWindow {
     }
 
     /**
-     * Updates window position while dragging.
-     * @param {MouseEvent} e - The mouse event.
+     * Mouse move handler during drag.
+     * @param {MouseEvent} e
      * @private
      */
     _onDragMouseMove(e) {
-        // console.log(`${this.constructor.name}: _onDragMouseMove : _isResizing: ${this._isResizing} : _isDragging: ${this._isDragging}`, e);
-        if (!this._isDragging) return;
-
+        if (this._isResizing || !this._isDragging) return;
+        if (!(e instanceof MouseEvent)) return;
         e.preventDefault();
         e.stopPropagation();
 
@@ -340,33 +621,29 @@ export class UiDomWindow {
     }
 
     /**
-     * Ends dragging.
-     * @param {MouseEvent} e - The mouse event.
+     * Mouse up handler after drag.
+     * @param {MouseEvent} e
      * @private
      */
     _onDragMouseUp(e) {
-        // console.log(`${this.constructor.name}: _onDragMouseUp : _isResizing: ${this._isResizing} : _isDragging: ${this._isDragging}`, e);
-        if (!this._isDragging) return;
+        if (this._isResizing || !this._isDragging) return;
+        if (!(e instanceof MouseEvent)) return;
 
         e.preventDefault();
         e.stopPropagation();
 
         this._isDragging = false;
         this.element.classList.remove('dragging');
+        this._evaluatePinStateFromCurrentRect();
     }
 
     /**
-     * Sets up visibility toggling (initial state).
+     * Placeholder for visibility setup.
      * @private
      */
-    _setupVisibility() {
-        // Optional: Initialize based on current class (e.g., if 'hidden' is present)
-    }
+    _setupVisibility() { }
 
-    /**
-     * Shows the UI window.
-     * @returns {void}
-     */
+    /** Shows the window. */
     show() {
         if (this.isHidden) {
             this.element.classList.remove('hidden');
@@ -374,10 +651,7 @@ export class UiDomWindow {
         }
     }
 
-    /**
-     * Hides the UI window.
-     * @returns {void}
-     */
+    /** Hides the window. */
     hide() {
         if (!this.isHidden) {
             this.element.classList.add('hidden');
@@ -386,36 +660,23 @@ export class UiDomWindow {
     }
 
     /**
-     * Sets the window tint based on a faction relationship value.
-     * Uses a static map to look up the tint class, avoiding string allocations.
-     * Only updates the DOM if the tint class has actually changed.
-     * @param {FactionRelationship} relationshipValue - A FactionRelationship value (Allied, Neutral, Hostile, or Disabled).
+     * Sets window tint from faction relationship.
+     * @param {FactionRelationship} relationshipValue
+     * @throws {Error}
      * @returns {void}
-     * @throws {Error} If the relationship value is not found in the tint class map.
      */
     setTintFromRelationship(relationshipValue) {
-        // Look up the tint class from the static map
         const targetTintClass = UiDomWindow.#TINT_CLASS_MAP[relationshipValue];
         if (targetTintClass === undefined) {
             throw new Error(`Unknown relationship value: ${relationshipValue}. Add mapping to UiDomWindow.#TINT_CLASS_MAP.`);
         }
+        if (this.tintClass === targetTintClass) return;
 
-        // Only update DOM if the tint class has changed
-        if (this.tintClass === targetTintClass) {
-            return; // No change needed
-        }
+        if (this.tintClass) this.element.classList.remove(this.tintClass);
+        if (targetTintClass) this.element.classList.add(targetTintClass);
 
-        // Remove old tint class if one was applied
-        if (this.tintClass) {
-            this.element.classList.remove(this.tintClass);
-        }
-
-        // Apply new tint class if one is needed
-        if (targetTintClass) {
-            this.element.classList.add(targetTintClass);
-        }
-
-        // Update cache
         this.tintClass = targetTintClass;
+
+        if (this._isNested) this._computeOffset();
     }
 }

@@ -72,6 +72,7 @@
 - [X] **Remove ship health bars from HUD** - Remove the ship health bars from the HUD and convert them into a uiDomWindow.
 - [ ] **Add target info to target window** - Add target info data to the target window (uiDomWindowTarget): target name, type, faction, hull %, shields %.
 - [X] **Add min + max width + height** - Update uiDomWindow to look for the min + max width + height from the element styles and use them when resizing instead of hard coded values.
+- [X] **Update UI elements to allow edge/corner pinning** - We need the ability to pin windows to edges or corners, allow resizing from the non pinned edge or corner. Then when the pinned edge or corner moves the window should move so it does not get cut off, where an window is pinned to two corners it should also automatically resize (ie shp stats across the bottom).
 
 ## Animations & Polish
 

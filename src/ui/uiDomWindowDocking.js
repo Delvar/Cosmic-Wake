@@ -6,6 +6,7 @@ import { UiDomWindow } from '/src/ui/uiDomWindow.js';
 
 /**
  * Enum-like object for button states to ensure type safety and avoid string literals.
+ * @enum {string}
  */
 const ButtonState = Object.freeze({
     HIDDEN: 'hidden',

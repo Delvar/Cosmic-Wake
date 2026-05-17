@@ -5,7 +5,7 @@
     <title>Cosmic Wake</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Mulish:ital,wght@0,200..1000;1,200..1000&display=swap" rel="stylesheet">
     <style>
         /* =========================== */
         /*  COLOUR PALETTE             */
@@ -161,7 +161,7 @@
             padding: 2px 10px;
             color: var(--title-text, turquoise);
             font-size: calc(var(--border-width) + var(--layer) * (var(--padding-top) + var(--border-width)) - 1px);
-            font-weight: bold;
+            font-weight: 900;
             letter-spacing: 2px;
             border-left-width: 4px;
             border-left-style: solid;
@@ -251,7 +251,7 @@
             position: absolute;
             width: 20px;
             height: 20px;
-            /* background-color: rgba(64, 224, 208, 0.219); */
+            background-color: rgba(64, 224, 208, 0.219);
             box-sizing: border-box;
         }
 
@@ -440,10 +440,10 @@
             cursor: pointer;
             width: 100%;
             display: flow;
-            font-family: "Poppins", "Century Gothic", "CenturyGothic", "AppleGothic", sans-serif;
+            font-family: "Mulish", "Century Gothic", "CenturyGothic", "AppleGothic", sans-serif;
             color: white;
             font-size: 16px;
-            font-weight: bold;
+            font-weight: 900;
             text-shadow: 1.5px 1.5px 2px black;
             white-space: nowrap;
         }
@@ -542,6 +542,50 @@
             display: block;
         }
 
+        /* New row type for number + units (mirrors bar-row structure) */
+        .ui-stats-grid-number-unit-row {
+            display: contents;
+            font-size: var(--row-height);
+            height: var(--row-height);
+            transition: --row-height 0.1s ease-in-out, visibility 0.1s linear;
+        }
+
+        .ui-stats-grid-number-unit-row.hidden {
+            visibility: hidden;
+            --row-height: 0px;
+        }
+
+        /* Label (col 1): Right-aligned, like bars */
+        .ui-stats-grid-number-unit-row>div:nth-of-type(1) {
+            text-align: right;
+        }
+
+        /* Number cell (col 2): Fixed width, right-aligned, monospace for alignment */
+        .ui-stats-grid-number-unit-row>div:nth-of-type(2) {
+            min-width: 5ch;
+            /* Adjust if needed (e.g., 6ch for up to 999.9) */
+            text-align: right;
+            /* font-family: 'Courier New', monospace;  Fixed-width chars */
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-variant-numeric: tabular-nums;
+            display: block;
+        }
+
+        /* Units cell (col 3): Fixed width, left-aligned */
+        .ui-stats-grid-number-unit-row>div:nth-of-type(3) {
+            min-width: 2ch;
+            text-align: left;
+            /* font-family: 'Courier New', monospace; */
+            overflow: hidden;
+        }
+
+        /* Optional: Gap between number and units (add to grid) */
+        #target-ui .ui-stats-grid {
+            column-gap: 0.5ch;
+            /* Small fixed gap; adjust as needed */
+        }
+
         .ui-stats-grid-bar-row>div:nth-of-type(2) {
             container-type: inline-size;
             width: 100%;
@@ -572,7 +616,7 @@
 
         .ui-stats-grid-bar-row>div:nth-of-type(3) {
             text-align: right;
-            min-width: 3.9ch;
+            min-width: 4.5ch;
         }
 
         .ui-stats-grid-bar-row>div:nth-of-type(3)::after {
@@ -671,10 +715,10 @@
         body {
             margin: 0.0;
             padding: 0.0;
-            font-family: "Poppins", "Century Gothic", "CenturyGothic", "AppleGothic", sans-serif;
+            font-family: "Mulish", "Century Gothic", "CenturyGothic", "AppleGothic", sans-serif;
             color: white;
             font-size: 16px;
-            font-weight: bold;
+            font-weight: 900;
             text-shadow: 1.5px 1.5px 2px black;
             overflow: hidden;
         }
@@ -759,6 +803,11 @@
                 <div class="ui-stats-grid">
                     <div id="target-ui_name" class="ui-stats-grid-text-row">
                         <div></div>
+                    </div>
+                    <div id="target-ui_distance" class="ui-stats-grid-number-unit-row">
+                        <div>DISTANCE</div>
+                        <div id="target-ui_distance_value"></div>
+                        <div id="target-ui_distance_unit"></div>
                     </div>
                     <div id="target-ui_faction" class="ui-stats-grid-label-text-row">
                         <div>

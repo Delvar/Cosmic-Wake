@@ -5,14 +5,14 @@ import { clamp } from '/src/core/utils.js';
 
 /** @enum {string} */
 export const ResizeHandle = Object.freeze({
-    topLeft: 'top-left',
-    top: 'top',
-    topRight: 'top-right',
-    left: 'left',
-    right: 'right',
-    bottomLeft: 'bottom-left',
-    bottom: 'bottom',
-    bottomRight: 'bottom-right'
+    'top-left': 'top-left',
+    'top': 'top',
+    'top-right': 'top-right',
+    'left': 'left',
+    'right': 'right',
+    'bottom-left': 'bottom-left',
+    'bottom': 'bottom',
+    'bottom-right': 'bottom-right'
 });
 
 const PIN_ZONE_SIZE = 100;
@@ -82,15 +82,16 @@ export class UiDomWindow {
         };
         /** @type {Record<keyof typeof ResizeHandle, HTMLElement | null>} */
         this._resizeHandles = {
-            topLeft: null,
-            top: null,
-            topRight: null,
-            left: null,
-            right: null,
-            bottomLeft: null,
-            bottom: null,
-            bottomRight: null
+            'top-left': null,
+            'top': null,
+            'top-right': null,
+            'left': null,
+            'right': null,
+            'bottom-left': null,
+            'bottom': null,
+            'bottom-right': null
         };
+
         /** @type {boolean} */
         this._isDragging = false;
         /** @type {number} */
@@ -174,6 +175,7 @@ export class UiDomWindow {
         for (const handle of handles) {
             if (!(handle instanceof HTMLElement)) continue;
             for (const cls of handle.classList) {
+                if (cls == 'resize-handle') continue;
                 const key = /** @type {keyof typeof ResizeHandle} */ (cls);
                 if (key in ResizeHandle) {
                     this._resizeHandles[key] = handle;
@@ -204,14 +206,14 @@ export class UiDomWindow {
     _updateResizeHandlesVisibility() {
         const { top, bottom, left, right } = this._pins;
         const visibility = {
-            topLeft: top || left,
-            top: top,
-            topRight: top || right,
-            left: left,
-            right: right,
-            bottomLeft: bottom || left,
-            bottom: bottom,
-            bottomRight: bottom || right
+            'top-left': top || left,
+            'top': top,
+            'top-right': top || right,
+            'left': left,
+            'right': right,
+            'bottom-left': bottom || left,
+            'bottom': bottom,
+            'bottom-right': bottom || right
         };
 
         for (const [key, hidden] of Object.entries(visibility)) {
@@ -249,7 +251,6 @@ export class UiDomWindow {
         this._isResizing = true;
         this.element.classList.add('resizing');
         this._activeResizeHandle = '';
-
         for (const [key, handle] of Object.entries(this._resizeHandles)) {
             if (!(e.target instanceof Node)) continue;
             if (handle && (handle === e.target || handle.contains(e.target))) {

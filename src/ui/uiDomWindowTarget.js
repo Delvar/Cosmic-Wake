@@ -61,10 +61,33 @@ export class UiDomWindowTarget extends UiDomWindow {
         /** @type {HTMLElement} The element for teh targets shield. */
         this.shieldElement = shieldElement;
 
+        const distanceElement = document.getElementById('target-ui_distance');
+        const distanceValueElement = document.getElementById('target-ui_distance_value');
+        const distanceUnitElement = document.getElementById('target-ui_distance_unit');
+
+        if (!(distanceElement instanceof HTMLElement)) {
+            throw new TypeError('distanceElement not a HTMLElement');
+        }
+        if (!(distanceValueElement instanceof HTMLElement)) {
+            throw new TypeError('distanceValueElement not a HTMLElement');
+        }
+        if (!(distanceUnitElement instanceof HTMLElement)) {
+            throw new TypeError('distanceUnitElement not a HTMLElement');
+        }
+
+        /** @type {HTMLElement} The element for the targets distance container. */
+        this.distanceElement = distanceElement;
+
+        /** @type {HTMLElement} The element for the targets distance value. */
+        this.distanceValueElement = distanceValueElement;
+
+        /** @type {HTMLElement} The element for the targets distance unit. */
+        this.distanceUnitElement = distanceUnitElement;
+
         /** @type {GameManager} The game manager where we can find cameraTarget */
         this.gameManager = gameManager;
 
-        /** @type {{name: string|null, faction: string|null, factionHidden: boolean, hull: number, hullHidden: boolean, hullPulse:boolean, shield: number, shieldHidden: boolean, shieldPulse:boolean}} The last displayed values to avoid unnecessary DOM updates. */
+        /** @type {{name: string|null, faction: string|null, factionHidden: boolean, hull: number, hullHidden: boolean, hullPulse:boolean, shield: number, shieldHidden: boolean, shieldPulse:boolean, distanceValue: string|null, distanceUnit: string}} The last displayed values to avoid unnecessary DOM updates. */
         this._lastDisplayed = {
             name: null,
             faction: null,
@@ -74,7 +97,9 @@ export class UiDomWindowTarget extends UiDomWindow {
             hullPulse: false,
             shield: 0.0,
             shieldHidden: false,
-            shieldPulse: false
+            shieldPulse: false,
+            distanceValue: null,
+            distanceUnit: '',
         }
 
         if (new.target === UiDomWindowTarget) Object.seal(this);
@@ -102,6 +127,22 @@ export class UiDomWindowTarget extends UiDomWindow {
             //this.nameElement.innerText = name;
             this.nameElement.style.setProperty('--text', `'${name.replace("'", "\\'")}'`);
             this._lastDisplayed.name = name;
+        }
+
+        // Calculate and display distance
+        const distance = Math.round(this.gameManager.cameraTarget.position.distanceTo(target.position));
+        const isKm = distance >= 1000;
+        const distanceValue = isKm ? (distance / 1000).toFixed(1) : distance.toString();
+        const distanceUnit = isKm ? 'km' : 'm';
+
+        if (distanceValue !== this._lastDisplayed.distanceValue) {
+            this.distanceValueElement.innerText = distanceValue;
+            this._lastDisplayed.distanceValue = distanceValue;
+        }
+
+        if (distanceUnit !== this._lastDisplayed.distanceUnit) {
+            this.distanceUnitElement.innerText = distanceUnit;
+            this._lastDisplayed.distanceUnit = distanceUnit;
         }
 
         if (!(target instanceof Ship)) {

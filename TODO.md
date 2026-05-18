@@ -70,7 +70,7 @@
 - [ ] **Self-destruct countdown flow** - Implement the armed self-destruct timer, audiovisual warning state, and final ship explosion sequence after activation.
 - [ ] **Improve Docking UI** - Should add better styling, a large area at the top for landing image, trade, shipyard etc, text area at the bottom for planet description, local news, events etc, buttons down each side.
 - [X] **Remove ship health bars from HUD** - Remove the ship health bars from the HUD and convert them into a uiDomWindow.
-- [ ] **Add target info to target window** - Add target info data to the target window (uiDomWindowTarget): target name, type, faction, hull %, shields %.
+- [X] **Add target info to target window** - Add target info data to the target window (uiDomWindowTarget): target name, type, faction, hull %, shields %.
 - [X] **Add min + max width + height** - Update uiDomWindow to look for the min + max width + height from the element styles and use them when resizing instead of hard coded values.
 - [X] **Update UI elements to allow edge/corner pinning** - We need the ability to pin windows to edges or corners, allow resizing from the non pinned edge or corner. Then when the pinned edge or corner moves the window should move so it does not get cut off, where an window is pinned to two corners it should also automatically resize (ie shp stats across the bottom).
 
@@ -83,7 +83,10 @@
 
 - [ ] **Fix Docking with disabled ship** <a id="fix-Docking-with-disabled-ship">[↩](#fix-Docking-with-disabled-ship)</a> When boarding a ship, another ship can also board the same ship and captures it and it starts moving off, first limit the number of ships that can dock to 1, also check if the docked ship is now not disabled, is moving etc so undock automatically. Related To: [Refactor ship-to-ship docking system](#refactor-ship-to-ship-docking-system)
 - [X] **Fix disabled ship shield restarting** - the shields on disabled ships restart, they should be deactivated completely.
-- [ ] **Fix Zombie escort ship** - escorts sometimes end up in Landed state but still drawn in System, green flashing lights, no movement as not Flying.
+ - [ ] **Fix Zombie escort ship** <a id="fix-Zombie-escort-ship">[↩](#fix-Zombie-escort-ship)</a> - escorts sometimes end up in Landed state but still drawn in System, green flashing lights, no movement as not Flying.
+ - [ ] **Fix officer piggybacking during player capture** - When an officer boards a ship captured by the player, the officer can remain attached to the captured ship (piggyback) and incorrectly stay over the planet while the ship is docked or landed; investigate docking/undocking and state transitions so officers properly detach after capture. Related To: [Refactor ship-to-ship docking system](#refactor-ship-to-ship-docking-system)
+ - [ ] **Align escorts to velocity or leader facing** - When escort ships match velocity with their escorted ship, rotate escorts to face their movement (velocity) vector or align them to the escorted ship's facing to avoid visually jarring orientations.
+ - [ ] **Investigate ships rendered at zero scale** - Investigate cases where ships are drawn at a 0 scale (resulting in invisible or incorrect rendering); find the root cause and determine whether this is related to the zombie escort bug. Related To: [Fix Zombie escort ship](#fix-Zombie-escort-ship)
 
 ## Refactor
 

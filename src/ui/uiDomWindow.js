@@ -15,9 +15,9 @@ export const ResizeHandle = Object.freeze({
     'bottom-right': 'bottom-right'
 });
 
-const PIN_ZONE_SIZE = 100;
-const PIN_EDGE_THICKNESS = 50;
-const CENTRE_ZONE_RATIO = 0.25;
+const PIN_ZONE_RATIO = 200 / 1920;
+const PIN_EDGE_RATIO = 100 / 1920;
+const CENTRE_ZONE_RATIO = 200 / 1920;
 
 /**
  * Abstract base class for managing DOM-based UI windows with optional resizing,
@@ -418,25 +418,30 @@ export class UiDomWindow {
         const centreBottom = centreTop + centreHeight;
 
         // Define conditions for corner pinning (window overlaps corner zones) and edge detection
-        // Corner zones are PIN_ZONE_SIZE (100px) from edges; edges are thinner (PIN_EDGE_THICKNESS=50px) for side pinning
-        // These help detect if the window is positioned at screen corners or along edges for pinning behavior
-        const topLeft = rect.left <= PIN_ZONE_SIZE && rect.top <= PIN_ZONE_SIZE;
-        const topRight = rect.right >= viewportWidth - PIN_ZONE_SIZE && rect.top <= PIN_ZONE_SIZE;
-        const bottomLeft = rect.left <= PIN_ZONE_SIZE && rect.bottom >= viewportHeight - PIN_ZONE_SIZE;
-        const bottomRight = rect.right >= viewportWidth - PIN_ZONE_SIZE && rect.bottom >= viewportHeight - PIN_ZONE_SIZE;
-        const leftEdge = rect.left <= PIN_EDGE_THICKNESS;
-        const rightEdge = rect.right >= viewportWidth - PIN_EDGE_THICKNESS;
-        const topEdge = rect.top <= PIN_EDGE_THICKNESS;
-        const bottomEdge = rect.bottom >= viewportHeight - PIN_EDGE_THICKNESS;
+        // Corner/edge thresholds are computed as ratios of viewport width/height so
+        // behaviour scales across different screen sizes.
+        const pinZoneX = viewportWidth * PIN_ZONE_RATIO;
+        const pinZoneY = viewportHeight * PIN_ZONE_RATIO;
+        const pinEdgeX = viewportWidth * PIN_EDGE_RATIO;
+        const pinEdgeY = viewportHeight * PIN_EDGE_RATIO;
+
+        const topLeft = rect.left <= pinZoneX && rect.top <= pinZoneY;
+        const topRight = rect.right >= viewportWidth - pinZoneX && rect.top <= pinZoneY;
+        const bottomLeft = rect.left <= pinZoneX && rect.bottom >= viewportHeight - pinZoneY;
+        const bottomRight = rect.right >= viewportWidth - pinZoneX && rect.bottom >= viewportHeight - pinZoneY;
+        const leftEdge = rect.left <= pinEdgeX;
+        const rightEdge = rect.right >= viewportWidth - pinEdgeX;
+        const topEdge = rect.top <= pinEdgeY;
+        const bottomEdge = rect.bottom >= viewportHeight - pinEdgeY;
 
         // Determine pin states for each edge:
         // - Corners trigger both adjacent edges (e.g., topLeft pins top and left)
         // - Pure edge pinning only if not in corner zones and center is away from sides (to avoid false positives)
         // This logic prioritizes corner detection and ensures side pinning only for non-corner edge overlaps
-        let pinTop = topLeft || topRight || (topEdge && centreX > PIN_ZONE_SIZE && centreX < viewportWidth - PIN_ZONE_SIZE);
-        let pinBottom = bottomLeft || bottomRight || (bottomEdge && centreX > PIN_ZONE_SIZE && centreX < viewportWidth - PIN_ZONE_SIZE);
-        let pinLeft = topLeft || bottomLeft || (leftEdge && centreY > PIN_ZONE_SIZE && centreY < viewportHeight - PIN_ZONE_SIZE);
-        let pinRight = topRight || bottomRight || (rightEdge && centreY > PIN_ZONE_SIZE && centreY < viewportHeight - PIN_ZONE_SIZE);
+        let pinTop = topLeft || topRight || (topEdge && centreX > pinZoneX && centreX < viewportWidth - pinZoneX);
+        let pinBottom = bottomLeft || bottomRight || (bottomEdge && centreX > pinZoneX && centreX < viewportWidth - pinZoneX);
+        let pinLeft = topLeft || bottomLeft || (leftEdge && centreY > pinZoneY && centreY < viewportHeight - pinZoneY);
+        let pinRight = topRight || bottomRight || (rightEdge && centreY > pinZoneY && centreY < viewportHeight - pinZoneY);
 
         // Initialize flags for centring the window horizontally and/or vertically
         let centreHorizontal = false;
@@ -455,10 +460,10 @@ export class UiDomWindow {
                 centreVertical = true;
             }
         } else {
-            if ((pinTop || pinBottom) && !(pinLeft || pinRight) && centreX > PIN_ZONE_SIZE && centreX < viewportWidth - PIN_ZONE_SIZE) {
+            if ((pinTop || pinBottom) && !(pinLeft || pinRight) && centreX >= centreLeft && centreX <= centreRight) {
                 centreHorizontal = true;
             }
-            if ((pinLeft || pinRight) && !(pinTop || pinBottom) && centreY > PIN_ZONE_SIZE && centreY < viewportHeight - PIN_ZONE_SIZE) {
+            if ((pinLeft || pinRight) && !(pinTop || pinBottom) && centreY >= centreTop && centreY <= centreBottom) {
                 centreVertical = true;
             }
         }

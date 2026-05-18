@@ -146,7 +146,6 @@
             position: absolute;
             top: var(--border-width);
             left: 0;
-            width: 100%;
             display: flex;
         }
 
@@ -378,11 +377,6 @@
             border-bottom-right-radius: var(--inner-radius);
         }
 
-        #docking-ui {
-            top: 50%;
-            left: 50%
-        }
-
         #log-ui {
             display: flex;
             flex-direction: row;
@@ -608,6 +602,23 @@
             overflow: hidden;
         }
 
+        /* Render distance/value and unit via CSS variables (set from JS) */
+        #target-ui_distance>div:nth-of-type(2)::after {
+            content: var(--distance-value);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: block;
+        }
+
+        #target-ui_distance>div:nth-of-type(3)::after {
+            content: var(--distance-unit);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: block;
+        }
+
         /* Gap between number and units */
         #target-ui .ui-stats-grid {
             column-gap: 0.5ch;
@@ -828,8 +839,8 @@
                     </div>
                     <div id="target-ui_distance" class="ui-stats-grid-number-unit-row">
                         <div>DISTANCE</div>
-                        <div id="target-ui_distance_value"></div>
-                        <div id="target-ui_distance_unit"></div>
+                        <div></div>
+                        <div></div>
                     </div>
                     <div id="target-ui_faction" class="ui-stats-grid-label-text-row">
                         <div>
@@ -866,11 +877,11 @@
         </div>
     </div>
 
-    <div id="docking-ui" draggable="true" class="ui-window tint-neutral hidden" style="min-width: 250px; max-width: 250px; width: 250px; min-height:160px; max-height: 160px; height: 160px;">
+    <div id="docking-ui" draggable="true" class="ui-window tint-neutral hidden" style="width: fit-content; height:fit-content; top: 50%; left: 50%; transform: translate(-25%, -25%);">
         <div class="ui-layer ui-layer-2 ui-glow">
             <div class="ui-layer ui-layer-1">
                 <div class="ui-layer ui-layer-0">
-                    <div>
+                    <div style="width: 208px;">
                         <button id="docking-ui_takeoff"><span class="icon">🚀︎</span> Take Off</button>
                         <button id="docking-ui_undock"><span class="icon">🚀︎</span> Undock</button>
                         <button id="docking-ui_repair"><span class="icon">🛠︎</span> Repair Hull</button>

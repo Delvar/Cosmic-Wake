@@ -62,27 +62,13 @@ export class UiDomWindowTarget extends UiDomWindow {
         this.shieldElement = shieldElement;
 
         const distanceElement = document.getElementById('target-ui_distance');
-        const distanceValueElement = document.getElementById('target-ui_distance_value');
-        const distanceUnitElement = document.getElementById('target-ui_distance_unit');
 
         if (!(distanceElement instanceof HTMLElement)) {
             throw new TypeError('distanceElement not a HTMLElement');
         }
-        if (!(distanceValueElement instanceof HTMLElement)) {
-            throw new TypeError('distanceValueElement not a HTMLElement');
-        }
-        if (!(distanceUnitElement instanceof HTMLElement)) {
-            throw new TypeError('distanceUnitElement not a HTMLElement');
-        }
 
         /** @type {HTMLElement} The element for the targets distance container. */
         this.distanceElement = distanceElement;
-
-        /** @type {HTMLElement} The element for the targets distance value. */
-        this.distanceValueElement = distanceValueElement;
-
-        /** @type {HTMLElement} The element for the targets distance unit. */
-        this.distanceUnitElement = distanceUnitElement;
 
         /** @type {GameManager} The game manager where we can find cameraTarget */
         this.gameManager = gameManager;
@@ -124,7 +110,6 @@ export class UiDomWindowTarget extends UiDomWindow {
 
         const name = (target.name ?? '');
         if (name !== this._lastDisplayed.name) {
-            //this.nameElement.innerText = name;
             this.nameElement.style.setProperty('--text', `'${name.replace("'", "\\'")}'`);
             this._lastDisplayed.name = name;
         }
@@ -136,12 +121,12 @@ export class UiDomWindowTarget extends UiDomWindow {
         const distanceUnit = isKm ? 'km' : 'm';
 
         if (distanceValue !== this._lastDisplayed.distanceValue) {
-            this.distanceValueElement.innerText = distanceValue;
+            this.distanceElement.style.setProperty('--distance-value', `'${distanceValue.replace("'", "\\'")}'`);
             this._lastDisplayed.distanceValue = distanceValue;
         }
 
         if (distanceUnit !== this._lastDisplayed.distanceUnit) {
-            this.distanceUnitElement.innerText = distanceUnit;
+            this.distanceElement.style.setProperty('--distance-unit', `'${distanceUnit.replace("'", "\\'")}'`);
             this._lastDisplayed.distanceUnit = distanceUnit;
         }
 

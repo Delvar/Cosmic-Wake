@@ -123,8 +123,8 @@ export class UiDomWindow {
         }
 
         const initialRect = this.element.getBoundingClientRect();
-        this.element.style.left = `${initialRect.left}px`;
-        this.element.style.top = `${initialRect.top}px`;
+        this.element.style.left = `${Math.round(initialRect.left)}px`;
+        this.element.style.top = `${Math.round(initialRect.top)}px`;
         this.element.style.bottom = 'unset';
         this.element.style.right = 'unset';
 
@@ -218,7 +218,13 @@ export class UiDomWindow {
 
         for (const [key, hidden] of Object.entries(visibility)) {
             const handle = this._resizeHandles[/** @type {keyof typeof ResizeHandle} */(key)];
-            if (handle) handle.style.display = hidden ? 'none' : '';
+            if (handle) {
+                if (hidden) {
+                    handle.classList.add('hidden');
+                } else {
+                    handle.classList.remove('hidden');
+                }
+            }
         }
     }
 
@@ -298,6 +304,7 @@ export class UiDomWindow {
         if (this._pins.centreHorizontal && (this._activeResizeHandle.includes('left') || this._activeResizeHandle.includes('right'))) {
             widthDelta *= 2;
         }
+
         let newWidth = clamp(this._startWidth + widthDelta, this.minWidth, this.maxWidth);
 
         let heightDelta = 0;
@@ -306,6 +313,7 @@ export class UiDomWindow {
         if (this._pins.centreVertical && (this._activeResizeHandle.includes('top') || this._activeResizeHandle.includes('bottom'))) {
             heightDelta *= 2;
         }
+
         let newHeight = clamp(this._startHeight + heightDelta, this.minHeight, this.maxHeight);
 
         let newLeft = this._startLeft;
@@ -314,6 +322,7 @@ export class UiDomWindow {
         if (this._activeResizeHandle.includes('left') && !this._pins.centreHorizontal) {
             newLeft = this._startLeft + (this._startWidth - newWidth);
         }
+
         if (this._activeResizeHandle.includes('top') && !this._pins.centreVertical) {
             newTop = this._startTop + (this._startHeight - newHeight);
         }
@@ -321,18 +330,20 @@ export class UiDomWindow {
         if (this._activeResizeHandle.includes('left') || this._activeResizeHandle.includes('right')) {
             this._resizableElement.style.width = `${newWidth}px`;
         }
+
         if (this._activeResizeHandle.includes('top') || this._activeResizeHandle.includes('bottom')) {
             this._resizableElement.style.height = `${newHeight}px`;
         }
 
         if (this._activeResizeHandle.includes('left') && !this._pins.centreHorizontal) {
             const outerLeft = this._isNested ? newLeft - this._offset.left : newLeft;
-            this.element.style.left = `${outerLeft}px`;
+            this.element.style.left = `${Math.round(outerLeft)}px`;
             this.element.style.right = 'unset';
         }
+
         if (this._activeResizeHandle.includes('top') && !this._pins.centreVertical) {
             const outerTop = this._isNested ? newTop - this._offset.top : newTop;
-            this.element.style.top = `${outerTop}px`;
+            this.element.style.top = `${Math.round(outerTop)}px`;
             this.element.style.bottom = 'unset';
         }
 
@@ -475,19 +486,19 @@ export class UiDomWindow {
             this.element.style.left = '50%';
             this.element.style.right = 'unset';
         } else if (left && right) {
-            this.element.style.left = `${rect.left}px`;
-            this.element.style.right = `${viewportWidth - rect.right}px`;
+            this.element.style.left = `${Math.round(rect.left)}px`;
+            this.element.style.right = `${Math.round(viewportWidth - rect.right)}px`;
             this._resizableElement.style.width = this._resizableElement === this.element ? 'auto' : '100%';
         } else if (left) {
-            this.element.style.left = `${rect.left}px`;
+            this.element.style.left = `${Math.round(rect.left)}px`;
             this.element.style.right = 'unset';
             this._resizableElement.style.width = `${innerWidth}px`;
         } else if (right) {
-            this.element.style.right = `${viewportWidth - rect.right}px`;
+            this.element.style.right = `${Math.round(viewportWidth - rect.right)}px`;
             this.element.style.left = 'unset';
             this._resizableElement.style.width = `${innerWidth}px`;
         } else {
-            this.element.style.left = `${rect.left}px`;
+            this.element.style.left = `${Math.round(rect.left)}px`;
             this.element.style.right = 'unset';
         }
 
@@ -496,19 +507,19 @@ export class UiDomWindow {
             this.element.style.top = '50%';
             this.element.style.bottom = 'unset';
         } else if (top && bottom) {
-            this.element.style.top = `${rect.top}px`;
-            this.element.style.bottom = `${viewportHeight - rect.bottom}px`;
+            this.element.style.top = `${Math.round(rect.top)}px`;
+            this.element.style.bottom = `${Math.round(viewportHeight - rect.bottom)}px`;
             this._resizableElement.style.height = this._resizableElement === this.element ? 'auto' : '100%';
         } else if (top) {
-            this.element.style.top = `${rect.top}px`;
+            this.element.style.top = `${Math.round(rect.top)}px`;
             this.element.style.bottom = 'unset';
             this._resizableElement.style.height = `${innerHeight}px`;
         } else if (bottom) {
-            this.element.style.bottom = `${viewportHeight - rect.bottom}px`;
+            this.element.style.bottom = `${Math.round(viewportHeight - rect.bottom)}px`;
             this.element.style.top = 'unset';
             this._resizableElement.style.height = `${innerHeight}px`;
         } else {
-            this.element.style.top = `${rect.top}px`;
+            this.element.style.top = `${Math.round(rect.top)}px`;
             this.element.style.bottom = 'unset';
         }
 
@@ -589,8 +600,8 @@ export class UiDomWindow {
             if (this._pins.left && this._pins.right) this._resizableElement.style.width = `${innerWidth}px`;
             if (this._pins.top && this._pins.bottom) this._resizableElement.style.height = `${innerHeight}px`;
 
-            this.element.style.left = `${rect.left}px`;
-            this.element.style.top = `${rect.top}px`;
+            this.element.style.left = `${Math.round(rect.left)}px`;
+            this.element.style.top = `${Math.round(rect.top)}px`;
             this.element.style.right = 'unset';
             this.element.style.bottom = 'unset';
             if (this._pins.centreHorizontal || this._pins.centreVertical) {
@@ -617,8 +628,8 @@ export class UiDomWindow {
         e.preventDefault();
         e.stopPropagation();
 
-        this.element.style.left = `${e.clientX - this._offsetX}px`;
-        this.element.style.top = `${e.clientY - this._offsetY}px`;
+        this.element.style.left = `${Math.round(e.clientX - this._offsetX)}px`;
+        this.element.style.top = `${Math.round(e.clientY - this._offsetY)}px`;
     }
 
     /**

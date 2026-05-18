@@ -119,7 +119,7 @@
             border-top-left-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-top), var(--padding-border-left)) * var(--layer));
             border-top-right-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-top), var(--padding-border-right)) * var(--layer));
             border-bottom-left-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-bottom), var(--padding-border-left)) * var(--layer));
-            /* border-bottom-right-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-bottom), var(--padding-border-right)) * var(--layer)); */
+            border-bottom-right-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-bottom), var(--padding-border-right)) * var(--layer));
         }
 
         .ui-layer-1 {
@@ -128,7 +128,7 @@
             border-top-left-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-top), var(--padding-border-left)) * var(--layer));
             border-top-right-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-top), var(--padding-border-right)) * var(--layer));
             border-bottom-left-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-bottom), var(--padding-border-left)) * var(--layer));
-            /* border-bottom-right-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-bottom), var(--padding-border-right)) * var(--layer)); */
+            border-bottom-right-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-bottom), var(--padding-border-right)) * var(--layer));
         }
 
         .ui-layer-0 {
@@ -137,7 +137,7 @@
             border-top-left-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-top), var(--padding-border-left)) * var(--layer));
             border-top-right-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-top), var(--padding-border-right)) * var(--layer));
             border-bottom-left-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-bottom), var(--padding-border-left)) * var(--layer));
-            /* border-bottom-right-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-bottom), var(--padding-border-right)) * var(--layer)); */
+            border-bottom-right-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-bottom), var(--padding-border-right)) * var(--layer));
             padding: 0px;
         }
 
@@ -153,7 +153,6 @@
         .ui-window-title-left-wing {
             width: calc(20px + (var(--padding-left) + var(--border-width)) * var(--layer) + var(--inner-radius));
             flex-shrink: 0;
-            /* background-color: cadetblue; */
         }
 
         .ui-window-title-text {
@@ -180,7 +179,6 @@
         .ui-window-title-right-wing {
             width: calc(20px + (var(--padding-right) + var(--border-width)) * var(--layer) + var(--inner-radius));
             flex-shrink: 0;
-            /* background-color: cadetblue; */
         }
 
         .ui-window-content {
@@ -249,67 +247,92 @@
 
         .resize-handle {
             position: absolute;
-            width: 20px;
-            height: 20px;
-            background-color: rgba(64, 224, 208, 0.219);
+            width: calc( 2.0 * var(--inner-radius) + var(--border-width));
+            height: calc( 2.0 * var(--inner-radius) + var(--border-width));
+            /* background-color: rgba(64, 224, 208, 0.219); */
             box-sizing: border-box;
+            border-color: var(--layer-2-bg);
+            z-index: +2;
+            transition: border-color 0.25s linear, visibility 0.25s linear, opacity 0.25s ease-in-out;
+        }
+
+        .resize-handle.hidden {
+            visibility: hidden;
+            opacity: 0;
+            pointer-events: none;
+            /* display: none; */
         }
 
         .resize-handle.top-left {
-            top: 0px;
-            left: 0px;
+            top: calc(0px - var(--border-width));
+            left: calc(0px - var(--border-width));
             cursor: nwse-resize;
+            border-width: var(--border-width) 0px 0px var(--border-width);
+            border-style: solid none none solid;
+            border-top-left-radius: calc(var(--inner-radius) + var(--border-width));
         }
 
         .resize-handle.top {
-            top: 0px;
+            top: calc(0px - var(--border-width));
             left: 50%;
             transform: translateX(-50%);
             cursor: ns-resize;
+            border-width: var(--border-width) 0px 0px 0px;
+            border-style: solid none none none;
         }
 
         .resize-handle.top-right {
-            top: 0px;
-            right: 0px;
+            top: calc(0px - var(--border-width));
+            right: calc(0px - var(--border-width));
             cursor: nesw-resize;
+            border-width: var(--border-width) var(--border-width) 0px 0px;
+            border-style: solid solid none none;
+            border-top-right-radius: calc(var(--inner-radius) + var(--border-width));
         }
 
         .resize-handle.left {
-            left: 0px;
+            left: calc(0px - var(--border-width));
             top: 50%;
             transform: translateY(-50%);
             cursor: ew-resize;
+            border-width: 0px 0px 0px var(--border-width);
+            border-style: none none none solid;
         }
 
         .resize-handle.right {
-            right: 0px;
+            right: calc(0px - var(--border-width));
             top: 50%;
             transform: translateY(-50%);
             cursor: ew-resize;
+            border-width: 0px var(--border-width) var(--border-width) 0px;
+            border-style: none solid none none;
         }
 
         .resize-handle.bottom-left {
-            bottom: 0px;
-            left: 0px;
+            bottom: calc(0px - var(--border-width));
+            left: calc(0px - var(--border-width));
             cursor: nesw-resize;
+            border-width: 0px 0px var(--border-width) var(--border-width);
+            border-style: none none solid solid;
+            border-bottom-left-radius: calc(var(--inner-radius) + var(--border-width));
         }
 
         .resize-handle.bottom {
-            bottom: 0px;
+            bottom: calc(0px - var(--border-width));
             left: 50%;
             transform: translateX(-50%);
             cursor: ns-resize;
+            border-width: 0px 0px var(--border-width) 0px;
+            border-style: none none solid none;
         }
 
         .resize-handle.bottom-right {
-            bottom: 0px;
-            right: 0px;
+            bottom: calc(0px - var(--border-width));
+            right: calc(0px - var(--border-width));
             cursor: nwse-resize;
-            /* background: linear-gradient(-45deg,
-                    #0000004b 10%, #0000004b, #ffffff4b, #ffffff4b, #00000000, #00000000 20%,
-                    #0000004b 20%, #0000004b, #ffffff4b, #ffffff4b, #00000000, #00000000 30%,
-                    #0000004b 30%, #0000004b, #ffffff4b, #ffffff4b, #00000000, #00000000 40%,
-                    #0000004b 40%, #0000004b, #ffffff4b, #ffffff4b, #00000000, #00000000 50%); */
+            border-width: 0px var(--border-width) var(--border-width) 0px;
+            border-style: none solid solid none;
+            border-bottom-right-radius: calc(var(--inner-radius) + var(--border-width));
         }
 
         /* =========================== */
@@ -343,7 +366,7 @@
             border-top-left-radius: var(--inner-radius);
             border-top-right-radius: var(--inner-radius);
             border-bottom-left-radius: var(--inner-radius);
-            /* border-bottom-right-radius: var(--inner-radius); */
+            border-bottom-right-radius: var(--inner-radius);
         }
 
         #docking-ui {
@@ -365,7 +388,6 @@
             border-bottom-left-radius: var(--padding-border-left);
             flex-shrink: 0;
             transition: height 100ms ease-out;
-            /* border: var(--border-width) solid black; */
             box-shadow: 0 0 calc(2.0 * var(--padding-border-left)) color-mix(var(--layer-2-bg, red) 70%, transparent);
         }
 
@@ -478,7 +500,7 @@
         /* Last visible button – rounded bottom */
         #docking-ui button:nth-last-child(1 of :not(.hidden)) {
             border-bottom-left-radius: var(--inner-radius);
-            /* border-bottom-right-radius: var(--inner-radius); */
+            border-bottom-right-radius: var(--inner-radius);
         }
 
         /* =========================== */
@@ -563,9 +585,7 @@
         /* Number cell (col 2): Fixed width, right-aligned, monospace for alignment */
         .ui-stats-grid-number-unit-row>div:nth-of-type(2) {
             min-width: 5ch;
-            /* Adjust if needed (e.g., 6ch for up to 999.9) */
             text-align: right;
-            /* font-family: 'Courier New', monospace;  Fixed-width chars */
             overflow: hidden;
             text-overflow: ellipsis;
             font-variant-numeric: tabular-nums;
@@ -576,14 +596,12 @@
         .ui-stats-grid-number-unit-row>div:nth-of-type(3) {
             min-width: 2ch;
             text-align: left;
-            /* font-family: 'Courier New', monospace; */
             overflow: hidden;
         }
 
-        /* Optional: Gap between number and units (add to grid) */
+        /* Gap between number and units */
         #target-ui .ui-stats-grid {
             column-gap: 0.5ch;
-            /* Small fixed gap; adjust as needed */
         }
 
         .ui-stats-grid-bar-row>div:nth-of-type(2) {
@@ -593,11 +611,6 @@
             background: var(--bg);
             border-radius: var(--inner-radius);
             overflow: hidden;
-
-            /* border-top-left-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-top), var(--padding-border-left)) * var(--layer)); */
-            /* border-top-right-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-top), var(--padding-border-right)) * var(--layer)); */
-            /* border-bottom-left-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-bottom), var(--padding-border-left)) * var(--layer)); */
-            /* border-bottom-right-radius: calc(var(--inner-radius) + var(--border-width) + max(var(--padding-border-bottom), var(--padding-border-right)) * var(--layer)); */
 
             box-shadow: 0 0 var(--row-height) color-mix(var(--bg, red) 40%, transparent);
 

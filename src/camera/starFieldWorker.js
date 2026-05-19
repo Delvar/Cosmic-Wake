@@ -8,12 +8,12 @@ import { Vector2D } from '/src/core/vector2d.js';
  */
 export class StarFieldWorker {
     /**
-    * Creates a new StarField instance.
-    * @param {number} [starsPerCell=20.0] - Number of stars per grid cell.
-    * @param {number} [gridSize=1000.0] - Size of each grid cell in world coordinates.
-    * @param {number} [coloursPerLayer=10.0] - Number of colors per layer for rendering.
-    * @param {number} [layers=5.0] - Number of parallax layers in the starfield.
-    */
+     * Creates a new StarField instance.
+     * @param {number} starsPerCell - Number of stars per grid cell.
+     * @param {number} gridSize - Size of each grid cell in world coordinates.
+     * @param {number} coloursPerLayer - Number of colors per layer for rendering.
+     * @param {number} layers - Number of parallax layers in the starfield.
+     */
     constructor(starsPerCell = 20.0, gridSize = 1000.0, coloursPerLayer = 10.0, layers = 5.0) {
         /** @type {number} Number of stars per grid cell. */
         this.starsPerCell = starsPerCell;
@@ -74,7 +74,7 @@ export class StarFieldWorker {
     generateParallaxFactors(layers) {
         const factors = [];
         for (let i = 0; i < layers; i++) {
-            const t = layers > 1 ? i / (layers - 1) : 0;
+            const _t = layers > 1 ? i / (layers - 1) : 0;
             const factor = remapClamp(i, 0, layers - 1, 0.1, 0.9);
             factors.push(factor);
         }
@@ -82,9 +82,9 @@ export class StarFieldWorker {
     }
 
     /**
-      * Generates colour palettes for each layer based on depth.
-      * @returns {Array<Array<string>>} Array of colour palettes, one per layer.
-      */
+     * Generates colour palettes for each layer based on depth.
+     * @returns {Array<Array<string>>} Array of colour palettes, one per layer.
+     */
     generateColourPalettes() {
         const palettes = [];
         for (let layer = 0.0; layer < this.layers; layer++) {

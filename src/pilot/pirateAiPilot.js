@@ -12,7 +12,7 @@ import { CargoCollectorAutopilot } from '/src/autopilot/cargoCollectorAutopilot.
 
 /**
  * AI pilot for pirate ships, focusing on attacking and fleeing.
- * @extends AiPilot
+ * @augments AiPilot
  */
 export class PirateAiPilot extends AiPilot {
     /**

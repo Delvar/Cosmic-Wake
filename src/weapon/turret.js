@@ -5,7 +5,7 @@ import { Weapon } from '/src/weapon/weapon.js';
 import { normaliseAngle } from '/src/core/utils.js';
 import { ProjectileManager } from '/src/starSystem/projectileManager.js';
 import { isValidAttackTarget, Ship } from '/src/ship/ship.js';
-import { GameObject, isValidTarget } from '/src/core/gameObject.js';
+import { GameObject } from '/src/core/gameObject.js';
 import { PlayerPilot } from '/src/pilot/pilot.js';
 
 /**

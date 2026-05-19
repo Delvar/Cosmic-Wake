@@ -12,7 +12,7 @@ import { remapClamp } from '/src/core/utils.js';
 
 /**
  * AI pilot for officer ships, focusing on attacking and fleeing.
- * @extends AiPilot
+ * @augments AiPilot
  */
 export class OfficerAiPilot extends AiPilot {
     /**
@@ -156,7 +156,7 @@ export class OfficerAiPilot extends AiPilot {
     /**
      * Changes state and autopilot, handling cleanup.
      * @param {string} newState - The new state ('Job', 'Flee', 'Avoid', 'Attack').
-     * @param {Autopilot<any>|null} [newAutopilot=null] - The new autopilot, if any.
+     * @param {Autopilot<any>|null} newAutopilot - The new autopilot, if any.
      * @returns {void}
      */
     changeState(newState, newAutopilot = null) {

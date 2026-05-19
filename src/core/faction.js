@@ -91,7 +91,7 @@ export class FactionManager {
             if (!faction) {
                 throw TypeError('faction not found!');
             }
-            return faction
+            return faction;
         }
 
         const id = this.factions.size;

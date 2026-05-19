@@ -11,7 +11,7 @@ import { FlyToTargetAutopilot } from '/src/autopilot/flyToTargetAutopilot.js';
 
 /**
  * Autopilot that approaches a planet and transitions into the ship's landing sequence.
- * @extends {Autopilot<Planet>}
+ * @augments {Autopilot<Planet>}
  */
 export class LandOnPlanetAutopilot extends Autopilot {
     /**

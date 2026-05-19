@@ -9,7 +9,7 @@ import { StarSystem } from '/src/starSystem/starSystem.js';
  * Represents a cargo container floating in space, containing commodities.
  * Extends GameObject for position, velocity, and star system integration.
  * Managed by CargoContainerManager.
- * @extends GameObject
+ * @augments GameObject
  */
 export class CargoContainer extends GameObject {
     /**

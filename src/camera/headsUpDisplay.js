@@ -136,13 +136,13 @@ export class HeadsUpDisplay {
             this.hudOutlineCtx.save();
 
             this.hudCtx.fillStyle = fillColour;
-            this.hudCtx.textAlign = /** @type {CanvasTextAlign} */ (textAlign);
+            this.hudCtx.textAlign = /** @type {'left'|'center'|'right'|'start'|'end'} */ (textAlign);
             this.hudCtx.fillText(text, x, y);
 
             this.hudOutlineCtx.strokeStyle = black;
             this.hudOutlineCtx.fillStyle = white;
             this.hudOutlineCtx.lineWidth = 2.0;
-            this.hudOutlineCtx.textAlign = /** @type {CanvasTextAlign} */ (textAlign);
+            this.hudOutlineCtx.textAlign = /** @type {'left'|'center'|'right'|'start'|'end'} */ (textAlign);
             this.hudOutlineCtx.strokeText(text, x, y);
             this.hudOutlineCtx.fillText(text, x, y);
 
@@ -154,7 +154,7 @@ export class HeadsUpDisplay {
             this.foregroundCtx.strokeStyle = black;
             this.foregroundCtx.fillStyle = fillColour;
             this.foregroundCtx.lineWidth = 2.0;
-            this.foregroundCtx.textAlign = /** @type {CanvasTextAlign} */ (textAlign);
+            this.foregroundCtx.textAlign = /** @type {'left'|'center'|'right'|'start'|'end'} */ (textAlign);
             this.foregroundCtx.strokeText(text, x, y);
             this.foregroundCtx.fillText(text, x, y);
 
@@ -164,7 +164,7 @@ export class HeadsUpDisplay {
 
     /**
      * Draws a circle around the targeted ship.
-     * @param {GameObject} [target] - The target object.
+     * @param {GameObject} target - The target object.
      * @returns {void}
      */
     drawTargetCircle(target) {
@@ -251,8 +251,8 @@ export class HeadsUpDisplay {
      * Draws a navigational ring with arrows and optional name tags for objects in the star system.
      * @param {Colour} ringColour - The color of the ring and arrows.
      * @param {number} ringRadius - The radius of the ring in screen space.
-     * @param {GameObject[]} [objects=[]] - Array of game objects to draw arrows or names for.
-     * @param {GameObject|null} [target=null] - The target object, which gets a larger arrow if outside the ring.
+     * @param {GameObject[]} objects - Array of game objects to draw arrows or names for.
+     * @param {GameObject|null} target - The target object, which gets a larger arrow if outside the ring.
      * @returns {void}
      */
     drawRing(ringColour, ringRadius, objects = [], target = null) {
@@ -366,7 +366,7 @@ export class HeadsUpDisplay {
     /**
      * Draws name tags for objects inside the given ring.
      * @param {number} ringRadius - The radius of the ring in screen space.
-     * @param {GameObject[]} [objects=[]] - Array of game objects to draw names for.
+     * @param {GameObject[]} objects - Array of game objects to draw names for.
      * @returns {void}
      */
     drawNames(ringRadius, objects = []) {

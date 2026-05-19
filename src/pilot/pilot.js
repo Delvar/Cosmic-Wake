@@ -53,11 +53,11 @@ export class Pilot {
 
     /**
      * Updates the pilot's behavior based on the current game state.
-     * @param {number} deltaTime - Time elapsed since the last update in seconds.
-     * @param {GameManager} gameManager - The game manager instance providing input and context.
+     * @param {number} _deltaTime - Time elapsed since the last update in seconds.
+     * @param {GameManager} _gameManager - The game manager instance providing input and context.
      * @throws {Error} Must be implemented by subclasses.
      */
-    update(deltaTime, gameManager) {
+    update(_deltaTime, _gameManager) {
         throw new Error("update() must be implemented by subclass");
     }
 
@@ -75,7 +75,7 @@ export class Pilot {
 
 /**
  * A pilot controlled by a human player via browser input.
- * @extends Pilot
+ * @augments Pilot
  */
 export class PlayerPilot extends Pilot {
     /**
@@ -138,12 +138,12 @@ export class PlayerPilot extends Pilot {
     }
 
     /**
-    * Handles hostile ship selection for 'r'/'R' key press.
-    * @param {number} deltaTime - Time elapsed since the last update in seconds.
-    * @param {GameManager} gameManager - The game manager with keys and lastKeys properties.
-    * @returns {void}
-    */
-    handleHostileShipSelection(deltaTime, gameManager) {
+     * Handles hostile ship selection for 'r'/'R' key press.
+     * @param {number} _deltaTime - Time elapsed since the last update in seconds.
+     * @param {GameManager} _gameManager - The game manager with keys and lastKeys properties.
+     * @returns {void}
+     */
+    handleHostileShipSelection(_deltaTime, _gameManager) {
         // Check if current target is hostile
         if (this.ship.target instanceof Ship && PlayerPilot.isValidHostileTarget(this.ship, this.ship.target)) {
             const currentShip = this.ship.target;
@@ -170,11 +170,11 @@ export class PlayerPilot extends Pilot {
 
     /**
      * Handles neutral ship selection for 't'/'T' key press.
-     * @param {number} deltaTime - Time elapsed since the last update in seconds.
-     * @param {GameManager} gameManager - The game manager with keys and lastKeys properties.
+     * @param {number} _deltaTime - Time elapsed since the last update in seconds.
+     * @param {GameManager} _gameManager - The game manager with keys and lastKeys properties.
      * @returns {void}
      */
-    handleNeutralShipSelection(deltaTime, gameManager) {
+    handleNeutralShipSelection(_deltaTime, _gameManager) {
         // Check if current target is neutral
         if (this.ship.target instanceof Ship && PlayerPilot.isValidNeutralTarget(this.ship, this.ship.target)) {
             const currentShip = this.ship.target;
@@ -201,11 +201,11 @@ export class PlayerPilot extends Pilot {
 
     /**
      * Handles allied ship selection for 'y'/'Y' key press.
-     * @param {number} deltaTime - Time elapsed since the last update in seconds.
-     * @param {GameManager} gameManager - The game manager with keys and lastKeys properties.
+     * @param {number} _deltaTime - Time elapsed since the last update in seconds.
+     * @param {GameManager} _gameManager - The game manager with keys and lastKeys properties.
      * @returns {void}
      */
-    handleAlliedShipSelection(deltaTime, gameManager) {
+    handleAlliedShipSelection(_deltaTime, _gameManager) {
         // Check if current target is allied
         if (this.ship.target instanceof Ship && PlayerPilot.isValidAlliedTarget(this.ship, this.ship.target)) {
             const currentShip = this.ship.target;
@@ -232,11 +232,11 @@ export class PlayerPilot extends Pilot {
 
     /**
      * Handles planet landing for 'l'/'L' key press.
-     * @param {number} deltaTime - Time elapsed since the last update in seconds.
-     * @param {GameManager} gameManager - The game manager with keys and lastKeys properties.
+     * @param {number} _deltaTime - Time elapsed since the last update in seconds.
+     * @param {GameManager} _gameManager - The game manager with keys and lastKeys properties.
      * @returns {void}
      */
-    handlePlanetLanding(deltaTime, gameManager) {
+    handlePlanetLanding(_deltaTime, _gameManager) {
         if (this.ship.state === 'Landed') {
             if (!this.ship.dockingContext) {
                 throw new TypeError('dockingContext is missing on Landed ship');
@@ -322,11 +322,11 @@ export class PlayerPilot extends Pilot {
 
     /**
      * Handles jump gate navigation for 'j'/'J' key press.
-     * @param {number} deltaTime - Time elapsed since the last update in seconds.
-     * @param {GameManager} gameManager - The game manager with keys and lastKeys properties.
+     * @param {number} _deltaTime - Time elapsed since the last update in seconds.
+     * @param {GameManager} _gameManager - The game manager with keys and lastKeys properties.
      * @returns {void}
      */
-    handleJumpGateLanding(deltaTime, gameManager) {
+    handleJumpGateLanding(_deltaTime, _gameManager) {
         // Check if over a jump gate
         const jumpGates = this.ship.starSystem.jumpGates;
         let overGate = null;
@@ -400,11 +400,11 @@ export class PlayerPilot extends Pilot {
 
     /**
      * Handles asteroid selection for 'm'/'M' key press.
-     * @param {number} deltaTime - Time elapsed since the last update in seconds.
-     * @param {GameManager} gameManager - The game manager with keys and lastKeys properties.
+     * @param {number} _deltaTime - Time elapsed since the last update in seconds.
+     * @param {GameManager} _gameManager - The game manager with keys and lastKeys properties.
      * @returns {void}
      */
-    handleAsteroidLanding(deltaTime, gameManager) {
+    handleAsteroidLanding(_deltaTime, _gameManager) {
         if (this.ship.state === 'Landed' && this.ship.dockingContext?.landedObject instanceof Asteroid) {
             this.ship.dockingContext.takeOff();
             return;
@@ -486,11 +486,11 @@ export class PlayerPilot extends Pilot {
 
     /**
      * Handles cargo collection autopilot for 'c'/'C' key press.
-     * @param {number} deltaTime - Time elapsed since the last update in seconds.
-     * @param {GameManager} gameManager - The game manager with keys and lastKeys properties.
+     * @param {number} _deltaTime - Time elapsed since the last update in seconds.
+     * @param {GameManager} _gameManager - The game manager with keys and lastKeys properties.
      * @returns {void}
      */
-    handleCargoCollection(deltaTime, gameManager) {
+    handleCargoCollection(_deltaTime, _gameManager) {
         if (this.autopilot instanceof CargoCollectorAutopilot && this.autopilot.active) {
             this.autopilot.stop();
             this.autopilot = null;
@@ -516,11 +516,11 @@ export class PlayerPilot extends Pilot {
 
     /**
      * Handles boarding ship selection for 'b'/'B' key press.
-     * @param {number} deltaTime - Time elapsed since the last update in seconds.
-     * @param {GameManager} gameManager - The game manager with keys and lastKeys properties.
+     * @param {number} _deltaTime - Time elapsed since the last update in seconds.
+     * @param {GameManager} _gameManager - The game manager with keys and lastKeys properties.
      * @returns {void}
      */
-    handleBoardingShipSelection(deltaTime, gameManager) {
+    handleBoardingShipSelection(_deltaTime, _gameManager) {
         if (this.ship.state === 'Landed' && this.ship.dockingContext?.landedObject instanceof Ship) {
             this.ship.dockingContext.takeOff();
             return;

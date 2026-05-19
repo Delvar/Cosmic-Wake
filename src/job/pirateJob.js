@@ -10,14 +10,14 @@ import { FactionRelationship } from '/src/core/faction.js';
 
 /**
  * Job for pirate ships to take off and attack non-pirate targets.
- * @extends Job
+ * @augments Job
  */
 export class PirateJob extends Job {
     /**
      * Creates a new PirateJob instance.
      * @param {Ship} ship - The ship to control.
      * @param {AiPilot} pilot - The pilot controlling the ship (optional).
-     * @param {boolean} [attackDisabledShips=false] - Whether to attack ships that are disabled.
+     * @param {boolean} attackDisabledShips - Whether to attack ships that are disabled.
      */
     constructor(ship, pilot, attackDisabledShips = false) {
         super(ship, pilot);
@@ -25,7 +25,7 @@ export class PirateJob extends Job {
         this.attackDisabledShips = attackDisabledShips;
         /** @type {string} The current job state ('Starting', 'Hunting', 'Failed'). */
         this.state = 'Starting';
-        /** @type {Object.<string, Function>} Map of state names to handler methods. */
+        /** @type {{[key: string]: Function}} Map of state names to handler methods. */
         this.stateHandlers = {
             'Starting': this.updateStarting.bind(this),
             'Hunting': this.updateHunting.bind(this),
@@ -59,11 +59,11 @@ export class PirateJob extends Job {
 
     /**
      * Handles the 'Starting' state, initiating takeoff if landed.
-     * @param {number} deltaTime - Time elapsed since last update (seconds).
-     * @param {GameManager} gameManager - The game manager instance for context.
+     * @param {number} _deltaTime - Time elapsed since last update (seconds).
+     * @param {GameManager} _gameManager - The game manager instance for context.
      * @returns {void}
      */
-    updateStarting(deltaTime, gameManager) {
+    updateStarting(_deltaTime, _gameManager) {
         if (this.ship.state === 'Landed') {
             if (!this.ship.dockingContext) {
                 throw new TypeError('dockingContext is missing on Landed ship');
@@ -78,11 +78,11 @@ export class PirateJob extends Job {
 
     /**
      * Handles the 'Hunting' state, scanning for targets to attack.
-     * @param {number} deltaTime - Time elapsed since last update (seconds).
-     * @param {GameManager} gameManager - The game manager instance for context.
+     * @param {number} _deltaTime - Time elapsed since last update (seconds).
+     * @param {GameManager} _gameManager - The game manager instance for context.
      * @returns {void}
      */
-    updateHunting(deltaTime, gameManager) {
+    updateHunting(_deltaTime, _gameManager) {
         if (this.ship.state !== 'Flying') {
             this.state = 'Starting';
             return;

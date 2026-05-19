@@ -12,7 +12,7 @@ export class Colour {
      * @param {number} r - The red component (0.0 to  1.0).
      * @param {number} g - The green component (0.0 to  1.0).
      * @param {number} b - The blue component (0.0 to  1.0).
-     * @param {number} [a=1.0] - The alpha component (0.0 to  1.0, default is 1.0 for fully opaque).
+     * @param {number} a - The alpha component (0.0 to  1.0, default is 1.0 for fully opaque).
      */
     constructor(r, g, b, a = 1.0) {
         /** @type {number} The red component of the color (0.0 to  1.0). */
@@ -38,7 +38,7 @@ export class Colour {
      * @param {number} r - The red component (0.0 to  1.0).
      * @param {number} g - The green component (0.0 to  1.0).
      * @param {number} b - The blue component (0.0 to  1.0).
-     * @param {number} [a=1] - The alpha component (0.0 to  1.0, default is 1.0 for fully opaque).
+     * @param {number} a - The alpha component (0.0 to  1.0, default is 1.0 for fully opaque).
      * @returns {void}
      */
     set(r, g, b, a = 1.0) {
@@ -74,7 +74,7 @@ export class Colour {
 
     /**
      * Converts the color to an RGBA string format, with an alpha override.
-     * @param {number|null} [overrideAlpha=null] - An alpha value to override the instance’s alpha (clamped between 0.0 and  1.0).
+     * @param {number|null} overrideAlpha - An alpha value to override the instance’s alpha (clamped between 0.0 and  1.0).
      * @returns {string} The RGBA string in the format 'rgba(r, g, b, a)', where r, g, b are integers from 0.0 to  255.0, and a is from 0.0 to 1.0.
      */
     toRGBA(overrideAlpha = null) {

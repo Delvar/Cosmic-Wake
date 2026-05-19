@@ -12,7 +12,7 @@ export class Weapon {
     /**
      * Creates a new Weapon instance.
      * @param {number} projectileTypeIndex - Index into ProjectileManager.projectileTypes.
-     * @param {number} [cooldown=0.5] - Seconds between shots (default: 0.5).
+     * @param {number} cooldown - Seconds between shots (defaults to 0.5).
      */
     constructor(projectileTypeIndex, cooldown = 0.5) {
         /** @type {number} Index into ProjectileManager.projectileTypes. */
@@ -45,7 +45,7 @@ export class Weapon {
      * @param {Ship} ship - The ship firing the weapon.
      * @param {ProjectileManager} projectileManager - Manager to spawn projectiles.
      * @param {Vector2D} position - World-space firing position.
-     * @param {number} [direction = 0] - Firing direction (radians).
+     * @param {number} direction - Firing direction (radians).
      * @returns {boolean} True if fired, false if on cooldown or invalid type.
      */
     fire(ship, projectileManager, position, direction = 0.0) {

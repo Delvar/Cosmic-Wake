@@ -12,15 +12,15 @@ import { TraverseJumpGateAutopilot } from '/src/autopilot/traverseJumpGateAutopi
 
 /**
  * Autopilot that escorts a target ship, moves within range of the ship, lands, takes off, jumps with the ship.
- * @extends {Autopilot<Ship>}
+ * @augments {Autopilot<Ship>}
  */
 export class EscortAutopilot extends Autopilot {
     /**
      * Creates a new EscortAutopilot instance.
      * @param {Ship} ship - The ship to control.
      * @param {Ship} target - The target ship to escort.
-     * @param {number} [minFollowDistance=100] - Minimum distance from target center.
-     * @param {number} [maxFollowDistance=500] - Maximum distance from target center.
+     * @param {number} minFollowDistance - Minimum distance from target center.
+     * @param {number} maxFollowDistance - Maximum distance from target center.
      */
     constructor(ship, target, minFollowDistance = 100.0, maxFollowDistance = 500.0) {
         super(ship, target);
@@ -30,7 +30,7 @@ export class EscortAutopilot extends Autopilot {
         this.minFollowDistance = minFollowDistance;
         /** @type {number} Maximum distance from target center. */
         this.maxFollowDistance = maxFollowDistance;
-        /** @type {Object.<string, Function>} Map of state names to their respective handler methods. */
+        /** @type {{[key: string]: Function}} Map of state names to their respective handler methods. */
         this.stateHandlers = {
             'Starting': this.updateStarting.bind(this),
             'Following': this.updateFollowing.bind(this),
@@ -101,11 +101,11 @@ export class EscortAutopilot extends Autopilot {
 
     /**
      * Handles the 'Starting' state by determining whether to follow, land, or traverse a jump gate based on the target ship.
-     * @param {number} deltaTime - Time elapsed since the last update, in seconds.
-     * @param {GameManager} gameManager - The game manager instance for coordinate and entity context.
+     * @param {number} _deltaTime - Time elapsed since the last update, in seconds.
+     * @param {GameManager} _gameManager - The game manager instance for coordinate and entity context.
      * @returns {void}
      */
-    updateStarting(deltaTime, gameManager) {
+    updateStarting(_deltaTime, _gameManager) {
         if (!(this.target instanceof Ship)) {
             throw new TypeError('target must be an instance of Ship');
         }
@@ -169,7 +169,7 @@ export class EscortAutopilot extends Autopilot {
                 } else {
                     //we don't know what it landed on so just follow the landed object
                     this.subAutopilot = new FollowAutopilot(this.ship, landedObject, this.minFollowDistance, this.maxFollowDistance);
-                    this.subAutopilot.start()
+                    this.subAutopilot.start();
                     this.state = "Following";
                     this.debugLog(() => console.log(`${this.constructor.name}: Transitioned to Following ${landedObject.name}`));
                 }
@@ -199,9 +199,9 @@ export class EscortAutopilot extends Autopilot {
     /**
      * Handles the 'Waiting' state: pauses after landing before resuming escort duties, with early takeoff if the target takes off or is flying in the same system.
      * @param {number} deltaTime - Time elapsed in seconds.
-     * @param {GameManager} gameManager - The game manager instance for context.
+     * @param {GameManager} _gameManager - The game manager instance for context.
      */
-    updateWaiting(deltaTime, gameManager) {
+    updateWaiting(deltaTime, _gameManager) {
         // Validate target
         if (!this.target || this.target.isDespawned() || !(this.target instanceof Ship)) {
             this.error = "Target is invalid or despawned";
@@ -311,7 +311,7 @@ export class EscortAutopilot extends Autopilot {
                 //we don't know what it landed on so just follow the landed object
                 this.subAutopilot.stop();
                 this.subAutopilot = new FollowAutopilot(this.ship, landedObject, this.minFollowDistance, this.maxFollowDistance);
-                this.subAutopilot.start()
+                this.subAutopilot.start();
                 this.state = "FollowLanding";
                 this.debugLog(() => console.log(`${this.constructor.name}: Transitioned to FollowLanding ${landedObject.name}`));
                 return;

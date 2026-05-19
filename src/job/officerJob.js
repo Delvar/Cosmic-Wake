@@ -14,14 +14,14 @@ import { BoardShipAutopilot } from '/src/autopilot/boardShipAutopilot.js';
 
 /**
  * Job for officer ships to attack hostile ships, board disabled ships, and land on planets.
- * @extends Job
+ * @augments Job
  */
 export class OfficerJob extends Job {
     /**
      * Creates a new OfficerJob instance.
      * @param {Ship} ship - The ship to control.
      * @param {AiPilot} pilot - The pilot controlling the ship (optional).
-     * @param {boolean} [attackDisabledShips=true] - Whether to attack disabled ships.
+     * @param {boolean} attackDisabledShips - Whether to attack disabled ships.
      */
     constructor(ship, pilot, attackDisabledShips = true) {
         super(ship, pilot);
@@ -29,7 +29,7 @@ export class OfficerJob extends Job {
         this.attackDisabledShips = attackDisabledShips;
         /** @type {string} The current job state. */
         this.state = 'Starting';
-        /** @type {Object.<string, Function>} Map of state names to handler methods. */
+        /** @type {{[key: string]: Function}} Map of state names to handler methods. */
         this.stateHandlers = {
             'Starting': this.updateStarting.bind(this),
             'Hunting': this.updateHunting.bind(this),
@@ -65,11 +65,11 @@ export class OfficerJob extends Job {
 
     /**
      * Handles the 'Starting' state, initiating takeoff if landed.
-     * @param {number} deltaTime - Time elapsed since last update (seconds).
-     * @param {GameManager} gameManager - The game manager instance for context.
+     * @param {number} _deltaTime - Time elapsed since last update (seconds).
+     * @param {GameManager} _gameManager - The game manager instance for context.
      * @returns {void}
      */
-    updateStarting(deltaTime, gameManager) {
+    updateStarting(_deltaTime, _gameManager) {
         if (this.ship.state === 'Landed') {
             this.debugLog(() => console.log(`${this.constructor.name}: Landed, transitioning to Waiting`));
             this.state = 'Waiting';
@@ -84,11 +84,11 @@ export class OfficerJob extends Job {
 
     /**
      * Handles the 'Hunting' state, scanning for hostile or disabled targets.
-     * @param {number} deltaTime - Time elapsed since last update (seconds).
-     * @param {GameManager} gameManager - The game manager instance for context.
+     * @param {number} _deltaTime - Time elapsed since last update (seconds).
+     * @param {GameManager} _gameManager - The game manager instance for context.
      * @returns {void}
      */
-    updateHunting(deltaTime, gameManager) {
+    updateHunting(_deltaTime, _gameManager) {
         if (this.ship.state !== 'Flying') {
             this.state = 'Starting';
             this.debugLog(() => console.log(`${this.constructor.name}: Not flying in hunting state, transitioning to Starting`));
@@ -151,11 +151,11 @@ export class OfficerJob extends Job {
 
     /**
      * Handles the 'Boarding' state, managing boarding of disabled ships.
-     * @param {number} deltaTime - Time elapsed since last update (seconds).
-     * @param {GameManager} gameManager - The game manager instance for context.
+     * @param {number} _deltaTime - Time elapsed since last update (seconds).
+     * @param {GameManager} _gameManager - The game manager instance for context.
      * @returns {void}
      */
-    updateBoarding(deltaTime, gameManager) {
+    updateBoarding(_deltaTime, _gameManager) {
         if (this.ship.state === 'Landed' && this.ship.dockingContext?.landedObject instanceof Ship) {
             // Boarding complete, transition to Boarded
             this.state = 'Boarded';
@@ -172,21 +172,21 @@ export class OfficerJob extends Job {
 
     /**
      * Handles the 'Boarded' state, transitioning to landing on a planet.
-     * @param {number} deltaTime - Time elapsed since last update (seconds).
-     * @param {GameManager} gameManager - The game manager instance for context.
+     * @param {number} _deltaTime - Time elapsed since last update (seconds).
+     * @param {GameManager} _gameManager - The game manager instance for context.
      * @returns {void}
      */
-    updateBoarded(deltaTime, gameManager) {
+    updateBoarded(_deltaTime, _gameManager) {
         this.state = 'Hunting';
     }
 
     /**
      * Handles the 'Landing' state, managing planet landing.
-     * @param {number} deltaTime - Time elapsed since last update (seconds).
-     * @param {GameManager} gameManager - The game manager instance for context.
+     * @param {number} _deltaTime - Time elapsed since last update (seconds).
+     * @param {GameManager} _gameManager - The game manager instance for context.
      * @returns {void}
      */
-    updateLanding(deltaTime, gameManager) {
+    updateLanding(_deltaTime, _gameManager) {
         if (this.ship.state === 'Landed' && this.ship.dockingContext?.landedObject instanceof Planet) {
             // Landed on planet, transition to Landed
             this.state = 'Landed';
@@ -203,11 +203,11 @@ export class OfficerJob extends Job {
 
     /**
      * Handles the 'Landed' state, transitioning to Waiting.
-     * @param {number} deltaTime - Time elapsed since last update (seconds).
-     * @param {GameManager} gameManager - The game manager instance for context.
+     * @param {number} _deltaTime - Time elapsed since last update (seconds).
+     * @param {GameManager} _gameManager - The game manager instance for context.
      * @returns {void}
      */
-    updateLanded(deltaTime, gameManager) {
+    updateLanded(_deltaTime, _gameManager) {
         if (this.ship.state === 'Landed') {
             this.state = 'Waiting';
             this.debugLog(() => console.log(`${this.constructor.name}: Landed, transitioning to Waiting`));
@@ -219,11 +219,11 @@ export class OfficerJob extends Job {
 
     /**
      * Handles the 'Waiting' state, scanning for targets while landed.
-     * @param {number} deltaTime - Time elapsed since last update (seconds).
-     * @param {GameManager} gameManager - The game manager instance for context.
+     * @param {number} _deltaTime - Time elapsed since last update (seconds).
+     * @param {GameManager} _gameManager - The game manager instance for context.
      * @returns {void}
      */
-    updateWaiting(deltaTime, gameManager) {
+    updateWaiting(_deltaTime, _gameManager) {
         if (this.ship.state !== 'Landed') {
             this.debugLog(() => console.log(`${this.constructor.name}: Not landed, transitioning to Starting`));
             this.state = 'Starting';

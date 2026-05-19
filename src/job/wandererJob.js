@@ -14,7 +14,7 @@ import { isValidTarget } from '/src/core/gameObject.js';
  * Uses explicit Planning state for resume/continuation (re-uses valid destination when possible).
  * Starting is the canonical entry point for brand-new ships only.
  * States: Starting → Planning → Travelling → (Waiting only after planet landing).
- * @extends Job
+ * @augments Job
  */
 export class WandererJob extends Job {
     /**
@@ -32,7 +32,7 @@ export class WandererJob extends Job {
         this.lastVisited = null;
         /** @type {number} Time (seconds) spent in Waiting state. */
         this.waitTime = 0.0;
-        /** @type {Object.<string, Function>} Map of state names to handler methods. */
+        /** @type {{[key: string]: Function}} Map of state names to handler methods. */
         this.stateHandlers = {
             Starting: this.updateStarting.bind(this),
             Planning: this.updatePlanning.bind(this),
@@ -104,11 +104,11 @@ export class WandererJob extends Job {
     /**
      * Handles the 'Starting' state.
      * Resets lastVisited based on current ship position and immediately transitions to Planning.
-     * @param {number} deltaTime - Time elapsed since last update (seconds).
-     * @param {GameManager} gameManager - The game manager instance for context.
+     * @param {number} _deltaTime - Time elapsed since last update (seconds).
+     * @param {GameManager} _gameManager - The game manager instance for context.
      * @returns {void}
      */
-    updateStarting(deltaTime, gameManager) {
+    updateStarting(_deltaTime, _gameManager) {
         this.setInitialLastVisited();
         this.destination = null;
         this.waitTime = 0.0;
@@ -118,11 +118,11 @@ export class WandererJob extends Job {
 
     /**
      * Handles the 'Planning' state: picks next destination (excluding lastVisited) and launches the correct autopilot.
-     * @param {number} deltaTime - Time elapsed since last update (seconds).
-     * @param {GameManager} gameManager - The game manager instance for context.
+     * @param {number} _deltaTime - Time elapsed since last update (seconds).
+     * @param {GameManager} _gameManager - The game manager instance for context.
      * @returns {void}
      */
-    updatePlanning(deltaTime, gameManager) {
+    updatePlanning(_deltaTime, _gameManager) {
         if (!this.lastVisited || !isValidTarget(this.ship, this.lastVisited)) {
             this.debugLog(() => console.log(`${this.constructor.name}: updatePlanning lastVisited invalid ${this.lastVisited?.name}`));
             this.setInitialLastVisited();
@@ -162,11 +162,11 @@ export class WandererJob extends Job {
     /**
      * Handles the 'Travelling' state: waits for arrival (planet via ship.state or gate via autopilot complete).
      * lastVisited is now set exactly once on arrival; no more fallback cycles after takeoff.
-     * @param {number} deltaTime - Time elapsed since last update (seconds).
-     * @param {GameManager} gameManager - The game manager instance for context.
+     * @param {number} _deltaTime - Time elapsed since last update (seconds).
+     * @param {GameManager} _gameManager - The game manager instance for context.
      * @returns {void}
      */
-    updateTravelling(deltaTime, gameManager) {
+    updateTravelling(_deltaTime, _gameManager) {
         if (!this.pilot.autopilot || !(this.pilot.autopilot instanceof TraverseJumpGateAutopilot || this.pilot.autopilot instanceof LandOnPlanetAutopilot)) {
             this.debugLog(() => console.log(`${this.constructor.name}: Not a valid autopilot (state: ${this.pilot.autopilot?.constructor.name}), transitioning to Planning`));
             this.state = 'Planning';
@@ -200,11 +200,11 @@ export class WandererJob extends Job {
     /**
      * Handles the 'Waiting' state: waits, then takes off and returns to Planning.
      * lastVisited is now set on arrival (in Travelling), not here.
-     * @param {number} deltaTime - Time elapsed since last update (seconds).
-     * @param {GameManager} gameManager - The game manager instance for context.
+     * @param {number} _deltaTime - Time elapsed since last update (seconds).
+     * @param {GameManager} _gameManager - The game manager instance for context.
      * @returns {void}
      */
-    updateWaiting(deltaTime, gameManager) {
+    updateWaiting(_deltaTime, _gameManager) {
         if (this.ship.state !== 'Landed') {
             this.debugLog(() => console.log(`${this.constructor.name}: Waiting but not landed (state: ${this.ship.state}), transitioning to Planning`));
             this.state = 'Planning';
@@ -212,7 +212,7 @@ export class WandererJob extends Job {
             return;
         }
 
-        this.waitTime -= deltaTime;
+        this.waitTime -= _deltaTime;
         if (this.waitTime <= 0.0) {
             this.debugLog(() => console.log(`${this.constructor.name}: Finished Waiting, transitioning to Planning`));
             this.waitTime = 0.0;

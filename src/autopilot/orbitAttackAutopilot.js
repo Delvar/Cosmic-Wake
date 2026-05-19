@@ -9,14 +9,14 @@ import { GameManager } from '/src/core/game.js';
 /**
  * Autopilot that keeps a ship in a combat orbit around a hostile target while maintaining
  * distance, aiming at lead points, and firing fixed weapons when able.
- * @extends {Autopilot<Ship>}
+ * @augments {Autopilot<Ship>}
  */
 export class OrbitAttackAutopilot extends Autopilot {
     /**
      * Creates a new OrbitAttackAutopilot instance.
      * @param {Ship} ship - The ship to control.
      * @param {Ship} target - The target ship to orbit and attack.
-     * @param {boolean} [stopOnDisabled=true] - If true, stops the behaviour when the ship becomes disabled.
+     * @param {boolean} stopOnDisabled - If true, stops the behaviour when the ship becomes disabled.
      */
     constructor(ship, target, stopOnDisabled = true) {
         super(ship, target);
@@ -54,7 +54,7 @@ export class OrbitAttackAutopilot extends Autopilot {
         this._scratchOffsetPosition = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for temporary calculations. */
         this._scratchTemp = new Vector2D(0.0, 0.0);
-        /** @type {Object.<string, Function>} State handlers for update logic. */
+        /** @type {{[key: string]: Function}} State handlers for update logic. */
         this.stateHandlers = {
             Approaching: this.updateApproaching.bind(this),
             Orbiting: this.updateOrbiting.bind(this)
@@ -96,11 +96,11 @@ export class OrbitAttackAutopilot extends Autopilot {
     /**
      * Handles the Approaching state by moving the ship toward an entry point on the desired orbit.
      * This establishes position and alignment before transitioning to the orbiting attack phase.
-     * @param {number} deltaTime - Time elapsed since the last update, in seconds.
-     * @param {GameManager} gameManager - The game manager instance for coordinate and entity context.
+     * @param {number} _deltaTime - Time elapsed since the last update, in seconds.
+     * @param {GameManager} _gameManager - The game manager instance for coordinate and entity context.
      * @returns {void}
      */
-    updateApproaching(deltaTime, gameManager) {
+    updateApproaching(_deltaTime, _gameManager) {
         if (!this.target) {
             throw new TypeError('target is missing');
         }
@@ -122,7 +122,7 @@ export class OrbitAttackAutopilot extends Autopilot {
             .normaliseInPlace().multiplyInPlace(this.ship.maxVelocity);
 
         // Apply thrust with hysteresis
-        const shouldThrust = this.applyThrustLogic(
+        this.applyThrustLogic(
             this.ship,
             this._scratchDesiredVelocity,
             this._scratchDirectionToTarget,
@@ -139,11 +139,11 @@ export class OrbitAttackAutopilot extends Autopilot {
     /**
      * Handles the Orbiting state by maintaining a stable orbit around the target,
      * computing lead aiming and firing logic while matching the target's motion.
-     * @param {number} deltaTime - Time elapsed since the last update, in seconds.
-     * @param {GameManager} gameManager - The game manager instance for coordinate and entity context.
+     * @param {number} _deltaTime - Time elapsed since the last update, in seconds.
+     * @param {GameManager} _gameManager - The game manager instance for coordinate and entity context.
      * @returns {void}
      */
-    updateOrbiting(deltaTime, gameManager) {
+    updateOrbiting(_deltaTime, _gameManager) {
         if (!this.target) {
             throw new TypeError('target is missing');
         }
@@ -175,7 +175,7 @@ export class OrbitAttackAutopilot extends Autopilot {
         this.computeOrbitalVelocity(targetVelocity, distance, this._scratchLeadDirection);
 
         // Apply thrust logic
-        const shouldThrust = this.applyThrustLogic(
+        this.applyThrustLogic(
             this.ship,
             this._scratchDesiredVelocity,
             this.ship.fixedWeapons.length !== 0.0 ? this._scratchLeadDirection : null,

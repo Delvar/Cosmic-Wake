@@ -14,7 +14,7 @@ import { GameManager } from '/src/core/game.js';
 
 /**
  * Job for a ship to mine asteroids and return to a home planet.
- * @extends Job
+ * @augments Job
  */
 export class MinerJob extends Job {
     /**
@@ -41,7 +41,7 @@ export class MinerJob extends Job {
         this._scratchDistanceToTarget = new Vector2D();
         /** @type {Vector2D} Scratch vector for velocity corrections. */
         this._scratchVelocityError = new Vector2D();
-        /** @type {Object.<string, Function>} Map of state names to handler methods. */
+        /** @type {{[key: string]: Function}} Map of state names to handler methods. */
         this.stateHandlers = {
             'Starting': this.updateStarting.bind(this),
             'FlyingToAsteroid': this.updateFlyingToAsteroid.bind(this),
@@ -77,11 +77,11 @@ export class MinerJob extends Job {
 
     /**
      * Handles the 'Starting' state, deciding to mine or wait based on ship state.
-     * @param {number} deltaTime - Time elapsed in seconds.
-     * @param {GameManager} gameManager - The game manager instance for context.
+     * @param {number} _deltaTime - Time elapsed in seconds.
+     * @param {GameManager} _gameManager - The game manager instance for context.
      * @returns {void}
      */
-    updateStarting(deltaTime, gameManager) {
+    updateStarting(_deltaTime, _gameManager) {
         //ensure we have a target asteroid or we fail
         if (!this.targetAsteroid || !isValidTarget(this.ship, this.targetAsteroid)) {
             this.targetAsteroid = this.ship.starSystem.getRandomAsteroid(this.ship);
@@ -118,11 +118,11 @@ export class MinerJob extends Job {
 
     /**
      * Handles the 'FlyingToAsteroid' state, managing flight to the target asteroid.
-     * @param {number} deltaTime - Time elapsed in seconds.
-     * @param {GameManager} gameManager - The game manager instance for context.
+     * @param {number} _deltaTime - Time elapsed in seconds.
+     * @param {GameManager} _gameManager - The game manager instance for context.
      * @returns {void}
      */
-    updateFlyingToAsteroid(deltaTime, gameManager) {
+    updateFlyingToAsteroid(_deltaTime, _gameManager) {
         if (!this.targetAsteroid || !isValidTarget(this.ship, this.targetAsteroid)) {
             this.targetAsteroid = this.ship.starSystem?.getRandomAsteroid(this.ship);
             if (!this.targetAsteroid || !isValidTarget(this.ship, this.targetAsteroid)) {
@@ -147,10 +147,10 @@ export class MinerJob extends Job {
     /**
      * Handles the 'Mining' state, waiting while mining the asteroid.
      * @param {number} deltaTime - Time elapsed in seconds.
-     * @param {GameManager} gameManager - The game manager instance for context.
+     * @param {GameManager} _gameManager - The game manager instance for context.
      * @returns {void}
      */
-    updateMining(deltaTime, gameManager) {
+    updateMining(deltaTime, _gameManager) {
         if (!this.ship.dockingContext) {
             throw new TypeError('dockingContext is missing on Landed ship');
         }
@@ -165,11 +165,11 @@ export class MinerJob extends Job {
 
     /**
      * Handles the 'FlyingToHomePlanet' state, managing flight to the home planet.
-     * @param {number} deltaTime - Time elapsed in seconds.
-     * @param {GameManager} gameManager - The game manager instance for context.
+     * @param {number} _deltaTime - Time elapsed in seconds.
+     * @param {GameManager} _gameManager - The game manager instance for context.
      * @returns {void}
      */
-    updateFlyingToHomePlanet(deltaTime, gameManager) {
+    updateFlyingToHomePlanet(_deltaTime, _gameManager) {
         if (this.pilot.autopilot == null || this.pilot.autopilot.isComplete()) {
             if (this.ship.state === 'Landed' && this.ship.dockingContext?.landedObject === this.homePlanet) {
                 this.waitTime = randomBetween(this.waitTimeMin, this.waitTimeMax);
@@ -185,10 +185,10 @@ export class MinerJob extends Job {
     /**
      * Handles the 'WaitingOnHomePlanet' state, waiting before restarting the cycle.
      * @param {number} deltaTime - Time elapsed in seconds.
-     * @param {GameManager} gameManager - The game manager instance for context.
+     * @param {GameManager} _gameManager - The game manager instance for context.
      * @returns {void}
      */
-    updateWaitingOnHomePlanet(deltaTime, gameManager) {
+    updateWaitingOnHomePlanet(deltaTime, _gameManager) {
         if (!this.ship.dockingContext) {
             throw new TypeError('dockingContext is missing on Landed ship');
         }

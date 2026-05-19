@@ -4,12 +4,12 @@ import { remapClamp, TWO_PI } from '/src/core/utils.js';
 import { Vector2D } from '/src/core/vector2d.js';
 import { Camera, TargetCamera } from '/src/camera/camera.js';
 import { Ship } from '/src/ship/ship.js';
-import { createRandomShip, createRandomFastShip, Flivver, Shuttle, HeavyShuttle, StarBarge, Freighter, Arrow, Boxwing, Interceptor, Fighter } from '/src/ship/shipTypes.js';
+import { createRandomShip, createRandomFastShip, StarBarge, Freighter, Boxwing, Interceptor, Fighter } from '/src/ship/shipTypes.js';
 import { StarField } from '/src/camera/starField.js';
 import { HeadsUpDisplay } from '/src/camera/headsUpDisplay.js';
 import { PlayerPilot } from '/src/pilot/pilot.js';
 import { createGalaxy } from '/src/core/galaxy.js';
-import { isValidTarget, GameObject } from '/src/core/gameObject.js';
+import { isValidTarget } from '/src/core/gameObject.js';
 import { AiPilot } from '/src/pilot/aiPilot.js';
 import { OfficerAiPilot } from '/src/pilot/officerAiPilot.js';
 import { PirateAiPilot } from '/src/pilot/pirateAiPilot.js';
@@ -24,7 +24,7 @@ import { EscortJob } from '/src/job/escortJob.js';
 import { FactionManager, FactionRelationship } from '/src/core/faction.js';
 import { Colour } from '/src/core/colour.js';
 import { CommodityType } from '/src/core/commodity.js';
-import { UiDomWindowLog } from '../ui/uiDomWindowLog.js'
+import { UiDomWindowLog } from '../ui/uiDomWindowLog.js';
 import { CivilianAiPilot } from '/src/pilot/civilianAiPilot.js';
 import { UiDomWindowDocking } from '../ui/uiDomWindowDocking.js';
 import { UiDomWindowTarget } from '/src/ui/uiDomWindowTarget.js';
@@ -435,9 +435,9 @@ export class GameManager {
             this.uiDomWindowStats = new UiDomWindowStats(statusUi, this);
         }
 
-        /** @type {Object.<string, boolean>} Tracks the current state of keyboard inputs. */
+        /** @type {{[key: string]: boolean}} Tracks the current state of keyboard inputs. */
         this.keys = {};
-        /** @type {Object.<string, boolean>} Tracks the previous state of keyboard inputs for detecting changes. */
+        /** @type {{[key: string]: boolean}} Tracks the previous state of keyboard inputs for detecting changes. */
         this.lastKeys = {};
         /** @type {boolean} Indicates whether the game window is currently focused. */
         this.isFocused = true;
@@ -494,7 +494,7 @@ export class GameManager {
 
         // Initialize escort ship with AI pilot and matching colors
         const escort01 = new Interceptor(spawnPlanet.position.x - spawnPlanet.radius * 1.0, spawnPlanet.position.y, this.galaxy[0], this.playerShip.faction);
-        const pilot01 = new OfficerAiPilot(escort01)
+        const pilot01 = new OfficerAiPilot(escort01);
         pilot01.setJob(new EscortJob(escort01, pilot01, this.playerShip));
         escort01.setPilot(pilot01);
         escort01.colors.cockpit = this.playerShip.colors.cockpit;
@@ -651,7 +651,7 @@ export class GameManager {
         this.galaxy.forEach(system => {
             totalShipCount += system.ships.length;
             totalMaxAiShips += system.maxAiShips;
-        })
+        });
 
         if (totalShipCount >= totalMaxAiShips) {
             if (this.debug) {
@@ -665,8 +665,8 @@ export class GameManager {
         this.galaxy.forEach(system => {
             let systemShipsLength = system.ships.length;
             let aiCount = 0.0;
-            let playerCount = 0.0;
-            let civilianCount = 0.0;
+            let _playerCount = 0.0;
+            let _civilianCount = 0.0;
             let pirateCount = 0.0;
             let officerCount = 0.0;
             let officerAliveCount = 0.0;
@@ -694,9 +694,9 @@ export class GameManager {
                 if (ship.pilot instanceof AiPilot) {
                     aiCount++;
                     if (ship.faction === playerFaction) {
-                        playerCount++;
+                        _playerCount++;
                     } else if (ship.faction === civilianFaction) {
-                        civilianCount++;
+                        _civilianCount++;
                     } else if (ship.faction === pirateFaction) {
                         pirateCount++;
                     } else if (ship.faction === officerFaction) {
@@ -709,7 +709,7 @@ export class GameManager {
                         disabledCount++;
                     }
                 } else if ((ship.pilot instanceof PlayerPilot)) {
-                    playerCount++;
+                    _playerCount++;
                 }
             }
 
@@ -721,7 +721,7 @@ export class GameManager {
                     if (ship.pilot instanceof AiPilot && ship.state === 'Landed' && ship.dockingContext?.landedObject instanceof Planet) {
                         let despawn = false;
                         if (ship.faction === civilianFaction) {
-                            civilianCount--;
+                            _civilianCount--;
                             despawn = true;
                         } else if (ship.faction === pirateFaction) {
                             pirateCount--;
@@ -805,7 +805,7 @@ export class GameManager {
                             pilot.setJob(new WandererJob(aiShip, pilot));
                             aiShip.setPilot(pilot);
                         }
-                        civilianCount++;
+                        _civilianCount++;
                         if (!(aiShip instanceof Freighter || aiShip instanceof StarBarge)) {
                             const commodities = Object.values(CommodityType);
                             const type = commodities[Math.floor(Math.random() * commodities.length)];
@@ -851,7 +851,7 @@ export class GameManager {
                             spawnPlanet.addLandedShip(escortShip);
                             system.addGameObject(escortShip);
                             if (escortShip.faction === civilianFaction) {
-                                civilianCount++;
+                                _civilianCount++;
                             } else if (escortShip.faction === pirateFaction) {
                                 pirateCount++;
                             } else if (escortShip.faction === officerFaction) {
@@ -942,7 +942,7 @@ export class GameManager {
      * Sets up event listeners for user input and window events.
      */
     setupEventListeners() {
-        window.addEventListener('resize', () => { this.game.resizeMainCamera() });
+        window.addEventListener('resize', () => { this.game.resizeMainCamera(); });
 
         window.addEventListener('keydown', (e) => {
             this.keys[e.key] = true;

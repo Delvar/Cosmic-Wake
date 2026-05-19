@@ -5,14 +5,14 @@ import { StarFieldWorker } from '/src/camera/starFieldWorker.js';
 /**
  * Internal data structure used by StarField to cache per-canvas render parameters
  * and avoid redundant work (dirty-flag optimisation).
- * @typedef {Object} StarFieldData
- * @property {boolean} dirty
- * @property {number} cameraPositionX
- * @property {number} cameraPositionY
- * @property {number} cameraZoom
- * @property {number} fadeout
- * @property {number} white
- * @property {string} name
+ * @typedef {object} StarFieldData
+ * @property {boolean} dirty - Whether the render parameters have changed since last draw.
+ * @property {number} cameraPositionX - Current X position of the camera in world coordinates.
+ * @property {number} cameraPositionY - Current Y position of the camera in world coordinates.
+ * @property {number} cameraZoom - Current zoom level of the camera.
+ * @property {number} fadeout - Fade-out alpha value used for star trails.
+ * @property {number} white - Brightness multiplier for rendering white stars.
+ * @property {string} name - Name/identifier of the associated canvas or render target.
  */
 
 /**
@@ -29,16 +29,16 @@ class StarFieldWorkerWrapper {
         /** @type {StarFieldWorker|null} The StarFieldWorker instance for rendering the starfield. */
         this.starField = null;
 
-        /** @type {Object.<string, OffscreenCanvas>} Map of canvas names to OffscreenCanvas instances. */
+        /** @type {{[key: string]: OffscreenCanvas}} Map of canvas names to OffscreenCanvas instances. */
         this.canvasMap = {};
 
-        /** @type {Object.<string, OffscreenCanvasRenderingContext2D>} Map of canvas names to 2D rendering contexts. */
+        /** @type {{[key: string]: OffscreenCanvasRenderingContext2D}} Map of canvas names to 2D rendering contexts. */
         this.ctxMap = {};
 
-        /** @type {Object.<string, StarFieldData>} Map of canvas names to rendering data (e.g., camera parameters). */
+        /** @type {{[key: string]: StarFieldData}} Map of canvas names to rendering data (e.g., camera parameters). */
         this.dataMap = {};
 
-        /** @type {Object.<string, Function>} Map of message types to their handler functions. */
+        /** @type {{[key: string]: Function}} Map of message types to their handler functions. */
         this.messageHandlers = {
             'init': this.handleInit.bind(this),
             'resize': this.handleResize.bind(this),
@@ -72,7 +72,7 @@ class StarFieldWorkerWrapper {
     /**
      * Initializes the StarFieldWorker with provided parameters.
      * Sends a 'ready' message to the main thread upon completion.
-     * @param {Object} data - Initialization data.
+     * @param {object} data - Initialization data.
      * @param {number} data.starsPerCell - Number of stars per grid cell.
      * @param {number} data.gridSize - Size of each grid cell in world coordinates.
      * @param {number} data.coloursPerLayer - Number of colors per parallax layer.
@@ -86,7 +86,7 @@ class StarFieldWorkerWrapper {
 
     /**
      * Resizes the specified canvas to the given dimensions.
-     * @param {Object} data - Resize data.
+     * @param {object} data - Resize data.
      * @param {string} data.name - The name of the canvas to resize.
      * @param {number} data.width - The new width of the canvas in pixels.
      * @param {number} data.height - The new height of the canvas in pixels.
@@ -114,7 +114,7 @@ class StarFieldWorkerWrapper {
     /**
      * Adds a canvas for rendering the starfield.
      * Stores the OffscreenCanvas and its 2D context in the respective maps.
-     * @param {Object} data - Canvas data.
+     * @param {object} data - Canvas data.
      * @param {string} data.name - The name of the canvas.
      * @param {OffscreenCanvas} data.canvas - The OffscreenCanvas to render to.
      * @returns {void}

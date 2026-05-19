@@ -10,7 +10,7 @@ import { Ship } from "/src/ship/ship.js";
 
 /**
  * A job that makes a ship escort another, attacking threats if the escorted ship is attacked.
- * @extends Job
+ * @augments Job
  */
 export class EscortJob extends Job {
     /**
@@ -25,7 +25,7 @@ export class EscortJob extends Job {
         this.state = 'Starting';
         /** @type {Ship} The ship to escort. */
         this.target = escortedShip;
-        /** @type {Object.<string, Function>} Map of state names to handler methods. */
+        /** @type {{[key: string]: Function}} Map of state names to handler methods. */
         this.stateHandlers = {
             'Starting': this.updateStarting.bind(this),
             'Escorting': this.updateEscorting.bind(this),
@@ -65,11 +65,11 @@ export class EscortJob extends Job {
 
     /**
      * Handles the 'Starting' state, validating the escorted ship and initializing escorting.
-     * @param {number} deltaTime - Time elapsed since last update (seconds).
-     * @param {GameManager} gameManager - The game manager instance for context.
+     * @param {number} _deltaTime - Time elapsed since last update (seconds).
+     * @param {GameManager} _gameManager - The game manager instance for context.
      * @returns {void}
      */
-    updateStarting(deltaTime, gameManager) {
+    updateStarting(_deltaTime, _gameManager) {
         if (!this.target || this.target.isDespawned() || !(this.target instanceof Ship)) {
             this.debugLog(() => console.log(`${this.constructor.name}: Invalid or despawned escorted ship, failing job`));
             this.error = 'Invalid or despawned escorted ship';
@@ -81,11 +81,11 @@ export class EscortJob extends Job {
 
     /**
      * Handles the 'Escorting' state, monitoring for attacks and managing EscortAutopilot.
-     * @param {number} deltaTime - Time elapsed since last update (seconds).
-     * @param {GameManager} gameManager - The game manager instance for context.
+     * @param {number} _deltaTime - Time elapsed since last update (seconds).
+     * @param {GameManager} _gameManager - The game manager instance for context.
      * @returns {void}
      */
-    updateEscorting(deltaTime, gameManager) {
+    updateEscorting(_deltaTime, _gameManager) {
         if (!this.target || this.target.isDespawned()) {
             this.debugLog(() => console.log(`${this.constructor.name}: Escorted ship despawned, failing job`));
             this.error = 'Escorted ship despawned';

@@ -10,15 +10,15 @@ import { GameManager } from '/src/core/game.js';
 /**
  * Autopilot that follows a target GameObject while maintaining a configurable distance band,
  * adjusting velocity based on proximity and relative motion.
- * @extends {Autopilot<GameObject>}
+ * @augments {Autopilot<GameObject>}
  */
 export class FollowAutopilot extends Autopilot {
     /**
      * Creates a new FollowAutopilot instance.
      * @param {Ship} ship - The ship to control.
      * @param {GameObject} target - The target GameObject to follow.
-     * @param {number} [minFollowDistance=100.0] - Minimum distance from the target center.
-     * @param {number} [maxFollowDistance=500.0] - Maximum distance from the target center.
+     * @param {number} minFollowDistance - Minimum distance from the target center.
+     * @param {number} maxFollowDistance - Maximum distance from the target center.
      */
     constructor(ship, target, minFollowDistance = 100.0, maxFollowDistance = 500.0) {
         super(ship, target);
@@ -83,11 +83,11 @@ export class FollowAutopilot extends Autopilot {
     /**
      * Updates the follow behaviour each frame, computing the desired velocity to stay within the follow band.
      * Adjusts thrust and heading based on target motion and distance.
-     * @param {number} deltaTime - Time elapsed since the last update, in seconds.
-     * @param {GameManager} gameManager - The game manager instance for coordinate and entity context.
+     * @param {number} _deltaTime - Time elapsed since the last update, in seconds.
+     * @param {GameManager} _gameManager - The game manager instance for coordinate and entity context.
      * @returns {void}
      */
-    update(deltaTime, gameManager) {
+    update(_deltaTime, _gameManager) {
         if (!this.target) {
             throw new TypeError('target is missing');
         }
@@ -98,8 +98,7 @@ export class FollowAutopilot extends Autopilot {
             this._scratchDirectionToTarget
         );
 
-        // Calculate lead position and angle to lead, using max velocity as projectile speed
-        const angleToLead = this.computeLeadPosition(
+        this.computeLeadPosition(
             this.ship,
             this.target,
             this.ship.maxVelocity, // Use max velocity for lead aiming
@@ -143,7 +142,7 @@ export class FollowAutopilot extends Autopilot {
         }
 
         // Apply thrust based on desired velocity and alignment
-        const shouldThrust = this.applyThrustLogic(
+        this.applyThrustLogic(
             this.ship,
             this._scratchDesiredVelocity,
             failoverAngle,

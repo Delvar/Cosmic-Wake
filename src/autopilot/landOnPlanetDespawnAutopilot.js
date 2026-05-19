@@ -10,7 +10,7 @@ import { LandOnPlanetAutopilot } from '/src/autopilot/landOnPlanetAutopilot.js';
 
 /**
  * Autopilot that lands a ship on the nearest planet and despawns it once the landing is complete.
- * @extends {Autopilot<Planet>}
+ * @augments {Autopilot<Planet>}
  */
 export class LandOnPlanetDespawnAutopilot extends Autopilot {
     /**

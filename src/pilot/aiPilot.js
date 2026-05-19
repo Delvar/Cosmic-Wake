@@ -15,13 +15,13 @@ import { FactionRelationship } from '/src/core/faction.js';
 
 /**
  * Base AI pilot with common states and reaction handling.
- * @extends Pilot
+ * @augments Pilot
  */
 export class AiPilot extends Pilot {
     /**
      * Creates a new AiPilot instance.
      * @param {Ship} ship - The ship to control.
-     * @param {boolean} [attackDisabledShips=false] - Whether to attack ships that are disabled.
+     * @param {boolean} attackDisabledShips - Whether to attack ships that are disabled.
      */
     constructor(ship, attackDisabledShips = false) {
         super(ship);
@@ -31,7 +31,7 @@ export class AiPilot extends Pilot {
         this.attackDisabledShips = attackDisabledShips;
         /** @type {string} The current state ('Job', 'Flee', 'Avoid', 'Attack'). */
         this.state = 'Disabled';
-        /** @type {Object.<string, Function>} Map of state names to handler methods. */
+        /** @type {{[key: string]: Function}} Map of state names to handler methods. */
         this.stateHandlers = {
             'Disabled': this.updateDisabled.bind(this),
             'Job': this.updateJob.bind(this),
@@ -147,11 +147,11 @@ export class AiPilot extends Pilot {
 
     /**
      * Handles the 'Disabled' state, we do nothing!
-     * @param {number} deltaTime - Time elapsed since last update (seconds).
-     * @param {GameManager} gameManager - The game manager instance for context.
+     * @param {number} _deltaTime - Time elapsed since last update (seconds).
+     * @param {GameManager} _gameManager - The game manager instance for context.
      * @returns {void}
      */
-    updateDisabled(deltaTime, gameManager) {
+    updateDisabled(_deltaTime, _gameManager) {
         //this._throwNoJobError();
         console.warn(`${this.constructor.name}: Update while Disabled!`);
         return;
@@ -350,7 +350,7 @@ export class AiPilot extends Pilot {
 
     /**
      * Sets a new autopilot, stopping and cleaning up the current one.
-     * @param {Autopilot<any>|null} [newAutopilot=null] - The new autopilot to set, or null to clear.
+     * @param {Autopilot<any>|null} newAutopilot - The new autopilot to set, or null to clear.
      * @returns {void}
      */
     setAutopilot(newAutopilot = null) {
@@ -384,18 +384,18 @@ export class AiPilot extends Pilot {
 
     /**
      * Notified when the ship takes damage.
-     * @param {number} damage - Amount of damage received.
-     * @param {Ship} source - Ship causing damage.
+     * @param {number} _damage - Amount of damage received.
+     * @param {Ship} _source - Ship causing damage.
      * @returns {void}
      */
-    onDamage(damage, source) {
+    onDamage(_damage, _source) {
 
     }
 
     /**
      * Changes state and autopilot, handling cleanup.
      * @param {string} newState - The new state ('Job', 'Flee', 'Avoid', 'Attack', 'Collecting', 'Despawning').
-     * @param {Autopilot<any>|null} [newAutopilot=null] - The new autopilot, if any.
+     * @param {Autopilot<any>|null} newAutopilot - The new autopilot, if any.
      * @returns {void}
      */
     changeState(newState, newAutopilot = null) {

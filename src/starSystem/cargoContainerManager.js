@@ -47,10 +47,10 @@ export class CargoContainerManager {
 
     /**
      * Spawns a cargo container.
-     * @param {Vector2D} position
-     * @param {Vector2D} velocity
-     * @param {string} commodityType
-     * @param {number} amount
+     * @param {Vector2D} position - World position at which to spawn the container.
+     * @param {Vector2D} velocity - Initial velocity of the spawned container.
+     * @param {string} commodityType - The type of commodity the container holds.
+     * @param {number} amount - The quantity of commodity in the container.
      * @returns {void}
      */
     spawn(position, velocity, commodityType, amount) {
@@ -153,7 +153,7 @@ export class CargoContainerManager {
 
     /**
      * Updates positions, applies drag and rotation.
-     * @param {number} deltaTime
+     * @param {number} deltaTime - Elapsed time since last update in seconds.
      * @returns {void}
      */
     update(deltaTime) {
@@ -176,8 +176,8 @@ export class CargoContainerManager {
 
     /**
      * Renders visible cargo containers and beacon lights.
-     * @param {CanvasRenderingContext2D} ctx
-     * @param {Camera} camera
+     * @param {CanvasRenderingContext2D} ctx - The 2D canvas rendering context.
+     * @param {Camera} camera - The camera used for world-to-screen transforms and culling.
      * @returns {void}
      */
     draw(ctx, camera) {

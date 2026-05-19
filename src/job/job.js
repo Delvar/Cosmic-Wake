@@ -43,13 +43,13 @@ export class Job {
 
     /**
      * Updates the job's behavior. Must be overridden by subclasses.
-     * @param {number} deltaTime - Time elapsed since last update (seconds).
-     * @param {GameManager} gameManager - The game manager instance for context.
+     * @param {number} _deltaTime - Time elapsed since last update (seconds).
+     * @param {GameManager} _gameManager - The game manager instance for context.
      * @returns {void}
      * @throws {Error} If not implemented by subclass.
      */
 
-    update(deltaTime, gameManager) {
+    update(_deltaTime, _gameManager) {
         throw new Error('update() must be implemented by subclass');
     }
 

@@ -8,7 +8,7 @@ import { StarSystem } from '/src/starSystem/starSystem.js';
 /**
  * Represents a Flivver, a fast and agile spaceship type optimized for quick manoeuvres.
  * Extends Ship to inherit core navigation, landing, and jumping functionality.
- * @extends Ship
+ * @augments Ship
  */
 export class Flivver extends Ship {
     /**
@@ -72,9 +72,9 @@ export class Flivver extends Ship {
     /**
      * Configures the path for the windows in the ctx, to be used in drawWindows
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
-     * @param {Camera} camera - The camera object.
+     * @param {Camera} _camera - The camera object.
      */
-    getWindowPath(ctx, camera) {
+    getWindowPath(ctx, _camera) {
         // Draw the cockpit
         ctx.beginPath();
         ctx.moveTo(-1.00, 4.00);
@@ -91,9 +91,9 @@ export class Flivver extends Ship {
     /**
      * Draws the ship's hull, wings, and detail lines
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
-     * @param {Camera} camera - The camera object.
+     * @param {Camera} _camera - The camera object.
      */
-    drawShip(ctx, camera) {
+    drawShip(ctx, _camera) {
         // Draw the hull
         ctx.fillStyle = this.colors.hull.toRGB();
         ctx.beginPath();
@@ -190,7 +190,7 @@ export class Flivver extends Ship {
 /**
  * Represents a Shuttle, a lightweight spaceship designed for short-range transport.
  * Extends Ship to inherit core navigation, landing, and jumping functionality.
- * @extends Ship
+ * @augments Ship
  */
 export class Shuttle extends Ship {
     /**
@@ -253,9 +253,9 @@ export class Shuttle extends Ship {
     /**
      * Configures the path for the windows in the ctx, to be used in drawWindows
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
-     * @param {Camera} camera - The camera object.
+     * @param {Camera} _camera - The camera object.
      */
-    getWindowPath(ctx, camera) {
+    getWindowPath(ctx, _camera) {
         // Draw the cockpit
         ctx.beginPath();
         ctx.moveTo(-1.00, -10.50);
@@ -268,9 +268,9 @@ export class Shuttle extends Ship {
     /**
      * Draws the ship's hull, wings, and detail lines
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
-     * @param {Camera} camera - The camera object.
+     * @param {Camera} _camera - The camera object.
      */
-    drawShip(ctx, camera) {
+    drawShip(ctx, _camera) {
         // Draw the hull
         ctx.fillStyle = this.colors.hull.toRGB();
         ctx.beginPath();
@@ -343,7 +343,7 @@ export class Shuttle extends Ship {
 /**
  * Represents a HeavyShuttle, a robust spaceship for transporting larger payloads.
  * Extends Ship to inherit core navigation, landing, and jumping functionality.
- * @extends Ship
+ * @augments Ship
  */
 export class HeavyShuttle extends Ship {
     /**
@@ -406,9 +406,9 @@ export class HeavyShuttle extends Ship {
     /**
      * Configures the path for the windows in the ctx, to be used in drawWindows
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
-     * @param {Camera} camera - The camera object.
+     * @param {Camera} _camera - The camera object.
      */
-    getWindowPath(ctx, camera) {
+    getWindowPath(ctx, _camera) {
         // Draw the cockpit
         ctx.beginPath();
         ctx.moveTo(-1.00, -14.00);
@@ -425,9 +425,9 @@ export class HeavyShuttle extends Ship {
     /**
      * Draws the ship's hull, wings, and detail lines
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
-     * @param {Camera} camera - The camera object.
+     * @param {Camera} _camera - The camera object.
      */
-    drawShip(ctx, camera) {
+    drawShip(ctx, _camera) {
         // Draw the hull
         ctx.fillStyle = this.colors.hull.toRGB();
         ctx.beginPath();
@@ -505,7 +505,7 @@ export class HeavyShuttle extends Ship {
 /**
  * Represents a StarBarge, a large, slow spaceship for bulk cargo transport.
  * Extends Ship to inherit core navigation, landing, and jumping functionality.
- * @extends Ship
+ * @augments Ship
  */
 export class StarBarge extends Ship {
     /**
@@ -566,9 +566,9 @@ export class StarBarge extends Ship {
     /**
      * Configures the path for the windows in the ctx, to be used in drawWindows
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
-     * @param {Camera} camera - The camera object.
+     * @param {Camera} _camera - The camera object.
      */
-    getWindowPath(ctx, camera) {
+    getWindowPath(ctx, _camera) {
         // Draw the cockpit
         ctx.beginPath();
         ctx.moveTo(-1.00, -18.00);
@@ -585,9 +585,9 @@ export class StarBarge extends Ship {
     /**
      * Draws the ship's hull, wings, and detail lines
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
-     * @param {Camera} camera - The camera object.
+     * @param {Camera} _camera - The camera object.
      */
-    drawShip(ctx, camera) {
+    drawShip(ctx, _camera) {
         // Draw the hull
         ctx.fillStyle = this.colors.hull.toRGB();
         ctx.beginPath();
@@ -723,7 +723,7 @@ export class StarBarge extends Ship {
 /**
  * Represents a Freighter, a heavy spaceship optimized for long-range cargo hauling.
  * Extends Ship to inherit core navigation, landing, and jumping functionality.
- * @extends Ship
+ * @augments Ship
  */
 export class Freighter extends Ship {
     /**
@@ -789,9 +789,9 @@ export class Freighter extends Ship {
     /**
      * Configures the path for the windows in the ctx, to be used in drawWindows
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
-     * @param {Camera} camera - The camera object.
+     * @param {Camera} _camera - The camera object.
      */
-    getWindowPath(ctx, camera) {
+    getWindowPath(ctx, _camera) {
         // Draw the cockpit
         ctx.beginPath();
         ctx.moveTo(-1.00, -62.00);
@@ -808,9 +808,9 @@ export class Freighter extends Ship {
     /**
      * Draws the ship's hull, wings, and detail lines
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
-     * @param {Camera} camera - The camera object.
+     * @param {Camera} _camera - The camera object.
      */
-    drawShip(ctx, camera) {
+    drawShip(ctx, _camera) {
         // Draw the hull
         ctx.fillStyle = this.colors.hull.toRGB();
         ctx.beginPath();
@@ -1272,7 +1272,7 @@ export class Freighter extends Ship {
 /**
  * Represents an Arrow, a sleek spaceship designed for speed and precision.
  * Extends Ship to inherit core navigation, landing, and jumping functionality.
- * @extends Ship
+ * @augments Ship
  */
 export class Arrow extends Ship {
     /**
@@ -1336,9 +1336,9 @@ export class Arrow extends Ship {
     /**
      * Configures the path for the windows in the ctx, to be used in drawWindows
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
-     * @param {Camera} camera - The camera object.
+     * @param {Camera} _camera - The camera object.
      */
-    getWindowPath(ctx, camera) {
+    getWindowPath(ctx, _camera) {
         // Draw the cockpit
         ctx.beginPath();
         ctx.moveTo(-1.00, -11.50);
@@ -1351,9 +1351,9 @@ export class Arrow extends Ship {
     /**
      * Draws the ship's hull, wings, and detail lines
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
-     * @param {Camera} camera - The camera object.
+     * @param {Camera} _camera - The camera object.
      */
-    drawShip(ctx, camera) {
+    drawShip(ctx, _camera) {
         // Draw the hull
         ctx.fillStyle = this.colors.hull.toRGB();
         ctx.beginPath();
@@ -1428,7 +1428,7 @@ export class Arrow extends Ship {
 /**
  * Represents a Boxwing, a sturdy spaceship with a focus on durability over speed.
  * Extends Ship to inherit core navigation, landing, and jumping functionality.
- * @extends Ship
+ * @augments Ship
  */
 export class Boxwing extends Ship {
     /**
@@ -1493,9 +1493,9 @@ export class Boxwing extends Ship {
     /**
      * Configures the path for the windows in the ctx, to be used in drawWindows
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
-     * @param {Camera} camera - The camera object.
+     * @param {Camera} _camera - The camera object.
      */
-    getWindowPath(ctx, camera) {
+    getWindowPath(ctx, _camera) {
         // Draw the cockpit
         ctx.beginPath();
         ctx.moveTo(-3.00, -5.75);
@@ -1518,9 +1518,9 @@ export class Boxwing extends Ship {
     /**
      * Draws the ship's hull, wings, and detail lines
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
-     * @param {Camera} camera - The camera object.
+     * @param {Camera} _camera - The camera object.
      */
-    drawShip(ctx, camera) {
+    drawShip(ctx, _camera) {
         // Draw the hull
         ctx.fillStyle = this.colors.hull.toRGB();
         ctx.beginPath();
@@ -1608,7 +1608,7 @@ export class Boxwing extends Ship {
 /**
  * Represents an Interceptor, a high-speed spaceship built for rapid response and combat.
  * Extends Ship to inherit core navigation, landing, and jumping functionality.
- * @extends Ship
+ * @augments Ship
  */
 export class Interceptor extends Ship {
     /**
@@ -1672,9 +1672,9 @@ export class Interceptor extends Ship {
     /**
      * Configures the path for the windows in the ctx, to be used in drawWindows
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
-     * @param {Camera} camera - The camera object.
+     * @param {Camera} _camera - The camera object.
      */
-    getWindowPath(ctx, camera) {
+    getWindowPath(ctx, _camera) {
         // Draw the cockpit
         ctx.beginPath();
         ctx.moveTo(-1.00, 16.50);
@@ -1691,9 +1691,9 @@ export class Interceptor extends Ship {
     /**
      * Draws the ship's hull, wings, and detail lines
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
-     * @param {Camera} camera - The camera object.
+     * @param {Camera} _camera - The camera object.
      */
-    drawShip(ctx, camera) {
+    drawShip(ctx, _camera) {
         // Draw the hull
         ctx.fillStyle = this.colors.hull.toRGB();
         ctx.beginPath();
@@ -1773,7 +1773,7 @@ export class Interceptor extends Ship {
 /**
  * Represents a Fighter, a fast and manoeuvrable spaceship designed for combat.
  * Extends Ship to inherit core navigation, landing, and jumping functionality.
- * @extends Ship
+ * @augments Ship
  */
 export class Fighter extends Ship {
     /**
@@ -1837,9 +1837,9 @@ export class Fighter extends Ship {
     /**
      * Configures the path for the windows in the ctx, to be used in drawWindows
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
-     * @param {Camera} camera - The camera object.
+     * @param {Camera} _camera - The camera object.
      */
-    getWindowPath(ctx, camera) {
+    getWindowPath(ctx, _camera) {
         // Draw the cockpit
         ctx.beginPath();
         ctx.moveTo(-0.50, -0.63);
@@ -1856,9 +1856,9 @@ export class Fighter extends Ship {
     /**
      * Draws the ship's hull, wings, and detail lines
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
-     * @param {Camera} camera - The camera object.
+     * @param {Camera} _camera - The camera object.
      */
-    drawShip(ctx, camera) {
+    drawShip(ctx, _camera) {
         // Draw the hull
         ctx.fillStyle = this.colors.hull.toRGB();
         ctx.beginPath();
@@ -2030,7 +2030,7 @@ export class Fighter extends Ship {
  * @param {number} y the y position of the ship within teh starSystem.
  * @param {StarSystem} starSystem The star system the ship is in.
  * @param {Faction} faction - The faction the ship belongs to.
- * @returns {Flivver|Shuttle|HeavyShuttle|StarBarge|Freighter|Arrow|Boxwing|Interceptor|Fighter}
+ * @returns {Flivver|Shuttle|HeavyShuttle|StarBarge|Freighter|Arrow|Boxwing|Interceptor|Fighter} Random ship instance of one of the standard types.
  */
 export function createRandomShip(x, y, starSystem, faction) {
     const shipClasses = [Flivver, Shuttle, HeavyShuttle, StarBarge, Freighter, Arrow, Boxwing, Interceptor, Fighter];
@@ -2044,7 +2044,7 @@ export function createRandomShip(x, y, starSystem, faction) {
  * @param {number} y the y position of the ship within teh starSystem.
  * @param {StarSystem} starSystem The star system the ship is in.
  * @param {Faction} faction - The faction the ship belongs to.
- * @returns {Flivver|Arrow|Interceptor|Fighter}
+ * @returns {Flivver|Arrow|Interceptor|Fighter} Random fast ship instance (excludes larger vessels).
  */
 export function createRandomFastShip(x, y, starSystem, faction) {
     const shipClasses = [Flivver, Arrow, Interceptor, Fighter];

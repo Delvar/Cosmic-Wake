@@ -17,7 +17,7 @@ export class Autopilot {
     /**
      * Creates a new Autopilot instance.
      * @param {Ship} ship - The ship to control.
-     * @param {TargetType|null} [target=null] - The target object (e.g., planet, jump gate).
+     * @param {TargetType|null} target - The target object (e.g., planet, jump gate).
      */
     constructor(ship, target = null) {
         /** @type {Ship} The ship controlled by this autopilot. */
@@ -42,7 +42,7 @@ export class Autopilot {
         this.firingRange = 1000.0;
         /** @type {string} Current state of the autopilot (e.g., "Approaching"). */
         this.state = "";
-        /** @type {Object.<string, Function>} State handlers for update logic. */
+        /** @type {{[key: string]: Function}} State handlers for update logic. */
         this.stateHandlers = {};
 
         // Initialize scratch vectors for calculations
@@ -149,7 +149,7 @@ export class Autopilot {
     /**
      * Given a velocity error decide if we we should thrust or not including hysteresis.
      * @param {number} velocityErrorMagnitude Magnitude of the error between teh current velocity and the desired velocity.
-     * @param {number} [errorThresholdRatio=1.0] The ratio for the error threshold, lower is more accurate but can cause twitching.
+     * @param {number} errorThresholdRatio The ratio for the error threshold, lower is more accurate but can cause twitching.
      * @returns {boolean} True if should thrust, false if not.
      */
     shouldThrust(velocityErrorMagnitude, errorThresholdRatio = 1.0) {
@@ -228,14 +228,14 @@ export class Autopilot {
     }
 
     /**
-    * Applies thrust based on velocity error and angle alignment.
-    * @param {Ship} ship - The ship to control.
-    * @param {Vector2D} desiredVelocity - Desired velocity vector.
-    * @param {number|Vector2D|null} [failoverAngle=null] - Angle to face when not thrusting, or null.
-    * @param {number} [errorThresholdRatio=1.0] The ratio for the error threshold, lower is more accurate but can cause twitching.
-    * @param {Vector2D} [outVelocityError] - Output vector for velocity error.
-    * @returns {boolean} True if thrusting, false otherwise.
-    */
+     * Applies thrust based on velocity error and angle alignment.
+     * @param {Ship} ship - The ship to control.
+     * @param {Vector2D} desiredVelocity - Desired velocity vector.
+     * @param {number|Vector2D|null} failoverAngle - Angle to face when not thrusting, or null.
+     * @param {number} errorThresholdRatio The ratio for the error threshold, lower is more accurate but can cause twitching.
+     * @param {Vector2D} outVelocityError - Output vector for velocity error.
+     * @returns {boolean} True if thrusting, false otherwise.
+     */
     applyThrustLogic(ship, desiredVelocity, failoverAngle = null, errorThresholdRatio = 1.0, outVelocityError) {
         if (!outVelocityError) {
             return false;
@@ -302,13 +302,14 @@ export class Autopilot {
 //OLD Auto Pilots
 // /**
 //  * @ extends Autopilot
-//  */
+//
+ */
 // export class EscortAutopilot extends Autopilot {
 //     /**
 //      * Creates a new EscortAutopilot instance.
 //      * @param {Ship} ship - The ship to control with this autopilot.
 //      * @param {Ship} escortedShip - The target ship to escort.
-//      * @param {number} [followDistance=250] - The desired distance to maintain while following the escorted ship.
+//      * @param {number} followDistance=250 - The desired distance to maintain while following the escorted ship.
 //      */
 //     constructor(ship, escortedShip, followDistance = 250.0) {
 //         super(ship, escortedShip);

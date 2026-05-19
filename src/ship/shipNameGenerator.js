@@ -35,7 +35,7 @@ function randomSmallNumber() {
 
 /**
  * Maps job instances to string representations for naming.
- * @param {Object|null} job - The job instance (e.g., EscortJob).
+ * @param {object | null} job - The job instance (e.g., EscortJob).
  * @returns {string} The job name or fallback.
  */
 function getJobName(job) {
@@ -122,47 +122,47 @@ const wordLists = {
  */
 /**
  * Returns 'The ' with 75% probability, otherwise empty string.
- * @returns {string}
+ * @returns {string} 'The ' or empty string.
  */
 function The() { return Math.random() < 0.75 ? 'The ' : ''; }
 /**
  * Returns a random neutral adjective.
- * @returns {string}
+ * @returns {string} Randomly chosen neutral adjective from word list.
  */
-function NeutralAdjective() { return randomChoice(wordLists.NeutralAdjective); }
+function _NeutralAdjective() { return randomChoice(wordLists.NeutralAdjective); }
 /**
  * Returns a random positive adjective.
- * @returns {string}
+ * @returns {string} Randomly chosen positive adjective from word list.
  */
 function PositiveAdjective() { return randomChoice(wordLists.PositiveAdjective); }
 /**
  * Returns a random negative adjective.
- * @returns {string}
+ * @returns {string} Randomly chosen negative adjective from word list.
  */
 function NegativeAdjective() { return randomChoice(wordLists.NegativeAdjective); }
 /**
  * Returns a random neutral noun.
- * @returns {string}
+ * @returns {string} Randomly chosen neutral noun from word list.
  */
 function NeutralNoun() { return randomChoice(wordLists.NeutralNoun); }
 /**
  * Returns a random positive noun.
- * @returns {string}
+ * @returns {string} Randomly chosen positive noun from word list.
  */
 function PositiveNoun() { return randomChoice(wordLists.PositiveNoun); }
 /**
  * Returns a random negative noun.
- * @returns {string}
+ * @returns {string} Randomly chosen negative noun from word list.
  */
 function NegativeNoun() { return randomChoice(wordLists.NegativeNoun); }
 /**
  * Returns a random neutral name.
- * @returns {string}
+ * @returns {string} Randomly chosen neutral name from word list.
  */
 function NeutralNames() { return randomChoice(wordLists.NeutralNames); } // Plain names, e.g., "Henry"
 /**
  * Returns a random neutral possessive name.
- * @returns {string}
+ * @returns {string} Neutral name in possessive form (e.g. "James’").
  */
 function NeutralPossessiveNames() {
     const name = randomChoice(wordLists.NeutralNames);
@@ -170,7 +170,7 @@ function NeutralPossessiveNames() {
 }
 /**
  * Returns a random negative possessive name.
- * @returns {string}
+ * @returns {string} Negative name in possessive form.
  */
 function NegativePossessiveNames() {
     const name = randomChoice(wordLists.NegativeNames);
@@ -178,54 +178,54 @@ function NegativePossessiveNames() {
 }
 /**
  * Returns a random personified noun.
- * @returns {string}
+ * @returns {string} Randomly chosen personified noun from word list.
  */
 function PersonifiedNouns() { return randomChoice(wordLists.PersonifiedNouns); }
 /**
  * Returns a random place name.
- * @returns {string}
+ * @returns {string} Randomly chosen place name from word list.
  */
 function Places() { return randomChoice(wordLists.Places); }
 /**
  * Returns a random suffix.
- * @returns {string}
+ * @returns {string} Randomly chosen name suffix from word list.
  */
 function Suffixes() { return randomChoice(wordLists.Suffixes); }
 /**
  * Returns a random fun prefix.
- * @returns {string}
+ * @returns {string} Randomly chosen fun prefix from word list.
  */
 function FunPrefixes() { return randomChoice(wordLists.FunPrefixes); }
 /**
  * Returns a random fun root.
- * @returns {string}
+ * @returns {string} Randomly chosen fun root from word list.
  */
 function FunRoots() { return randomChoice(wordLists.FunRoots); }
 /**
  * Returns a random fun suffix.
- * @returns {string}
+ * @returns {string} Randomly chosen fun suffix from word list.
  */
 function FunSuffixes() { return randomChoice(wordLists.FunSuffixes); }
 /**
  * Returns a random small number (1-99).
- * @returns {number}
+ * @returns {number} Random integer between 1 and 99.
  */
 function Number() { return randomSmallNumber(); }
 /**
  * Returns a random NATO alphabet word.
- * @returns {string}
+ * @returns {string} Randomly chosen NATO phonetic alphabet word.
  */
 function NatoAlphabet() { return randomChoice(wordLists.NatoAlphabet); }
 /**
  * Returns the job name for the ship's pilot.
  * @param {Ship|MockShip} ship - The ship object.
- * @returns {string}
+ * @returns {string} The name associated with the pilot's job.
  */
 function JobName(/** @type {Ship|MockShip} */ ship) { return getJobName(/** @type {AiPilot} */(ship.pilot)?.job); }
 
 /**
  * Weighted name pattern entry.
- * @typedef {Object} WeightedNameGenerator
+ * @typedef {object} WeightedNameGenerator
  * @property {number} weight - Relative weight for random selection
  * @property {(() => string) | ((ship:Ship|MockShip) => string)} fn - Name generator.Officer patterns receive a Ship; others ignore the argument.
  */
@@ -489,14 +489,14 @@ export function generateShipName(ship) {
  */
 class MockFaction {
     /**
-     * @param {string} name
+     * @param {string} name - Name of the mock faction.
      */
     constructor(name) {
         /** @type {string} */
         this.name = name;
     }
     /**
-     * @returns {string}
+     * @returns {string} The name of the faction.
      */
     getName() {
         return this.name;
@@ -508,7 +508,7 @@ class MockFaction {
  */
 class MockAiPilot {
     /**
-     * @param {string} job
+     * @param {string} job - The job type string for the mock pilot.
      */
     constructor(job) {
         /** @type {string} */
@@ -521,9 +521,9 @@ class MockAiPilot {
  */
 class MockShip {
     /**
-     * @param {MockFaction} faction
-     * @param {MockAiPilot} pilot
-     * @param {number} radius
+     * @param {MockFaction} faction - The mock faction for the ship.
+     * @param {MockAiPilot} pilot - The mock pilot with job info.
+     * @param {number} radius - The ship's radius value.
      */
     constructor(faction, pilot, radius) {
         /** @type {MockFaction} */

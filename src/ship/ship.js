@@ -17,7 +17,7 @@ import { Camera } from '/src/camera/camera.js';
 import { FlyToTargetAutopilot } from '/src/autopilot/flyToTargetAutopilot.js';
 import { Faction, FactionRelationship } from '/src/core/faction.js';
 import { CommodityType, Commodities } from '/src/core/commodity.js';
-import { UiDomWindowLog } from '../ui/uiDomWindowLog.js'
+import { UiDomWindowLog } from '../ui/uiDomWindowLog.js';
 import { DockingContext } from '/src/ship/dockingContext.js';
 import { generateShipName } from '/src/ship/shipNameGenerator.js';
 
@@ -31,7 +31,7 @@ const colourWhite = new Colour(1.0, 1.0, 1.0);
  * Checks if a target is still valid (not despawned and exists in the galaxy).
  * @param {Ship|null} source - The source game object to validate.
  * @param {Ship|null} target - The target game object to validate.
- * @param {boolean} [includeDisabled=false] - Whether to include disabled ships as valid targets.
+ * @param {boolean} includeDisabled - Whether to include disabled ships as valid targets.
  * @returns {boolean} True if the target is valid, false otherwise.
  */
 export function isValidAttackTarget(source, target, includeDisabled = false) {
@@ -46,10 +46,10 @@ export function isValidAttackTarget(source, target, includeDisabled = false) {
 /**
  * Represents a spaceship that can navigate, land, and jump between star systems.
  * Extends GameObject to inherit position, velocity, and star system properties.
- * @extends GameObject
+ * @augments GameObject
  */
 export class Ship extends GameObject {
-    /** @static {number} Maximum speed for initiating landing (units/second). */
+
     static LANDING_SPEED = 10.0;
 
     /**
@@ -219,7 +219,7 @@ export class Ship extends GameObject {
 
         /** @type {number} Maximum cargo capacity in units. */
         this.cargoCapacity = 100;
-        /** @type {Object.<string, number>} Cargo storage as a map of commodity types to quantities. */
+        /** @type {{[key: string]: number}} Cargo storage as a map of commodity types to quantities. */
         this.cargo = {};
         /** @type {UiDomWindowLog|null} Optional UI log for displaying cargo pickup messages. */
         this._uiLog = null;
@@ -319,6 +319,7 @@ export class Ship extends GameObject {
     /**
      * Total cargo currently stored (sum of all quantities).
      * Computed on request to avoid separate state tracking.
+     * @returns {number} Total cargo units currently stored.
      */
     get cargoUsed() {
         let total = 0;
@@ -331,6 +332,7 @@ export class Ship extends GameObject {
     /**
      * Total available cargo space (capacity minus used).
      * Computed on request.
+     * @returns {number} Cargo units available for storage.
      */
     get cargoAvailable() {
         return this.cargoCapacity - this.cargoUsed;
@@ -355,6 +357,7 @@ export class Ship extends GameObject {
     /**
      * Get how much of a given commodity is currently stored.
      * @param {string} type - CommodityType key
+     * @returns {number} Quantity of the requested commodity in cargo.
      */
     getCargoAmount(type) {
         return this.cargo[type] || 0;
@@ -729,8 +732,8 @@ export class Ship extends GameObject {
 
     /**
      * Determines if this ship can board the target ship.
-     * @param {Ship} targetShip
-     * @returns {boolean}
+     * @param {Ship} targetShip - Ship being evaluated for boarding.
+     * @returns {boolean} True if boarding is possible, false otherwise.
      */
     canBoard(targetShip) {
         if (!targetShip || !(targetShip instanceof Ship)) return false;
@@ -854,7 +857,7 @@ export class Ship extends GameObject {
 
     /**
      * Initiates a hyperjump through a jump gate.
-     * @param {JumpGate|null} [gate] - The jump gate to use; finds closest if null.
+     * @param {JumpGate|null} gate - The jump gate to use; finds closest if null.
      * @returns {boolean} True if hyperjump is initiated, false otherwise.
      */
     initiateHyperjump(gate = null) {
@@ -1095,8 +1098,8 @@ export class Ship extends GameObject {
     /**
      * Jettisons up to `count` cargo containers from the ship's hold, starting from first available commodity type.
      * Each container holds 1-25 units (random). Stops early if no cargo remains.
-     * @param {number} [count=1] - Maximum number of containers to dump.
-     * @param {Vector2D|null} [position=null] - World position to spawn containers (defaults to `this.position`).
+     * @param {number} count - Maximum number of containers to dump.
+     * @param {Vector2D|null} position - World position to spawn containers (defaults to `this.position`).
      * @returns {boolean} True if all `count` containers were successfully dumped, false if stopped early due to no cargo.
      */
     jettisonRandomCargoContainers(count = 1, position = null) {
@@ -1668,10 +1671,10 @@ export class Ship extends GameObject {
     /**
      * Configures the path for the windows in the ctx, to be used in drawWindows
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
-     * @param {Camera} camera - The camera object.
+     * @param {Camera} _camera - The camera object.
      * @returns {void}
      */
-    getWindowPath(ctx, camera) {
+    getWindowPath(ctx, _camera) {
         // Draw the cockpit
         ctx.beginPath();
         ctx.moveTo(0.0, 0.0);
@@ -1708,12 +1711,12 @@ export class Ship extends GameObject {
     /**
      * Draws engine thrust effects if active.
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
-     * @param {Camera} camera - The camera object.
+     * @param {Camera} _camera - The camera object.
      * @returns {void}
      */
-    drawEngines(ctx, camera) {
+    drawEngines(ctx, _camera) {
         if (this.thrustTime <= 0.0) return; // Skip if no thrust effect
-        ctx.save()
+        ctx.save();
         ctx.globalCompositeOperation = "hard-light";
         // Draw layered thrust effects with varying colors and sizes
         ctx.fillStyle = new Colour(1, 0.0, 0.0, 0.5).toRGBA();
@@ -1754,10 +1757,10 @@ export class Ship extends GameObject {
     /**
      * Draws turrets as rectangles (base + barrel).
      * @param {CanvasRenderingContext2D} ctx - Canvas context.
-     * @param {Camera} camera - Camera for transform.
+     * @param {Camera} _camera - Camera for transform.
      * @returns {void}
      */
-    drawTurrets(ctx, camera) {
+    drawTurrets(ctx, _camera) {
         if (!this.turrets || this.turrets.length == 0.0) return;
 
         ctx.save();
@@ -1809,10 +1812,10 @@ export class Ship extends GameObject {
     /**
      * Draws blinking navigation lights.
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
-     * @param {Camera} camera - The camera object.
+     * @param {Camera} _camera - The camera object.
      * @returns {void}
      */
-    drawLights(ctx, camera) {
+    drawLights(ctx, _camera) {
         if (this.state === 'Exploding') return;
 
         for (let i = 0.0; i < this.featurePoints.lights.length; i++) {

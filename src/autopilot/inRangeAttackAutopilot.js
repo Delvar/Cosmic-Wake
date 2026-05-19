@@ -9,14 +9,14 @@ import { GameManager } from '/src/core/game.js';
 /**
  * Autopilot that holds a ship inside a defined firing envelope around a hostile target,
  * matching velocity and applying lead aiming while maintaining safe distance.
- * @extends {Autopilot<Ship>}
+ * @augments {Autopilot<Ship>}
  */
 export class InRangeAttackAutopilot extends Autopilot {
     /**
      * Creates a new InRangeAttackAutopilot instance.
      * @param {Ship} ship - The ship to control.
      * @param {Ship} target - The ship to attack.
-     * @param {boolean} [stopOnDisabled=true] - Whether to stop if the ship is disabled.
+     * @param {boolean} stopOnDisabled - Whether to stop if the ship is disabled.
      */
     constructor(ship, target, stopOnDisabled = true) {
         super(ship, target);
@@ -67,11 +67,11 @@ export class InRangeAttackAutopilot extends Autopilot {
     /**
      * Updates the attack behaviour each frame, adjusting speed to stay inside the firing envelope,
      * matching target motion, and firing fixed weapons when the lead angle is favourable.
-     * @param {number} deltaTime - Time elapsed since the last update, in seconds.
-     * @param {GameManager} gameManager - The game manager instance for coordinate and entity context.
+     * @param {number} _deltaTime - Time elapsed since the last update, in seconds.
+     * @param {GameManager} _gameManager - The game manager instance for coordinate and entity context.
      * @returns {void}
      */
-    update(deltaTime, gameManager) {
+    update(_deltaTime, _gameManager) {
         if (!this.active) return;
         if (!this.target || !isValidAttackTarget(this.ship, this.target, !this.stopOnDisabled)) {
             this.completed = true;
@@ -115,7 +115,7 @@ export class InRangeAttackAutopilot extends Autopilot {
         this._scratchDesiredVelocity.addInPlace(targetVelocity);
 
         // Apply thrust
-        const shouldThrust = this.applyThrustLogic(
+        this.applyThrustLogic(
             this.ship,
             this._scratchDesiredVelocity,
             this._scratchLeadDirection,

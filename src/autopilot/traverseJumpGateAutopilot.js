@@ -12,7 +12,7 @@ import { FlyToTargetAutopilot } from '/src/autopilot/flyToTargetAutopilot.js';
 /**
  * Autopilot responsible for steering a ship into a jump gate,
  * handling approach, alignment, hyperjump initiation, and completion.
- * @extends {Autopilot<JumpGate>}
+ * @augments {Autopilot<JumpGate>}
  */
 export class TraverseJumpGateAutopilot extends Autopilot {
     /**

@@ -8,9 +8,9 @@ import { Camera } from '/src/camera/camera.js';
 import { Colour } from '/src/core/colour.js';
 
 /**
- * @typedef {Object} AsteroidCellData
- * @property {Float32Array} data
- * @property {number} time
+ * @typedef {object} AsteroidCellData
+ * @property {Float32Array} data - The precomputed asteroid data array for the cell.
+ * @property {number} time - Timestamp of when this cell data was last generated.
  */
 
 /**
@@ -237,12 +237,12 @@ export class AsteroidBelt {
     }
 
     /**
-     * Generates or retrieves cached asteroid data for a cell.
+     * Generates or retrieves cached asteroid data for a cell. Data is cached to avoid
+     * regeneration; cache is pruned periodically.
      * @param {number} layer - Layer index.
      * @param {number} cellAngle - Cell's starting angle in radians.
      * @param {number} time - Current time for cache expiration.
      * @returns {Float32Array} [radius, angleOffset, rotationSpeed, shapeIndex, size, ...] or empty array if generation fails.
-     * @remarks Data is cached to avoid regeneration; cache is pruned periodically.
      */
     getCellAsteroids(layer, cellAngle, time) {
         const cellKey = layer * 100000 + Math.round(cellAngle / this.cellAngleSize);
@@ -483,7 +483,7 @@ export class AsteroidBelt {
 
 /**
  * Represents an individual interactive asteroid within a belt.
- * @extends GameObject
+ * @augments GameObject
  */
 export class Asteroid extends GameObject {
     /**

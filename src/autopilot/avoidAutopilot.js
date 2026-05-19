@@ -9,7 +9,7 @@ import { GameManager } from '/src/core/game.js';
 /**
  * Autopilot that moves a ship away from a threat while biasing motion toward sector center.
  * It maintains avoidance for a limited timeout and then completes.
- * @extends {Autopilot<Ship>}
+ * @augments {Autopilot<Ship>}
  */
 export class AvoidAutopilot extends Autopilot {
     /**
@@ -65,10 +65,10 @@ export class AvoidAutopilot extends Autopilot {
     /**
      * Updates avoidance behaviour each frame, steering the ship away from the threat while still maintaining control.
      * @param {number} deltaTime - Time elapsed since the last update, in seconds.
-     * @param {GameManager} gameManager - The game manager instance for coordinate and entity context.
+     * @param {GameManager} _gameManager - The game manager instance for coordinate and entity context.
      * @returns {void}
      */
-    update(deltaTime, gameManager) {
+    update(deltaTime, _gameManager) {
         if (!this.threat || this.ship.state !== 'Flying') {
             this.completed = true;
             this.stop();
@@ -82,18 +82,21 @@ export class AvoidAutopilot extends Autopilot {
             return;
         }
 
-        // Calculate distance and direction to threat
-        const distance = this.ship.position.getDirectionAndDistanceTo(
+        // Calculate direction to the threat and desired velocity.
+        this.ship.position.getDirectionAndDistanceTo(
             this.threat.position,
             this._scratchDeltaToTarget,
             this._scratchDirectionToTarget
         );
 
-        // Compute desired velocity away from threat and towards system center
-        this._scratchDesiredVelocity.set(this.ship.position).normaliseInPlace().multiplyInPlace(0.5).addInPlace(this._scratchDirectionToTarget).normaliseInPlace().multiplyInPlace(-this.ship.maxVelocity);
+        this._scratchDesiredVelocity.set(this.ship.position)
+            .normaliseInPlace()
+            .multiplyInPlace(0.5)
+            .addInPlace(this._scratchDirectionToTarget)
+            .normaliseInPlace()
+            .multiplyInPlace(-this.ship.maxVelocity);
 
-        // Apply thrust with hysteresis
-        const shouldThrust = this.applyThrustLogic(
+        this.applyThrustLogic(
             this.ship,
             this._scratchDesiredVelocity,
             this.ship.velocity,

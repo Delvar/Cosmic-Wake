@@ -9,15 +9,15 @@ import { GameManager } from '/src/core/game.js';
 
 /**
  * Autopilot that flies a ship to a target and slows it to a specified arrival speed as it nears the target.
- * @extends {Autopilot<GameObject>}
+ * @augments {Autopilot<GameObject>}
  */
 export class FlyToTargetAutopilot extends Autopilot {
     /**
      * Creates a new FlyToTargetAutopilot instance.
      * @param {Ship} ship - The ship to control.
      * @param {GameObject} target - The target to fly toward.
-     * @param {number} [arrivalDistance=100.0] - Distance from target center to achieve arrivalSpeed.
-     * @param {number} [arrivalSpeed=Ship.LANDING_SPEED] - Target speed when within arrivalDistance.
+     * @param {number} arrivalDistance - Distance from target center to achieve arrivalSpeed.
+     * @param {number} arrivalSpeed - Target speed when within arrivalDistance.
      */
     constructor(ship, target, arrivalDistance = 100.0, arrivalSpeed = Ship.LANDING_SPEED) {
         super(ship, target);
@@ -83,11 +83,11 @@ export class FlyToTargetAutopilot extends Autopilot {
     /**
      * Updates the approach behaviour each frame.
      * Computes the desired velocity, manages arrival detection, and stops when the ship reaches the target.
-     * @param {number} deltaTime - Time elapsed since the last update, in seconds.
-     * @param {GameManager} gameManager - The game manager instance for coordinate and entity context.
+     * @param {number} _deltaTime - Time elapsed since the last update, in seconds.
+     * @param {GameManager} _gameManager - The game manager instance for coordinate and entity context.
      * @returns {void}
      */
-    update(deltaTime, gameManager) {
+    update(_deltaTime, _gameManager) {
         if (this.ship.state === 'Landed') {
             if (!this.ship.dockingContext) {
                 throw new TypeError('dockingContext is missing on Landed ship');
@@ -117,8 +117,7 @@ export class FlyToTargetAutopilot extends Autopilot {
             return;
         }
 
-        // Calculate lead position and angle to lead, using max velocity as projectile speed
-        const angleToLead = this.computeLeadPosition(
+        this.computeLeadPosition(
             this.ship,
             this.target,
             this.ship.maxVelocity, // Use max velocity for lead aiming
@@ -173,7 +172,7 @@ export class FlyToTargetAutopilot extends Autopilot {
         }
 
         // Apply thrust based on desired velocity and alignment
-        const shouldThrust = this.applyThrustLogic(
+        this.applyThrustLogic(
             this.ship,
             this._scratchDesiredVelocity,
             failoverAngle,

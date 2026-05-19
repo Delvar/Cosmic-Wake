@@ -11,7 +11,7 @@ import { randomBetween } from '/src/core/utils.js';
 
 /**
  * AI pilot for civilian ships, focusing on avoidance and fleeing.
- * @extends AiPilot
+ * @augments AiPilot
  */
 export class CivilianAiPilot extends AiPilot {
     /**

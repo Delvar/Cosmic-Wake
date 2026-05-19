@@ -10,7 +10,7 @@ import { isValidTarget } from '/src/core/gameObject.js';
 /**
  * Autopilot that collects cargo containers by flying to the closest available container.
  * Uses FlyToTargetAutopilot as a sub-autopilot for approach and pickup.
- * @extends {Autopilot<CargoContainer>}
+ * @augments {Autopilot<CargoContainer>}
  */
 export class CargoCollectorAutopilot extends Autopilot {
     /**
@@ -19,7 +19,7 @@ export class CargoCollectorAutopilot extends Autopilot {
      */
     constructor(ship) {
         super(ship, null);
-        /** @type {Object.<string, Function>} State handlers for update logic. */
+        /** @type {{[key: string]: Function}} State handlers for update logic. */
         this.stateHandlers = {
             Searching: this.updateSearching.bind(this),
             Collecting: this.updateCollecting.bind(this)
@@ -40,11 +40,11 @@ export class CargoCollectorAutopilot extends Autopilot {
 
     /**
      * Handles the Searching state: finds the nearest cargo container and starts the pickup approach.
-     * @param {number} deltaTime - Time elapsed since the last update, in seconds.
-     * @param {GameManager} gameManager - The game manager instance for coordinate and entity context.
+     * @param {number} _deltaTime - Time elapsed since the last update, in seconds.
+     * @param {GameManager} _gameManager - The game manager instance for coordinate and entity context.
      * @returns {void}
      */
-    updateSearching(deltaTime, gameManager) {
+    updateSearching(_deltaTime, _gameManager) {
         if (this.ship.isCargoFull()) {
             this.completed = true;
             this.stop();

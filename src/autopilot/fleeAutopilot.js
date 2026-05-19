@@ -14,7 +14,7 @@ import { Shield } from '/src/ship/shield.js';
 /**
  * Autopilot that executes a flee behaviour, navigating toward a safe harbour (landing pad or jump gate)
  * while actively jettisoning cargo if shields are down and hull integrity is critical.
- * @extends {Autopilot<JumpGate|Planet>}
+ * @augments {Autopilot<JumpGate|Planet>}
  */
 export class FleeAutopilot extends Autopilot {
     /**

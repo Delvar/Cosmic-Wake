@@ -11,7 +11,7 @@ import { PlayerPilot } from '/src/pilot/pilot.js';
 
 /**
  * Autopilot that uses FlyToTargetAutopilot to approach a disabled ship, then initiate boarding to capture it.
- * @extends {Autopilot<Ship>}
+ * @augments {Autopilot<Ship>}
  */
 export class BoardShipAutopilot extends Autopilot {
     /**

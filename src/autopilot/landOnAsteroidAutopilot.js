@@ -12,7 +12,7 @@ import { GameManager } from '/src/core/game.js';
 /**
  * Autopilot that approaches an asteroid and transitions the ship into a landing/mining action.
  * It uses a FlyToTargetAutopilot for the approach phase and initiates landing when the ship is ready.
- * @extends {Autopilot<Asteroid>}
+ * @augments {Autopilot<Asteroid>}
  */
 export class LandOnAsteroidAutopilot extends Autopilot {
     /**

@@ -1,22 +1,25 @@
 import globals from "globals";
 import pluginJs from "@eslint/js";
-import stylisticJs from '@stylistic/eslint-plugin-js';
+import stylistic from '@stylistic/eslint-plugin';
+import typescriptEslint from '@typescript-eslint/eslint-plugin';
 import jsdoc from 'eslint-plugin-jsdoc';
 
 /** @type {import('eslint').Linter.Config[]} */
 export default [
+    { ignores: ["POC/**"] },
     { files: ["**/*.js"], languageOptions: { sourceType: "module" } },
     { languageOptions: { globals: globals.browser } },
     pluginJs.configs.recommended,
     jsdoc.configs['flat/recommended'], // Add JSDoc recommended configuration
     {
         plugins: {
-            '@stylistic/js': stylisticJs,
-            jsdoc // Add jsdoc plugin
+            '@stylistic': stylistic,
+            jsdoc, // Add jsdoc plugin
+            '@typescript-eslint': typescriptEslint
         },
         rules: {
             // Existing stylistic and core rules
-            "@stylistic/js/semi": ["error", "always"],
+            "@stylistic/semi": ["error", "always"],
             "no-var": ["error"],
             "no-new-func": ["error"],
             "constructor-super": ["error"],
@@ -72,7 +75,8 @@ export default [
             "no-unsafe-optional-chaining": ["error"],
             "no-unused-labels": ["error"],
             "no-unused-private-class-members": ["error"],
-            "no-unused-vars": [
+            "no-unused-vars": "off", // disabled – replaced by typescript-eslint version
+            "@typescript-eslint/no-unused-vars": [
                 "error",
                 {
                     "vars": "all",
@@ -82,7 +86,7 @@ export default [
                     "argsIgnorePattern": "^_",
                     // Allow imports used only in JSDoc
                     "caughtErrors": "none",
-                    "ignoreTSDoc": false // Ensure JSDoc type references count as usage
+                    //"ignoreTSDoc": true // JSDoc @type / TS comments now count as usage (variables only referenced in types are ignored)
                 }
             ],
             "no-useless-backreference": ["error"],

@@ -7,8 +7,8 @@
 export class Vector2D {
     /**
      * Creates a new Vector2D instance.
-     * @param {number} [x=0.0] - The x component of the vector.
-     * @param {number} [y=0.0] - The y component of the vector.
+     * @param {number} x - The x component of the vector.
+     * @param {number} y - The y component of the vector.
      */
     constructor(x = 0.0, y = 0.0) {
         /** @type {number} The x component of the vector. */
@@ -45,28 +45,28 @@ export class Vector2D {
 
     /**
      * Adds another vector to this vector and returns a new Vector2D.
-     * @param {Vector2D} other - The vector to add.
+     * @param {Vector2D} _other - The vector to add.
      * @throws {Error} Always throws; use addInPlace to avoid allocations.
      */
-    add(other) {
+    add(_other) {
         throw new Error("Use addInPlace to avoid allocations");
     }
 
     /**
      * Subtracts another vector from this vector and returns a new Vector2D.
-     * @param {Vector2D} other - The vector to subtract.
+     * @param {Vector2D} _other - The vector to subtract.
      * @throws {Error} Always throws; use subtractInPlace to avoid allocations.
      */
-    subtract(other) {
+    subtract(_other) {
         throw new Error("Use subtractInPlace to avoid allocations");
     }
 
     /**
      * Multiplies this vector by a scalar and returns a new Vector2D.
-     * @param {number} scalar - The scalar to multiply by.
+     * @param {number} _scalar - The scalar to multiply by.
      * @throws {Error} Always throws; use multiplyInPlace to avoid allocations.
      */
-    multiply(scalar) {
+    multiply(_scalar) {
         throw new Error("Use multiplyInPlace to avoid allocations");
     }
 
@@ -118,10 +118,10 @@ export class Vector2D {
 
     /**
      * Divides this vector by a scalar and returns a new vector.
-     * @param {number} scalar - The scalar to divide by.
+     * @param {number} _scalar - The scalar to divide by.
      * @throws {Error} Always throws; use divideInPlace to avoid allocations.
      */
-    divide(scalar) {
+    divide(_scalar) {
         throw new Error("Use divideInPlace to avoid allocations");
     }
 
@@ -135,30 +135,33 @@ export class Vector2D {
 
     /**
      * Linearly interpolates between two vectors, returning a new vector.
-     * @param {Vector2D} source - The starting vector.
-     * @param {Vector2D} target - The target vector.
-     * @param {number} factor - Interpolation factor (0 = source, 1 = target).
+     * @param {Vector2D} _source - The starting vector.
+     * @param {Vector2D} _target - The target vector.
+     * @param {number} _factor - Interpolation factor (0 = source, 1 = target).
      * @throws {Error} Always throws; use lerpInPlace to avoid allocations.
      */
-    lerp(source, target, factor) {
+    lerp(_source, _target, _factor) {
         throw new Error("Use lerpInPlace to avoid allocations");
     }
 
     /**
      * Sets the components of this vector.
      * @param {number|Vector2D} xOrVector - The x component or another Vector2D.
-     * @param {number} [y] - The y component (required if xOrVector is a number).
+     * @param {number|null} y - The y component (required if xOrVector is a number).
      * @throws {Error} If y is undefined when xOrVector is a number.
      * @returns {Vector2D} This vector, for chaining.
      */
-    set(xOrVector, y) {
+    set(xOrVector, y = null) {
         if (xOrVector instanceof Vector2D) {
             this.x = xOrVector.x;
             this.y = xOrVector.y;
-        } else {
+        } else if (y !== null) {
             if (y === undefined) throw new Error("y must be provided when xOrVector is a number");
             this.x = xOrVector;
             this.y = y;
+        } else {
+            this.x = 0.0;
+            this.y = 0.0;
         }
         return this;
     }

@@ -9,14 +9,14 @@ import { GameManager } from '/src/core/game.js';
 /**
  * Autopilot that performs repeated high-speed attack passes against a target,
  * firing close in, retreating, and turning back for another run.
- * @extends {Autopilot<Ship>}
+ * @augments {Autopilot<Ship>}
  */
 export class FlybyAttackAutopilot extends Autopilot {
     /**
      * Creates a new FlybyAttackAutopilot instance.
      * @param {Ship} ship - The ship to control.
      * @param {Ship} target - The target to attack.
-     * @param {boolean} [stopOnDisabled=true] - Whether to stop if the ship is disabled.
+     * @param {boolean} stopOnDisabled - Whether to stop if the ship is disabled.
      */
     constructor(ship, target, stopOnDisabled = true) {
         super(ship, target);
@@ -52,7 +52,7 @@ export class FlybyAttackAutopilot extends Autopilot {
         this._scratchLeadPosition = new Vector2D(0.0, 0.0);
         /** @type {Vector2D} Scratch vector for lead direction. */
         this._scratchLeadDirection = new Vector2D(0.0, 0.0);
-        /** @type {Object.<string, Function>} State handlers for update logic. */
+        /** @type {{[key: string]: Function}} State handlers for update logic. */
         this.stateHandlers = {
             Approaching: this.updateApproaching.bind(this),
             Firing: this.updateFiring.bind(this),
@@ -97,11 +97,11 @@ export class FlybyAttackAutopilot extends Autopilot {
 
     /**
      * Handles the Approaching state by driving the ship toward a firing pass position.
-     * @param {number} deltaTime - Time elapsed since the last update, in seconds.
-     * @param {GameManager} gameManager - The game manager instance for coordinate and entity context.
+     * @param {number} _deltaTime - Time elapsed since the last update, in seconds.
+     * @param {GameManager} _gameManager - The game manager instance for coordinate and entity context.
      * @returns {void}
      */
-    updateApproaching(deltaTime, gameManager) {
+    updateApproaching(_deltaTime, _gameManager) {
         if (!this.target) {
             throw new TypeError('target is missing');
         }
@@ -112,7 +112,7 @@ export class FlybyAttackAutopilot extends Autopilot {
             this._scratchDirectionToTarget
         );
 
-        const angleToLead = this.computeLeadPosition(
+        this.computeLeadPosition(
             this.ship,
             this.target,
             this.projectileSpeed,
@@ -130,8 +130,7 @@ export class FlybyAttackAutopilot extends Autopilot {
         this._scratchDesiredVelocity.set(this._scratchLeadDirection)
             .multiplyInPlace(this.passSpeed);
 
-        // Apply thrust
-        const shouldThrust = this.applyThrustLogic(
+        this.applyThrustLogic(
             this.ship,
             this._scratchDesiredVelocity,
             this._scratchLeadDirection,
@@ -148,11 +147,11 @@ export class FlybyAttackAutopilot extends Autopilot {
 
     /**
      * Handles the Firing state by keeping thrust engaged, aiming, and firing weapons during a close pass.
-     * @param {number} deltaTime - Time elapsed since the last update, in seconds.
-     * @param {GameManager} gameManager - The game manager instance for coordinate and entity context.
+     * @param {number} _deltaTime - Time elapsed since the last update, in seconds.
+     * @param {GameManager} _gameManager - The game manager instance for coordinate and entity context.
      * @returns {void}
      */
-    updateFiring(deltaTime, gameManager) {
+    updateFiring(_deltaTime, _gameManager) {
         if (!this.target) {
             throw new TypeError('target is missing');
         }
@@ -199,11 +198,11 @@ export class FlybyAttackAutopilot extends Autopilot {
 
     /**
      * Handles the Retreating state by moving the ship away from the target and detecting when it is safe to turn.
-     * @param {number} deltaTime - Time elapsed since the last update, in seconds.
-     * @param {GameManager} gameManager - The game manager instance for coordinate and entity context.
+     * @param {number} _deltaTime - Time elapsed since the last update, in seconds.
+     * @param {GameManager} _gameManager - The game manager instance for coordinate and entity context.
      * @returns {void}
      */
-    updateRetreating(deltaTime, gameManager) {
+    updateRetreating(_deltaTime, _gameManager) {
         if (!this.target) {
             throw new TypeError('target is missing');
         }
@@ -233,15 +232,15 @@ export class FlybyAttackAutopilot extends Autopilot {
 
     /**
      * Handles the Turning state by steering the ship back toward the target and preparing for another attack run.
-     * @param {number} deltaTime - Time elapsed since the last update, in seconds.
-     * @param {GameManager} gameManager - The game manager instance for coordinate and entity context.
+     * @param {number} _deltaTime - Time elapsed since the last update, in seconds.
+     * @param {GameManager} _gameManager - The game manager instance for coordinate and entity context.
      * @returns {void}
      */
-    updateTurning(deltaTime, gameManager) {
+    updateTurning(_deltaTime, _gameManager) {
         if (!this.target) {
             throw new TypeError('target is missing');
         }
-        this.turningTime += deltaTime;
+        this.turningTime += _deltaTime;
         // Calculate distance and direction
         const distance = this.ship.position.getDirectionAndDistanceTo(
             this.target.position,

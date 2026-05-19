@@ -86,15 +86,15 @@ export class UiDomWindowTarget extends UiDomWindow {
             shieldPulse: false,
             distanceValue: null,
             distanceUnit: '',
-        }
+        };
 
         if (new.target === UiDomWindowTarget) Object.seal(this);
     }
 
     /**
-      * Updates the main status window
-      * @returns {void}
-      */
+     * Updates the main status window
+     * @returns {void}
+     */
     update() {
         const target = this.gameManager.cameraTarget.target;
 

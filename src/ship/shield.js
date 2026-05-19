@@ -15,11 +15,11 @@ export class Shield {
     };
     /**
      * Creates a new Shield instance.
-     * @param {number} [maxStrength=100] - Maximum shield strength.
-     * @param {number} [rechargeRate=20] - Strength restored per second when active.
-     * @param {number} [restartDelay=3] - Seconds after collapse before shields restart.
-     * @param {number} [rapidRechargeRate=50] - Faster recharge rate post-restart.
-     * @param {number} [rapidRechargeDuration=1] - Duration of rapid recharge in seconds.
+     * @param {number} maxStrength - Maximum shield strength.
+     * @param {number} rechargeRate - Strength restored per second when active.
+     * @param {number} restartDelay - Seconds after collapse before shields restart.
+     * @param {number} rapidRechargeRate - Faster recharge rate post-restart.
+     * @param {number} rapidRechargeDuration - Duration of rapid recharge in seconds.
      */
     constructor(maxStrength = 100.0, rechargeRate = 20.0, restartDelay = 3.0, rapidRechargeRate = 50.0, rapidRechargeDuration = 3.0) {
         /** @type {number} Current shield strength (0 to maxStrength). */
@@ -102,11 +102,12 @@ export class Shield {
                     this.strength = 0.0;
                 }
                 break;
-            case Shield.State.ACTIVE_UP:
+            case Shield.State.ACTIVE_UP: {
                 const isRapidRecharge = this.rapidRechargeEffectTime > 0.0;
                 const rate = isRapidRecharge ? this.rapidRechargeRate : this.rechargeRate;
                 this.strength = Math.min(this.strength + rate * deltaTime, this.maxStrength);
                 break;
+            }
         }
     }
 

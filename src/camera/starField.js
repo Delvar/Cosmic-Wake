@@ -6,14 +6,14 @@ import { Camera } from '/src/camera/camera.js';
 /**
  * Internal data structure used by StarField to cache per-canvas render parameters
  * and avoid redundant work (dirty-flag optimisation).
- * @typedef {Object} StarFieldData
- * @property {boolean} dirty
- * @property {number} cameraPositionX
- * @property {number} cameraPositionY
- * @property {number} cameraZoom
- * @property {number} fadeout
- * @property {number} white
- * @property {string} name
+ * @typedef {object} StarFieldData
+ * @property {boolean} dirty - Whether the cached render parameters are outdated and require updating.
+ * @property {number} cameraPositionX - Cached camera X position for dirty checking.
+ * @property {number} cameraPositionY - Cached camera Y position for dirty checking.
+ * @property {number} cameraZoom - Cached camera zoom level for dirty checking.
+ * @property {number} fadeout - Cached fadeout alpha value for dirty checking.
+ * @property {number} white - Cached white-out intensity for dirty checking.
+ * @property {string} name - Canvas identifier associated with this render data.
  */
 
 /**
@@ -24,26 +24,26 @@ import { Camera } from '/src/camera/camera.js';
 export class StarField {
     /**
      * Creates a new StarField instance.
-     * @param {number} [starsPerCell=20.0] - Number of stars per grid cell in the starfield.
-     * @param {number} [gridSize=1000.0] - Size of each grid cell in world coordinates.
-     * @param {number} [coloursPerLayer=10.0] - Number of colors per parallax layer for rendering.
-     * @param {boolean} [useWorker=false] - Whether to use a Web Worker for rendering. Falls back to main thread if false or unsupported.
-     * @param {number} [layers=5.0] - Number of parallax layers in the starfield.
+     * @param {number} starsPerCell - Number of stars per grid cell in the starfield.
+     * @param {number} gridSize - Size of each grid cell in world coordinates.
+     * @param {number} coloursPerLayer - Number of colors per parallax layer for rendering.
+     * @param {boolean} useWorker - Whether to use a Web Worker for rendering. Falls back to main thread if false or unsupported.
+     * @param {number} layers - Number of parallax layers in the starfield.
      */
     constructor(starsPerCell = 20.0, gridSize = 1000.0, coloursPerLayer = 10.0, useWorker = false, layers = 5.0) {
         /** @type {boolean} Whether to use a Web Worker for rendering. */
         this.useWorker = useWorker && typeof OffscreenCanvas !== 'undefined' && typeof Worker !== 'undefined';
 
-        /** @type {Object.<string, HTMLCanvasElement>} Map of canvas names to HTML canvas elements (main thread only). */
+        /** @type {{[key: string]: HTMLCanvasElement}} Map of canvas names to HTML canvas elements (main thread only). */
         this.canvasMap = {};
 
-        /** @type {Object.<string, StarFieldData>} Map of canvas names to rendering data (e.g., camera parameters). */
+        /** @type {{[key: string]: StarFieldData}} Map of canvas names to rendering data (e.g., camera parameters). */
         this.dataMap = {};
 
-        /** @type {Object.<string, OffscreenCanvas>} Map of canvas names to OffscreenCanvas instances (worker mode only). */
+        /** @type {{[key: string]: OffscreenCanvas}} Map of canvas names to OffscreenCanvas instances (worker mode only). */
         this.offScreenCanvasMap = {};
 
-        /** @type {Object.<string, CanvasRenderingContext2D>} Map of canvas names to 2D rendering contexts. */
+        /** @type {{[key: string]: CanvasRenderingContext2D}} Map of canvas names to 2D rendering contexts. */
         this.ctxMap = {};
 
         /** @type {Worker|null} The Web Worker instance for rendering, or null if not using a worker. */
@@ -83,7 +83,7 @@ export class StarField {
      */
     addCanvas(name, canvas) {
         if (this.useWorker && this.worker) {
-            const offscreen = canvas.transferControlToOffscreen()
+            const offscreen = canvas.transferControlToOffscreen();
             this.offScreenCanvasMap[name] = offscreen;
             this.worker.postMessage({
                 type: 'addCanvas',

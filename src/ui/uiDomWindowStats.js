@@ -39,13 +39,13 @@ export class UiDomWindowStats extends UiDomWindow {
             hullPulse: false,
             shield: 0.0,
             shieldPulse: false
-        }
+        };
     }
 
     /**
-      * Updates the main status window
-      * @returns {void}
-      */
+     * Updates the main status window
+     * @returns {void}
+     */
     update() {
         const ship = this.gameManager.cameraTarget;
         const hull = clamp(Math.round(ship.hullRatio * 100.0), 0, 100);

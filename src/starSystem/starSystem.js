@@ -200,9 +200,9 @@ export class StarSystem {
 
     /**
      * Selects a random ship from the available ships, using a provided validation function.
-     * @param {Ship|null} [ship=null] the ship looking for a target
-     * @param {GameObject|null} [exclude=null] exclude this other GameObject
-     * @param {function(Ship, Ship): boolean} [isValid=isValidTarget] - Validation function to check if a target is valid.
+     * @param {Ship|null} ship the ship looking for a target
+     * @param {GameObject|null} exclude exclude this other GameObject
+     * @param {function(Ship, Ship): boolean} isValid - Validation function to check if a target is valid.
      * @returns {Ship|null} The selected ship, or null if none available.
      */
     getRandomShip(ship = null, exclude = null, isValid = isValidTarget) {
@@ -231,8 +231,8 @@ export class StarSystem {
 
     /**
      * Selects a random valid planet from the available planets in the star system.
-     * @param {Ship|null} [ship=null] The ship looking for a target (used for validation if provided).
-     * @param {Planet|null} [exclude=null] Exclude this planet from selection.
+     * @param {Ship|null} ship The ship looking for a target (used for validation if provided).
+     * @param {Planet|null} exclude Exclude this planet from selection.
      * @returns {Planet|null} The selected planet, or null if none available.
      */
     getRandomPlanet(ship = null, exclude = null) {
@@ -261,8 +261,8 @@ export class StarSystem {
 
     /**
      * Selects a random valid star from the available stars in the star system.
-     * @param {Ship|null} [ship=null] The ship looking for a target (used for validation if provided).
-     * @param {Star|null} [exclude=null] Exclude this star from selection.
+     * @param {Ship|null} ship The ship looking for a target (used for validation if provided).
+     * @param {Star|null} exclude Exclude this star from selection.
      * @returns {Star|null} The selected star, or null if none available.
      */
     getRandomStar(ship = null, exclude = null) {
@@ -291,8 +291,8 @@ export class StarSystem {
 
     /**
      * Selects a random valid jump gate from the available jump gates in the star system.
-     * @param {Ship|null} [ship=null] The ship looking for a target (used for validation if provided).
-     * @param {JumpGate|null} [exclude=null] Exclude this jump gate from selection.
+     * @param {Ship|null} ship The ship looking for a target (used for validation if provided).
+     * @param {JumpGate|null} exclude Exclude this jump gate from selection.
      * @returns {JumpGate|null} The selected jump gate, or null if none available.
      */
     getRandomJumpGate(ship = null, exclude = null) {
@@ -321,8 +321,8 @@ export class StarSystem {
 
     /**
      * Selects a random valid asteroid from the available asteroids in the star system.
-     * @param {Ship|null} [ship=null] The ship looking for a target (used for validation if provided).
-     * @param {Asteroid|null} [exclude=null] Exclude this asteroid from selection.
+     * @param {Ship|null} ship The ship looking for a target (used for validation if provided).
+     * @param {Asteroid|null} exclude Exclude this asteroid from selection.
      * @returns {Asteroid|null} The selected asteroid, or null if none available.
      */
     getRandomAsteroid(ship = null, exclude = null) {
@@ -351,8 +351,8 @@ export class StarSystem {
 
     /**
      * Selects a random valid jump gate or planet from the available ones in the star system.
-     * @param {Ship|null} [ship=null] The ship looking for a target (used for validation if provided).
-     * @param {GameObject|null} [exclude=null] Exclude this game object from selection.
+     * @param {Ship|null} ship The ship looking for a target (used for validation if provided).
+     * @param {GameObject|null} exclude Exclude this game object from selection.
      * @returns {JumpGate|Planet|null} The selected jump gate or planet, or null if none available.
      */
     getRandomJumpGatePlanet(ship = null, exclude = null) {
@@ -387,8 +387,8 @@ export class StarSystem {
 
     /**
      * Selects a random valid planet or asteroid from the available ones in the star system.
-     * @param {Ship|null} [ship=null] The ship looking for a target (used for validation if provided).
-     * @param {GameObject|null} [exclude=null] Exclude this game object from selection.
+     * @param {Ship|null} ship The ship looking for a target (used for validation if provided).
+     * @param {GameObject|null} exclude Exclude this game object from selection.
      * @returns {Planet|Asteroid|null} The selected planet or asteroid, or null if none available.
      */
     getRandomPlanetAsteroid(ship = null, exclude = null) {
@@ -423,8 +423,8 @@ export class StarSystem {
 
     /**
      * Selects a random valid jump gate, planet, or asteroid from the available ones in the star system.
-     * @param {Ship|null} [ship=null] The ship looking for a target (used for validation if provided).
-     * @param {GameObject|null} [exclude=null] Exclude this game object from selection.
+     * @param {Ship|null} ship The ship looking for a target (used for validation if provided).
+     * @param {GameObject|null} exclude Exclude this game object from selection.
      * @returns {JumpGate|Planet|Asteroid|null} The selected jump gate, planet, or asteroid, or null if none available.
      */
     getRandomJumpGatePlanetAsteroid(ship = null, exclude = null) {
@@ -464,7 +464,7 @@ export class StarSystem {
     /**
      * Finds the closest valid jump gate to the ship.
      * @param {Ship} ship - The ship looking for a target.
-     * @param {GameObject|null} [exclude=null] - Exclude this GameObject.
+     * @param {GameObject|null} exclude - Exclude this GameObject.
      * @returns {JumpGate|null} The closest jump gate, or null if none available.
      */
     getClosestJumpGate(ship, exclude = null) {
@@ -492,8 +492,8 @@ export class StarSystem {
     /**
      * Finds the next closest valid jump gate after the current gate, wrapping to the closest if none further.
      * @param {Ship} ship - The ship looking for a target.
-     * @param {JumpGate|null} [currentGate=null] - The currently selected jump gate.
-     * @param {GameObject|null} [exclude=null] - Exclude this GameObject.
+     * @param {JumpGate|null} currentGate - The currently selected jump gate.
+     * @param {GameObject|null} exclude - Exclude this GameObject.
      * @returns {JumpGate|null} The next closest jump gate, or null if none available.
      */
     cycleClosestJumpGate(ship, currentGate = null, exclude = null) {
@@ -537,7 +537,7 @@ export class StarSystem {
     /**
      * Finds the closest valid planet to the ship.
      * @param {Ship} ship - The ship looking for a target.
-     * @param {Planet|null} [exclude=null] - Exclude this Planet.
+     * @param {Planet|null} exclude - Exclude this Planet.
      * @returns {Planet|null} The closest planet, or null if none available.
      */
     getClosestPlanet(ship, exclude = null) {
@@ -576,8 +576,8 @@ export class StarSystem {
     /**
      * Finds the next closest valid planet after the current planet, wrapping to the closest if none further.
      * @param {Ship} ship - The ship looking for a target.
-     * @param {Planet|null} [currentPlanet=null] - The currently selected planet.
-     * @param {Planet|null} [exclude=null] - Exclude this Planet.
+     * @param {Planet|null} currentPlanet - The currently selected planet.
+     * @param {Planet|null} exclude - Exclude this Planet.
      * @returns {Planet|null} The next closest planet, or null if none available.
      */
     cycleClosestPlanet(ship, currentPlanet = null, exclude = null) {
@@ -616,8 +616,8 @@ export class StarSystem {
     /**
      * Finds the closest valid ship to the source ship.
      * @param {Ship} ship - The ship looking for a target.
-     * @param {Ship|null} [exclude=null] - Exclude this ship.
-     * @param {function(Ship, Ship): boolean} [isValid=isValidTarget] - Validation function to check if a target is valid.
+     * @param {Ship|null} exclude - Exclude this ship.
+     * @param {function(Ship, Ship): boolean} isValid - Validation function to check if a target is valid.
      * @returns {Ship|null} The closest ship, or null if none available.
      */
     getClosestShip(ship, exclude = null, isValid = isValidTarget) {
@@ -656,9 +656,9 @@ export class StarSystem {
     /**
      * Finds the next closest valid ship after the current ship, wrapping to the closest if none further.
      * @param {Ship} ship - The ship looking for a target.
-     * @param {Ship|null} [currentShip=null] - The currently selected ship.
-     * @param {Ship|null} [exclude=null] - Exclude this ship.
-     * @param {function(Ship, Ship): boolean} [isValid=isValidTarget] - Validation function to check if a target is valid.
+     * @param {Ship|null} currentShip - The currently selected ship.
+     * @param {Ship|null} exclude - Exclude this ship.
+     * @param {function(Ship, Ship): boolean} isValid - Validation function to check if a target is valid.
      * @returns {Ship|null} The next closest ship, or null if none available.
      */
     cycleClosestShip(ship, currentShip = null, exclude = null, isValid = isValidTarget) {
@@ -698,7 +698,7 @@ export class StarSystem {
     /**
      * Finds the closest valid asteroid to the ship.
      * @param {Ship} ship - The ship looking for a target.
-     * @param {Asteroid|null} [exclude=null] - Exclude this Asteroid.
+     * @param {Asteroid|null} exclude - Exclude this Asteroid.
      * @returns {Asteroid|null} The closest asteroid, or null if none available.
      */
     getClosestAsteroid(ship, exclude = null) {
@@ -727,8 +727,8 @@ export class StarSystem {
     /**
      * Finds the next closest valid asteroid after the current asteroid, wrapping to the closest if none further.
      * @param {Ship} ship - The ship looking for a target.
-     * @param {Asteroid|null} [currentAsteroid=null] - The currently selected asteroid.
-     * @param {Asteroid|null} [exclude=null] - Exclude this Asteroid.
+     * @param {Asteroid|null} currentAsteroid - The currently selected asteroid.
+     * @param {Asteroid|null} exclude - Exclude this Asteroid.
      * @returns {Asteroid|null} The next closest asteroid, or null if none available.
      */
     cycleClosestAsteroid(ship, currentAsteroid = null, exclude = null) {
@@ -767,7 +767,7 @@ export class StarSystem {
     /**
      * Finds the closest valid jump gate or planet to the ship.
      * @param {Ship} ship The ship looking for a target.
-     * @param {GameObject|null} [exclude=null] Exclude this game object from selection.
+     * @param {GameObject|null} exclude Exclude this game object from selection.
      * @returns {JumpGate|Planet|null} The closest jump gate or planet, or null if none available.
      */
     getClosestJumpGatePlanet(ship, exclude = null) {

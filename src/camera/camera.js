@@ -15,7 +15,7 @@ export class Camera {
      * @param {HTMLCanvasElement} backgroundCanvas - The background canvas for rendering the starfield.
      * @param {HTMLCanvasElement} hudCanvas - The HUD canvas for UI overlays.
      * @param {HTMLCanvasElement} hudOutlineCanvas - The HUD outline canvas for secondary overlays.
-     * @param {number} [zoom=1.0] - The initial zoom level (default is 1.0).
+     * @param {number} zoom - The initial zoom level (default is 1.0).
      */
     constructor(foregroundCanvas, backgroundCanvas, hudCanvas, hudOutlineCanvas, zoom = 1.0) {
         /** @type {boolean} Enables or disables debug mode for the camera. */
@@ -269,7 +269,7 @@ export class Camera {
      * Checks if a bounding box defined by two Vector2D points intersects with the camera's view.
      * @param {Vector2D} min - The minimum corner of the bounding box (minX, minY) in world space.
      * @param {Vector2D} max - The maximum corner of the bounding box (maxX, maxY) in world space.
-     * @param {number} [buffer=0] - An optional buffer to expand the bounding box (e.g., to account for object width).
+     * @param {number} buffer - An optional buffer to expand the bounding box (e.g., to account for object width).
      * @returns {boolean} True if the bounding box intersects the camera's view, false otherwise.
      */
     isBoxInView(min, max, buffer = 0.0) {
@@ -305,7 +305,7 @@ export class Camera {
 
 /**
  * Represents a camera that follows a target object, typically used for a target view.
- * @extends Camera
+ * @augments Camera
  */
 export class TargetCamera extends Camera {
     /**
@@ -314,7 +314,7 @@ export class TargetCamera extends Camera {
      * @param {HTMLCanvasElement} backgroundCanvas - The background canvas for rendering the starfield.
      * @param {HTMLCanvasElement} hudCanvas - The HUD canvas for UI overlays.
      * @param {HTMLCanvasElement} hudOutlineCanvas - The HUD outline canvas for secondary overlays.
-     * @param {number} [zoom=1] - The initial zoom level (default is  1.0).
+     * @param {number} zoom - The initial zoom level (default is  1.0).
      */
     constructor(foregroundCanvas, backgroundCanvas, hudCanvas, hudOutlineCanvas, zoom = 1.0) {
         super(foregroundCanvas, backgroundCanvas, hudCanvas, hudOutlineCanvas, zoom);

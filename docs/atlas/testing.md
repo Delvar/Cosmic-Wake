@@ -5,6 +5,7 @@
 - This repository has no automated runtime tests for the game.
 - `npm test` is currently a placeholder and will fail.
 - `npm run lint` is available for source validation.
+- `npm run lint:fix` will automatically fix some lint issues.
 
 ## Recommended practice
 

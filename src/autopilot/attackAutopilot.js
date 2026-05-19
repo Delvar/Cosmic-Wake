@@ -11,14 +11,14 @@ import { FlybyAttackAutopilot } from '/src/autopilot/flybyAttackAutopilot.js';
 
 /**
  * Coordinates attack behavior, selecting a pattern-specific sub-autopilot based on ship velocity.
- * @extends {Autopilot<Ship>}
+ * @augments {Autopilot<Ship>}
  */
 export class AttackAutopilot extends Autopilot {
     /**
      * Creates a new AttackAutopilot instance.
      * @param {Ship} ship - The ship to control.
-     * @param {Ship} target - The target to attack.
-     * @param {boolean} [stopOnDisabled=true] - Whether to stop if the ship is disabled.
+     * @param {Ship} target - The target ship to attack.
+     * @param {boolean} stopOnDisabled - Whether to stop if the ship is disabled.
      */
     constructor(ship, target, stopOnDisabled = true) {
         super(ship, target);
@@ -36,7 +36,7 @@ export class AttackAutopilot extends Autopilot {
         this.revertRadius = 5.0 * this.ship.maxVelocity;
         /** @type {Vector2D} Scratch vector for distance calculations. */
         this._scratchDirectionToTarget = new Vector2D(0.0, 0.0);
-        /** @type {Object.<string, Function>} State handlers for update logic. */
+        /** @type {{[key: string]: Function}} State handlers for update logic. */
         this.stateHandlers = {
             Approaching: this.updateApproaching.bind(this),
             Attacking: this.updateAttacking.bind(this)

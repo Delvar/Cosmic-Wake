@@ -21,7 +21,6 @@ import { LandOnPlanetDespawnAutopilot } from "/src/autopilot/landOnPlanetDespawn
 export class DockingContext {
     /**
      * Creates a new docking context.
-     *
      * @param {CelestialBody|Asteroid|Ship} landedObject - The object that the ship is landed on or docked with.
      * @param {Ship} ship - The ship that is currently in docking state.
      */
@@ -52,9 +51,8 @@ export class DockingContext {
     /**
      * Debug log helper that delegates to the ship's debug logger.
      * The callback is only evaluated when ship debug logging is enabled.
-     *
      * @param {() => void} callback - A function to execute only when debug logging is active.
-     * @return {void}
+     * @returns {void}
      */
     debugLog(callback) {
         if (this.ship) {
@@ -65,8 +63,7 @@ export class DockingContext {
     /**
      * Initiates take off from the current platform and transitions the ship out of docked state.
      * Validates current state and capability, logs errors for invalid calls.
-     *
-     * @return {boolean} True when take off was successfully requested, false otherwise.
+     * @returns {boolean} True when take off was successfully requested, false otherwise.
      */
     takeOff() {
         if (!this.ship || !this.landedObject) {
@@ -85,8 +82,7 @@ export class DockingContext {
     /**
      * Repairs the ship's hull to maximum when landed on a repair-capable celestial body.
      * Updates context capability to prevent repeated repair in the same docking session.
-     *
-     * @return {boolean} True if repair was performed, false if invalid.
+     * @returns {boolean} True if repair was performed, false if invalid.
      */
     repairHull() {
         if (!this.ship || !this.landedObject) {
@@ -105,8 +101,7 @@ export class DockingContext {
     /**
      * Starts mining operations when docked on an asteroid.
      * Ensures the ship is not already mining before toggling.
-     *
-     * @return {boolean} True if mining start was successful, false otherwise.
+     * @returns {boolean} True if mining start was successful, false otherwise.
      */
     startMining() {
         if (!this.ship || !this.landedObject) {
@@ -126,8 +121,7 @@ export class DockingContext {
     /**
      * Stops mining operations when docked on an asteroid.
      * Safely handles already-stopped mining state.
-     *
-     * @return {boolean} True if mining stop was successful, false otherwise.
+     * @returns {boolean} True if mining stop was successful, false otherwise.
      */
     stopMining() {
         if (!this.ship || !this.landedObject) {
@@ -147,8 +141,7 @@ export class DockingContext {
     /**
      * Captures a disabled ship when boarding, transferring ownership and repairing it.
      * Only available when boarding disabled ships.
-     *
-     * @return {boolean} True if capture was performed, false if invalid.
+     * @returns {boolean} True if capture was performed, false if invalid.
      */
     capture() {
         if (!this.ship || !this.landedObject) {
@@ -199,8 +192,7 @@ export class DockingContext {
     /**
      * Undocks from a boarded disabled ship without capturing it.
      * Only available when boarding disabled ships.
-     *
-     * @return {boolean} True if undock was performed, false if invalid.
+     * @returns {boolean} True if undock was performed, false if invalid.
      */
     undock() {
         // Undock is just take off with different naming
@@ -210,8 +202,7 @@ export class DockingContext {
     /**
      * Dispose of this context when docking interactions are complete.
      * Clears references to help garbage collection and avoid accidental reuse.
-     *
-     * @return {void}
+     * @returns {void}
      */
     dispose() {
         this.hasTakeOffAction = false;

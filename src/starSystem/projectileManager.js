@@ -2,7 +2,7 @@
 
 import { Vector2D } from '/src/core/vector2d.js';
 import { Projectile } from '/src/starSystem/projectile.js';
-import { removeObjectFromArrayInPlace, TWO_PI } from '/src/core/utils.js';
+import { removeObjectFromArrayInPlace } from '/src/core/utils.js';
 import { StarSystem } from '/src/starSystem/starSystem.js';
 import { Ship } from '/src/ship/ship.js';
 import { Camera } from '/src/camera/camera.js';

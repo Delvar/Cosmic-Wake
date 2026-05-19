@@ -10,7 +10,7 @@ import { Vector2D } from '/src/core/vector2d.js';
 class TrailPointPool {
     /**
      * Creates a new TrailPointPool.
-     * @param {number} [maxPoints=300] - Initial maximum number of points the pool can hold.
+     * @param {number} maxPoints - Initial maximum number of points the pool can hold.
      */
     constructor(maxPoints = 300.0) {
         /** @type {number} Maximum number of points the buffer can store. */
@@ -125,10 +125,10 @@ class TrailPointPool {
 export class Trail {
     /**
      * Creates a new Trail instance.
-     * @param {number} [maxAge=5] - Maximum age of a trail point in seconds.
-     * @param {number} [decayMultiplier=1] - Multiplier for age decay rate.
-     * @param {number} [startWidth=2] - Initial width of the trail in world units.
-     * @param {string} [color='rgba(255,  255.0,  255.0, 0.5)'] - CSS color for the trail fill.
+     * @param {number} maxAge - Maximum age of a trail point in seconds.
+     * @param {number} decayMultiplier - Multiplier for age decay rate.
+     * @param {number} startWidth - Initial width of the trail in world units.
+     * @param {string} color - CSS color for the trail fill.
      */
     constructor(maxAge = 5.0, decayMultiplier = 1.0, startWidth = 2.0, color = 'rgba(255,  255.0,  255.0, 0.5)') {
         /** @type {TrailPointPool} Ring buffer for trail points. */
@@ -335,7 +335,7 @@ export class Trail {
      * Draws the trail as a filled polygon on the canvas.
      * @param {CanvasRenderingContext2D} ctx - The 2D canvas rendering context.
      * @param {Camera} camera - Camera object with worldToScreen and worldToSize methods.
-     * @param {Number} shipScale - The current scale of the ship.
+     * @param {number} shipScale - The current scale of the ship.
      * @returns {void}
      */
     draw(ctx, camera, shipScale) {

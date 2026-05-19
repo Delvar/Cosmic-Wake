@@ -36,8 +36,8 @@ export class UiDomWindow {
     };
 
     /**
-     * @param {HTMLElement} element
-     * @param {FactionRelationship | null} factionRelationship
+     * @param {HTMLElement} element - The root DOM element representing this window.
+     * @param {FactionRelationship | null} factionRelationship - Optional faction relationship used to apply a tint class.
      */
     constructor(element, factionRelationship = null) {
         if (this.constructor === UiDomWindow) {
@@ -134,7 +134,7 @@ export class UiDomWindow {
 
     /**
      * Finds the element that contains the resize handles.
-     * @returns {HTMLElement}
+     * @returns {HTMLElement} The element that should be resized (either the element itself or its inner resizable container).
      * @private
      */
     _findResizableElement() {
@@ -191,7 +191,7 @@ export class UiDomWindow {
 
     /**
      * Returns true if any pin or centre constraint is active.
-     * @returns {boolean}
+     * @returns {boolean} True when any edge pin or centre constraint is set.
      * @private
      */
     _hasPin() {
@@ -244,7 +244,7 @@ export class UiDomWindow {
 
     /**
      * Mouse down handler for resize handles.
-     * @param {MouseEvent} e
+     * @param {MouseEvent} e - The initiating mouse event for the resize operation.
      * @private
      */
     _onResizeMouseDown(e) {
@@ -284,7 +284,7 @@ export class UiDomWindow {
 
     /**
      * Mouse move handler during active resize.
-     * @param {MouseEvent} e
+     * @param {MouseEvent} e - The mousemove event describing pointer movement.
      * @private
      */
     _onResizeMouseMove(e) {
@@ -358,7 +358,7 @@ export class UiDomWindow {
 
     /**
      * Mouse up handler after resize.
-     * @param {MouseEvent} e
+     * @param {MouseEvent} e - The mouseup event signaling resize end.
      * @private
      */
     _onResizeMouseUp(e) {
@@ -379,10 +379,10 @@ export class UiDomWindow {
 
     /**
      * Called after resize ends. Override in subclasses.
-     * @param {MouseEvent} e
+     * @param {MouseEvent} _e - The mouseup event that ended the resize.
      * @protected
      */
-    _onResizeEnd(e) { }
+    _onResizeEnd(_e) { }
 
     /**
      * Recomputes offset after layout changes (relies on CSS for inner positioning).
@@ -395,8 +395,8 @@ export class UiDomWindow {
 
     /**
      * Calculates current pin/centre state from window position.
-     * @param {DOMRect} rect
-     * @returns {typeof this._pins}
+     * @param {DOMRect} rect - The bounding client rect of the window to evaluate.
+     * @returns {typeof this._pins} An object describing which edges or centre constraints should be active.
      * @private
      */
     _getPinStateForRect(rect) {
@@ -474,7 +474,7 @@ export class UiDomWindow {
 
     /**
      * Applies the current pin state as CSS styles.
-     * @param {DOMRect} rect
+     * @param {DOMRect} rect - The bounding client rect used to compute pinned CSS positions.
      * @private
      */
     _applyPinStylesFromRect(rect) {
@@ -567,6 +567,8 @@ export class UiDomWindow {
             this._pins.centreHorizontal === newPinState.centreHorizontal &&
             this._pins.centreVertical === newPinState.centreVertical;
 
+        if (same) return;
+
         this._pins = newPinState;
         this._applyPinStylesFromRect(rect);
         this._updateResizeHandlesVisibility();
@@ -587,7 +589,7 @@ export class UiDomWindow {
 
     /**
      * Mouse down handler for dragging.
-     * @param {MouseEvent} e
+     * @param {MouseEvent} e - The initiating mouse event for the drag operation.
      * @private
      */
     _onDragMouseDown(e) {
@@ -624,7 +626,7 @@ export class UiDomWindow {
 
     /**
      * Mouse move handler during drag.
-     * @param {MouseEvent} e
+     * @param {MouseEvent} e - The mousemove event used to update the element position.
      * @private
      */
     _onDragMouseMove(e) {
@@ -639,7 +641,7 @@ export class UiDomWindow {
 
     /**
      * Mouse up handler after drag.
-     * @param {MouseEvent} e
+     * @param {MouseEvent} e - The mouseup event ending the drag operation.
      * @private
      */
     _onDragMouseUp(e) {
@@ -678,9 +680,9 @@ export class UiDomWindow {
 
     /**
      * Sets window tint from faction relationship.
-     * @param {FactionRelationship} relationshipValue
+     * @param {FactionRelationship} relationshipValue - The faction relationship value used to select a tint class.
      * @throws {Error}
-     * @returns {void}
+     * @returns {void} No return value.
      */
     setTintFromRelationship(relationshipValue) {
         const targetTintClass = UiDomWindow.#TINT_CLASS_MAP[relationshipValue];

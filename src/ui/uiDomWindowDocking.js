@@ -1,6 +1,5 @@
 // /src/ui/uiDomWindowDocking.js
 
-import { GameManager } from '/src/core/game.js';
 import { DockingContext } from '/src/ship/dockingContext.js';
 import { UiDomWindow } from '/src/ui/uiDomWindow.js';
 
@@ -22,7 +21,6 @@ const ButtonState = Object.freeze({
 export class UiDomWindowDocking extends UiDomWindow {
     /**
      * Creates a new UiDomWindowDocking instance.
-     *
      * @param {HTMLElement} element - The DOM element to manage.
      */
     constructor(element) {

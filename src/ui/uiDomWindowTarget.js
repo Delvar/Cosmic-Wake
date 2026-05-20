@@ -35,6 +35,7 @@ export class UiDomWindowTarget extends UiDomWindow {
         const factionElement = document.getElementById('target-ui_faction');
         const hullElement = document.getElementById('target-ui_hull');
         const shieldElement = document.getElementById('target-ui_shield');
+        const cargoElement = document.getElementById('target-ui_cargo');
 
         if (!(nameElement instanceof HTMLElement)) {
             throw new TypeError('nameElement not a HTMLElement');
@@ -47,6 +48,9 @@ export class UiDomWindowTarget extends UiDomWindow {
         }
         if (!(shieldElement instanceof HTMLElement)) {
             throw new TypeError('shieldElement not a HTMLElement');
+        }
+        if (!(cargoElement instanceof HTMLElement)) {
+            throw new TypeError('cargoElement not a HTMLElement');
         }
 
         /** @type {HTMLElement} The element for the targets name. */
@@ -61,6 +65,9 @@ export class UiDomWindowTarget extends UiDomWindow {
         /** @type {HTMLElement} The element for teh targets shield. */
         this.shieldElement = shieldElement;
 
+        /** @type {HTMLElement} The element for the targets cargo bar. */
+        this.cargoElement = cargoElement;
+
         const distanceElement = document.getElementById('target-ui_distance');
 
         if (!(distanceElement instanceof HTMLElement)) {
@@ -73,7 +80,7 @@ export class UiDomWindowTarget extends UiDomWindow {
         /** @type {GameManager} The game manager where we can find cameraTarget */
         this.gameManager = gameManager;
 
-        /** @type {{name: string|null, faction: string|null, factionHidden: boolean, hull: number, hullHidden: boolean, hullPulse:boolean, shield: number, shieldHidden: boolean, shieldPulse:boolean, distanceValue: string|null, distanceUnit: string}} The last displayed values to avoid unnecessary DOM updates. */
+        /** @type {{name: string|null, faction: string|null, factionHidden: boolean, hull: number, hullHidden: boolean, hullPulse:boolean, shield: number, shieldHidden: boolean, shieldPulse:boolean, cargo: number, cargoHidden: boolean, cargoPulse:boolean, distanceValue: string|null, distanceUnit: string}} The last displayed values to avoid unnecessary DOM updates. */
         this._lastDisplayed = {
             name: null,
             faction: null,
@@ -84,6 +91,9 @@ export class UiDomWindowTarget extends UiDomWindow {
             shield: 0.0,
             shieldHidden: false,
             shieldPulse: false,
+            cargo: 0.0,
+            cargoHidden: false,
+            cargoPulse: false,
             distanceValue: null,
             distanceUnit: '',
         };
@@ -143,6 +153,10 @@ export class UiDomWindowTarget extends UiDomWindow {
                 this.shieldElement.classList.add('hidden');
                 this._lastDisplayed.shieldHidden = true;
             }
+            if (!this._lastDisplayed.cargoHidden) {
+                this.cargoElement.classList.add('hidden');
+                this._lastDisplayed.cargoHidden = true;
+            }
             return;
         }
 
@@ -197,6 +211,27 @@ export class UiDomWindowTarget extends UiDomWindow {
             if (this._lastDisplayed.shieldHidden) {
                 this.shieldElement.classList.remove('hidden');
                 this._lastDisplayed.shieldHidden = false;
+            }
+
+            const cargo = clamp(Math.round(target.cargoRatio * 100.0), 0, 100);
+            if (cargo !== this._lastDisplayed.cargo) {
+                this.cargoElement.style.setProperty('--percent', cargo.toString());
+                this._lastDisplayed.cargo = cargo;
+            }
+
+            const cargoPulse = target.isJettisoningCargo;
+            if (cargoPulse !== this._lastDisplayed.cargoPulse) {
+                if (cargoPulse) {
+                    this.cargoElement.classList.add('pulse');
+                } else {
+                    this.cargoElement.classList.remove('pulse');
+                }
+                this._lastDisplayed.cargoPulse = cargoPulse;
+            }
+
+            if (this._lastDisplayed.cargoHidden) {
+                this.cargoElement.classList.remove('hidden');
+                this._lastDisplayed.cargoHidden = false;
             }
         }
     }

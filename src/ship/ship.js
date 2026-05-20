@@ -355,6 +355,14 @@ export class Ship extends GameObject {
     }
 
     /**
+     * Gets the ship's current cargo ratio.
+     * @returns {number} Cargo ratio from 0.0 (empty) to 1.0 (full).
+     */
+    get cargoRatio() {
+        return this.cargoCapacity > 0 ? this.cargoUsed / this.cargoCapacity : 0;
+    }
+
+    /**
      * Get how much of a given commodity is currently stored.
      * @param {string} type - CommodityType key
      * @returns {number} Quantity of the requested commodity in cargo.
@@ -1111,7 +1119,7 @@ export class Ship extends GameObject {
             for (const type of Object.keys(this.cargo)) {
                 const amount = this.getCargoAmount(type);
                 if (amount > 0) {
-                    const maxDump = Math.min(25, amount);
+                    const maxDump = Math.min(10, amount);
                     const dumpAmount = Math.floor(Math.random() * maxDump) + 1;
                     const removed = this.removeCargo(type, dumpAmount);
                     if (removed > 0) {
@@ -1157,7 +1165,7 @@ export class Ship extends GameObject {
         // Jettison cargo if process is active
         if (this.isJettisoningCargo) {
             this.nextJettisonTime += deltaTime;
-            const JETTISON_INTERVAL = 0.2; // 5 containers per second
+            const JETTISON_INTERVAL = 0.5; // 5 containers per second
             if (this.nextJettisonTime >= JETTISON_INTERVAL) {
                 this.nextJettisonTime -= JETTISON_INTERVAL;
                 if (!this.jettisonRandomCargoContainers(1)) {

@@ -18,10 +18,11 @@ export class UiDomWindowStats extends UiDomWindow {
         super(element);
         const hullElement = document.getElementById('stats-ui_hull');
         const shieldElement = document.getElementById('stats-ui_shield');
-        if (!hullElement || !shieldElement) {
+        const cargoElement = document.getElementById('stats-ui_cargo');
+        if (!hullElement || !shieldElement || !cargoElement) {
             throw new TypeError('Missing required element!');
         }
-        if (!(hullElement instanceof HTMLElement || shieldElement instanceof HTMLElement)) {
+        if (!(hullElement instanceof HTMLElement || shieldElement instanceof HTMLElement || cargoElement instanceof HTMLElement)) {
             throw new TypeError('Element not a HTMLElement');
         }
         /** @type {HTMLElement} The span for the docked object's name. */
@@ -30,15 +31,20 @@ export class UiDomWindowStats extends UiDomWindow {
         /** @type {HTMLElement} The span for the docked object's name. */
         this.shieldElement = shieldElement;
 
+        /** @type {HTMLElement} The element for the cargo bar. */
+        this.cargoElement = cargoElement;
+
         /** @type {GameManager} The game manager where we can find cameraTarget */
         this.gameManager = gameManager;
 
-        /** @type {{hull: number, hullPulse:boolean, shield: number, shieldPulse:boolean}} The last displayed values to avoid unnecessary DOM updates. */
+        /** @type {{hull: number, hullPulse:boolean, shield: number, shieldPulse:boolean, cargo: number, cargoPulse:boolean}} The last displayed values to avoid unnecessary DOM updates. */
         this._lastDisplayed = {
             hull: 0.0,
             hullPulse: false,
             shield: 0.0,
-            shieldPulse: false
+            shieldPulse: false,
+            cargo: 0.0,
+            cargoPulse: false
         };
     }
 
@@ -78,6 +84,22 @@ export class UiDomWindowStats extends UiDomWindow {
                 this.shieldElement.classList.remove('pulse');
             }
             this._lastDisplayed.shieldPulse = shieldPulse;
+        }
+
+        const cargo = clamp(Math.round(ship.cargoRatio * 100.0), 0, 100);
+        if (cargo !== this._lastDisplayed.cargo) {
+            this.cargoElement.style.setProperty('--percent', cargo.toString());
+            this._lastDisplayed.cargo = cargo;
+        }
+
+        const cargoPulse = ship.isJettisoningCargo;
+        if (cargoPulse !== this._lastDisplayed.cargoPulse) {
+            if (cargoPulse) {
+                this.cargoElement.classList.add('pulse');
+            } else {
+                this.cargoElement.classList.remove('pulse');
+            }
+            this._lastDisplayed.cargoPulse = cargoPulse;
         }
     }
 

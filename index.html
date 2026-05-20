@@ -631,6 +631,7 @@
             background: var(--bg);
             border-radius: var(--inner-radius);
             overflow: hidden;
+            outline: solid rgb(0, 0, 0, 0.25) 1px;
 
             box-shadow: 0 0 var(--row-height) color-mix(var(--bg, red) 40%, transparent);
 
@@ -735,6 +736,18 @@
             --bg: var(--colour-blue-dark);
             --charge-colour: var(--colour-green-blue-light);
 
+        }
+
+        #stats-ui_cargo {
+            --color: var(--colour-orange);
+            --bg: var(--colour-orange-dark);
+            --charge-colour: var(--colour-orange-light);
+        }
+
+        #target-ui_cargo {
+            --color: var(--colour-orange);
+            --bg: var(--colour-orange-dark);
+            --charge-colour: var(--colour-orange-light);
         }
 
         #target-ui .ui-stats-grid-bar-bar {
@@ -849,7 +862,7 @@
                         <div></div>
                     </div>
 
-                    <div class="ui-stats-grid-bar-row" id="target-ui_hull">
+                    <div class="ui-stats-grid-bar-row" id="target-ui_hull" style="--percent: 0;">
                         <div>
                             HULL
                         </div>
@@ -858,9 +871,18 @@
                         </div>
                         <div></div>
                     </div>
-                    <div class="ui-stats-grid-bar-row" id="target-ui_shield">
+                    <div class="ui-stats-grid-bar-row" id="target-ui_shield" style="--percent: 0;">
                         <div>
                             SHIELD
+                        </div>
+                        <div>
+                            <div class="ui-stats-grid-bar-bar"></div>
+                        </div>
+                        <div></div>
+                    </div>
+                    <div class="ui-stats-grid-bar-row" id="target-ui_cargo" style="--percent: 0;">
+                        <div>
+                            CARGO
                         </div>
                         <div>
                             <div class="ui-stats-grid-bar-bar"></div>
@@ -904,9 +926,9 @@
         <div id="log-ui-inner" class="inner"></div>
     </div>
 
-    <div id="stats-ui" draggable="true" class="ui-window tint-neutral" style="bottom: 10px; left: 25%; right: 25%; min-width: 208px; min-height:56px; max-height: 56px;">
+    <div id="stats-ui" draggable="true" class="ui-window tint-neutral" style="bottom: 10px; left: 25%; right: 25%; min-width: 208px; min-height:85px; max-height: 85px;">
         <div class="ui-stats-grid" style="margin: 2px;">
-            <div class="ui-stats-grid-bar-row" id="stats-ui_hull">
+            <div class="ui-stats-grid-bar-row" id="stats-ui_hull" style="--percent: 0;">
                 <div>
                     HULL
                 </div>
@@ -915,9 +937,18 @@
                 </div>
                 <div></div>
             </div>
-            <div class="ui-stats-grid-bar-row" id="stats-ui_shield">
+            <div class="ui-stats-grid-bar-row" id="stats-ui_shield" style="--percent: 0;">
                 <div>
                     SHIELD
+                </div>
+                <div>
+                    <div class="ui-stats-grid-bar-bar"></div>
+                </div>
+                <div></div>
+            </div>
+            <div class="ui-stats-grid-bar-row" id="stats-ui_cargo" style="--percent: 0;">
+                <div>
+                    CARGO
                 </div>
                 <div>
                     <div class="ui-stats-grid-bar-bar"></div>

@@ -9,8 +9,8 @@ This module is responsible for:
 - Advanced window management with full 8-way resizing, dragging, pinning to screen edges/center, show/hide, and faction-based tinting (`UiDomWindow`)
 - Docking interface with buttons for takeoff, repair, mining, and capture actions (`UiDomWindowDocking`)
 - In-game log display with automatic message fading and line limits (`UiDomWindowLog`)
-- Player ship status display (hull and shield bars) (`UiDomWindowStats`)
-- Target information display with faction tinting and status bars (`UiDomWindowTarget`)
+- Player ship status display (hull, shield, and cargo bars) (`UiDomWindowStats`)
+- Target information display with faction tinting, status bars hull, shield, and cargo, and distance (`UiDomWindowTarget`)
 
 ## Main files
 
@@ -34,8 +34,8 @@ This module is responsible for:
 - All specific windows extend `UiDomWindow` and override `update()` for state synchronization.
   - `UiDomWindowDocking`: Manages button states based on `DockingContext`, handles click events.
   - `UiDomWindowLog`: Adds log messages with fade-in/out animations, limits line count.
-  - `UiDomWindowStats`: Updates player ship's hull/shield percentages and pulse effects.
-  - `UiDomWindowTarget`: Displays target name, faction, hull/shield with tinting based on relationship.
+  - `UiDomWindowStats`: Updates player ship's hull, shield, and cargo (orange bar, pulses on jettison) percentages using diffing and CSS `--percent`.
+  - `UiDomWindowTarget`: Displays target name, faction, hull/shield/cargo with tinting based on relationship (cargo hidden for non-Ships).
 - Button states use an enum (`ButtonState`) for type safety: HIDDEN, ACTIVE, DISABLED.
 - DOM updates are diffed against last displayed values to minimize changes.
 - Tint classes (`tint-allied`, `tint-neutral`, `tint-hostile`, `tint-disabled`) are applied based on `FactionRelationship`.

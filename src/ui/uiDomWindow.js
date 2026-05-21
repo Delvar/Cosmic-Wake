@@ -127,6 +127,7 @@ export class UiDomWindow {
         this.element.style.top = `${Math.round(initialRect.top)}px`;
         this.element.style.bottom = 'unset';
         this.element.style.right = 'unset';
+        this.element.style.transform = 'unset';
 
         this._evaluatePinStateFromCurrentRect();
         this._syncInnerPosition();

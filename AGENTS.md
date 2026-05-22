@@ -25,6 +25,7 @@ Rules:
 - Do not add dependencies without explaining why existing dependencies are insufficient.
 - Prefer existing patterns over creating parallel patterns.
 - Keep changes small and focused.
+- Do not use shell/terminal commands or external scripting to edit workspace files unless the user explicitly requests it; use editor/file-system tools for code changes.
 - If docs and code disagree, treat the code as source of truth and mention that the docs may be stale.
 - Update relevant atlas docs when changing behaviors, app structure, testing approach, or important implementation patterns.
 - Before editing, provide a short plan listing files likely to change, tests to run, and risks.

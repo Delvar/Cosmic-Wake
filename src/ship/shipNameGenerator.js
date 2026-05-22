@@ -1,7 +1,7 @@
 // /src/ship/shipNameGenerator.js
 
-import { AiPilot } from "/src/pilot/aiPilot.js";
-import { Ship } from "/src/ship/ship.js";
+import { AiPilot } from '/src/pilot/aiPilot.js';
+import { Ship } from '/src/ship/ship.js';
 
 /**
  * Ship name generator module.

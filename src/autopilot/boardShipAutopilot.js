@@ -7,7 +7,7 @@ import { Vector2D } from '/src/core/vector2d.js';
 import { isValidTarget } from '/src/core/gameObject.js';
 import { normaliseAngle } from '/src/core/utils.js';
 import { GameManager } from '/src/core/game.js';
-import { PlayerPilot } from '/src/pilot/pilot.js';
+import { PlayerPilot } from '/src/pilot/playerPilot.js';
 
 /**
  * Autopilot that uses FlyToTargetAutopilot to approach a disabled ship, then initiate boarding to capture it.

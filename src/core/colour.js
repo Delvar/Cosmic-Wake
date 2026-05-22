@@ -1,6 +1,6 @@
 // /src/core/colour.js
 
-import { clamp } from "/src/core/utils.js";
+import { clamp } from '/src/core/utils.js';
 
 /**
  * Represents a color with red, green, blue, and alpha components.

@@ -6,7 +6,7 @@ import { normaliseAngle } from '/src/core/utils.js';
 import { ProjectileManager } from '/src/starSystem/projectileManager.js';
 import { isValidAttackTarget, Ship } from '/src/ship/ship.js';
 import { GameObject } from '/src/core/gameObject.js';
-import { PlayerPilot } from '/src/pilot/pilot.js';
+import { PlayerPilot } from '/src/pilot/playerPilot.js';
 
 /**
  * Represents an auto-aiming turret on a ship.

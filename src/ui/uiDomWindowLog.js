@@ -1,6 +1,6 @@
 // /src/ui/uiDomWindowLog.js
 
-import { UiDomWindow } from "/src/ui/uiDomWindow.js";
+import { UiDomWindow } from '/src/ui/uiDomWindow.js';
 
 /**
  * Manages an in-game log display with automatic message fading and line limits.

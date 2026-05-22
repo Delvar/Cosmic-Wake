@@ -7,7 +7,7 @@ import { Ship } from '/src/ship/ship.js';
 import { createRandomShip, createRandomFastShip, StarBarge, Freighter, Boxwing, Interceptor, Fighter } from '/src/ship/shipTypes.js';
 import { StarField } from '/src/camera/starField.js';
 import { HeadsUpDisplay } from '/src/camera/headsUpDisplay.js';
-import { PlayerPilot } from '/src/pilot/pilot.js';
+import { PlayerPilot } from '/src/pilot/playerPilot.js';
 import { createGalaxy } from '/src/core/galaxy.js';
 import { isValidTarget } from '/src/core/gameObject.js';
 import { AiPilot } from '/src/pilot/aiPilot.js';
@@ -637,7 +637,7 @@ export class GameManager {
     }
 
     /**
-     * Spawns or despawns AI ships based on system limits and timing.
+     * Spawn or despawn AI ships based on system limits and timing.
      * @param {number} currentTime - Current time in milliseconds.
      */
     spawnAiShipsIfNeeded(currentTime) {
@@ -645,7 +645,7 @@ export class GameManager {
         // Quick hack to test cargo containers by dropping them from the player
         //this.playerShip.starSystem.cargoManager.spawn(this.playerShip.position, this.playerShip.velocity, CommodityType.FOOD, 1);
 
-        // Get total number of ships, ensure we ddont have too many galaxy wide.
+        // Get total number of ships, ensure we do not have too many galaxy wide.
         let totalShipCount = 0;
         let totalMaxAiShips = 0;
         this.galaxy.forEach(system => {

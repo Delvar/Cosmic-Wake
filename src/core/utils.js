@@ -1,6 +1,6 @@
 // /src/core/utils.js
 
-import { Colour } from "/src/core/colour.js";
+import { Colour } from '/src/core/colour.js';
 
 /**
  * A constant representing 2 * π, used for angle calculations.

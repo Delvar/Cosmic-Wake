@@ -1,12 +1,12 @@
 // /src/job/escortJob.js
 
-import { AttackAutopilot } from "/src/autopilot/attackAutopilot.js";
+import { AttackAutopilot } from '/src/autopilot/attackAutopilot.js';
 import { EscortAutopilot } from '/src/autopilot/escortAutopilot.js';
-import { GameManager } from "/src/core/game.js";
-import { isValidTarget } from "/src/core/gameObject.js";
-import { Job } from "/src/job/job.js";
-import { AiPilot } from "/src/pilot/aiPilot.js";
-import { Ship } from "/src/ship/ship.js";
+import { GameManager } from '/src/core/game.js';
+import { isValidTarget } from '/src/core/gameObject.js';
+import { Job } from '/src/job/job.js';
+import { AiPilot } from '/src/pilot/aiPilot.js';
+import { Ship } from '/src/ship/ship.js';
 
 /**
  * A job that makes a ship escort another, attacking threats if the escorted ship is attacked.

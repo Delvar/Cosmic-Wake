@@ -1,8 +1,8 @@
 // /src/job/job.js
 
-import { GameManager } from "/src/core/game.js";
-import { AiPilot } from "/src/pilot/aiPilot.js";
-import { Ship } from "/src/ship/ship.js";
+import { GameManager } from '/src/core/game.js';
+import { AiPilot } from '/src/pilot/aiPilot.js';
+import { Ship } from '/src/ship/ship.js';
 
 /**
  * Base class for all job types, providing common job functionality.

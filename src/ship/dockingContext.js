@@ -1,15 +1,15 @@
 // /src/ship/dockingContext.js
 
-import { Ship } from "/src/ship/ship.js";
-import { Asteroid } from "/src/starSystem/asteroidBelt.js";
-import { CelestialBody } from "/src/starSystem/celestialBody.js";
-import { PlayerPilot } from "/src/pilot/pilot.js";
-import { AiPilot } from "/src/pilot/aiPilot.js";
-import { OfficerAiPilot } from "/src/pilot/officerAiPilot.js";
-import { CivilianAiPilot } from "/src/pilot/civilianAiPilot.js";
-import { EscortJob } from "/src/job/escortJob.js";
-import { DespawnJob } from "/src/job/despawnJob.js";
-import { LandOnPlanetDespawnAutopilot } from "/src/autopilot/landOnPlanetDespawnAutopilot.js";
+import { Ship } from '/src/ship/ship.js';
+import { Asteroid } from '/src/starSystem/asteroidBelt.js';
+import { CelestialBody } from '/src/starSystem/celestialBody.js';
+import { PlayerPilot } from '/src/pilot/playerPilot.js';
+import { AiPilot } from '/src/pilot/aiPilot.js';
+import { OfficerAiPilot } from '/src/pilot/officerAiPilot.js';
+import { CivilianAiPilot } from '/src/pilot/civilianAiPilot.js';
+import { EscortJob } from '/src/job/escortJob.js';
+import { DespawnJob } from '/src/job/despawnJob.js';
+import { LandOnPlanetDespawnAutopilot } from '/src/autopilot/landOnPlanetDespawnAutopilot.js';
 
 /**
  * DockingContext represents the in-game context for a landed or docked ship.

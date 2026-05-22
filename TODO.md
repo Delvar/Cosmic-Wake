@@ -22,6 +22,7 @@
 - [X] **Cargo jettisoning from destroyed ships** - Any cargo onboard gets jettisoned as it explodes.
 - [X] **Cargo mining** - When mining, add extracted raw materials such as ore and rock directly to the ship's cargo hold.
 - [ ] **Cargo capture when boarding** - During boarding, allow the player and AI to seize cargo and transfer it between ships.
+- [ ] **Dock with non-disabled ships** Allow docking with other non-disabled ships (for example escorts) to trade or transfer cargo, or to take control of other ships when appropriate. This complements the ship-to-ship docking refactor and expands in-system interaction.
 
 ## Economy & Trading
 
@@ -44,6 +45,9 @@
 - [X] **Fix WandererJob route/landing bug** - WandererJob currently shuttles between systems without landing on planets; rewrite route selection and state transitions to ensure planet landing behaviors.
 - [X] **Limit civilian cargo pickup range** Currently they are too eager to pickup cargo, instead of pure range check it should be base don time to travel, see too many freighters trying to waddle over and pickup cargo only to miss out.
 - [X] **Tone down ship Separation** Ship separation is too strong near planets, often causing them to wobble on landing or take off, looks bad, need to reduce the push factor close to planets.
+- [ ] **Escort attack coordination** When the lead ship attacks a target, have all escorts also attack the same target. If an escort is already attacking another ship, determine which target is closer to the lead ship and, if the new target is closer, switch the escort to the new target.
+- [ ] **Escort attack break-off** Prevent escorts from chasing targets too far from the lead ship: add a check in the `Pilot` to break off attacks if they are more than *X* seconds away from the lead ship, then return to formation or pick a closer target. Escorts should chase off pirates but not necessarily hunt them down across the system.
+- [ ] **Escort formation arrangement** Have escorts arrange themselves around the lead ship when following (formation offsets, spacing rules) to avoid overlap and spread evenly.
 
 ## User Interface
 
@@ -52,6 +56,9 @@
 - [ ] **Planet ship market UI** - Build a ship market interface for viewing available ships, comparing stats, and purchasing or swapping ships while landed.
 - [ ] **Boarding action window** - When boarding another ship, present a dedicated window with actions to capture the ship, take cargo, repair it, or destroy it.
 - [ ] **Boarding action outcomes** - Back the boarding window with actual boarding rules, validation, and consequences for each option, including ownership transfer and cargo movement.
+- [ ] **Top-of-screen status HUD** - Add a top-of-screen UI bar that displays the current system, date and time, FPS, ship name, and autopilot status.
+- [ ] **Escort list & status window** - Provide a quick way to view a list of escorts from the lead ship (owner view). Enables features such as pirates avoiding well-escorted ships, pirates grouping to form ad-hoc fleets, and a UI window showing escort statuses (fuel, hull, cargo, orders).
+- [ ] **Switch control to captured ship** - When capturing a ship, provide an option to switch control to the newly captured ship (player choice) as part of the boarding actions.
 - [ ] **Ship communications window** - Add a communications window for interacting with other ships and stations during flight.
 - [ ] **Distress and surrender comms actions** - Support communication actions for begging for help when out of fuel or damaged, and for surrendering to pirates or planetary defence forces.
 - [ ] **Comms response system** - Create the response logic so ships and factions can react differently to hails, distress calls, demands, and surrender attempts.
@@ -83,10 +90,11 @@
 
 - [ ] **Fix Docking with disabled ship** <a id="fix-Docking-with-disabled-ship">[↩](#fix-Docking-with-disabled-ship)</a> When boarding a ship, another ship can also board the same ship and captures it and it starts moving off, first limit the number of ships that can dock to 1, also check if the docked ship is now not disabled, is moving etc so undock automatically. Related To: [Refactor ship-to-ship docking system](#refactor-ship-to-ship-docking-system)
 - [X] **Fix disabled ship shield restarting** - the shields on disabled ships restart, they should be deactivated completely.
- - [ ] **Fix Zombie escort ship** <a id="fix-Zombie-escort-ship">[↩](#fix-Zombie-escort-ship)</a> - escorts sometimes end up in Landed state but still drawn in System, green flashing lights, no movement as not Flying.
- - [ ] **Fix officer piggybacking during player capture** - When an officer boards a ship captured by the player, the officer can remain attached to the captured ship (piggyback) and incorrectly stay over the planet while the ship is docked or landed; investigate docking/undocking and state transitions so officers properly detach after capture. Related To: [Refactor ship-to-ship docking system](#refactor-ship-to-ship-docking-system)
- - [ ] **Align escorts to velocity or leader facing** - When escort ships match velocity with their escorted ship, rotate escorts to face their movement (velocity) vector or align them to the escorted ship's facing to avoid visually jarring orientations.
- - [ ] **Investigate ships rendered at zero scale** - Investigate cases where ships are drawn at a 0 scale (resulting in invisible or incorrect rendering); find the root cause and determine whether this is related to the zombie escort bug. Related To: [Fix Zombie escort ship](#fix-Zombie-escort-ship)
+- [ ] **Fix Zombie escort ship** <a id="fix-Zombie-escort-ship">[↩](#fix-Zombie-escort-ship)</a> - escorts sometimes end up in Landed state but still drawn in System, green flashing lights, no movement as not Flying.
+- [ ] **Fix officer piggybacking during player capture** - When an officer boards a ship captured by the player, the officer can remain attached to the captured ship (piggyback) and incorrectly stay over the planet while the ship is docked or landed; investigate docking/undocking and state transitions so officers properly detach after capture. Related To: [Refactor ship-to-ship docking system](#refactor-ship-to-ship-docking-system)
+- [ ] **Align escorts to velocity or leader facing** - When escort ships match velocity with their escorted ship, rotate escorts to face their movement (velocity) vector or align them to the escorted ship's facing to avoid visually jarring orientations.
+- [ ] **Investigate ships rendered at zero scale** - Investigate cases where ships are drawn at a 0 scale (resulting in invisible or incorrect rendering); find the root cause and determine whether this is related to the zombie escort bug. Related To: [Fix Zombie escort ship](#fix-Zombie-escort-ship)
+- [ ] **In-flight emergency repairs** - Add an option for emergency repairs in flight that forces a complete stop and slowly recovers hull over time. When docked with other ships (disabled or otherwise), allow quicker repair rates and support coordinated repair actions.
 
 ## Refactor
 

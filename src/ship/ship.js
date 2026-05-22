@@ -688,6 +688,10 @@ export class Ship extends GameObject {
      * @returns {void}
      */
     applyBrakes(braking) {
+        //When we stop breaking we also clear the turning
+        if (this.isBraking && !braking) {
+            this.setTargetAngle(this.angle);
+        }
         this.isBraking = braking;
     }
 
@@ -1174,21 +1178,34 @@ export class Ship extends GameObject {
             }
         }
 
+
+        if (this.isBraking) {
+            // Align the desired facing with the opposite of the current velocity vector
+            if (this.velocity.squareMagnitude() > 0.0) {
+                const velAngle = Math.atan2(-this.velocity.x, this.velocity.y);
+                this.setTargetAngle(velAngle);
+            }
+        }
+
         // Rotate towards target angle
         const angleDiff = normaliseAngle(this.targetAngle - this.angle);
         this.angle += Math.min(Math.max(angleDiff, -this.rotationSpeed * deltaTime), this.rotationSpeed * deltaTime);
         this.angle = normaliseAngle(this.angle);
 
+        if (this.isBraking && Math.abs(angleDiff) < 0.01) {
+            console.log(angleDiff);
+            //If we are slower tan 1 frame of acceleration come to a complete stop
+            if (this.velocity.squareMagnitude() < (((1.0 / 60.0) * this.thrust) ** 2)) {
+                this.velocity.set(Vector2D.Zero);
+            } else {
+                this.isThrusting = true;
+            }
+        }
+
         if (this.isThrusting) {
             // Apply thrust in the direction the ship is facing
             this._scratchThrustVector.set(Math.sin(this.angle), -Math.cos(this.angle)).multiplyInPlace(this.thrust * deltaTime);
             this.velocity.addInPlace(this._scratchThrustVector);
-        } else if (this.isBraking) {
-            // Align with velocity direction to slow down
-            const velAngle = Math.atan2(-this.velocity.x, this.velocity.y);
-            const brakeAngleDiff = normaliseAngle(velAngle - this.angle);
-            this.angle += brakeAngleDiff * this.rotationSpeed * deltaTime;
-            this.angle = normaliseAngle(this.angle);
         }
 
         // Cap velocity to maxVelocity

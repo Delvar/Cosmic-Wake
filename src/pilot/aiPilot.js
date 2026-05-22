@@ -409,7 +409,9 @@ export class AiPilot extends Pilot {
         // Resume the job when entering Job state
         if (newState === 'Job') {
             if (!this.job) {
-                throw new TypeError('this.job missing on Pilot');
+                this.debugLog(() => console.warn(`${this.constructor.name}: changeState('Job') without job, routing to Despawning`));
+                this.changeState('Despawning', new LandOnPlanetDespawnAutopilot(this.ship));
+                return;
             }
             this.job.resume();
         } else {

@@ -8,6 +8,7 @@ import { AiPilot } from "/src/pilot/aiPilot.js";
 import { OfficerAiPilot } from "/src/pilot/officerAiPilot.js";
 import { CivilianAiPilot } from "/src/pilot/civilianAiPilot.js";
 import { EscortJob } from "/src/job/escortJob.js";
+import { DespawnJob } from "/src/job/despawnJob.js";
 import { LandOnPlanetDespawnAutopilot } from "/src/autopilot/landOnPlanetDespawnAutopilot.js";
 
 /**
@@ -178,8 +179,8 @@ export class DockingContext {
             pilot.setJob(new EscortJob(boardedShip, pilot, this.ship));
             boardedShip.setPilot(pilot);
         } else if (this.ship.pilot instanceof AiPilot) {
-            boardedShip.pilot = new CivilianAiPilot(boardedShip);
             const pilot = new CivilianAiPilot(boardedShip);
+            pilot.setJob(new DespawnJob(boardedShip, pilot));
             pilot.changeState('Despawning', new LandOnPlanetDespawnAutopilot(boardedShip));
             boardedShip.setPilot(pilot);
         }
